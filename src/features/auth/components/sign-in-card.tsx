@@ -14,7 +14,9 @@ import { Separator } from "@/components/ui/separator";
 import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { SignInFlow } from "../types";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
+import { authApi } from "@/lib/api/auth";
+import { createClient } from "@/lib/supabase/client";
 
 interface SignInCardProps {
   setState: (state: SignInFlow) => void;
@@ -24,6 +26,7 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const supabase = createClient();
 
   const form = useForm({
     defaultValues: {
@@ -38,35 +41,25 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
       setError("");
 
       try {
-        const response = await fetch("/api/auth/sign-in", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        });
-
-        const result = await response.json();
+        const response = await authApi.signIn({ email, password });
+        const result = response.data;
 
         if (result.success) {
-          // Store session data
-          localStorage.setItem(
-            "supabase-session",
-            JSON.stringify(result.data.session)
-          );
-          localStorage.setItem(
-            "user-profile",
-            JSON.stringify(result.data.profile)
-          );
+          // IMPORTANT: Set the session with Supabase client to propagate to cookies
+          await supabase.auth.setSession({
+            access_token: result.data.session.access_token,
+            refresh_token: result.data.session.refresh_token,
+          });
 
           // Redirect to dashboard or intended page
           router.push("/dashboard");
+          router.refresh();
         } else {
           setError(result.error || "Invalid email or password");
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Sign in error:", err);
-        setError("Something went wrong. Please try again.");
+        setError(err.response?.data?.error || "Something went wrong. Please try again.");
       } finally {
         setSigningIn(false);
       }
@@ -78,28 +71,17 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          redirectTo: `${window.location.origin}/auth/callback`,
-        }),
-      });
+      const response = await authApi.googleSignIn(
+        `${window.location.origin}/auth/callback`
+      );
 
-      const result = await response.json();
+      const result = response.data;
 
-      if (result.success) {
-        // Redirect to Google OAuth
-        window.location.href = result.data.url;
-      } else {
-        setError(result.error || "Failed to initiate Google sign in");
-        setSigningIn(false);
-      }
-    } catch (err) {
+      // Redirect to Google OAuth
+      window.location.href = result.url;
+    } catch (err: any) {
       console.error("Google sign in error:", err);
-      setError("Failed to sign in with Google. Please try again.");
+      setError(err.response?.data?.error || "Failed to sign in with Google. Please try again.");
       setSigningIn(false);
     }
   };
@@ -110,27 +92,16 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
 
     try {
       // If you implement GitHub OAuth later
-      const response = await fetch("/api/auth/github", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          redirectTo: `${window.location.origin}/auth/callback`,
-        }),
-      });
+      const response = await authApi.githubSignIn(
+        `${window.location.origin}/auth/callback`
+      );
 
-      const result = await response.json();
+      const result = response.data;
 
-      if (result.success) {
-        window.location.href = result.data.url;
-      } else {
-        setError(result.error || "Failed to initiate GitHub sign in");
-        setSigningIn(false);
-      }
-    } catch (err) {
+      window.location.href = result.url;
+    } catch (err: any) {
       console.error("GitHub sign in error:", err);
-      setError("GitHub sign in is not available yet.");
+      setError(err.response?.data?.error || "GitHub sign in is not available yet.");
       setSigningIn(false);
     }
   };

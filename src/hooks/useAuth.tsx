@@ -1,5 +1,6 @@
-import { useState, useEffect, createContext, useContext } from "react";
-import { useRouter } from "next/router";
+import React, { useState, useEffect, createContext, useContext } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 interface User {
   id: string;
@@ -31,75 +32,70 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
-    // Load session from localStorage on mount
-    const loadSession = () => {
+    const loadSession = async () => {
       try {
-        const storedSession = localStorage.getItem("supabase-session");
-        const storedProfile = localStorage.getItem("user-profile");
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
-        if (storedSession && storedProfile) {
-          setSession(JSON.parse(storedSession));
-          setUser(JSON.parse(storedProfile));
+        if (session) {
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError) throw userError;
+
+          setUser(user as User);
+          setSession(session as Session);
+        } else {
+          setUser(null);
+          setSession(null);
         }
       } catch (error) {
         console.error("Error loading session:", error);
+        setUser(null);
+        setSession(null);
       } finally {
         setLoading(false);
       }
     };
 
     loadSession();
-  }, []);
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        if (currentSession) {
+          const { data: { user } } = await supabase.auth.getUser();
+          setUser(user as User);
+          setSession(currentSession as Session);
+        } else {
+          setUser(null);
+          setSession(null);
+        }
+        if (event === "SIGNED_OUT") {
+          router.push("/auth/login");
+        }
+      }
+    );
+
+    return () => {
+      authListener?.unsubscribe();
+    };
+  }, [router, supabase]);
 
   const signOut = async () => {
     try {
-      // Call your sign out API
-      await fetch("/api/auth/sign-out", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     } catch (error) {
       console.error("Sign out error:", error);
-    } finally {
-      // Clear local storage and state
-      localStorage.removeItem("supabase-session");
-      localStorage.removeItem("user-profile");
-      setUser(null);
-      setSession(null);
-      router.push("/auth/login");
     }
   };
 
   const refreshSession = async () => {
-    if (!session?.refresh_token) return;
-
     try {
-      const response = await fetch("/api/auth/refresh", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          refresh_token: session.refresh_token,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setSession(result.data.session);
-        localStorage.setItem(
-          "supabase-session",
-          JSON.stringify(result.data.session)
-        );
-      } else {
-        // Refresh failed, sign out
-        await signOut();
-      }
+      const { data: { session }, error } = await supabase.auth.refreshSession();
+      if (error) throw error;
+      setSession(session as Session);
     } catch (error) {
       console.error("Refresh error:", error);
       await signOut();

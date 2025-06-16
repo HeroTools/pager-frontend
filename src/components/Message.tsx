@@ -1,14 +1,13 @@
 import dayjs, { Dayjs } from "dayjs";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import { Delta } from "quill";
 
-import { useRemoveMessage } from "@/features/messages/api/useRemoveMessage";
-import { useUpdateMessage } from "@/features/messages/api/useUpdateMessage";
-import { useToggleReaction } from "@/features/reactions/api/useToggleReaction";
+import { useCreateMessage, useUpdateMessage, useDeleteMessage } from "@/features/messages/api/useMessages";
+import { useToggleReaction } from "@/features/reactions/api/useReactions";
 import { useConfirm } from "@/hooks/useConfirm";
 import { usePanel } from "@/hooks/usePanel";
 import { cn } from "@/lib/utils";
-import { Doc, Id } from "../../convex/_generated/dataModel";
 import { Hint } from "./Hint";
 import { Reactions } from "./Reactions";
 import { ThreadBar } from "./ThreadBar";
@@ -20,21 +19,22 @@ const Renderer = dynamic(() => import("@/components/Renderer"), { ssr: false });
 const Editor = dynamic(() => import("@/components/Editor"), { ssr: false });
 
 interface MessageProps {
-  id: Id<"messages">;
-  memberId: Id<"members">;
+  id: string;
+  channelId: string;
+  memberId: string;
   authorImage?: string;
   authorName?: string;
   isAuthor: boolean;
-  reactions: Array<
-    Omit<Doc<"reactions">, "memberId"> & {
-      count: number;
-      memberIds: Id<"members">[];
-    }
-  >;
-  body: Doc<"messages">["body"];
+  reactions: Array<{
+    id: string;
+    emoji: string;
+    count: number;
+    memberIds: string[];
+  }>;
+  body: string;
   image?: string | null;
-  createdAt: Doc<"messages">["_creationTime"];
-  updatedAt: Doc<"messages">["updatedAt"];
+  createdAt: number;
+  updatedAt: number;
   isEditing: boolean;
   isCompact?: boolean;
   hideThreadButton?: boolean;
@@ -42,7 +42,7 @@ interface MessageProps {
   threadImage?: string;
   threadTimestamp?: number;
   threadName?: string;
-  setEditingId: (id: Id<"messages"> | null) => void;
+  setEditingId: (id: string | null) => void;
 }
 
 const formatFullTime = (date: Dayjs) => {
@@ -53,6 +53,7 @@ const formatFullTime = (date: Dayjs) => {
 
 export const Message = ({
   body,
+  channelId,
   createdAt,
   id,
   isEditing,
@@ -82,25 +83,26 @@ export const Message = ({
     "Are you sure you want to delete this message? This cannot be undone"
   );
   const updateMessage = useUpdateMessage();
-  const removeMessage = useRemoveMessage();
-  const toggleReaction = useToggleReaction();
+  const deleteMessage = useDeleteMessage();
+  const toggleReaction = useToggleReaction(id);
 
   const isPending =
     updateMessage.isPending ||
-    removeMessage.isPending ||
+    deleteMessage.isPending ||
     toggleReaction.isPending;
 
   const handleUpdate = ({ body }: { body: string }) => {
     updateMessage
       .mutateAsync({
-        id,
-        body,
+        channelId,
+        messageId: id,
+        content: body,
       })
       .then(() => {
         toast.success("Message updated");
         setEditingId(null);
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         console.error(error);
         toast.error("Failed to update message");
       });
@@ -110,9 +112,10 @@ export const Message = ({
     const ok = await confirm();
     if (!ok) return;
 
-    removeMessage
+    deleteMessage
       .mutateAsync({
-        id,
+        channelId,
+        messageId: id,
       })
       .then(() => {
         toast.success("Message deleted");
@@ -122,19 +125,18 @@ export const Message = ({
           closeMessage();
         }
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         console.error(error);
         toast.error("Failed to delete message");
       });
   };
 
-  const handleReaction = (value: string) => {
+  const handleReaction = (emoji: string) => {
     toggleReaction
       .mutateAsync({
-        messageId: id,
-        value,
+        emoji,
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         console.error(error);
         toast.error("Failed to toggle reaction");
       });
@@ -148,7 +150,7 @@ export const Message = ({
           className={cn(
             "flex flex-col gap-2 p-1.5 px-5 hover:bg-gray-100/60 group relative",
             isEditing && "bg-[#F2C74433] hover:bg-[#F2C74433]",
-            removeMessage.isPending &&
+            deleteMessage.isPending &&
               "bg-rose-500/50 transform transition-all scale-y-0 origin-bottom duration-200"
           )}
         >
@@ -162,8 +164,8 @@ export const Message = ({
               <div className="w-full h-full">
                 <Editor
                   onSubmit={handleUpdate}
-                  disabled={isPending}
                   defaultValue={JSON.parse(body)}
+                  disabled={isPending}
                   onCancel={() => setEditingId(null)}
                   variant="update"
                 />
@@ -177,7 +179,7 @@ export const Message = ({
                     (edited)
                   </span>
                 ) : null}
-                <Reactions data={reactions} onChange={handleReaction} />
+                <Reactions messageId={id} data={reactions} />
                 <ThreadBar
                   count={threadCount}
                   image={threadImage}
@@ -206,78 +208,56 @@ export const Message = ({
 
   return (
     <>
-      <ConfirmDialog />
-      <div
-        className={cn(
-          "flex flex-col gap-2 p-1.5 px-5 hover:bg-gray-100/60 group relative",
-          isEditing && "bg-[#F2C74433] hover:bg-[#F2C74433]",
-          removeMessage.isPending &&
-            "bg-rose-500/50 transform transition-all scale-y-0 origin-bottom duration-200"
-        )}
-      >
-        <div className="flex items-start gap-2">
-          <button onClick={() => openProfile(memberId)}>
-            <Avatar>
-              <AvatarImage src={authorImage} />
-              <AvatarFallback>
-                {authorName?.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </button>
-          {isEditing ? (
-            <div className="w-full h-full">
-              <Editor
-                onSubmit={handleUpdate}
-                disabled={isPending}
-                defaultValue={JSON.parse(body)}
-                onCancel={() => setEditingId(null)}
-                variant="update"
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col w-full overflow-hidden">
-              <div className="text-sm">
-                <button
-                  className="font-bold text-primary hover:underline"
-                  onClick={() => openProfile(memberId)}
-                >
-                  {authorName}
-                </button>
-                <span>&nbsp;&nbsp;</span>
-                <Hint label={formatFullTime(dayjs(createdAt))}>
-                  <button className="text-xs text-muted-foreground hover:underline">
-                    {dayjs(createdAt).format("h:mm a")}
-                  </button>
-                </Hint>
-              </div>
-              <Renderer value={body} />
+      <div className="group relative flex items-start gap-x-2 p-4 hover:bg-slate-100/50">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={authorImage} />
+          <AvatarFallback>{authorName[0]}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-x-2">
+            <p className="text-sm font-semibold">{authorName}</p>
+            <p className="text-xs text-muted-foreground">
+              {dayjs(createdAt).format("MMM D, YYYY h:mm A")}
+            </p>
+          </div>
+          {image && (
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg">
               <Thumbnail url={image} />
-              {updatedAt ? (
-                <span className="text-xs text-muted-foreground">(edited)</span>
-              ) : null}
-              <Reactions data={reactions} onChange={handleReaction} />
-              <ThreadBar
-                count={threadCount}
-                image={threadImage}
-                name={threadName}
-                timestamp={threadTimestamp}
-                onClick={() => openMessage(id)}
-              />
             </div>
           )}
+          {isEditing ? (
+            <Editor
+              onSubmit={handleUpdate}
+              defaultValue={JSON.parse(body)}
+              disabled={isPending}
+              onCancel={() => setEditingId(null)}
+              variant="update"
+            />
+          ) : (
+            <Renderer value={body} />
+          )}
+          <Reactions messageId={id} data={reactions} />
+          {!hideThreadButton && (
+            <ThreadBar
+              onClick={() => openMessage(id)}
+              count={threadCount}
+              image={threadImage}
+              timestamp={threadTimestamp}
+              name={threadName}
+            />
+          )}
         </div>
-        {!isEditing && (
-          <Toolbar
-            isAuthor={isAuthor}
-            isPending={isPending}
-            hideThreadButton={hideThreadButton}
-            onEdit={() => setEditingId(id)}
-            onThread={() => openMessage(id)}
-            onDelete={handleRemove}
-            onReaction={handleReaction}
-          />
-        )}
+        <Toolbar
+          isAuthor={isAuthor}
+          isPending={isPending}
+          hideThreadButton={hideThreadButton}
+          onEdit={() => setEditingId(id)}
+          onThread={() => openMessage(id)}
+          onDelete={handleRemove}
+          onReaction={handleReaction}
+        />
       </div>
+      <ConfirmDialog />
     </>
   );
 };

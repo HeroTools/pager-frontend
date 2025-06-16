@@ -18,7 +18,10 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.39.7",
+    "@tailwindcss/typography": "^0.5.0-alpha.3",
     "@tanstack/react-query": "^5.80.7",
+    "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",
@@ -38,16 +41,17 @@
     "react-verification-input": "^4.2.2",
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.10",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
-    "postcss": "^8",
+    "postcss": "^8.5.6",
     "tailwindcss": "^4.1.10",
     "typescript": "^5"
   }
