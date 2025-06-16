@@ -15,8 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useRemoveWorkspace } from "@/features/workspaces/api/useDeleteWorkspace";
-import { useUpdateWorkspace } from "@/features/workspaces/api/useUpdateWorkspace";
+import { useDeleteWorkspace, useUpdateWorkspace } from "@/features/workspaces/api/useWorkspaces";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
 import { useConfirm } from "@/hooks/useConfirm";
 
@@ -48,7 +47,7 @@ export const PreferenceModal = ({
   const value = form.watch("name");
 
   const updateWorkspace = useUpdateWorkspace();
-  const removeWorkspace = useRemoveWorkspace();
+  const removeWorkspace = useDeleteWorkspace();
 
   const handleClose = () => {
     setOpen(false);
@@ -56,10 +55,14 @@ export const PreferenceModal = ({
   };
 
   const handleUpdateWorkspace = form.handleSubmit(async ({ name }) => {
+    if (!workspaceId) {
+      toast.error("Workspace ID not found.");
+      return;
+    }
     try {
       await updateWorkspace.mutateAsync({
-        id: workspaceId,
-        name,
+        id: workspaceId as string,
+        data: { name },
       });
       setEditOpen(false);
       toast.success("Workspace updated");
@@ -72,10 +75,12 @@ export const PreferenceModal = ({
   const handleRemoveWorkspace = async () => {
     const ok = await confirm();
     if (!ok) return;
+    if (!workspaceId) {
+      toast.error("Workspace ID not found.");
+      return;
+    }
     try {
-      await removeWorkspace.mutateAsync({
-        id: workspaceId,
-      });
+      await removeWorkspace.mutateAsync(workspaceId as string);
       toast.success("Workspace removed");
       router.replace("/");
     } catch (error) {

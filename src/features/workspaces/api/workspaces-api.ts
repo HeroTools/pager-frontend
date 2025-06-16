@@ -38,6 +38,14 @@ export interface JoinCodeResponse {
   error?: string;
 }
 
+// Represents the successful payload when a workspace is created
+export interface CreateWorkspaceSuccessPayload {
+  workspaceId: string;
+}
+
+// Represents the full API response for workspace creation (success or error)
+export type CreateWorkspaceResponse = CreateWorkspaceSuccessPayload | { error: string };
+
 export const workspacesApi = {
   getWorkspaces: (): Promise<AxiosResponse<WorkspacesResponse>> => {
     return axiosInstance.get('/workspaces');
@@ -47,7 +55,7 @@ export const workspacesApi = {
     return axiosInstance.get(`/workspaces/${id}`);
   },
 
-  createWorkspace: (data: CreateWorkspaceData): Promise<AxiosResponse<WorkspaceResponse>> => {
+  createWorkspace: (data: CreateWorkspaceData): Promise<AxiosResponse<CreateWorkspaceResponse>> => {
     return axiosInstance.post('/workspaces', data);
   },
 

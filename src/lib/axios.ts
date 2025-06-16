@@ -1,4 +1,29 @@
+/**
+ * Axios Instance Configuration
+ * 
+ * This file exports a configured Axios instance that:
+ * - Adds authentication tokens to requests
+ * - Manages refresh tokens in cookies
+ * - Handles specific error cases with appropriate responses
+ * - Redirects to login on authentication failures
+ * 
+ * Error Handling:
+ * - 401: Attempts token refresh, redirects to login if failed
+ * - 403: Handles permission issues
+ * - 404: Handles not found resources
+ * - 500: Handles server errors
+ * 
+ * Usage:
+ * ```typescript
+ * import { axiosInstance } from '@/lib/axios';
+ * 
+ * // Make authenticated requests
+ * const response = await axiosInstance.get('/api/protected-route');
+ * ```
+ */
+
 import axios from "axios";
+import { createClient } from "./supabase/client";
 
 // Helper function to get cookie value
 const getCookie = (name: string): string | null => {
@@ -56,26 +81,27 @@ export const axiosInstance = axios.create({
   },
 });
 
-// Request interceptor
+// Add request interceptor to add auth token
 axiosInstance.interceptors.request.use(
-  (config) => {
-    // Get the idToken from cookies
-    const idToken = getCookie("idToken");
-    if (idToken) {
-      config.headers.Authorization = `Bearer ${idToken}`;
+  async (config) => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
     }
+    
     return config;
   },
   (error) => {
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor
+// Add response interceptor to handle auth errors
 axiosInstance.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
@@ -84,65 +110,73 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Get the refresh token from cookies
-        const refreshToken = getCookie("refreshToken");
+        const supabase = createClient();
+        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
 
-        if (!refreshToken) {
-          console.warn("No refresh token found, logging out");
-          handleLogout();
-          return Promise.reject(new Error("No refresh token available"));
+        if (refreshError) {
+          console.error('Token refresh failed:', {
+            message: refreshError.message,
+            status: refreshError.status,
+          });
+          throw refreshError;
         }
 
-        console.log("Attempting to refresh token...");
-
-        // Call refresh token endpoint
-        const response = await axiosInstance.post("/auth/refresh", {
-          refresh_token: refreshToken,
-        });
-
-        // Check if refresh was successful
-        if (response.data.success && response.data.data?.session) {
-          const { session } = response.data.data;
-
-          console.log("Token refresh successful");
-
-          // Update tokens in cookies
-          setCookie("idToken", session.access_token);
-          setCookie("refreshToken", session.refresh_token);
-
-          // Retry the original request with new token
+        if (session?.access_token) {
           originalRequest.headers.Authorization = `Bearer ${session.access_token}`;
           return axiosInstance(originalRequest);
-        } else {
-          // Refresh endpoint returned success: false or no session
-          console.error(
-            "Refresh endpoint returned invalid response:",
-            response.data
-          );
-          handleLogout();
-          return Promise.reject(new Error("Invalid refresh response"));
         }
+
+        // If no session after refresh, redirect to login
+        window.location.href = "/login";
+        return Promise.reject(new Error("No session available"));
       } catch (refreshError: any) {
-        // Log the specific error for debugging
         console.error("Token refresh failed:", {
           message: refreshError.message,
           status: refreshError.response?.status,
           data: refreshError.response?.data,
         });
 
-        // Handle specific error cases
-        if (refreshError.response?.status === 401) {
-          console.warn("Refresh token invalid or expired, logging out");
-        } else if (refreshError.response?.status >= 500) {
-          console.error("Server error during refresh, logging out");
-        } else {
-          console.error("Unknown refresh error, logging out");
-        }
-
-        // Always log out on refresh failure
-        handleLogout();
+        // Redirect to login on refresh failure
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       }
+    }
+
+    // Handle 403 Forbidden errors
+    if (error.response?.status === 403) {
+      console.error('Permission denied:', {
+        message: error.response.data?.message || 'You do not have permission to access this resource',
+        path: originalRequest.url,
+      });
+      return Promise.reject(new Error('Permission denied'));
+    }
+
+    // Handle 404 Not Found errors
+    if (error.response?.status === 404) {
+      console.error('Resource not found:', {
+        message: error.response.data?.message || 'The requested resource was not found',
+        path: originalRequest.url,
+      });
+      return Promise.reject(new Error('Resource not found'));
+    }
+
+    // Handle 500 Server errors
+    if (error.response?.status >= 500) {
+      console.error('Server error:', {
+        message: error.response.data?.message || 'An unexpected server error occurred',
+        status: error.response.status,
+        path: originalRequest.url,
+      });
+      return Promise.reject(new Error('Server error'));
+    }
+
+    // Handle network errors
+    if (!error.response) {
+      console.error('Network error:', {
+        message: error.message || 'Network error occurred',
+        path: originalRequest.url,
+      });
+      return Promise.reject(new Error('Network error'));
     }
 
     return Promise.reject(error);
@@ -167,3 +201,4 @@ export const authCookies = {
   // Add logout function to the exported utilities
   logout: handleLogout,
 };
+

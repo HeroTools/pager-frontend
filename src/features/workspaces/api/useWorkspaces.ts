@@ -1,6 +1,11 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { workspacesApi } from './workspaces-api';
-import type { Workspace, CreateWorkspaceData } from './workspaces-api';
+import type { Workspace, CreateWorkspaceData, CreateWorkspaceResponse, CreateWorkspaceSuccessPayload } from './workspaces-api';
+
+// Type guard to narrow CreateWorkspaceResponse to CreateWorkspaceSuccessPayload
+function isCreateWorkspaceSuccessPayload(data: CreateWorkspaceResponse): data is CreateWorkspaceSuccessPayload {
+  return (data as CreateWorkspaceSuccessPayload).workspaceId !== undefined;
+}
 
 // Get all workspaces
 export const useGetWorkspaces = () => {
@@ -27,10 +32,22 @@ export const useGetWorkspace = (id: string) => {
 
 // Create a new workspace
 export const useCreateWorkspace = () => {
-  return useMutation({
+  const queryClient = useQueryClient();
+  return useMutation<Workspace, Error, CreateWorkspaceData>({
     mutationFn: async (data: CreateWorkspaceData) => {
       const response = await workspacesApi.createWorkspace(data);
-      return response.data.data.workspace;
+
+      if (isCreateWorkspaceSuccessPayload(response.data)) {
+        // Fetch the full workspace object using the ID
+        const fullWorkspaceResponse = await workspacesApi.getWorkspace(response.data.workspaceId);
+        return fullWorkspaceResponse.data.data.workspace;
+      } else if ('error' in response.data && response.data.error) {
+        throw new Error(response.data.error);
+      }
+      throw new Error("Failed to create workspace: Unexpected response structure.");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
     },
   });
 };

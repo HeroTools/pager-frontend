@@ -1,21 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  image?: string;
-}
-
-interface Session {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-  token_type: string;
-  user: any;
-}
+import { Session, User } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
@@ -41,11 +27,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (sessionError) throw sessionError;
 
         if (session) {
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          if (userError) throw userError;
-
-          setUser(user as User);
-          setSession(session as Session);
+          setUser(session.user);
+          setSession(session);
         } else {
           setUser(null);
           setSession(null);
@@ -64,9 +47,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         if (currentSession) {
-          const { data: { user } } = await supabase.auth.getUser();
-          setUser(user as User);
-          setSession(currentSession as Session);
+          setUser(currentSession.user);
+          setSession(currentSession);
         } else {
           setUser(null);
           setSession(null);
@@ -86,6 +68,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      setUser(null);
+      setSession(null);
+      router.push("/auth");
     } catch (error) {
       console.error("Sign out error:", error);
     }
@@ -95,7 +80,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data: { session }, error } = await supabase.auth.refreshSession();
       if (error) throw error;
-      setSession(session as Session);
+      if (session) {
+        setUser(session.user);
+        setSession(session);
+      }
     } catch (error) {
       console.error("Refresh error:", error);
       await signOut();
@@ -127,7 +115,7 @@ export const withAuth = (WrappedComponent: React.ComponentType) => {
 
     useEffect(() => {
       if (!loading && !user) {
-        router.push("/auth/login");
+        router.push("/auth");
       }
     }, [user, loading, router]);
 
