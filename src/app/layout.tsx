@@ -4,7 +4,7 @@ import localFont from "next/font/local";
 import { Modals } from "@/components/Modals";
 import ReactQueryProvider from "@/components/react-query-provider";
 import { Toaster } from "@/components/ui/sonner";
-import "./globals.css";
+import "./styles/globals.css";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
