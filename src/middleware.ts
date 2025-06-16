@@ -3,6 +3,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const isPublicPage = (path: string) => {
+  // Define your public pages here
+  return path.startsWith('/auth')
+}
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -33,9 +38,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // Add console logs for debugging environment variables and session
+  console.log('Middleware SUPABASE_URL:', process.env.SUPABASE_URL);
+  console.log('Middleware SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY);
+
+  const { data: { session } } = await supabase.auth.getSession();
+  console.log('Middleware Session:', session ? 'Present' : 'Not Present', session);
 
   // Protected routes - redirect to login if not authenticated
   if (!session && request.nextUrl.pathname.startsWith("/dashboard")) {
@@ -51,5 +59,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/:path*"],
+  matcher: ['/dashboard/:path*', '/auth/:path*', '/'], // Broad matcher for debugging
 };
