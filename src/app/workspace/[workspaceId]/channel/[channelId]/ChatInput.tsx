@@ -3,8 +3,8 @@ import Quill from "quill";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { useCreateMessage } from "@/features/messages/api/useCreateMessage";
-import { useGenerateUploadUrl } from "@/features/upload/api/useGenerateUploadUrl";
+import { useCreateMessage } from "@/features/messages/api/useMessages";
+import { useGetUploadUrl } from "@/features/upload/api/useUpload";
 import { useChannelId } from "@/hooks/useChannelId";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
 import { Id } from "../../../../../../convex/_generated/dataModel";
@@ -30,7 +30,7 @@ export const ChatInput = ({ placeholder }: ChatInputProps) => {
   const workspaceId = useWorkspaceId();
   const channelId = useChannelId();
   const createMessage = useCreateMessage();
-  const generateUploadUrl = useGenerateUploadUrl();
+  const generateUploadUrl = useGetUploadUrl();
 
   const handleSubmit = async ({
     body,

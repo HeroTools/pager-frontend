@@ -2,6 +2,18 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { messagesApi } from './messages-api';
 import type { Message, CreateMessageData } from './messages-api';
 
+// Get a single message
+export const useGetMessage = (messageId: string) => {
+  return useQuery({
+    queryKey: ['message', messageId],
+    queryFn: async () => {
+      const response = await messagesApi.getMessages(messageId);
+      return response.data.data.messages[0];
+    },
+    enabled: !!messageId,
+  });
+};
+
 // Get messages for a channel
 export const useGetMessages = (channelId: string, params?: { before?: string; limit?: number }) => {
   return useQuery({
