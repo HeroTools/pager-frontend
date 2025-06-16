@@ -1,45 +1,46 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useApi } from '@/hooks/useApi'
-import type { Member, ApiResponse } from '@/types/api'
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { membersApi } from './members-api';
+import type { Member } from './members-api';
 
-export const useMembers = (workspaceId: string) => {
-  const { callApi } = useApi()
-  const queryClient = useQueryClient()
-
-  const { data: members, isLoading } = useQuery<ApiResponse<Member[]>>({
+// Get all members for a workspace
+export const useGetMembers = (workspaceId: string) => {
+  return useQuery({
     queryKey: ['members', workspaceId],
-    queryFn: () => callApi(`/workspaces/${workspaceId}/members`),
-  })
-
-  const addMember = useMutation({
-    mutationFn: (data: { userId: string; role: Member['role'] }) =>
-      callApi<ApiResponse<Member>>(`/workspaces/${workspaceId}/members`, 'POST', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['members', workspaceId] })
+    queryFn: async () => {
+      const response = await membersApi.getMembers(workspaceId);
+      return response.data.data.members;
     },
-  })
+    enabled: !!workspaceId,
+  });
+};
 
-  const updateMember = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Member> }) =>
-      callApi<ApiResponse<Member>>(`/workspaces/${workspaceId}/members/${id}`, 'PUT', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['members', workspaceId] })
+// Get a single member
+export const useGetMember = (workspaceId: string, memberId: string) => {
+  return useQuery({
+    queryKey: ['member', workspaceId, memberId],
+    queryFn: async () => {
+      const response = await membersApi.getMember(workspaceId, memberId);
+      return response.data.data.member;
     },
-  })
+    enabled: !!(workspaceId && memberId),
+  });
+};
 
-  const removeMember = useMutation({
-    mutationFn: (id: string) =>
-      callApi<ApiResponse<void>>(`/workspaces/${workspaceId}/members/${id}`, 'DELETE'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['members', workspaceId] })
+// Update member role
+export const useUpdateMemberRole = () => {
+  return useMutation({
+    mutationFn: async ({ workspaceId, memberId, role }: { workspaceId: string; memberId: string; role: Member['role'] }) => {
+      const response = await membersApi.updateMemberRole(workspaceId, memberId, role);
+      return response.data.data.member;
     },
-  })
+  });
+};
 
-  return {
-    members: members?.data ?? [],
-    isLoading,
-    addMember,
-    updateMember,
-    removeMember,
-  }
-} 
+// Remove a member
+export const useRemoveMember = () => {
+  return useMutation({
+    mutationFn: async ({ workspaceId, memberId }: { workspaceId: string; memberId: string }) => {
+      await membersApi.removeMember(workspaceId, memberId);
+    },
+  });
+}; 

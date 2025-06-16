@@ -1,17 +1,14 @@
-import { useQuery } from '@tanstack/react-query'
-import { useApi } from '@/hooks/useApi'
-import type { Member, ApiResponse } from '@/types/api'
+import { useQuery } from '@tanstack/react-query';
+import { membersApi } from './members-api';
 
-export const useCurrentMember = (workspaceId: string) => {
-  const { callApi } = useApi()
-
-  const { data: member, isLoading } = useQuery<ApiResponse<Member>>({
-    queryKey: ['current-member', workspaceId],
-    queryFn: () => callApi(`/workspaces/${workspaceId}/members/current`),
-  })
-
-  return {
-    member: member?.data,
-    isLoading,
-  }
+interface UseCurrentMemberParams {
+  workspaceId: string;
 }
+
+export const useCurrentMember = ({ workspaceId }: UseCurrentMemberParams) => {
+  return useQuery({
+    queryKey: ['currentMember', workspaceId],
+    queryFn: () => membersApi.getCurrentMember(workspaceId),
+    enabled: !!workspaceId,
+  });
+}; 

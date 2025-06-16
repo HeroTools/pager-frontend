@@ -10,8 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGetWorkspace } from "@/features/workspaces/api/useGetWorkspace";
-import { useGetWorkspaces } from "@/features/workspaces/api/useGetWorkspaces";
+import { useGetWorkspace } from "@/features/workspaces/api/useWorkspaces";
+import { useGetWorkspaces } from "@/features/workspaces/api/useWorkspaces";
 import { useCreateWorkspaceModal } from "@/features/workspaces/store/useCreateWorkspaceModal";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
 

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useRemoveChannel } from "@/features/channels/api/useRemoveChannel";
-import { useUpdateChannel } from "@/features/channels/api/useUpdateChannel";
+import { useUpdateChannel } from "@/features/channels/api/useChannels";
 import { useCurrentMember } from "@/features/members/api/useCurrentMember";
 import { useChannelId } from "@/hooks/useChannelId";
 import { useConfirm } from "@/hooks/useConfirm";

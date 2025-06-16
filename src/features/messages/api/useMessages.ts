@@ -1,45 +1,44 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useApi } from '@/hooks/useApi'
-import type { Message, ApiResponse } from '@/types/api'
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { messagesApi } from './messages-api';
+import type { Message, CreateMessageData } from './messages-api';
 
-export const useMessages = (channelId: string) => {
-  const { callApi } = useApi()
-  const queryClient = useQueryClient()
-
-  const { data: messages, isLoading } = useQuery<ApiResponse<Message[]>>({
-    queryKey: ['messages', channelId],
-    queryFn: () => callApi(`/channels/${channelId}/messages`),
-  })
-
-  const createMessage = useMutation({
-    mutationFn: (data: { content: string }) =>
-      callApi<ApiResponse<Message>>(`/channels/${channelId}/messages`, 'POST', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
+// Get messages for a channel
+export const useGetMessages = (channelId: string, params?: { before?: string; limit?: number }) => {
+  return useQuery({
+    queryKey: ['messages', channelId, params],
+    queryFn: async () => {
+      const response = await messagesApi.getMessages(channelId, params);
+      return response.data.data;
     },
-  })
+    enabled: !!channelId,
+  });
+};
 
-  const updateMessage = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Message> }) =>
-      callApi<ApiResponse<Message>>(`/channels/${channelId}/messages/${id}`, 'PUT', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
+// Create a new message
+export const useCreateMessage = () => {
+  return useMutation({
+    mutationFn: async (data: CreateMessageData) => {
+      const response = await messagesApi.createMessage(data);
+      return response.data.data.message;
     },
-  })
+  });
+};
 
-  const deleteMessage = useMutation({
-    mutationFn: (id: string) =>
-      callApi<ApiResponse<void>>(`/channels/${channelId}/messages/${id}`, 'DELETE'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', channelId] })
+// Update a message
+export const useUpdateMessage = () => {
+  return useMutation({
+    mutationFn: async ({ channelId, messageId, content }: { channelId: string; messageId: string; content: string }) => {
+      const response = await messagesApi.updateMessage(channelId, messageId, content);
+      return response.data.data.message;
     },
-  })
+  });
+};
 
-  return {
-    messages: messages?.data ?? [],
-    isLoading,
-    createMessage,
-    updateMessage,
-    deleteMessage,
-  }
-} 
+// Delete a message
+export const useDeleteMessage = () => {
+  return useMutation({
+    mutationFn: async ({ channelId, messageId }: { channelId: string; messageId: string }) => {
+      await messagesApi.deleteMessage(channelId, messageId);
+    },
+  });
+}; 
