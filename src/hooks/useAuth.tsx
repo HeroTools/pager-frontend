@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 interface User {
   id: string;

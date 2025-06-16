@@ -6,8 +6,6 @@ import { useState } from "react";
 
 import { useCurrentMember } from "@/features/members/api/useCurrentMember";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
 import { ChannelHero } from "./ChannelHero";
 import { ConversationHero } from "./ConversationHero";
 import { Message } from "./Message";

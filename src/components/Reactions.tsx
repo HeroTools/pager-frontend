@@ -3,7 +3,6 @@ import { MdOutlineAddReaction } from "react-icons/md";
 import { useCurrentMember } from "@/features/members/api/useCurrentMember";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
 import { cn } from "@/lib/utils";
-import { Doc, Id } from "../../convex/_generated/dataModel";
 import { EmojiPopover } from "./EmojiPopover";
 import { Hint } from "./Hint";
 

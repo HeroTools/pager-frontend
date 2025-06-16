@@ -1,14 +1,17 @@
-import { useMutation as useReactQueryMutation } from "@tanstack/react-query";
-import { useMutation as useConvexMutation } from "convex/react";
-
-import { api } from "../../../../convex/_generated/api";
+import { useMutation } from '@tanstack/react-query';
+import { useApi } from '@/hooks/useApi';
+import type { ApiResponse } from '@/types/api';
 
 export const useNewJoinCode = () => {
-  const mutation = useConvexMutation(api.workspaces.newJoinCode);
+  const { callApi } = useApi();
 
-  const newJoinCode = useReactQueryMutation({
-    mutationFn: mutation,
+  return useMutation({
+    mutationFn: async ({ workspaceId }: { workspaceId: string }) => {
+      const response = await callApi('/workspaces/join-code', {
+        method: 'POST',
+        body: JSON.stringify({ workspaceId }),
+      });
+      return response.data.code;
+    },
   });
-
-  return newJoinCode;
 };

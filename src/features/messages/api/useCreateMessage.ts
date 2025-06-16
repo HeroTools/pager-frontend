@@ -1,14 +1,21 @@
-import { useMutation as useReactQueryMutation } from "@tanstack/react-query";
-import { useMutation as useConvexMutation } from "convex/react";
-
-import { api } from "../../../../convex/_generated/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApi } from '@/hooks/useApi';
+import type { ApiResponse, Message } from '@/types/api';
 
 export const useCreateMessage = () => {
-  const mutation = useConvexMutation(api.messages.create);
+  const { callApi } = useApi();
+  const queryClient = useQueryClient();
 
-  const createMessage = useReactQueryMutation({
-    mutationFn: mutation,
+  return useMutation({
+    mutationFn: async ({ body, channelId, workspaceId, image }: { body: string; channelId: string; workspaceId: string; image?: string }) => {
+      const response = await callApi('/messages', {
+        method: 'POST',
+        body: JSON.stringify({ body, channelId, workspaceId, image }),
+      });
+      return response.data.messageId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+    },
   });
-
-  return createMessage;
-};
+}; 

@@ -1,14 +1,21 @@
-import { useMutation as useReactQueryMutation } from "@tanstack/react-query";
-import { useMutation as useConvexMutation } from "convex/react";
-
-import { api } from "../../../../convex/_generated/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApi } from '@/hooks/useApi';
+import type { ApiResponse, Member } from '@/types/api';
 
 export const useUpdateMember = () => {
-  const mutation = useConvexMutation(api.members.update);
+  const { callApi } = useApi();
+  const queryClient = useQueryClient();
 
-  const updateMember = useReactQueryMutation({
-    mutationFn: mutation,
+  return useMutation({
+    mutationFn: async ({ id, role }: { id: string; role: string }) => {
+      const response = await callApi(`/members/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ role }),
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+    },
   });
-
-  return updateMember;
-};
+}; 

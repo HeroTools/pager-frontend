@@ -8,7 +8,6 @@ import { useToggleReaction } from "@/features/reactions/api/useToggleReaction";
 import { useConfirm } from "@/hooks/useConfirm";
 import { usePanel } from "@/hooks/usePanel";
 import { cn } from "@/lib/utils";
-import { Doc, Id } from "../../convex/_generated/dataModel";
 import { Hint } from "./Hint";
 import { Reactions } from "./Reactions";
 import { ThreadBar } from "./ThreadBar";
@@ -20,8 +19,8 @@ const Renderer = dynamic(() => import("@/components/Renderer"), { ssr: false });
 const Editor = dynamic(() => import("@/components/Editor"), { ssr: false });
 
 interface MessageProps {
-  id: Id<"messages">;
-  memberId: Id<"members">;
+  id: string;
+  memberId: string;
   authorImage?: string;
   authorName?: string;
   isAuthor: boolean;
@@ -42,7 +41,7 @@ interface MessageProps {
   threadImage?: string;
   threadTimestamp?: number;
   threadName?: string;
-  setEditingId: (id: Id<"messages"> | null) => void;
+  setEditingId: (id: string | null) => void;
 }
 
 const formatFullTime = (date: Dayjs) => {

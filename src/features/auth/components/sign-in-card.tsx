@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { SignInFlow } from "../types";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 interface SignInCardProps {
   setState: (state: SignInFlow) => void;

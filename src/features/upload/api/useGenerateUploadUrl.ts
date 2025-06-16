@@ -1,14 +1,16 @@
-import { useMutation as useReactQueryMutation } from "@tanstack/react-query";
-import { useMutation as useConvexMutation } from "convex/react";
-
-import { api } from "../../../../convex/_generated/api";
+import { useMutation } from '@tanstack/react-query';
+import { useApi } from '@/hooks/useApi';
+import type { ApiResponse } from '@/types/api';
 
 export const useGenerateUploadUrl = () => {
-  const mutation = useConvexMutation(api.upload.generateUploadUrl);
+  const { callApi } = useApi();
 
-  const generateUploadUrl = useReactQueryMutation({
-    mutationFn: mutation,
+  return useMutation({
+    mutationFn: async () => {
+      const response = await callApi('/upload/url', {
+        method: 'GET',
+      });
+      return response.data.url;
+    },
   });
-
-  return generateUploadUrl;
 };

@@ -1,18 +1,17 @@
-import { useQuery } from "convex/react";
+import { useQuery } from '@tanstack/react-query'
+import { useApi } from '@/hooks/useApi'
+import type { Message, ApiResponse } from '@/types/api'
 
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
+export const useGetMessage = (id: string) => {
+  const { callApi } = useApi()
 
-interface useGetMembersProps {
-  id: Id<"messages">;
-}
-
-export const useGetMessage = ({ id }: useGetMembersProps) => {
-  const data = useQuery(api.messages.getById, { id });
-  const isLoading = data === undefined;
+  const { data: message, isLoading } = useQuery<ApiResponse<Message>>({
+    queryKey: ['message', id],
+    queryFn: () => callApi(`/messages/${id}`),
+  })
 
   return {
-    data,
+    message: message?.data,
     isLoading,
-  };
-};
+  }
+}
