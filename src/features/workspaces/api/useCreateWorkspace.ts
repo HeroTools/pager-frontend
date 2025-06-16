@@ -1,14 +1,22 @@
-import { useMutation as useReactQueryMutation } from "@tanstack/react-query";
-import { useMutation as useConvexMutation } from "convex/react";
-
-import { api } from "../../../../convex/_generated/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApi } from '@/hooks/useApi';
+import type { ApiResponse, Workspace } from '@/types/api';
 
 export const useCreateWorkspace = () => {
-  const mutation = useConvexMutation(api.workspaces.create);
+  const { callApi } = useApi();
+  const queryClient = useQueryClient();
 
-  const createWorkspace = useReactQueryMutation({
-    mutationFn: mutation,
+  return useMutation({
+    mutationFn: async ({ name }: { name: string }) => {
+      const response = await callApi('/workspaces', {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      });
+      // Assuming the backend returns { workspaceId }
+      return response.data.workspaceId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+    },
   });
-
-  return createWorkspace;
-};
+}; 

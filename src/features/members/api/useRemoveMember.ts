@@ -1,14 +1,20 @@
-import { useMutation as useReactQueryMutation } from "@tanstack/react-query";
-import { useMutation as useConvexMutation } from "convex/react";
-
-import { api } from "../../../../convex/_generated/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApi } from '@/hooks/useApi';
+import type { ApiResponse } from '@/types/api';
 
 export const useRemoveMember = () => {
-  const mutation = useConvexMutation(api.members.remove);
+  const { callApi } = useApi();
+  const queryClient = useQueryClient();
 
-  const removeMember = useReactQueryMutation({
-    mutationFn: mutation,
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      const response = await callApi(`/members/${id}`, {
+        method: 'DELETE',
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+    },
   });
-
-  return removeMember;
-};
+}; 

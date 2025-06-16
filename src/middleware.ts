@@ -1,23 +1,27 @@
-import {
-  convexAuthNextjsMiddleware,
-  createRouteMatcher,
-  isAuthenticatedNextjs,
-  nextjsMiddlewareRedirect,
-} from "@convex-dev/auth/nextjs/server";
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-const isPublicPage = createRouteMatcher(["/auth"]);
+const isPublicPage = (path: string) => {
+  return path.startsWith('/auth')
+}
 
-export default convexAuthNextjsMiddleware((request) => {
-  if (!isPublicPage(request) && !isAuthenticatedNextjs()) {
-    return nextjsMiddlewareRedirect(request, "/auth");
+export async function middleware(request: NextRequest) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req: request, res })
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!isPublicPage(request.nextUrl.pathname) && !session) {
+    return NextResponse.redirect(new URL('/auth', request.url))
   }
-  if (isPublicPage(request) && isAuthenticatedNextjs()) {
-    return nextjsMiddlewareRedirect(request, "/");
+
+  if (isPublicPage(request.nextUrl.pathname) && session) {
+    return NextResponse.redirect(new URL('/', request.url))
   }
-});
+
+  return res
+}
 
 export const config = {
-  // The following matcher runs middleware on all routes
-  // except static assets.
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
-};
+  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
+}

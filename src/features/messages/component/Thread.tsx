@@ -11,8 +11,6 @@ import { useCurrentMember } from "@/features/members/api/useCurrentMember";
 import { useGenerateUploadUrl } from "@/features/upload/api/useGenerateUploadUrl";
 import { useChannelId } from "@/hooks/useChannelId";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
 import { useCreateMessage } from "../api/useCreateMessage";
 import { useGetMessage } from "../api/useGetMessage";
 import { useGetMessages } from "../api/useGetMessages";

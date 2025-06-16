@@ -1,14 +1,22 @@
-import { useMutation as useReactQueryMutation } from "@tanstack/react-query";
-import { useMutation as useConvexMutation } from "convex/react";
-
-import { api } from "../../../../convex/_generated/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApi } from '@/hooks/useApi';
+import type { ApiResponse, Channel } from '@/types/api';
 
 export const useCreateChannel = () => {
-  const mutation = useConvexMutation(api.channels.create);
+  const { callApi } = useApi();
+  const queryClient = useQueryClient();
 
-  const createChannel = useReactQueryMutation({
-    mutationFn: mutation,
+  return useMutation({
+    mutationFn: async ({ name, workspaceId }: { name: string; workspaceId: string }) => {
+      const response = await callApi('/channels', {
+        method: 'POST',
+        body: JSON.stringify({ name, workspaceId }),
+      });
+      // Assuming the backend returns { channelId }
+      return response.data.channelId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+    },
   });
-
-  return createChannel;
-};
+}; 

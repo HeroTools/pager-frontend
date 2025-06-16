@@ -1,5 +1,3 @@
-import { useAuthActions } from "@convex-dev/auth/react";
-import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { FaGithub } from "react-icons/fa";
@@ -34,8 +32,6 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
     },
   });
 
-  const { signIn } = useAuthActions();
-
   const handlePasswordSignUp = form.handleSubmit(
     ({ name, email, password, confirmPassword }) => {
       if (password !== confirmPassword) {
@@ -43,21 +39,15 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
         return;
       }
       setSigningUp(true);
-      signIn("password", { name, email, password, flow: "signUp" })
-        .catch(() => {
-          setError("Something went wrong!");
-        })
-        .finally(() => {
-          setSigningUp(false);
-        });
+      // Replace with Supabase auth logic if needed
+      setSigningUp(false);
     }
   );
 
   const handleProviderSignUp = (value: "github" | "google") => () => {
     setSigningUp(true);
-    signIn(value).finally(() => {
-      setSigningUp(false);
-    });
+    // Replace with Supabase auth logic if needed
+    setSigningUp(false);
   };
 
   return (

@@ -1,18 +1,18 @@
-import { useQuery } from "convex/react";
+import { useQuery } from '@tanstack/react-query';
+import { useApi } from '@/hooks/useApi';
+import type { ApiResponse, Workspace } from '@/types/api';
 
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
+export const useGetWorkspaceInfo = ({ id }: { id: string }) => {
+  const { callApi } = useApi();
 
-interface UseGetWorkspaceInfoProps {
-  id: Id<"workspaces">;
-}
-
-export const useGetWorkspaceInfo = ({ id }: UseGetWorkspaceInfoProps) => {
-  const data = useQuery(api.workspaces.getInfoById, { id });
-  const isLoading = data === undefined;
+  const { data, isLoading } = useQuery<ApiResponse<Workspace>>({
+    queryKey: ['workspace-info', id],
+    queryFn: () => callApi(`/workspaces/${id}/info`),
+    enabled: !!id,
+  });
 
   return {
-    data,
+    workspace: data?.data,
     isLoading,
   };
 };

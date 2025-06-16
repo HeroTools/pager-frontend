@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
-import { Id } from "../../../../convex/_generated/dataModel";
 import { useCurrentMember } from "../api/useCurrentMember";
 import { useGetMember } from "../api/useGetMember";
 import { useRemoveMember } from "../api/useRemoveMember";
@@ -27,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface ProfileProps {
-  memberId: Id<"members">;
+  memberId: string;
   onClose: () => void;
 }
 

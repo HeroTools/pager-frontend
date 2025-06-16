@@ -1,18 +1,17 @@
-import { useQuery } from "convex/react";
+import { useQuery } from '@tanstack/react-query'
+import { useApi } from '@/hooks/useApi'
+import type { Member, ApiResponse } from '@/types/api'
 
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
+export const useCurrentMember = (workspaceId: string) => {
+  const { callApi } = useApi()
 
-interface UseCurrentMemberProps {
-  workspaceId: Id<"workspaces">;
-}
-
-export const useCurrentMember = ({ workspaceId }: UseCurrentMemberProps) => {
-  const data = useQuery(api.members.current, { workspaceId });
-  const isLoading = data === undefined;
+  const { data: member, isLoading } = useQuery<ApiResponse<Member>>({
+    queryKey: ['current-member', workspaceId],
+    queryFn: () => callApi(`/workspaces/${workspaceId}/members/current`),
+  })
 
   return {
-    data,
+    member: member?.data,
     isLoading,
-  };
-};
+  }
+}

@@ -1,18 +1,17 @@
-import { useQuery } from "convex/react";
+import { useQuery } from '@tanstack/react-query'
+import { useApi } from '@/hooks/useApi'
+import type { Channel, ApiResponse } from '@/types/api'
 
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
+export const useGetChannel = (id: string) => {
+  const { callApi } = useApi()
 
-interface UseGetChannelProps {
-  id: Id<"channels">;
-}
-
-export const useGetChannel = ({ id }: UseGetChannelProps) => {
-  const data = useQuery(api.channels.getById, { id });
-  const isLoading = data === undefined;
+  const { data: channel, isLoading } = useQuery<ApiResponse<Channel>>({
+    queryKey: ['channel', id],
+    queryFn: () => callApi(`/channels/${id}`),
+  })
 
   return {
-    data,
+    channel: channel?.data,
     isLoading,
-  };
-};
+  }
+}
