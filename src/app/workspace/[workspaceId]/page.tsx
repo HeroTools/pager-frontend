@@ -4,10 +4,10 @@ import { Loader, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
-import { useGetChannels } from "@/features/channels/api/useGetChannels";
+import { useGetChannels } from "@/features/channels/api/useChannels";
 import { useCreateChannelModal } from "@/features/channels/store/useCreateChannelModal";
 import { useCurrentMember } from "@/features/members/api/useCurrentMember";
-import { useGetWorkspace } from "@/features/workspaces/api/useGetWorkspace";
+import { useGetWorkspace } from "@/features/workspaces/api/useWorkspaces";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
 
 const WorkspaceIdPage = () => {

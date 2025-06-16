@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useCreateWorkspace } from "../api/useCreateWorkspace";
+import { useCreateWorkspace } from "../api";
 import { useCreateWorkspaceModal } from "../store/useCreateWorkspaceModal";
 
 export const CreateWorkspaceModal = () => {

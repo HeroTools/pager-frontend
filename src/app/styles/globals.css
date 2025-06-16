@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Base Styles
+   ========================================================================== */
+
+html,
+body,
+:root {
+  height: 100%;
+}
+
+/* ==========================================================================
+   Tailwind v4 Theme Configuration
+   ========================================================================== */
+
+@theme {
+  /* Colors - Modern Blue/Indigo Palette */
+  --color-background: oklch(0.99 0.005 240);
+  --color-foreground: oklch(0.15 0.02 240);
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.15 0.02 240);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.15 0.02 240);
+  --color-primary: oklch(0.55 0.18 250);
+  --color-primary-foreground: oklch(0.98 0.01 240);
+  --color-secondary: oklch(0.96 0.01 240);
+  --color-secondary-foreground: oklch(0.25 0.02 240);
+  --color-muted: oklch(0.94 0.01 240);
+  --color-muted-foreground: oklch(0.45 0.02 240);
+  --color-accent: oklch(0.92 0.02 250);
+  --color-accent-foreground: oklch(0.25 0.02 240);
+  --color-destructive: oklch(0.65 0.22 15);
+  --color-destructive-foreground: oklch(0.98 0.01 240);
+  --color-border: oklch(0.88 0.01 240);
+  --color-input: oklch(0.88 0.01 240);
+  --color-ring: oklch(0.55 0.18 250);
+
+  /* Chart Colors - Vibrant & Modern */
+  --color-chart-1: oklch(0.65 0.25 280);
+  --color-chart-2: oklch(0.62 0.22 180);
+  --color-chart-3: oklch(0.58 0.28 40);
+  --color-chart-4: oklch(0.7 0.2 320);
+  --color-chart-5: oklch(0.6 0.25 140);
+
+  /* Border Radius - Slightly more rounded */
+  --radius: 0.75rem;
+}
+
+/* Dark Theme - using @media instead of .dark class */
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: oklch(0.08 0.01 240);
+    --color-foreground: oklch(0.95 0.01 240);
+    --color-card: oklch(0.12 0.01 240);
+    --color-card-foreground: oklch(0.95 0.01 240);
+    --color-popover: oklch(0.12 0.01 240);
+    --color-popover-foreground: oklch(0.95 0.01 240);
+    --color-primary: oklch(0.7 0.2 250);
+    --color-primary-foreground: oklch(0.08 0.01 240);
+    --color-secondary: oklch(0.18 0.01 240);
+    --color-secondary-foreground: oklch(0.95 0.01 240);
+    --color-muted: oklch(0.18 0.01 240);
+    --color-muted-foreground: oklch(0.65 0.01 240);
+    --color-accent: oklch(0.25 0.02 250);
+    --color-accent-foreground: oklch(0.95 0.01 240);
+    --color-destructive: oklch(0.75 0.25 15);
+    --color-destructive-foreground: oklch(0.08 0.01 240);
+    --color-border: oklch(0.25 0.01 240);
+    --color-input: oklch(0.25 0.01 240);
+    --color-ring: oklch(0.7 0.2 250);
+
+    /* Chart Colors - Dark Theme Variants */
+    --color-chart-1: oklch(0.75 0.28 280);
+    --color-chart-2: oklch(0.72 0.25 180);
+    --color-chart-3: oklch(0.78 0.3 40);
+    --color-chart-4: oklch(0.8 0.22 320);
+    --color-chart-5: oklch(0.7 0.28 140);
+  }
+}
+
+/* ==========================================================================
+   Additional CSS Layer Overrides for shadcn/ui compatibility
+   ========================================================================== */
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .messages-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #dcdcdc #f8f8f8;
+  }
+}
+
+/* ==========================================================================
+   Component Styles
+   ========================================================================== */
+
+@layer components {
+  /* Quill Editor Styles */
+  .ql-toolbar {
+    border: none !important;
+    background-color: #f8f8f8 !important;
+  }
+
+  .ql-toolbar .ql-formats:not(:last-child) {
+    border-right: 1px solid #dcdcdc !important;
+    padding-right: 12px !important;
+  }
+
+  .ql-container {
+    font-family: "Lato", sans-serif !important;
+    border: none !important;
+    height: unset !important;
+  }
+
+  .ql-editor {
+    line-height: 22px !important;
+    padding: 8px 12px !important;
+    color: #1d1c1d !important;
+    font-weight: 400 !important;
+    font-family: "Lato", sans-serif !important;
+    font-size: 14px !important;
+  }
+
+  .ql-editor a {
+    color: #126483 !important;
+  }
+
+  .ql-editor a:hover {
+    text-decoration: underline !important;
+  }
+
+  .ql-renderer {
+    padding: 0 !important;
+  }
+
+  .ql-editor:before {
+    left: 12px !important;
+    color: #8d8d8d !important;
+    font-family: "Lato", sans-serif !important;
+    font-weight: 400 !important;
+    font-size: 14px !important;
+  }
+}
