@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useNewJoinCode } from "@/features/workspaces/api/useNewJoinCode";
+import { useNewJoinCode } from "@/features/workspaces/api/useWorkspaces";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
 import { useConfirm } from "@/hooks/useConfirm";
 
@@ -47,7 +47,12 @@ export const InviteModal = ({
     const ok = await confirm();
     if (!ok) return;
 
-    mutateAsync({ workspaceId })
+    if (!workspaceId) {
+      toast.error("Workspace ID not found.");
+      return;
+    }
+
+    mutateAsync(workspaceId as string)
       .then(() => {
         toast.success("Invite code regenerated");
       })

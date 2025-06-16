@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import { Modals } from "@/components/Modals";
 import ReactQueryProvider from "@/components/react-query-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/lib/auth/AuthProvider";
 import "./styles/globals.css";
 
 const geistSans = localFont({
@@ -32,9 +34,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReactQueryProvider>
-          <Toaster />
-          <Modals />
-          {children}
+          <AuthProvider>
+            <NuqsAdapter>
+              <Toaster />
+              <Modals />
+              {children}
+            </NuqsAdapter>
+          </AuthProvider>
         </ReactQueryProvider>
       </body>
     </html>

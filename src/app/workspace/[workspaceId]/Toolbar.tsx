@@ -14,28 +14,27 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useGetChannels } from "@/features/channels/api/useGetChannels";
-import { useGetMembers } from "@/features/members/api/useGetMembers";
-import { useGetWorkspace } from "@/features/workspaces/api/useGetWorkspace";
+import { useGetChannels } from "@/features/channels/api/useChannels";
+import { useGetMembers } from "@/features/members/api/useMembers";
+import { useGetWorkspace } from "@/features/workspaces/api/useWorkspaces";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
-import { Id } from "../../../../convex/_generated/dataModel";
 
 export const Toolbar = () => {
   const router = useRouter();
-  const workspaceId = useWorkspaceId();
+  const workspaceId = useWorkspaceId() as string;
 
-  const { data: workspace } = useGetWorkspace({ id: workspaceId });
-  const getChannels = useGetChannels({ workspaceId });
-  const getMembers = useGetMembers({ workspaceId });
+  const { data: workspace } = useGetWorkspace(workspaceId);
+  const getChannels = useGetChannels(workspaceId);
+  const getMembers = useGetMembers(workspaceId);
 
   const [open, setOpen] = useState(false);
 
-  const handleChannelClick = (channelId: Id<"channels">) => () => {
+  const handleChannelClick = (channelId: string) => () => {
     setOpen(false);
     router.push(`/workspace/${workspaceId}/channel/${channelId}`);
   };
 
-  const handleMemberClick = (memberId: Id<"members">) => () => {
+  const handleMemberClick = (memberId: string) => () => {
     setOpen(false);
     router.push(`/workspace/${workspaceId}/member/${memberId}`);
   };
@@ -59,8 +58,8 @@ export const Toolbar = () => {
             <CommandGroup heading="Channels">
               {getChannels.data?.map((channel) => (
                 <CommandItem
-                  key={channel._id}
-                  onSelect={handleChannelClick(channel._id)}
+                  key={channel.id}
+                  onSelect={handleChannelClick(channel.id)}
                 >
                   {channel.name}
                 </CommandItem>
@@ -69,8 +68,8 @@ export const Toolbar = () => {
             <CommandGroup heading="Members">
               {getMembers.data?.map((member) => (
                 <CommandItem
-                  key={member._id}
-                  onSelect={handleMemberClick(member._id)}
+                  key={member.id}
+                  onSelect={handleMemberClick(member.id)}
                 >
                   {member.user.name}
                 </CommandItem>

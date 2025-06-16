@@ -6,16 +6,18 @@ import { MessageList } from "@/components/MessageList";
 import { useGetChannel } from "@/features/channels/api/useChannels";
 import { useGetMessages } from "@/features/messages/api/useMessages";
 import { useChannelId } from "@/hooks/useChannelId";
+import { useWorkspaceId } from "@/hooks/useWorkspaceId";
 import { ChatInput } from "./ChatInput";
 import { Header } from "./Header";
 
 const ChannelPage = () => {
-  const channelId = useChannelId();
+  const channelId = useChannelId() as string;
+  const workspaceId = useWorkspaceId() as string;
 
-  const getChannel = useGetChannel({ id: channelId });
-  const getMessages = useGetMessages({ channelId });
+  const getChannel = useGetChannel(workspaceId, channelId);
+  const getMessages = useGetMessages(channelId);
 
-  if (getChannel.isLoading || getMessages.status === "LoadingFirstPage") {
+  if (getChannel.isLoading || getMessages.isLoading) {
     return (
       <div className="h-full flex-1 flex items-center justify-center">
         <Loader className="animate-spin size-5 text-muted-foreground" />
@@ -37,11 +39,11 @@ const ChannelPage = () => {
       <Header title={getChannel.data.name} />
       <MessageList
         channelName={getChannel.data.name}
-        channelCreationTime={getChannel.data._creationTime}
-        data={getMessages.results}
-        loadMore={getMessages.loadMore}
-        isLoadingMore={getMessages.status === "LoadingMore"}
-        canLoadMore={getMessages.status === "CanLoadMore"}
+        channelCreationTime={new Date(getChannel.data.createdAt).getTime()}
+        data={getMessages.data?.messages || []}
+        loadMore={() => {}}
+        isLoadingMore={getMessages.isFetching}
+        canLoadMore={getMessages.data?.hasMore || false}
       />
       <ChatInput placeholder={`Message # ${getChannel.data.name}`} />
     </div>

@@ -12,20 +12,20 @@ import { useWorkspaceId } from "@/hooks/useWorkspaceId";
 
 const WorkspaceIdPage = () => {
   const router = useRouter();
-  const workspaceId = useWorkspaceId();
+  const workspaceId = useWorkspaceId() as string;
   const { open, setOpen } = useCreateChannelModal();
   const currentMember = useCurrentMember({ workspaceId });
-  const getWorkspace = useGetWorkspace({ id: workspaceId });
-  const getChannels = useGetChannels({ workspaceId });
+  const getWorkspace = useGetWorkspace(workspaceId);
+  const getChannels = useGetChannels(workspaceId);
 
   const channelId = useMemo(
-    () => getChannels.data?.[0]?._id,
+    () => getChannels.data?.[0]?.id,
     [getChannels.data]
   );
 
   const isAdmin = useMemo(
-    () => currentMember.data?.role === "admin",
-    [currentMember.data?.role]
+    () => currentMember.data?.data?.data?.member?.role === "admin",
+    [currentMember.data?.data?.data?.member?.role]
   );
 
   useEffect(() => {
