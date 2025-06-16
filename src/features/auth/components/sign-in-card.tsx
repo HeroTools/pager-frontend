@@ -47,8 +47,8 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
         if (result.success) {
           // IMPORTANT: Set the session with Supabase client to propagate to cookies
           await supabase.auth.setSession({
-            access_token: result.data.session.accessToken,
-            refresh_token: result.data.session.refreshToken,
+            access_token: result.data.session.access_token,
+            refresh_token: result.data.session.refresh_token,
           });
 
           // Redirect to dashboard or intended page
