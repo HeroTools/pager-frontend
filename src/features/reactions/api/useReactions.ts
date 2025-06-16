@@ -1,44 +1,45 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useApi } from '@/hooks/useApi'
-import type { ApiResponse } from '@/types/api'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { reactionsApi } from './reactions-api';
+import type { Reaction } from './reactions-api';
 
-interface Reaction {
-  id: string
-  messageId: string
-  userId: string
-  emoji: string
-  createdAt: string
-}
-
-export const useReactions = (messageId: string) => {
-  const { callApi } = useApi()
-  const queryClient = useQueryClient()
-
-  const { data: reactions, isLoading } = useQuery<ApiResponse<Reaction[]>>({
+// Get reactions for a message
+export const useGetReactions = (messageId: string) => {
+  return useQuery({
     queryKey: ['reactions', messageId],
-    queryFn: () => callApi(`/messages/${messageId}/reactions`),
-  })
+    queryFn: () => reactionsApi.getReactions(messageId),
+  });
+};
 
-  const toggleReaction = useMutation({
-    mutationFn: (emoji: string) =>
-      callApi<ApiResponse<Reaction>>(`/messages/${messageId}/reactions`, 'POST', { emoji }),
+export const useToggleReaction = (messageId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ emoji }: { emoji: string }) =>
+      reactionsApi.toggleReaction(messageId, emoji),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reactions', messageId] })
+      queryClient.invalidateQueries({ queryKey: ['reactions', messageId] });
     },
-  })
+  });
+};
 
-  const removeReaction = useMutation({
-    mutationFn: (id: string) =>
-      callApi<ApiResponse<void>>(`/messages/${messageId}/reactions/${id}`, 'DELETE'),
+// Keeping these for backward compatibility, but they should be deprecated
+export const useAddReaction = (messageId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ emoji }: { emoji: string }) =>
+      reactionsApi.addReaction(messageId, emoji),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reactions', messageId] })
+      queryClient.invalidateQueries({ queryKey: ['reactions', messageId] });
     },
-  })
+  });
+};
 
-  return {
-    reactions: reactions?.data ?? [],
-    isLoading,
-    toggleReaction,
-    removeReaction,
-  }
-} 
+export const useRemoveReaction = (messageId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reactionId }: { reactionId: string }) =>
+      reactionsApi.removeReaction(messageId, reactionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reactions', messageId] });
+    },
+  });
+}; 

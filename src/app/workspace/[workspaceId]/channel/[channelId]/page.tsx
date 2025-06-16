@@ -3,8 +3,8 @@
 import { AlertTriangle, Loader } from "lucide-react";
 
 import { MessageList } from "@/components/MessageList";
-import { useGetChannel } from "@/features/channels/api/useGetChannel";
-import { useGetMessages } from "@/features/messages/api/useGetMessages";
+import { useGetChannel } from "@/features/channels/api/useChannels";
+import { useGetMessages } from "@/features/messages/api/useMessages";
 import { useChannelId } from "@/hooks/useChannelId";
 import { ChatInput } from "./ChatInput";
 import { Header } from "./Header";
