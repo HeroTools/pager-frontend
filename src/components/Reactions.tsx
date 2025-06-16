@@ -5,7 +5,7 @@ import { useWorkspaceId } from "@/hooks/useWorkspaceId";
 import { cn } from "@/lib/utils";
 import { EmojiPopover } from "./EmojiPopover";
 import { Hint } from "./Hint";
-import { useToggleReaction } from "@/features/reactions/api/useToggleReaction";
+import { useToggleReaction } from "@/features/reactions/api/";
 
 interface ReactionsProps {
   messageId: string;
