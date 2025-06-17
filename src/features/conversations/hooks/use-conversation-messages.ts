@@ -1,59 +1,34 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { conversationsApi } from "../api/conversations-api";
-import type {
-  ConversationEntity,
-  ConversationMessage,
-  ConversationMessageWithRelations,
+import {
   CreateConversationMessageData,
   UpdateConversationMessageData,
-  ConversationMessageFilters,
 } from "../types";
 
-export const useConversationMessages = (
+export const useConversationWithMessages = (
   workspaceId: string,
   conversationId: string,
-  filters?: Partial<ConversationMessageFilters>
+  params?: { limit?: number; cursor?: string; before?: string }
 ) => {
   const queryClient = useQueryClient();
 
-  const {
-    data: messages = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["conversation-messages", workspaceId, conversationId, filters],
+  const query = useQuery({
+    queryKey: ["conversation", workspaceId, conversationId, "messages", params],
     queryFn: () =>
-      conversationsApi.getConversationMessages(
+      conversationsApi.getConversationWithMessages(
         workspaceId,
         conversationId,
-        filters
+        params
       ),
     enabled: !!(workspaceId && conversationId),
+    staleTime: 30000,
   });
 
   const createMessage = useMutation({
     mutationFn: (data: CreateConversationMessageData) =>
       conversationsApi.createMessage(workspaceId, conversationId, data),
-    onSuccess: (newMessage) => {
-      // Optimistically update the messages list
-      queryClient.setQueryData<ConversationMessage[]>(
-        ["conversation-messages", workspaceId, conversationId],
-        (old) => (old ? [...old, newMessage] : [newMessage])
-      );
-
-      // Update the conversation's updated_at timestamp
-      queryClient.setQueryData<ConversationEntity>(
-        ["conversation", workspaceId, conversationId],
-        (old) =>
-          old
-            ? {
-                ...old,
-                updated_at: newMessage.created_at,
-              }
-            : old
-      );
-
-      // Invalidate conversations list to update last message info
+    onSuccess: () => {
+      query.refetch();
       queryClient.invalidateQueries({
         queryKey: ["conversations", workspaceId],
       });
@@ -74,53 +49,26 @@ export const useConversationMessages = (
         messageId,
         data
       ),
-    onSuccess: (updatedMessage) => {
-      // Update the message in the messages list
-      queryClient.setQueryData<ConversationMessage[]>(
-        ["conversation-messages", workspaceId, conversationId],
-        (old) =>
-          old?.map((message) =>
-            message.id === updatedMessage.id ? updatedMessage : message
-          ) || []
-      );
-    },
+    onSuccess: () => query.refetch(),
   });
 
   const deleteMessage = useMutation({
     mutationFn: (messageId: string) =>
       conversationsApi.deleteMessage(workspaceId, conversationId, messageId),
-    onSuccess: (_, messageId) => {
-      // For soft delete, we might want to refetch instead of removing
-      // since the message still exists but is marked as deleted
-      queryClient.invalidateQueries({
-        queryKey: ["conversation-messages", workspaceId, conversationId],
-      });
-    },
-  });
-
-  const markAsRead = useMutation({
-    mutationFn: (messageId: string) =>
-      conversationsApi.markAsRead(workspaceId, conversationId, messageId),
-    onSuccess: () => {
-      // Invalidate conversations list to update unread status
-      queryClient.invalidateQueries({
-        queryKey: ["conversations", workspaceId],
-      });
-
-      // Invalidate conversation with members to update read status
-      queryClient.invalidateQueries({
-        queryKey: ["conversation", workspaceId, conversationId, "members"],
-      });
-    },
+    onSuccess: () => query.refetch(),
   });
 
   return {
-    messages,
-    isLoading,
-    error,
+    data: query.data,
+    messages: query.data?.data.messages || [],
+    members: query.data?.data.members || [],
+    conversation: query.data?.data.conversation,
+    pagination: query.data?.data.pagination,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
     createMessage,
     updateMessage,
     deleteMessage,
-    markAsRead,
   };
 };

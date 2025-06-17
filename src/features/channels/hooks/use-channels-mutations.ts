@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { channelsApi } from "../api/channels-api";
 import type {
   ChannelEntity,
@@ -8,6 +13,7 @@ import type {
   ChannelFilters,
   AddChannelMemberData,
   UpdateChannelMemberData,
+  GetChannelMessagesParams,
 } from "../types";
 
 // Get all channels for a workspace
@@ -40,6 +46,48 @@ export const useGetChannelWithMembers = (
     queryKey: ["channel", workspaceId, channelId, "members"],
     queryFn: () => channelsApi.getChannelWithMembers(workspaceId, channelId),
     enabled: !!(workspaceId && channelId),
+  });
+};
+
+// Get a channel with its messages
+export const useGetChannelWithMessages = (
+  workspaceId: string,
+  channelId: string,
+  params?: GetChannelMessagesParams
+) => {
+  return useQuery({
+    queryKey: ["channel", workspaceId, channelId, "messages", params],
+    queryFn: () =>
+      channelsApi.getChannelWithMessages(workspaceId, channelId, params),
+    enabled: !!(workspaceId && channelId),
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    gcTime: 300000, // Keep in cache for 5 minutes
+  });
+};
+
+// Hook for infinite scrolling
+export const useGetChannelWithMessagesInfinite = (
+  workspaceId: string,
+  channelId: string,
+  limit: number = 50
+) => {
+  return useInfiniteQuery({
+    queryKey: ["channel", workspaceId, channelId, "messages", "infinite"],
+    queryFn: ({ pageParam }) =>
+      channelsApi.getChannelWithMessages(workspaceId, channelId, {
+        limit,
+        cursor: pageParam,
+      }),
+    enabled: !!(workspaceId && channelId),
+    getNextPageParam: (lastPage) => {
+      console.log("lastPage", lastPage);
+      return lastPage.data.pagination.hasMore
+        ? lastPage.data.pagination.nextCursor
+        : undefined;
+    },
+    staleTime: 30000,
+    gcTime: 300000,
+    initialPageParam: undefined as string | undefined,
   });
 };
 

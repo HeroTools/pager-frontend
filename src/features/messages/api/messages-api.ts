@@ -15,6 +15,9 @@ import type {
   MessageFilters,
   AddReactionData,
   MessageThread,
+  MessageWithUser,
+  MessageWithUserResponse,
+  CreateConversationMessageData,
 } from "../types";
 
 export const messagesApi = {
@@ -122,9 +125,24 @@ export const messagesApi = {
     workspaceId: string,
     channelId: string,
     data: CreateChannelMessageData
-  ): Promise<MessageEntity> => {
-    const response = await httpClient.post<MessageResponse>(
+  ): Promise<MessageWithUser> => {
+    const response = await httpClient.post<MessageWithUserResponse>(
       `/workspaces/${workspaceId}/channels/${channelId}/messages`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Create a new message in a conversation
+   */
+  createConversationMessage: async (
+    workspaceId: string,
+    conversationId: string,
+    data: CreateConversationMessageData
+  ): Promise<MessageWithUser> => {
+    const response = await httpClient.post<MessageWithUserResponse>(
+      `/workspaces/${workspaceId}/conversations/${conversationId}/messages`,
       data
     );
     return response.data;

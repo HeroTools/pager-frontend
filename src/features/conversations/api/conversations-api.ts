@@ -15,6 +15,8 @@ import type {
   ConversationMessagesResponse,
   ConversationFilters,
   ConversationMessageFilters,
+  GetConversationMessagesParams,
+  ConversationWithMessagesResponse,
 } from "../types";
 
 export const conversationsApi = {
@@ -64,6 +66,34 @@ export const conversationsApi = {
       `/workspaces/${workspaceId}/conversations/${conversationId}/members`
     );
     return response.data;
+  },
+
+  getConversationWithMessages: async (
+    workspaceId: string,
+    conversationId: string,
+    params?: GetConversationMessagesParams
+  ): Promise<ConversationWithMessagesResponse> => {
+    const searchParams = new URLSearchParams();
+
+    if (params?.limit) {
+      searchParams.append("limit", params.limit.toString());
+    }
+    if (params?.cursor) {
+      searchParams.append("cursor", params.cursor);
+    }
+    if (params?.before) {
+      searchParams.append("before", params.before);
+    }
+
+    const queryString = searchParams.toString();
+    const url = `/workspaces/${workspaceId}/conversations/${conversationId}/messages${
+      queryString ? `?${queryString}` : ""
+    }`;
+
+    const response = await httpClient.get<ConversationWithMessagesResponse>(
+      url
+    );
+    return response;
   },
 
   /**

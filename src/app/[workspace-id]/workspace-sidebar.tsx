@@ -11,17 +11,15 @@ import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations
 import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
 import { useGetMembers } from "@/features/members/hooks/use-members";
 import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
-import { useChannelId } from "@/hooks/use-channel-id";
+import { useParamIds } from "@/hooks/use-param-ids";
 import { useMemberId } from "@/hooks/use-member-id";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { SidebarItem } from "./sidebar-item";
 import { UserItem } from "./user-item";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceSection } from "./workspace-section";
 
 export const WorkspaceSidebar = () => {
-  const workspaceId = useWorkspaceId();
-  const channelId = useChannelId();
+  const { id: channelId, workspaceId } = useParamIds();
   const memberId = useMemberId();
 
   const getWorkspace = useGetWorkspace(workspaceId);
@@ -96,7 +94,7 @@ export const WorkspaceSidebar = () => {
             image={item.user.image}
             key={item.id}
             label={item.user.name}
-            variant={memberId === item._id ? "active" : "default"}
+            variant={memberId === item.id ? "active" : "default"}
           />
         ))}
       </WorkspaceSection>
