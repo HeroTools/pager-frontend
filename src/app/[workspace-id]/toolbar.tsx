@@ -31,12 +31,12 @@ export const Toolbar = () => {
 
   const handleChannelClick = (channelId: string) => () => {
     setOpen(false);
-    router.push(`/workspace/${workspaceId}/channel/${channelId}`);
+    router.push(`/${workspaceId}/c-${channelId}`);
   };
 
   const handleMemberClick = (memberId: string) => () => {
     setOpen(false);
-    router.push(`/workspace/${workspaceId}/member/${memberId}`);
+    router.push(`/${workspaceId}/d-${memberId}`);
   };
 
   return (
