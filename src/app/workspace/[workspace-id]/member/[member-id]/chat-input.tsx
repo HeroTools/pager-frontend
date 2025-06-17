@@ -3,10 +3,9 @@ import Quill from "quill";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { useCreateMessage } from "@/features/messages/api/useCreateMessage";
-import { useGenerateUploadUrl } from "@/features/upload/api/useGenerateUploadUrl";
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { Id } from "../../../../../../[workspace-id]onvex/_generated/[workspace-id]ataModel";
+import { useCreateMessage } from "@/features/messages/api/use-create-message";
+import { useGenerateUploadUrl } from "@/features/upload/api/use-generate-upload-url";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
 
 const Editor = dynamic(() => import("@/components/editor"), { ssr: false });
 

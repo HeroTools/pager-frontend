@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/[workspace-id]vatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 interface ConversationHeroProps {
   name: string;
