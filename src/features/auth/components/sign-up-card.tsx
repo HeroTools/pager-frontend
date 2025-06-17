@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { SignInFlow } from "../types";
-import { authApi } from "@/lib/api/auth";
+import { authApi } from "@/features/auth/api/auth-api";
 
 interface SignUpCardProps {
   setState: (state: SignInFlow) => void;
@@ -67,7 +67,9 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
         }
       } catch (err: any) {
         console.error("Sign up error:", err);
-        setError(err.response?.data?.error || "Something went wrong. Please try again.");
+        setError(
+          err.response?.data?.error || "Something went wrong. Please try again."
+        );
       } finally {
         setSigningUp(false);
       }
@@ -89,7 +91,10 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
       window.location.href = result.url;
     } catch (err: any) {
       console.error(`${provider} sign up error:`, err);
-      setError(err.response?.data?.error || `Failed to sign up with ${provider}. Please try again.`);
+      setError(
+        err.response?.data?.error ||
+          `Failed to sign up with ${provider}. Please try again.`
+      );
       setSigningUp(false);
     }
   };

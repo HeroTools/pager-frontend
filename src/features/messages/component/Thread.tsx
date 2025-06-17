@@ -5,17 +5,20 @@ import Quill from "quill";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Message } from "@/components/Message";
+import { Message } from "@/features/conversations/components/message";
 import { Button } from "@/components/ui/button";
-import { useCurrentMember } from "@/features/members/api/useCurrentMember";
-import { useGenerateUploadUrl } from "@/features/upload/api/useGenerateUploadUrl";
-import { useChannelId } from "@/hooks/useChannelId";
-import { useWorkspaceId } from "@/hooks/useWorkspaceId";
-import { useCreateMessage } from "../api/useCreateMessage";
-import { useGetMessage } from "../api/useGetMessage";
-import { useGetMessages } from "../api/useGetMessages";
+import { useCurrentMember } from "@/features/members/hooks/use-members";
+import { useGetUploadUrl } from "@/features/upload/api/use-upload";
+import { useChannelId } from "@/hooks/use-channel-id";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import {
+  useCreateMessage,
+  useGetMessage,
+  useGetMessages,
+} from "../hooks/use-messages";
+import type { Id } from "@/types/index";
 
-const Editor = dynamic(() => import("@/components/Editor"), { ssr: false });
+const Editor = dynamic(() => import("@/components/editor"), { ssr: false });
 
 interface ThreadProps {
   messageId: Id<"messages">;
@@ -42,14 +45,13 @@ const formatDateLabel = (dateStr: string) => {
 export const Thread = ({ messageId, onClose }: ThreadProps) => {
   const workspaceId = useWorkspaceId();
   const channelId = useChannelId();
-  const getMessage = useGetMessage({ id: messageId });
-  const getMessages = useGetMessages({
-    channelId,
+  const getMessage = useGetMessage(workspaceId, messageId);
+  const getMessages = useGetMessages(workspaceId, channelId, {
     parentMessageId: messageId,
   });
-  const currentMember = useCurrentMember({ workspaceId });
+  const currentMember = useCurrentMember(workspaceId);
   const createMessage = useCreateMessage();
-  const generateUploadUrl = useGenerateUploadUrl();
+  const generateUploadUrl = useGetUploadUrl();
 
   const editorRef = useRef<Quill | null>(null);
 
@@ -57,18 +59,15 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
   const [editorKey, setEditorKey] = useState(0);
   const [isPending, setIsPending] = useState(false);
 
-  const groupedMessages = getMessages.results.reduce(
-    (groups, message) => {
-      const date = new Date(message._creationTime);
-      const dateKey = dayjs(date).format("YYYY-MM-DD");
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-      groups[dateKey].unshift(message);
-      return groups;
-    },
-    {} as Record<string, (typeof api.messages.get._returnType)["page"]>
-  );
+  const groupedMessages = getMessages.results.reduce((groups, message) => {
+    const date = new Date(message._creationTime);
+    const dateKey = dayjs(date).format("YYYY-MM-DD");
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    groups[dateKey].unshift(message);
+    return groups;
+  }, {} as Record<string, typeof getMessages.results>);
 
   const handleSubmit = async ({
     body,
