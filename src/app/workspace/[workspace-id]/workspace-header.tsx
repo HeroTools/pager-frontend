@@ -1,7 +1,7 @@
 import { ChevronDown, ListFilter, SquarePen } from "lucide-react";
 import { useState } from "react";
 
-import { InDevelopmentHint } from '@/components/in-development-hint';
+import { InDevelopmentHint } from "@/components/in-development-hint";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,9 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Doc } from "../../../../[workspace-id]onvex/_generated/[workspace-id]ataModel";
-import { InviteModal } from './invite-modal';
-import { PreferenceModal } from './preference-modal';
+import { InviteModal } from "./invite-modal";
+import { PreferenceModal } from "./preference-modal";
 
 interface WorkspaceHeaderProps {
   workspace: Doc<"workspaces">;

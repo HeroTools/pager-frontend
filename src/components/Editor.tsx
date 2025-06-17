@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { EmojiPopover } from "./emoji-popover";
 import { Hint } from "./hint";
-import { Button } from "./ui/[member-id]utton";
+import { Button } from "./ui/button";
 
 type EditorValue = {
   image: File | null;

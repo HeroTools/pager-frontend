@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/[workspace-id]vatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { ChevronRight } from "lucide-react";

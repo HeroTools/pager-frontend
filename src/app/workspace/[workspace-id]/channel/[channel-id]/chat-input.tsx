@@ -3,11 +3,11 @@ import Quill from "quill";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { useCreateMessage } from '@/features/messages/api/use-messages';
-import { useGetUploadUrl } from '@/features/upload/api/use-upload';
-import { useChannelId } from '@/hooks/use-channel-id';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { Id } from "../../../../../../[workspace-id]onvex/_generated/[workspace-id]ataModel";
+import { useCreateMessage } from "@/features/messages/api/use-messages";
+import { useGetUploadUrl } from "@/features/upload/api/use-upload";
+import { useChannelId } from "@/hooks/use-channel-id";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { Id } from "@/types";
 
 const Editor = dynamic(() => import("@/components/editor"), { ssr: false });
 

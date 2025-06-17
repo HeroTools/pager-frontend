@@ -1,29 +1,29 @@
 /**
  * Axios Instance Configuration
- * 
+ *
  * This file exports a configured Axios instance that:
  * - Adds authentication tokens to requests
  * - Manages refresh tokens in cookies
  * - Handles specific error cases with appropriate responses
  * - Redirects to login on authentication failures
- * 
+ *
  * Error Handling:
  * - 401: Attempts token refresh, redirects to login if failed
  * - 403: Handles permission issues
  * - 404: Handles not found resources
  * - 500: Handles server errors
- * 
+ *
  * Usage:
  * ```typescript
  * import { axiosInstance } from '@/lib/axios';
- * 
+ *
  * // Make authenticated requests
  * const response = await axiosInstance.get('/api/protected-route');
  * ```
  */
 
 import axios from "axios";
-import { createClient } from "./supabase/[workspace-id]lient";
+import { createClient } from "./supabase/client";
 
 // Helper function to get cookie value
 const getCookie = (name: string): string | null => {
@@ -85,16 +85,18 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   async (config) => {
     const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     if (session?.access_token) {
       config.headers.Authorization = `Bearer ${session.access_token}`;
     }
-    
+
     return config;
   },
   (error) => {
-    console.error('Request interceptor error:', error);
+    console.error("Request interceptor error:", error);
     return Promise.reject(error);
   }
 );
@@ -111,10 +113,13 @@ axiosInstance.interceptors.response.use(
 
       try {
         const supabase = createClient();
-        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+        const {
+          data: { session },
+          error: refreshError,
+        } = await supabase.auth.refreshSession();
 
         if (refreshError) {
-          console.error('Token refresh failed:', {
+          console.error("Token refresh failed:", {
             message: refreshError.message,
             status: refreshError.status,
           });
@@ -144,39 +149,44 @@ axiosInstance.interceptors.response.use(
 
     // Handle 403 Forbidden errors
     if (error.response?.status === 403) {
-      console.error('Permission denied:', {
-        message: error.response.data?.message || 'You do not have permission to access this resource',
+      console.error("Permission denied:", {
+        message:
+          error.response.data?.message ||
+          "You do not have permission to access this resource",
         path: originalRequest.url,
       });
-      return Promise.reject(new Error('Permission denied'));
+      return Promise.reject(new Error("Permission denied"));
     }
 
     // Handle 404 Not Found errors
     if (error.response?.status === 404) {
-      console.error('Resource not found:', {
-        message: error.response.data?.message || 'The requested resource was not found',
+      console.error("Resource not found:", {
+        message:
+          error.response.data?.message ||
+          "The requested resource was not found",
         path: originalRequest.url,
       });
-      return Promise.reject(new Error('Resource not found'));
+      return Promise.reject(new Error("Resource not found"));
     }
 
     // Handle 500 Server errors
     if (error.response?.status >= 500) {
-      console.error('Server error:', {
-        message: error.response.data?.message || 'An unexpected server error occurred',
+      console.error("Server error:", {
+        message:
+          error.response.data?.message || "An unexpected server error occurred",
         status: error.response.status,
         path: originalRequest.url,
       });
-      return Promise.reject(new Error('Server error'));
+      return Promise.reject(new Error("Server error"));
     }
 
     // Handle network errors
     if (!error.response) {
-      console.error('Network error:', {
-        message: error.message || 'Network error occurred',
+      console.error("Network error:", {
+        message: error.message || "Network error occurred",
         path: originalRequest.url,
       });
-      return Promise.reject(new Error('Network error'));
+      return Promise.reject(new Error("Network error"));
     }
 
     return Promise.reject(error);
@@ -201,4 +211,3 @@ export const authCookies = {
   // Add logout function to the exported utilities
   logout: handleLogout,
 };
-

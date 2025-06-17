@@ -1,13 +1,12 @@
 import { Loader } from "lucide-react";
 
-import { MessageList } from '@/components/message-list';
-import { useGetMember } from "@/features/members/api/useGetMember";
-import { useGetMessages } from "@/features/messages/api/useGetMessages";
-import { useMemberId } from '@/hooks/use-member-id';
-import { Id } from "../../../../../../[workspace-id]onvex/_generated/[workspace-id]ataModel";
-import { ChatInput } from './chat-input';
+import { MessageList } from "@/components/message-list";
+import { useGetMember } from "@/features/members/api/use-get-member";
+import { useGetMessages } from "@/features/messages/api/use-get-messages";
+import { useMemberId } from "@/hooks/use-member-id";
+import { ChatInput } from "./chat-input";
 import { Header } from "./Header";
-import { usePanel } from '@/hooks/use-panel';
+import { usePanel } from "@/hooks/use-panel";
 
 interface ConversationProps {
   id: Id<"conversations">;

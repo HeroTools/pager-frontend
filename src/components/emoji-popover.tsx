@@ -1,7 +1,7 @@
 import { ReactNode, useState } from "react";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/[workspace-id]opover";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   Tooltip,
   TooltipContent,

@@ -17,7 +17,7 @@ import { Reactions } from "./reactions";
 import { ThreadBar } from "./thread-bar";
 import { Thumbnail } from "./thumbnail";
 import { Toolbar } from "./toolbar";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/[workspace-id]vatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 const Renderer = dynamic(() => import("@/components/renderer"), { ssr: false });
 const Editor = dynamic(() => import("@/components/editor"), { ssr: false });
