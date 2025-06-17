@@ -6,18 +6,18 @@ import {
   SendHorizonal,
 } from "lucide-react";
 
-import { InDevelopmentHint } from '@/components/in-development-hint';
-import { useGetChannels } from '@/features/channels/api/use-channels';
-import { useCreateChannelModal } from '@/features/channels/store/use-create-channel-modal';
-import { useGetMembers } from '@/features/members/api/use-members';
-import { useGetWorkspace } from '@/features/workspaces/api/use-workspaces';
-import { useChannelId } from '@/hooks/use-channel-id';
-import { useMemberId } from '@/hooks/use-member-id';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { SidebarItem } from './sidebar-item';
-import { UserItem } from './user-item';
-import { WorkspaceHeader } from './workspace-header';
-import { WorkspaceSection } from './workspace-section';
+import { InDevelopmentHint } from "@/components/in-development-hint";
+import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations";
+import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
+import { useGetMembers } from "@/features/members/hooks/use-members";
+import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
+import { useChannelId } from "@/hooks/use-channel-id";
+import { useMemberId } from "@/hooks/use-member-id";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { SidebarItem } from "./sidebar-item";
+import { UserItem } from "./user-item";
+import { WorkspaceHeader } from "./workspace-header";
+import { WorkspaceSection } from "./workspace-section";
 
 export const WorkspaceSidebar = () => {
   const workspaceId = useWorkspaceId();
@@ -77,7 +77,9 @@ export const WorkspaceSidebar = () => {
       <WorkspaceSection
         label="Channels"
         hint="New channel"
-        onNew={getWorkspace.data.role === "admin" ? () => setOpen(true) : undefined}
+        onNew={
+          getWorkspace.data.role === "admin" ? () => setOpen(true) : undefined
+        }
       >
         {getChannels.data?.map((item) => (
           <SidebarItem

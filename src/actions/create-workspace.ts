@@ -1,9 +1,9 @@
-'use server';
+"use server";
 
-import { supabaseServerClient } from '@/supabase/supabaseServer';
-import { getUserData } from './get-user-data';
-import { updateUserWorkspace } from './update-user-workspace';
-import { addMemberToWorkspace } from './add-member-to-workspace';
+import { createClient } from "@/lib/supabase/server";
+import { getUserData } from "./get-user-data";
+import { updateUserWorkspace } from "./update-user-workspace";
+import { addMemberToWorkspace } from "./add-member-to-workspace";
 
 export const createWorkspace = async ({
   imageUrl,
@@ -16,15 +16,15 @@ export const createWorkspace = async ({
   slug: string;
   invite_code: string;
 }) => {
-  const supabase = await supabaseServerClient();
+  const supabase = await createClient();
   const userData = await getUserData();
 
   if (!userData) {
-    return { error: 'No user data' };
+    return { error: "No user data" };
   }
 
   const { error, data: workspaceRecord } = await supabase
-    .from('workspaces')
+    .from("workspaces")
     .insert({
       image_url: imageUrl,
       name,
@@ -32,7 +32,7 @@ export const createWorkspace = async ({
       slug,
       invite_code,
     })
-    .select('*');
+    .select("*");
 
   if (error) {
     return { error };

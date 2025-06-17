@@ -1,77 +1,118 @@
-import { AxiosResponse } from 'axios';
-import { axiosInstance } from '@/lib/axios';
-
-export interface Workspace {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateWorkspaceData {
-  name: string;
-  description?: string;
-}
-
-export interface WorkspaceResponse {
-  success: boolean;
-  data: {
-    workspace: Workspace;
-  };
-  error?: string;
-}
-
-export interface WorkspacesResponse {
-  success: boolean;
-  data: {
-    workspaces: Workspace[];
-  };
-  error?: string;
-}
-
-export interface JoinCodeResponse {
-  success: boolean;
-  data: {
-    joinCode: string;
-  };
-  error?: string;
-}
-
-// Represents the successful payload when a workspace is created
-export interface CreateWorkspaceSuccessPayload {
-  workspaceId: string;
-}
-
-// Represents the full API response for workspace creation (success or error)
-export type CreateWorkspaceResponse = CreateWorkspaceSuccessPayload | { error: string };
+import { httpClient } from "@/lib/api/http-client";
+import type {
+  WorkspaceEntity,
+  WorkspaceWithMembersList,
+  CreateWorkspaceData,
+  UpdateWorkspaceData,
+  JoinWorkspaceData,
+  WorkspaceResponse,
+  WorkspacesResponse,
+  WorkspaceWithMembersResponse,
+  JoinCodeResponse,
+  WorkspaceStats,
+  WorkspaceResponseData,
+} from "../types";
 
 export const workspacesApi = {
-  getWorkspaces: (): Promise<AxiosResponse<WorkspacesResponse>> => {
-    return axiosInstance.get('/workspaces');
+  /**
+   * Get all workspaces for current user
+   */
+  getWorkspaces: async (): Promise<WorkspaceEntity[]> => {
+    const response = await httpClient.get<WorkspacesResponse>(`/workspaces`);
+    return response.data;
   },
 
-  getWorkspace: (id: string): Promise<AxiosResponse<WorkspaceResponse>> => {
-    return axiosInstance.get(`/workspaces/${id}`);
+  /**
+   * Get workspace by ID
+   */
+  getWorkspace: async (id: string): Promise<WorkspaceResponseData> => {
+    const response = await httpClient.get<WorkspaceResponse>(
+      `/workspaces/${id}?include_details=false`
+    );
+    return response.data;
   },
 
-  createWorkspace: (data: CreateWorkspaceData): Promise<AxiosResponse<CreateWorkspaceResponse>> => {
-    return axiosInstance.post('/workspaces', data);
+  /**
+   * Get workspace with members
+   */
+  getAllWorkspaceDataForMember: async (
+    id: string
+  ): Promise<WorkspaceWithMembersList> => {
+    const response = await httpClient.get<WorkspaceWithMembersResponse>(
+      `/workspaces/${id}?include_details=true`
+    );
+    return response.data;
   },
 
-  updateWorkspace: (id: string, data: Partial<CreateWorkspaceData>): Promise<AxiosResponse<WorkspaceResponse>> => {
-    return axiosInstance.patch(`/workspaces/${id}`, data);
+  /**
+   * Create new workspace
+   */
+  createWorkspace: async (
+    data: CreateWorkspaceData
+  ): Promise<WorkspaceEntity> => {
+    const response = await httpClient.post<WorkspaceResponse>(
+      "/workspaces",
+      data
+    );
+    return response.data;
   },
 
-  deleteWorkspace: (id: string): Promise<AxiosResponse> => {
-    return axiosInstance.delete(`/workspaces/${id}`);
+  /**
+   * Update workspace
+   */
+  updateWorkspace: async (
+    id: string,
+    data: UpdateWorkspaceData
+  ): Promise<WorkspaceEntity> => {
+    const response = await httpClient.patch<WorkspaceResponse>(
+      `/workspaces/${id}`,
+      data
+    );
+    return response.data;
   },
 
-  generateJoinCode: (id: string): Promise<AxiosResponse<JoinCodeResponse>> => {
-    return axiosInstance.post(`/workspaces/${id}/join-code`);
+  /**
+   * Delete workspace
+   */
+  deleteWorkspace: async (id: string): Promise<void> => {
+    await httpClient.delete(`/workspaces/${id}`);
   },
 
-  joinWorkspace: (joinCode: string): Promise<AxiosResponse<WorkspaceResponse>> => {
-    return axiosInstance.post('/workspaces/join', { joinCode });
+  /**
+   * Generate new join code for workspace
+   */
+  generateJoinCode: async (id: string): Promise<string> => {
+    const response = await httpClient.post<JoinCodeResponse>(
+      `/workspaces/${id}/join-code`
+    );
+    return response.data.join_code;
   },
-}; 
+
+  /**
+   * Join workspace using join code
+   */
+  joinWorkspace: async (data: JoinWorkspaceData): Promise<WorkspaceEntity> => {
+    const response = await httpClient.post<WorkspaceResponse>(
+      "/workspaces/join",
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Get workspace statistics
+   */
+  getWorkspaceStats: async (id: string): Promise<WorkspaceStats> => {
+    const response = await httpClient.get<{ data: WorkspaceStats }>(
+      `/workspaces/${id}/stats`
+    );
+    return response.data;
+  },
+
+  /**
+   * Leave workspace (current user leaves)
+   */
+  leaveWorkspace: async (id: string): Promise<void> => {
+    await httpClient.post(`/workspaces/${id}/leave`);
+  },
+};

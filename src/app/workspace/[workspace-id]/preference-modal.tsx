@@ -15,9 +15,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useDeleteWorkspace, useUpdateWorkspace } from '@/features/workspaces/api/use-workspaces';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { useConfirm } from '@/hooks/use-confirm';
+import {
+  useDeleteWorkspace,
+  useUpdateWorkspace,
+} from "@/features/workspaces/hooks/use-workspaces";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface PreferenceModalProps {
   initialVlaue: string;

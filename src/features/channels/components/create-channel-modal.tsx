@@ -9,9 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { useCreateChannel } from "../api";
-import { useCreateChannelModal } from '../store/use-create-channel-modal';
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useCreateChannel } from "..";
+import { useCreateChannelModal } from "../store/use-create-channel-modal";
 import { toast } from "sonner";
 
 export const CreateChannelModal = () => {
@@ -37,14 +37,15 @@ export const CreateChannelModal = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (typeof workspaceId !== 'string') {
+    if (typeof workspaceId !== "string") {
       toast.error("Workspace ID is required");
       return;
     }
 
     mutateAsync({
       name,
-      workspaceId,
+      workspace_id: workspaceId,
+      channel_type: "public",
     })
       .then((channelId) => {
         router.push(`/workspace/${workspaceId}/channel/${channelId}`);

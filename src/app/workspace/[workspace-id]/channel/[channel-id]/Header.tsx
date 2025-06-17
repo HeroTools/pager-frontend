@@ -16,11 +16,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useRemoveChannel } from "@/features/channels/api/useRemoveChannel";
-import { useUpdateChannel } from '@/features/channels/api/use-channels';
-import { useCurrentMember } from '@/features/members/api/use-current-member';
-import { useChannelId } from '@/hooks/use-channel-id';
-import { useConfirm } from '@/hooks/use-confirm';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { useUpdateChannel } from "@/features/channels/hooks/use-channels-mutations";
+import { useCurrentMember } from "@/features/members/hooks/use-current-member";
+import { useChannelId } from "@/hooks/use-channel-id";
+import { useConfirm } from "@/hooks/use-confirm";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
 
 interface HeaderProps {
   title: string;

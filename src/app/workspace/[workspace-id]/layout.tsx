@@ -14,6 +14,7 @@ import { usePanel } from "@/hooks/use-panel";
 import { Sidebar } from "./Sidebar";
 import { Toolbar } from "./Toolbar";
 import { WorkspaceSidebar } from "./workspace-sidebar";
+import { Id } from "@/types";
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;
