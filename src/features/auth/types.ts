@@ -1,4 +1,5 @@
 import { User, UpdateEntityInput } from "@/types/database";
+import { WorkspaceEntity } from "../workspaces/types";
 
 // Auth-specific flow type (not database related)
 export type SignInFlow = "signIn" | "signUp";
@@ -31,6 +32,9 @@ export interface UpdatePasswordData {
 export interface AuthSession {
   access_token: string;
   refresh_token: string;
+  expires_at?: number;
+  token_type?: string;
+  user?: AuthUser;
 }
 
 // Auth state for React context
@@ -40,12 +44,30 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
-// Auth API response types
+// Enhanced auth API response types with workspace support
 export interface AuthResponse {
   user: AuthUser;
   session?: AuthSession;
   profile?: UpdateProfileData;
   message?: string;
+}
+
+// Enhanced response that includes workspace data from sign-in
+export interface AuthResponseWithWorkspaces extends AuthResponse {
+  workspaces: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    avatar_url?: string;
+    created_at: string;
+    updated_at: string;
+    is_active: boolean;
+    role: "owner" | "admin" | "member" | "guest";
+    last_accessed_at?: string;
+    join_code?: string;
+  }>;
+  defaultWorkspaceId?: string;
 }
 
 export interface SignUpResponse extends AuthResponse {
@@ -60,4 +82,65 @@ export interface SignUpFormData extends SignUpData {
 
 export interface SignInFormData extends SignInData {
   rememberMe?: boolean;
+}
+
+// Error types
+export interface AuthError {
+  message: string;
+  code?: string;
+  status?: number;
+}
+
+// OAuth sign-in data
+export interface OAuthSignInData {
+  redirectTo: string;
+  scopes?: string;
+}
+
+// User preferences (for updating last workspace, etc.)
+export interface UserPreferences {
+  last_workspace_id?: string;
+  theme?: "light" | "dark" | "system";
+  notifications_enabled?: boolean;
+}
+
+// Mutation hook types for better TypeScript support
+export interface AuthMutationHook<TData = any, TVariables = any> {
+  mutate: (variables: TVariables) => void;
+  mutateAsync: (variables: TVariables) => Promise<TData>;
+  isPending: boolean;
+  isSuccess: boolean;
+  isError: boolean;
+  error: AuthError | null;
+  data?: TData;
+  reset: () => void;
+}
+
+// Specific hook return types
+export interface UseSignInReturn
+  extends AuthMutationHook<AuthResponseWithWorkspaces, SignInData> {}
+export interface UseSignUpReturn
+  extends AuthMutationHook<SignUpResponse, SignUpData> {}
+export interface UseOAuthSignInReturn
+  extends AuthMutationHook<void, OAuthSignInData> {}
+export interface UseSignOutReturn extends AuthMutationHook<void, void> {}
+
+// Workspace-related types for auth context
+export interface WorkspaceRole {
+  workspaceId: string;
+  role: "owner" | "admin" | "member" | "guest";
+  permissions: string[];
+}
+
+// Extended auth context that includes workspace information
+export interface ExtendedAuthState extends AuthState {
+  workspaces: AuthResponseWithWorkspaces["workspaces"];
+  currentWorkspaceId?: string;
+  userRoles: WorkspaceRole[];
+  hasWorkspaceAccess: (workspaceId: string, requiredRole?: string) => boolean;
+}
+
+export interface EnhancedAuthResponse extends AuthResponse {
+  workspaces: WorkspaceEntity[];
+  defaultWorkspaceId?: string;
 }

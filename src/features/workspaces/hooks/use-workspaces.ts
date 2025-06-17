@@ -29,7 +29,7 @@ export const useGetWorkspace = (id: string) => {
 export const useGetWorkspaceWithMembers = (id: string) => {
   return useQuery({
     queryKey: ["workspace", id, "members"],
-    queryFn: () => workspacesApi.getWorkspaceWithMembers(id),
+    queryFn: () => workspacesApi.getAllWorkspaceDataForMember(id),
     enabled: !!id,
   });
 };

@@ -6,16 +6,22 @@ import type {
   UpdateProfileData,
   UpdatePasswordData,
   AuthResponse,
+  EnhancedAuthResponse,
+  UserPreferences,
 } from "@/features/auth/types";
+import { User } from "@supabase/supabase-js";
 
 export const authApi = {
   /**
    * Sign up a new user
    */
-  signUp: async (data: SignUpData) => {
-    const response = await httpClient.postPublic("/auth/sign-up", data);
+  signUp: async (data: SignInData): Promise<EnhancedAuthResponse> => {
+    const response = await httpClient.postPublic<EnhancedAuthResponse>(
+      "/auth/sign-up",
+      data
+    );
 
-    // If your Lambda returns Supabase session, store it
+    // Store session from Lambda response if provided
     if (response.session) {
       const supabase = createClient();
       await supabase.auth.setSession(response.session);
@@ -27,19 +33,21 @@ export const authApi = {
   /**
    * Sign in an existing user
    */
-  signIn: async (data: SignInData): Promise<AuthResponse> => {
-    const response = await httpClient.postPublic<AuthResponse>(
+  signIn: async (data: SignInData): Promise<EnhancedAuthResponse> => {
+    const response = await httpClient.postPublic<EnhancedAuthResponse>(
       "/auth/sign-in",
       data
     );
-    console.log(response);
+
+    console.log("Sign in response:", response);
+
     // Store session from Lambda response
-    if (response.session) {
+    if (response.data.session) {
       const supabase = createClient();
-      await supabase.auth.setSession(response.session);
+      await supabase.auth.setSession(response.data.session);
     }
 
-    return response;
+    return response.data;
   },
 
   /**
@@ -111,35 +119,37 @@ export const authApi = {
    * Verify email with token
    */
   verifyEmail: async (token: string) => {
-    return httpClient.postPublic("/auth/verify-email", { token });
+    return await httpClient.postPublic("/auth/verify-email", { token });
   },
 
   /**
    * Update user profile
    */
   updateProfile: async (data: UpdateProfileData) => {
-    return httpClient.put("/auth/profile", data);
+    return await httpClient.put("/auth/profile", data);
   },
 
   /**
    * Update user password
    */
   updatePassword: async (data: UpdatePasswordData) => {
-    return httpClient.put("/auth/password", data);
+    return await httpClient.put("/auth/password", data);
   },
 
   /**
    * Request password reset
    */
   resetPasswordRequest: async (email: string) => {
-    return httpClient.postPublic("/auth/reset-password-request", { email });
+    return await httpClient.postPublic("/auth/reset-password-request", {
+      email,
+    });
   },
 
   /**
    * Reset password with token
    */
   resetPassword: async (token: string, newPassword: string) => {
-    return httpClient.postPublic("/auth/reset-password", {
+    return await httpClient.postPublic("/auth/reset-password", {
       token,
       new_password: newPassword,
     });
@@ -149,7 +159,9 @@ export const authApi = {
    * Get current user from Lambda/database
    */
   getCurrentUser: async (): Promise<User> => {
-    return httpClient.get("/auth/user");
+    const response = await httpClient.get("/auth/user");
+    console.log(response);
+    return response.profile as User;
   },
 
   /**
@@ -181,7 +193,7 @@ export const authApi = {
    * Get user by ID (admin function)
    */
   getUserById: async (userId: string): Promise<User> => {
-    return httpClient.get(`/admin/users/${userId}`);
+    return await httpClient.get(`/admin/users/${userId}`);
   },
 
   /**
@@ -212,6 +224,11 @@ export const authApi = {
       await supabase.auth.setSession(response.session);
     }
 
+    return response;
+  },
+
+  updateUserPreferences: async (data: UserPreferences) => {
+    const response = await httpClient.put("/auth/user-preferences", data);
     return response;
   },
 };

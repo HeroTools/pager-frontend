@@ -20,14 +20,18 @@ export const useCurrentConversation = (workspaceId: string) => {
 };
 
 // features/conversations/hooks/use-get-conversation.ts
-export const useGetConversation = (conversationId: string) => {
+export const useGetConversation = (
+  workspaceId: string,
+  conversationId: string
+) => {
   const {
     data: conversation,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["conversation", conversationId],
-    queryFn: () => conversationsApi.getConversation(conversationId),
+    queryKey: ["conversation", workspaceId, conversationId],
+    queryFn: () =>
+      conversationsApi.getConversation(workspaceId, conversationId),
     enabled: !!conversationId,
   });
 

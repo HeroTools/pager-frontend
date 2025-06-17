@@ -11,8 +11,8 @@ import {
 import { Profile } from "@/features/members/components/profile";
 import { Thread } from "@/features/messages/component/thread";
 import { usePanel } from "@/hooks/use-panel";
-import { Sidebar } from "./Sidebar";
-import { Toolbar } from "./Toolbar";
+import { Sidebar } from "./sidebar";
+import { Toolbar } from "./toolbar";
 import { WorkspaceSidebar } from "./workspace-sidebar";
 import { Id } from "@/types";
 

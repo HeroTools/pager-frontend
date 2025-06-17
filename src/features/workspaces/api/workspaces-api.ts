@@ -19,7 +19,7 @@ export const workspacesApi = {
    */
   getWorkspaces: async (): Promise<WorkspaceEntity[]> => {
     const response = await httpClient.get<WorkspacesResponse>(`/workspaces`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -29,7 +29,8 @@ export const workspacesApi = {
     const response = await httpClient.get<WorkspaceResponse>(
       `/workspaces/${id}?include_details=false`
     );
-    return response.data;
+
+    return response?.workspace;
   },
 
   /**
@@ -41,7 +42,7 @@ export const workspacesApi = {
     const response = await httpClient.get<WorkspaceWithMembersResponse>(
       `/workspaces/${id}?include_details=true`
     );
-    return response.data;
+    return response;
   },
 
   /**
@@ -54,7 +55,7 @@ export const workspacesApi = {
       "/workspaces",
       data
     );
-    return response.data;
+    return response;
   },
 
   /**
@@ -68,7 +69,7 @@ export const workspacesApi = {
       `/workspaces/${id}`,
       data
     );
-    return response.data;
+    return response;
   },
 
   /**

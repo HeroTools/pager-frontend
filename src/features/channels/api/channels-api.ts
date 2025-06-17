@@ -31,7 +31,7 @@ export const channelsApi = {
     const response = await httpClient.get<ChannelsResponse>(
       `/workspaces/${workspaceId}/channels${queryString}`
     );
-    return response.data;
+    return response;
   },
 
   /**
@@ -44,7 +44,7 @@ export const channelsApi = {
     const response = await httpClient.get<ChannelResponse>(
       `/workspaces/${workspaceId}/channels/${channelId}`
     );
-    return response.data;
+    return response;
   },
 
   /**
@@ -57,7 +57,7 @@ export const channelsApi = {
     const response = await httpClient.get<ChannelWithMembersResponse>(
       `/workspaces/${workspaceId}/channels/${channelId}/members`
     );
-    return response.data;
+    return response;
   },
 
   /**
@@ -68,7 +68,7 @@ export const channelsApi = {
       `/workspaces/${data.workspace_id}/channels`,
       data
     );
-    return response.data;
+    return response;
   },
 
   /**
@@ -83,7 +83,7 @@ export const channelsApi = {
       `/workspaces/${workspaceId}/channels/${channelId}`,
       data
     );
-    return response.data;
+    return response;
   },
 
   /**

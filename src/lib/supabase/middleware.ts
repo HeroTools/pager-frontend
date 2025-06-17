@@ -1,6 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Routes that don't require authentication
+const PUBLIC_ROUTES = ["/auth", "/login", "/signup", "/forgot-password"];
+
+// Routes that require authentication but don't need workspace context
+const AUTH_ONLY_ROUTES = ["/onboarding", "/workspaces"];
+
+// API routes that should be excluded from auth checks
+const PUBLIC_API_ROUTES = ["/api/auth", "/api/public", "/api/webhooks"];
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -29,39 +38,131 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
   // IMPORTANT: DO NOT REMOVE auth.getUser()
-
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone();
-    url.pathname = "/auth";
+  const url = request.nextUrl.clone();
+  const pathname = url.pathname;
+
+  // Check route types
+  const isPublicRoute = PUBLIC_ROUTES.some((route) =>
+    pathname.startsWith(route)
+  );
+  const isAuthOnlyRoute = AUTH_ONLY_ROUTES.some((route) =>
+    pathname.startsWith(route)
+  );
+  const isPublicApiRoute = PUBLIC_API_ROUTES.some((route) =>
+    pathname.startsWith(route)
+  );
+  const isWorkspaceRoute = pathname.startsWith("/workspace/");
+
+  // Skip auth checks for public API routes
+  if (isPublicApiRoute) {
+    return supabaseResponse;
+  }
+
+  console.log("Middleware - User:", user?.id, "Path:", pathname);
+
+  // Handle authentication errors
+  if (authError) {
+    console.error("Auth error in middleware:", authError);
+    if (!isPublicRoute) {
+      url.pathname = "/auth";
+      url.searchParams.set("error", "session_expired");
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Handle unauthenticated users
+  if (!user) {
+    if (!isPublicRoute) {
+      url.pathname = "/auth";
+      url.searchParams.set("redirectTo", pathname);
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
+
+  // Handle authenticated users on public routes
+  if (user && isPublicRoute && pathname !== "/auth/callback") {
+    // Don't redirect if they're already on an auth page with error params
+    if (url.searchParams.has("error") || url.searchParams.has("message")) {
+      return supabaseResponse;
+    }
+
+    // Redirect authenticated users away from auth pages
+    // Default to workspaces selection - your frontend will handle the smart routing
+    url.pathname = "/workspaces";
+    url.searchParams.delete("redirectTo");
     return NextResponse.redirect(url);
   }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is.
-  // If you're creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object to fit your needs, but avoid changing
-  //    the cookies!
-  // 4. Finally:
-  //    return myNewResponse
-  // If this is not done, you may be causing the browser and server to go out
-  // of sync and terminate the user's session prematurely!
+  // Handle workspace-specific routes
+  if (isWorkspaceRoute) {
+    const workspaceId = pathname.split("/workspace/")[1]?.split("/")[0];
+
+    if (!workspaceId) {
+      // Invalid workspace URL
+      url.pathname = "/workspaces";
+      return NextResponse.redirect(url);
+    }
+
+    // Note: We're not doing workspace access validation here because:
+    // 1. It would require additional DB queries in middleware (performance impact)
+    // 2. Your React Query cache and hooks handle this more efficiently
+    // 3. The frontend can show proper error states if access is denied
+
+    // Optional: Add workspace ID to headers for server components
+    const response = NextResponse.next({
+      request: {
+        headers: new Headers(request.headers),
+      },
+    });
+    response.headers.set("x-workspace-id", workspaceId);
+
+    // Copy over cookies from supabase response
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value);
+    });
+
+    return response;
+  }
+
+  // Handle root path for authenticated users
+  if (user && pathname === "/") {
+    url.pathname = "/workspaces";
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }
+
+export async function middleware(request: NextRequest) {
+  try {
+    return await updateSession(request);
+  } catch (error) {
+    console.error("Middleware error:", error);
+
+    // Fallback: redirect to auth page on any middleware error
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth";
+    url.searchParams.set("error", "middleware_error");
+    return NextResponse.redirect(url);
+  }
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (images, etc.)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+};

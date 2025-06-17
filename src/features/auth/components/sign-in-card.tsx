@@ -13,11 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { TriangleAlert } from "lucide-react";
 import { SignInFlow } from "../types";
-import {
-  useSignIn,
-  useGoogleSignIn,
-  useGithubSignIn,
-} from "@/features/auth/hooks/use-auth-mutations";
+import { useSignIn, useGoogleSignIn, useGithubSignIn } from "@/features/auth";
 
 interface SignInCardProps {
   setState: (state: SignInFlow) => void;
