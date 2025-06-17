@@ -4,7 +4,7 @@ import isYesterday from "dayjs/plugin/isYesterday";
 import { Loader } from "lucide-react";
 import { useState } from "react";
 
-import { useCurrentMember } from "@/features/members/hooks/use-current-member";
+import { useCurrentMember } from "@/features/members/hooks/use-members";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { ChannelHero } from "../../../components/channel-hero";
 import { ConversationHero } from "../../../components/conversation-hero";
@@ -19,7 +19,7 @@ interface MessageListProps {
   channelName?: string;
   channelCreationTime?: number;
   variant?: "channel" | "thread" | "conversation";
-  data?: (typeof api.messages.get._returnType)["page"];
+  data?: any;
   canLoadMore: boolean;
   isLoadingMore: boolean;
   loadMore: () => void;
@@ -45,13 +45,11 @@ export const MessageList = ({
   variant = "channel",
   loadMore,
 }: MessageListProps) => {
-  const [editingId, setEditingId] = useState<Id<"messages"> | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const workspaceId = useWorkspaceId();
 
-  const currentMember = useCurrentMember({
-    workspaceId,
-  });
+  const currentMember = useCurrentMember(workspaceId);
 
   const groupedMessages = data?.reduce((groups, message) => {
     const date = new Date(message._creationTime);

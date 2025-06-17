@@ -1,26 +1,20 @@
 import { Loader } from "lucide-react";
 
 import { MessageList } from "@/features/conversations/components/message-list";
-import { useGetMember } from "@/features/members/api/use-get-member";
-import { useGetMessages } from "@/features/messages/api/use-get-messages";
+import { useGetMember } from "@/features/members/hooks/use-members";
+import { useGetChannelMessages } from "@/features/messages/hooks/use-messages";
 import { useMemberId } from "@/hooks/use-member-id";
 import { ChatInput } from "./chat-input";
-import { Header } from "./Header";
+import { Header } from "./header";
 import { usePanel } from "@/hooks/use-panel";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
 
-interface ConversationProps {
-  id: Id<"conversations">;
-}
-
-export const Conversation = ({ id }: ConversationProps) => {
-  const memberId = useMemberId();
-  const getMember = useGetMember({ id: memberId });
-  const getMessages = useGetMessages({
-    conversationId: id,
-  });
+export const Conversation = (id: string) => {
+  const workspaceId = useWorkspaceId();
+  const getMessages = useGetChannelMessages(workspaceId, id);
   const { openProfile } = usePanel();
 
-  if (getMember.isLoading || getMessages.status === "LoadingFirstPage") {
+  if (getMessages.status === "LoadingFirstPage") {
     return (
       <div className="h-full flex-1 flex items-center justify-center">
         <Loader className="animate-spin size-5 text-muted-foreground" />

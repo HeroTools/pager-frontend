@@ -1,6 +1,6 @@
 import { MdOutlineAddReaction } from "react-icons/md";
 
-import { useCurrentMember } from "@/features/members/hooks/use-current-member";
+import { useCurrentMember } from "@/features/members/hooks/use-members";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { cn } from "@/lib/utils";
 import { EmojiPopover } from "./emoji-popover";
@@ -19,7 +19,7 @@ interface ReactionsProps {
 
 export const Reactions = ({ messageId, data }: ReactionsProps) => {
   const workspaceId = useWorkspaceId();
-  const currentMember = useCurrentMember({ workspaceId });
+  const currentMember = useCurrentMember(workspaceId);
   const { mutateAsync: toggleReaction } = useToggleReaction(messageId);
 
   if (data.length === 0 || !currentMember.data?.id) {

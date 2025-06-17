@@ -15,9 +15,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useRemoveChannel } from "@/features/channels/api/useRemoveChannel";
+import { useDeleteChannel } from "@/features/channels/hooks/use-channels-mutations";
 import { useUpdateChannel } from "@/features/channels/hooks/use-channels-mutations";
-import { useCurrentMember } from "@/features/members/hooks/use-current-member";
+import { useCurrentMember } from "@/features/members/hooks/use-members";
 import { useChannelId } from "@/hooks/use-channel-id";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
@@ -30,9 +30,7 @@ export const Header = ({ title }: HeaderProps) => {
   const router = useRouter();
   const channelId = useChannelId();
   const workspaceId = useWorkspaceId();
-  const currentMember = useCurrentMember({
-    workspaceId,
-  });
+  const currentMember = useCurrentMember(workspaceId);
 
   const [name, setName] = useState("");
   const [editOpen, setEditOpen] = useState(false);
@@ -42,7 +40,7 @@ export const Header = ({ title }: HeaderProps) => {
   );
 
   const updateChannel = useUpdateChannel();
-  const removeChannel = useRemoveChannel();
+  const removeChannel = useDeleteChannel();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\s+/g, "-").toLowerCase();

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { Message } from "@/features/conversations/components/message";
 import { Button } from "@/components/ui/button";
-import { useCurrentMember } from "@/features/members/hooks/use-current-member";
+import { useCurrentMember } from "@/features/members/hooks/use-members";
 import { useGetUploadUrl } from "@/features/upload/api/use-upload";
 import { useChannelId } from "@/hooks/use-channel-id";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
@@ -45,12 +45,11 @@ const formatDateLabel = (dateStr: string) => {
 export const Thread = ({ messageId, onClose }: ThreadProps) => {
   const workspaceId = useWorkspaceId();
   const channelId = useChannelId();
-  const getMessage = useGetMessage({ id: messageId });
-  const getMessages = useGetMessages({
-    channelId,
+  const getMessage = useGetMessage(workspaceId, messageId);
+  const getMessages = useGetMessages(workspaceId, channelId, {
     parentMessageId: messageId,
   });
-  const currentMember = useCurrentMember({ workspaceId });
+  const currentMember = useCurrentMember(workspaceId);
   const createMessage = useCreateMessage();
   const generateUploadUrl = useGetUploadUrl();
 
@@ -68,7 +67,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
     }
     groups[dateKey].unshift(message);
     return groups;
-  }, {} as Record<string, (typeof api.messages.get._returnType)["page"]>);
+  }, {} as Record<string, typeof getMessages.results>);
 
   const handleSubmit = async ({
     body,

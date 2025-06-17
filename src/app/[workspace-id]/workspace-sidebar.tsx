@@ -24,11 +24,9 @@ export const WorkspaceSidebar = () => {
   const channelId = useChannelId();
   const memberId = useMemberId();
 
-  const getWorkspace = useGetWorkspace({
-    id: workspaceId,
-  });
-  const getChannels = useGetChannels({ workspaceId });
-  const getMembers = useGetMembers({ workspaceId });
+  const getWorkspace = useGetWorkspace(workspaceId);
+  const getChannels = useGetChannels(workspaceId);
+  const getMembers = useGetMembers(workspaceId);
 
   const setOpen = useCreateChannelModal((state) => state.setOpen);
 

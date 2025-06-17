@@ -32,7 +32,7 @@ export const membersApi = {
     const response = await httpClient.get<MembersResponse>(
       `/workspaces/${workspaceId}/members${queryString}`
     );
-    return response.data;
+    return response;
   },
 
   /**
@@ -54,7 +54,7 @@ export const membersApi = {
     const response = await httpClient.get<MembersWithUsersResponse>(
       `/workspaces/${workspaceId}/members${queryString}`
     );
-    return response.data;
+    return response;
   },
 
   /**
@@ -67,7 +67,7 @@ export const membersApi = {
     const response = await httpClient.get<MemberResponse>(
       `/workspaces/${workspaceId}/members/${memberId}`
     );
-    return response.data;
+    return response;
   },
 
   /**
@@ -80,7 +80,7 @@ export const membersApi = {
     const response = await httpClient.get<MemberResponse>(
       `/workspaces/${workspaceId}/members/${memberId}?include_user=true`
     );
-    return response.data as MemberWithUser;
+    return response as MemberWithUser;
   },
 
   /**
@@ -90,7 +90,8 @@ export const membersApi = {
     const response = await httpClient.get<MemberResponse>(
       `/workspaces/${workspaceId}/members/current`
     );
-    return response.data as MemberWithUser;
+
+    return response as MemberWithUser;
   },
 
   /**
