@@ -1,53 +1,56 @@
-import { AxiosResponse } from 'axios';
-import { axiosInstance } from '@/lib/axios';
-
-export interface Reaction {
-  id: string;
-  emoji: string;
-  messageId: string;
-  userId: string;
-  createdAt: string;
-}
-
-export interface ReactionResponse {
-  success: boolean;
-  data: {
-    reaction: Reaction;
-  };
-  error?: string;
-}
-
-export interface ReactionsResponse {
-  success: boolean;
-  data: {
-    reactions: Reaction[];
-  };
-  error?: string;
-}
-
-export interface ToggleReactionResponse {
-  success: boolean;
-  data: {
-    reaction?: Reaction;
-    removed: boolean;
-  };
-  error?: string;
-}
+import { httpClient } from "@/lib/api/http-client";
+import type {
+  Reaction,
+  AddReactionData,
+  ToggleReactionData,
+  ReactionResponse,
+  ReactionsResponse,
+  ToggleReactionResponse,
+} from "../types";
 
 export const reactionsApi = {
-  getReactions: (messageId: string): Promise<AxiosResponse<ReactionsResponse>> => {
-    return axiosInstance.get(`/messages/${messageId}/reactions`);
+  /**
+   * Get all reactions for a message
+   */
+  getReactions: async (messageId: string): Promise<Reaction[]> => {
+    const response = await httpClient.get<ReactionsResponse>(
+      `/messages/${messageId}/reactions`
+    );
+    return response.data.reactions;
   },
 
-  toggleReaction: (messageId: string, emoji: string): Promise<AxiosResponse<ToggleReactionResponse>> => {
-    return axiosInstance.post(`/messages/${messageId}/reactions/toggle`, { emoji });
+  /**
+   * Toggle reaction on a message (add if not exists, remove if exists)
+   */
+  toggleReaction: async (
+    messageId: string,
+    emoji: string
+  ): Promise<{ reaction?: Reaction; removed: boolean }> => {
+    const response = await httpClient.post<ToggleReactionResponse>(
+      `/messages/${messageId}/reactions/toggle`,
+      { emoji }
+    );
+    return response.data;
   },
 
-  addReaction: (messageId: string, emoji: string): Promise<AxiosResponse<ReactionResponse>> => {
-    return axiosInstance.post(`/messages/${messageId}/reactions`, { emoji });
+  /**
+   * Add reaction to a message
+   */
+  addReaction: async (messageId: string, emoji: string): Promise<Reaction> => {
+    const response = await httpClient.post<ReactionResponse>(
+      `/messages/${messageId}/reactions`,
+      { emoji }
+    );
+    return response.data.reaction;
   },
 
-  removeReaction: (messageId: string, reactionId: string): Promise<AxiosResponse> => {
-    return axiosInstance.delete(`/messages/${messageId}/reactions/${reactionId}`);
+  /**
+   * Remove reaction from a message
+   */
+  removeReaction: async (
+    messageId: string,
+    reactionId: string
+  ): Promise<void> => {
+    await httpClient.delete(`/messages/${messageId}/reactions/${reactionId}`);
   },
-}; 
+};

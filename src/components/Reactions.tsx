@@ -1,11 +1,11 @@
 import { MdOutlineAddReaction } from "react-icons/md";
 
-import { useCurrentMember } from "@/features/members/api/useCurrentMember";
-import { useWorkspaceId } from "@/hooks/useWorkspaceId";
+import { useCurrentMember } from "@/features/members/hooks/use-members";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { cn } from "@/lib/utils";
-import { EmojiPopover } from "./EmojiPopover";
-import { Hint } from "./Hint";
-import { useToggleReaction } from "@/features/reactions/api/useToggleReaction";
+import { EmojiPopover } from "./emoji-popover";
+import { Hint } from "./hint";
+import { useToggleReaction } from "@/features/reactions";
 
 interface ReactionsProps {
   messageId: string;
@@ -19,7 +19,7 @@ interface ReactionsProps {
 
 export const Reactions = ({ messageId, data }: ReactionsProps) => {
   const workspaceId = useWorkspaceId();
-  const currentMember = useCurrentMember({ workspaceId });
+  const currentMember = useCurrentMember(workspaceId);
   const { mutateAsync: toggleReaction } = useToggleReaction(messageId);
 
   if (data.length === 0 || !currentMember.data?.id) {
@@ -30,7 +30,7 @@ export const Reactions = ({ messageId, data }: ReactionsProps) => {
     try {
       await toggleReaction({ emoji });
     } catch (error) {
-      console.error('Failed to toggle reaction:', error);
+      console.error("Failed to toggle reaction:", error);
     }
   };
 
@@ -39,7 +39,9 @@ export const Reactions = ({ messageId, data }: ReactionsProps) => {
       {data.map((reaction) => (
         <Hint
           key={reaction.id}
-          label={`${reaction.count} ${reaction.count === 1 ? "person" : "people"} reacted with ${reaction.emoji}`}
+          label={`${reaction.count} ${
+            reaction.count === 1 ? "person" : "people"
+          } reacted with ${reaction.emoji}`}
         >
           <button
             className={cn(

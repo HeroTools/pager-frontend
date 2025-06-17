@@ -12,21 +12,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { TriangleAlert } from "lucide-react";
-import { useState } from "react";
 import { SignInFlow } from "../types";
-import { useRouter } from "next/navigation";
-import { authApi } from "@/lib/api/auth";
-import { createClient } from "@/lib/supabase/client";
+import { useSignIn, useGoogleSignIn, useGithubSignIn } from "@/features/auth";
 
 interface SignInCardProps {
   setState: (state: SignInFlow) => void;
 }
 
 export const SignInCard = ({ setState }: SignInCardProps) => {
-  const [signingIn, setSigningIn] = useState(false);
-  const [error, setError] = useState("");
-  const router = useRouter();
-  const supabase = createClient();
+  const signIn = useSignIn();
+  const googleSignIn = useGoogleSignIn();
+  const githubSignIn = useGithubSignIn();
 
   const form = useForm({
     defaultValues: {
@@ -37,74 +33,28 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
 
   const handlePasswordSignIn = form.handleSubmit(
     async ({ email, password }) => {
-      setSigningIn(true);
-      setError("");
-
-      try {
-        const response = await authApi.signIn({ email, password });
-        const result = response.data;
-
-        if (result.success) {
-          // IMPORTANT: Set the session with Supabase client to propagate to cookies
-          await supabase.auth.setSession({
-            access_token: result.data.session.access_token,
-            refresh_token: result.data.session.refresh_token,
-          });
-
-          // Redirect to dashboard or intended page
-          router.push("/dashboard");
-          router.refresh();
-        } else {
-          setError(result.error || "Invalid email or password");
-        }
-      } catch (err: any) {
-        console.error("Sign in error:", err);
-        setError(err.response?.data?.error || "Something went wrong. Please try again.");
-      } finally {
-        setSigningIn(false);
-      }
+      signIn.mutate({ email, password });
     }
   );
 
   const handleGoogleSignIn = async () => {
-    setSigningIn(true);
-    setError("");
-
-    try {
-      const response = await authApi.googleSignIn(
-        `${window.location.origin}/auth/callback`
-      );
-
-      const result = response.data;
-
-      // Redirect to Google OAuth
-      window.location.href = result.url;
-    } catch (err: any) {
-      console.error("Google sign in error:", err);
-      setError(err.response?.data?.error || "Failed to sign in with Google. Please try again.");
-      setSigningIn(false);
-    }
+    googleSignIn.mutate({
+      redirectTo: `${window.location.origin}/auth/callback`,
+    });
   };
 
   const handleGithubSignIn = async () => {
-    setSigningIn(true);
-    setError("");
-
-    try {
-      // If you implement GitHub OAuth later
-      const response = await authApi.githubSignIn(
-        `${window.location.origin}/auth/callback`
-      );
-
-      const result = response.data;
-
-      window.location.href = result.url;
-    } catch (err: any) {
-      console.error("GitHub sign in error:", err);
-      setError(err.response?.data?.error || "GitHub sign in is not available yet.");
-      setSigningIn(false);
-    }
+    githubSignIn.mutate({
+      redirectTo: `${window.location.origin}/auth/callback`,
+    });
   };
+
+  // Get loading state from any of the mutations
+  const isLoading =
+    signIn.isPending || googleSignIn.isPending || githubSignIn.isPending;
+
+  // Get error from the most recent mutation
+  const error = signIn.error || googleSignIn.error || githubSignIn.error;
 
   return (
     <Card className="w-full h-full p-8">
@@ -117,7 +67,7 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
       {error && (
         <div className="bg-destructive/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
           <TriangleAlert className="size-4" />
-          <p>{error}</p>
+          <p>{error.message}</p>
         </div>
       )}
       <CardContent className="space-y-5 px-0 pb-0">
@@ -130,7 +80,7 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
                 message: "Please enter a valid email",
               },
             })}
-            disabled={signingIn}
+            disabled={isLoading}
             placeholder="Email"
             type="email"
           />
@@ -147,7 +97,7 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
                 message: "Password must be at least 6 characters",
               },
             })}
-            disabled={signingIn}
+            disabled={isLoading}
             placeholder="Password"
             type="password"
           />
@@ -160,32 +110,32 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
             type="submit"
             className="w-full"
             size="lg"
-            disabled={signingIn}
+            disabled={isLoading}
           >
-            {signingIn ? "Signing in..." : "Continue"}
+            {signIn.isPending ? "Signing in..." : "Continue"}
           </Button>
         </form>
         <Separator />
         <div className="flex flex-col gap-y-2.5">
           <Button
-            disabled={signingIn}
+            disabled={isLoading}
             onClick={handleGoogleSignIn}
             variant="outline"
             size="lg"
             className="w-full relative"
           >
             <FcGoogle className="size-5 absolute top-3 left-2.5" />
-            Continue with Google
+            {googleSignIn.isPending ? "Connecting..." : "Continue with Google"}
           </Button>
           <Button
-            disabled={signingIn}
+            disabled={isLoading}
             onClick={handleGithubSignIn}
             variant="outline"
             size="lg"
             className="w-full relative"
           >
             <FaGithub className="size-5 absolute top-3 left-2.5" />
-            Continue with Github
+            {githubSignIn.isPending ? "Connecting..." : "Continue with Github"}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">

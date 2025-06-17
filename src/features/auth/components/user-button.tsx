@@ -7,11 +7,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useCurrentUser } from "../api/useCurrentUser";
+import { useCurrentUser } from "../hooks/use-current-user";
 import { Loader, LogOutIcon } from "lucide-react";
 
 export const UserButton = () => {
-  const { data: user, isLoading } = useCurrentUser();
+  const { user, isLoading } = useCurrentUser();
 
   if (isLoading) {
     return <Loader className="size-4 animate-spin text-muted-foreground" />;

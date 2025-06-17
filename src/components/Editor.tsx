@@ -4,7 +4,7 @@ import { ImageIcon, Smile, XIcon } from "lucide-react";
 import Quill, { QuillOptions } from "quill";
 import { Delta, Op } from "quill/core";
 import {
-  MutableRefObject,
+  RefObject,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -16,8 +16,8 @@ import { PiTextAa } from "react-icons/pi";
 
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { EmojiPopover } from "./EmojiPopover";
-import { Hint } from "./Hint";
+import { EmojiPopover } from "./emoji-popover";
+import { Hint } from "./hint";
 import { Button } from "./ui/button";
 
 type EditorValue = {
@@ -29,7 +29,7 @@ interface EditorProps {
   variant?: "create" | "update";
   defaultValue?: Delta | Op[];
   disabled?: boolean;
-  innerRef?: MutableRefObject<Quill | null>;
+  innerRef?: RefObject<Quill | null>;
   placeholder?: string;
   onCancel?: () => void;
   onSubmit: ({ image, body }: EditorValue) => void;
