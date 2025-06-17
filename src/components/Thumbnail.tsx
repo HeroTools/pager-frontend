@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "./ui/[workspace-id]ialog";
 
 interface ThumbnailProps {
   url?: string | null;

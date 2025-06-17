@@ -7,19 +7,19 @@ import {
   useCreateMessage,
   useUpdateMessage,
   useDeleteMessage,
-} from "@/features/messages/api/useMessages";
-import { useToggleReaction } from "@/features/reactions/api/useReactions";
-import { useConfirm } from "@/hooks/useConfirm";
-import { usePanel } from "@/hooks/usePanel";
+} from "@/features/messages/api/use-messages";
+import { useToggleReaction } from "@/features/reactions/api/use-reactions";
+import { useConfirm } from "@/hooks/use-confirm";
+import { usePanel } from "@/hooks/use-panel";
 import { cn } from "@/lib/utils";
-import { Hint } from "./Hint";
-import { Reactions } from "./Reactions";
-import { ThreadBar } from "./ThreadBar";
-import { Thumbnail } from "./Thumbnail";
-import { Toolbar } from "./Toolbar";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Hint } from "./hint";
+import { Reactions } from "./reactions";
+import { ThreadBar } from "./thread-bar";
+import { Thumbnail } from "./thumbnail";
+import { Toolbar } from "./toolbar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/[workspace-id]vatar";
 
-const Renderer = dynamic(() => import("@/components/Renderer"), { ssr: false });
+const Renderer = dynamic(() => import("@/components/renderer"), { ssr: false });
 const Editor = dynamic(() => import("@/components/editor"), { ssr: false });
 
 interface MessageProps {

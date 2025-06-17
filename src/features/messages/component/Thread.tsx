@@ -5,17 +5,17 @@ import Quill from "quill";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Message } from "@/components/Message";
+import { Message } from "@/components/message";
 import { Button } from "@/components/ui/button";
-import { useCurrentMember } from "@/features/members/api/useCurrentMember";
-import { useGetUploadUrl } from "@/features/upload/api/useUpload";
-import { useChannelId } from "@/hooks/useChannelId";
-import { useWorkspaceId } from "@/hooks/useWorkspaceId";
+import { useCurrentMember } from "@/features/members/api/use-current-member";
+import { useGetUploadUrl } from "@/features/upload/api/use-upload";
+import { useChannelId } from "@/hooks/use-channel-id";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import {
   useCreateMessage,
   useGetMessage,
   useGetMessages,
-} from "../api/useMessages";
+} from "../api/use-messages";
 import type { Id } from "@/types/index";
 
 const Editor = dynamic(() => import("@/components/editor"), { ssr: false });
