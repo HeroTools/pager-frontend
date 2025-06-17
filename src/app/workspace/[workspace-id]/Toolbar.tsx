@@ -4,7 +4,7 @@ import { Info, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { InDevelopmentHint } from '@/components/in-development-hint';
+import { InDevelopmentHint } from "@/components/in-development-hint";
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -14,10 +14,10 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useGetChannels } from '@/features/channels/api/use-channels';
-import { useGetMembers } from '@/features/members/api/use-members';
-import { useGetWorkspace } from '@/features/workspaces/api/use-workspaces';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations";
+import { useGetMembers } from "@/features/members/hooks/use-members";
+import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
 
 export const Toolbar = () => {
   const router = useRouter();

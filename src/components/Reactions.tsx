@@ -1,11 +1,11 @@
 import { MdOutlineAddReaction } from "react-icons/md";
 
-import { useCurrentMember } from "@/features/members/api/use-current-member";
+import { useCurrentMember } from "@/features/members/hooks/use-current-member";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { cn } from "@/lib/utils";
 import { EmojiPopover } from "./emoji-popover";
 import { Hint } from "./hint";
-import { useToggleReaction } from "@/features/reactions/api/";
+import { useToggleReaction } from "@/features/reactions";
 
 interface ReactionsProps {
   messageId: string;

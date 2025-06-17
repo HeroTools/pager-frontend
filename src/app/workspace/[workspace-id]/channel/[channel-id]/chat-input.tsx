@@ -3,7 +3,7 @@ import Quill from "quill";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { useCreateMessage } from "@/features/messages/api/use-messages";
+import { useCreateMessage } from "@/features/messages/hooks/use-messages";
 import { useGetUploadUrl } from "@/features/upload/api/use-upload";
 import { useChannelId } from "@/hooks/use-channel-id";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";

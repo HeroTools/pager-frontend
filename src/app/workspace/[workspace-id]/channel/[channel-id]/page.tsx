@@ -2,13 +2,13 @@
 
 import { AlertTriangle, Loader } from "lucide-react";
 
-import { MessageList } from '@/components/message-list';
-import { useGetChannel } from '@/features/channels/api/use-channels';
-import { useGetMessages } from '@/features/messages/api/use-messages';
-import { useChannelId } from '@/hooks/use-channel-id';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { ChatInput } from './chat-input';
-import { Header } from "./Header";
+import { MessageList } from "@/features/conversations/components/message-list";
+import { useGetChannel } from "@/features/channels/hooks/use-channels-mutations";
+import { useGetMessages } from "@/features/messages/hooks/use-messages";
+import { useChannelId } from "@/hooks/use-channel-id";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { ChatInput } from "./chat-input";
+import { Header } from "./header";
 
 const ChannelPage = () => {
   const channelId = useChannelId() as string;

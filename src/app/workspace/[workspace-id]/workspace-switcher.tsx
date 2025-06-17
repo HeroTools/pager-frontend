@@ -10,10 +10,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGetWorkspace } from '@/features/workspaces/api/use-workspaces';
-import { useGetWorkspaces } from '@/features/workspaces/api/use-workspaces';
-import { useCreateWorkspaceModal } from '@/features/workspaces/store/use-create-workspace-modal';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import {
+  useGetWorkspace,
+  useGetWorkspaces,
+} from "@/features/workspaces/hooks/use-workspaces";
+import { useCreateWorkspaceModal } from "@/features/workspaces/store/use-create-workspace-modal";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
 
 export const WorkspaceSwitcher = () => {
   const router = useRouter();
@@ -21,14 +23,12 @@ export const WorkspaceSwitcher = () => {
   const setOpen = useCreateWorkspaceModal((state) => state.setOpen);
 
   const { data: currentWorkspace, isLoading: isLoadingWorkspace } =
-    useGetWorkspace({
-      id: workspaceId,
-    });
+    useGetWorkspace(workspaceId);
 
   const { data: workspaces } = useGetWorkspaces();
 
   const filteredWorkspaces = workspaces?.filter(
-    (workspace) => workspace._id !== currentWorkspace?._id
+    (workspace) => workspace.id !== currentWorkspace?.id
   );
 
   return (
@@ -51,8 +51,8 @@ export const WorkspaceSwitcher = () => {
         </DropdownMenuItem>
         {filteredWorkspaces?.map((workspace) => (
           <DropdownMenuItem
-            key={workspace._id}
-            onClick={() => router.push(`/workspace/${workspace._id}`)}
+            key={workspace.id}
+            onClick={() => router.push(`/workspace/${workspace.id}`)}
             className="cursor-pointer capitalize overflow-hidden"
           >
             <div className="shrink-0 size-9 relative overflow-hidden bg-[#616061] text-white font-semibold text-lg rounded-md flex items-center justify-center mr-2">

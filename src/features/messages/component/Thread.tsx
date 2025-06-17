@@ -5,9 +5,9 @@ import Quill from "quill";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Message } from "@/components/message";
+import { Message } from "@/features/conversations/components/message";
 import { Button } from "@/components/ui/button";
-import { useCurrentMember } from "@/features/members/api/use-current-member";
+import { useCurrentMember } from "@/features/members/hooks/use-current-member";
 import { useGetUploadUrl } from "@/features/upload/api/use-upload";
 import { useChannelId } from "@/hooks/use-channel-id";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
@@ -15,7 +15,7 @@ import {
   useCreateMessage,
   useGetMessage,
   useGetMessages,
-} from "../api/use-messages";
+} from "../hooks/use-messages";
 import type { Id } from "@/types/index";
 
 const Editor = dynamic(() => import("@/components/editor"), { ssr: false });

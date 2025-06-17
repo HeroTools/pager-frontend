@@ -10,8 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useCreateWorkspace } from "../api";
-import { useCreateWorkspaceModal } from '../store/use-create-workspace-modal';
+import { useCreateWorkspace } from "..";
+import { useCreateWorkspaceModal } from "../store/use-create-workspace-modal";
 
 export const CreateWorkspaceModal = () => {
   const router = useRouter();

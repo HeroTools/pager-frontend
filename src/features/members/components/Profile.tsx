@@ -11,9 +11,9 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useConfirm } from '@/hooks/use-confirm';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { useGetMember, useUpdateMemberRole, useRemoveMember } from "../api";
+import { useConfirm } from "@/hooks/use-confirm";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useGetMember, useUpdateMemberRole, useRemoveMember } from "..";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -1,38 +1,37 @@
 "use client";
 
+import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import VerificationInput from "react-verification-input";
-
-import { Button } from "@/components/ui/button";
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { useGetWorkspaceInfo } from "@/features/workspaces/api/useGetWorkspaceInfo";
 import { Loader } from "lucide-react";
-import { useJoin } from "@/features/workspaces/api/useJoin";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
+import { useJoinWorkspace } from "@/features/workspaces/hooks/use-workspaces";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
 
 const JoinPage = () => {
   const router = useRouter();
   const workspaceId = useWorkspaceId();
 
-  const { isLoading, data: workspaceInfo } = useGetWorkspaceInfo({ id: workspaceId });
-  const join = useJoin();
+  const { isLoading, data: workspaceInfo } = useGetWorkspace(workspaceId);
+  const join = useJoinWorkspace();
 
   useEffect(() => {
-    if (workspaceInfo?.isMember) {
+    if (
+      workspaceInfo?.members?.some((member) => member.id === workspaceInfo.id)
+    ) {
       router.push(`/workspace/${workspaceId}`);
     }
-  }, [workspaceInfo?.isMember, router, workspaceId]);
+  }, [workspaceInfo?.members, router, workspaceId]);
 
   const handleComplete = (value: string) => {
     join
-      .mutateAsync({
-        joinCode: value,
-        workspaceId,
-      })
+      .mutateAsync(value)
       .then(() => {
         router.replace(`/workspace/${workspaceId}`);
         toast.success("Workspace joined");
