@@ -2,19 +2,19 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
-import { Modals } from "@/components/Modals";
+import { Modals } from "@/components/modals";
 import ReactQueryProvider from "@/components/react-query-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/lib/auth/AuthProvider";
+import { AuthProvider } from "@/lib/auth/auth-provider";
 import "./styles/globals.css";
 
 const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
+  src: "./fonts/geist-vf.woff",
   variable: "--font-geist-sans",
   weight: "100 900",
 });
 const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
+  src: "./fonts/geist-mono-vf.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
 });

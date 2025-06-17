@@ -1,2 +1,2 @@
 export * from './messages-api';
-export * from './useMessages'; 
+export * from './use-messages'; 

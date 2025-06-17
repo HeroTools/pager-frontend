@@ -1,2 +1,2 @@
 export * from './channels-api';
-export * from './useChannels'; 
+export * from './use-channels'; 

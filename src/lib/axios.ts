@@ -23,7 +23,7 @@
  */
 
 import axios from "axios";
-import { createClient } from "./supabase/client";
+import { createClient } from "./supabase/[workspace-id]lient";
 
 // Helper function to get cookie value
 const getCookie = (name: string): string | null => {

@@ -1,2 +1,2 @@
 export * from './reactions-api';
-export * from './useReactions'; 
+export * from './use-reactions'; 

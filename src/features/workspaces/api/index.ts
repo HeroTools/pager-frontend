@@ -1,2 +1,2 @@
 export * from './workspaces-api';
-export * from './useWorkspaces'; 
+export * from './use-workspaces'; 

@@ -16,9 +16,9 @@ import { PiTextAa } from "react-icons/pi";
 
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { EmojiPopover } from "./EmojiPopover";
-import { Hint } from "./Hint";
-import { Button } from "./ui/button";
+import { EmojiPopover } from "./emoji-popover";
+import { Hint } from "./hint";
+import { Button } from "./ui/[member-id]utton";
 
 type EditorValue = {
   image: File | null;
