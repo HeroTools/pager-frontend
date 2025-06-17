@@ -11,10 +11,14 @@ import { useCurrentMember } from "@/features/members/api/useCurrentMember";
 import { useGetUploadUrl } from "@/features/upload/api/useUpload";
 import { useChannelId } from "@/hooks/useChannelId";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
-import { useCreateMessage, useGetMessage, useGetMessages } from "../api/useMessages";
+import {
+  useCreateMessage,
+  useGetMessage,
+  useGetMessages,
+} from "../api/useMessages";
 import type { Id } from "@/types/index";
 
-const Editor = dynamic(() => import("@/components/Editor"), { ssr: false });
+const Editor = dynamic(() => import("@/components/editor"), { ssr: false });
 
 interface ThreadProps {
   messageId: Id<"messages">;
@@ -56,18 +60,15 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
   const [editorKey, setEditorKey] = useState(0);
   const [isPending, setIsPending] = useState(false);
 
-  const groupedMessages = getMessages.results.reduce(
-    (groups, message) => {
-      const date = new Date(message._creationTime);
-      const dateKey = dayjs(date).format("YYYY-MM-DD");
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-      groups[dateKey].unshift(message);
-      return groups;
-    },
-    {} as Record<string, (typeof api.messages.get._returnType)["page"]>
-  );
+  const groupedMessages = getMessages.results.reduce((groups, message) => {
+    const date = new Date(message._creationTime);
+    const dateKey = dayjs(date).format("YYYY-MM-DD");
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    groups[dateKey].unshift(message);
+    return groups;
+  }, {} as Record<string, (typeof api.messages.get._returnType)["page"]>);
 
   const handleSubmit = async ({
     body,
