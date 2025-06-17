@@ -1,6 +1,7 @@
 "use client";
 
 import ConversationChat from "@/components/conversation-chat";
+import ChannelChat from "@/components/channel-chat";
 import { useParams } from "next/navigation";
 
 const ConversationPage = () => {

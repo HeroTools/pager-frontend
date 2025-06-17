@@ -31,7 +31,7 @@ export const channelsApi = {
     const response = await httpClient.get<ChannelsResponse>(
       `/workspaces/${workspaceId}/channels${queryString}`
     );
-    return response;
+    return response || [];
   },
 
   /**

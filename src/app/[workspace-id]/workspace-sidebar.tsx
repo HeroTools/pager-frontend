@@ -81,20 +81,20 @@ export const WorkspaceSidebar = () => {
       >
         {getChannels.data?.map((item) => (
           <SidebarItem
-            key={item._id}
+            key={item.id}
             label={item.name}
             icon={HashIcon}
-            id={item._id}
-            variant={channelId === item._id ? "active" : "default"}
+            id={item.id}
+            variant={channelId === item.id ? "active" : "default"}
           />
         ))}
       </WorkspaceSection>
       <WorkspaceSection label="Direct Messages" hint="New direct message">
         {getMembers.data?.map((item) => (
           <UserItem
-            id={item._id}
+            id={item.id}
             image={item.user.image}
-            key={item._id}
+            key={item.id}
             label={item.user.name}
             variant={memberId === item._id ? "active" : "default"}
           />

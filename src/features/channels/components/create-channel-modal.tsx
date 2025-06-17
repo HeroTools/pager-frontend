@@ -48,7 +48,7 @@ export const CreateChannelModal = () => {
       channel_type: "public",
     })
       .then((channelId) => {
-        router.push(`/workspace/${workspaceId}/channel/${channelId}`);
+        router.push(`/${workspaceId}/c-${channelId}`);
         handleClose();
         toast.success("Channel created");
       })

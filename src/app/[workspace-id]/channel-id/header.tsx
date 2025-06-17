@@ -84,7 +84,7 @@ export const Header = ({ title }: HeaderProps) => {
       })
       .then(() => {
         toast.success("Channel removed");
-        router.replace(`/workspace/${workspaceId}`);
+        router.replace(`/${workspaceId}`);
       })
       .catch((error) => {
         console.error(error);

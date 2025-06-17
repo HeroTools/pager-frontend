@@ -12,7 +12,7 @@ import { Message, User, Channel } from "@/types/chat";
 const ConversationPage = () => {
   const params = useParams();
   const workspaceId = params.workspace_id as string;
-  const conversationId = params.conversation_id as string;
+  const conversationId = (params.conversation_id as string).slice(2);
 
   const { user: currentUser } = useCurrentUser();
 

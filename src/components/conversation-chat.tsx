@@ -12,7 +12,7 @@ import { useGetConversation } from "@/features/conversations/hooks/use-current-c
 const ConversationChat = () => {
   const params = useParams();
   const workspaceId = params["workspace-id"] as string;
-  const conversationId = params["entity-id"] as string;
+  const conversationId = (params["entity-id"] as string).slice(2);
 
   const { user: currentUser } = useCurrentUser();
 
