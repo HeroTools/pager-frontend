@@ -3,7 +3,11 @@ import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { Delta } from "quill";
 
-import { useCreateMessage, useUpdateMessage, useDeleteMessage } from "@/features/messages/api/useMessages";
+import {
+  useCreateMessage,
+  useUpdateMessage,
+  useDeleteMessage,
+} from "@/features/messages/api/useMessages";
 import { useToggleReaction } from "@/features/reactions/api/useReactions";
 import { useConfirm } from "@/hooks/useConfirm";
 import { usePanel } from "@/hooks/usePanel";
@@ -16,7 +20,7 @@ import { Toolbar } from "./Toolbar";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 const Renderer = dynamic(() => import("@/components/Renderer"), { ssr: false });
-const Editor = dynamic(() => import("@/components/Editor"), { ssr: false });
+const Editor = dynamic(() => import("@/components/editor"), { ssr: false });
 
 interface MessageProps {
   id: string;

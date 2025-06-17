@@ -1,33 +1,3 @@
-/**
- * Authentication Context Provider
- * 
- * This component provides authentication state and methods throughout the application.
- * It uses Supabase Auth and React Context to manage:
- * - Current user session
- * - User information
- * - Loading states
- * - Sign out functionality
- * 
- * The provider automatically:
- * - Initializes the session on mount
- * - Listens for auth state changes
- * - Updates the context when auth state changes
- * 
- * Usage:
- * ```typescript
- * import { useAuth } from '@/lib/auth/AuthProvider';
- * 
- * function MyComponent() {
- *   const { user, session, loading, signOut } = useAuth();
- *   
- *   if (loading) return <div>Loading...</div>;
- *   if (!user) return <div>Please log in</div>;
- *   
- *   return <div>Welcome, {user.email}</div>;
- * }
- * ```
- */
-
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
@@ -97,4 +67,4 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-} 
+}

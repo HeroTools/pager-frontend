@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useCurrentMember } from "@/features/members/api/useCurrentMember";
 import { useWorkspaceId } from "@/hooks/useWorkspaceId";
 import { ChannelHero } from "./ChannelHero";
-import { ConversationHero } from "./ConversationHero";
+import { ConversationHero } from "./conversation-hero";
 import { Message } from "./Message";
 
 dayjs.extend(isToday);
@@ -53,18 +53,15 @@ export const MessageList = ({
     workspaceId,
   });
 
-  const groupedMessages = data?.reduce(
-    (groups, message) => {
-      const date = new Date(message._creationTime);
-      const dateKey = dayjs(date).format("YYYY-MM-DD");
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-      groups[dateKey].unshift(message);
-      return groups;
-    },
-    {} as Record<string, typeof data>
-  );
+  const groupedMessages = data?.reduce((groups, message) => {
+    const date = new Date(message._creationTime);
+    const dateKey = dayjs(date).format("YYYY-MM-DD");
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    groups[dateKey].unshift(message);
+    return groups;
+  }, {} as Record<string, typeof data>);
   return (
     <div className="flex-1 flex flex-col-reverse pb-4 overflow-y-auto messages-scrollbar">
       {Object.entries(groupedMessages || {}).map(([dateKey, messages]) => (
