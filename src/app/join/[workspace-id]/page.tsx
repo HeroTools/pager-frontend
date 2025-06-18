@@ -51,7 +51,7 @@ const JoinPage = () => {
   }
 
   return (
-    <div className="h-full flex flex-col gap-y-8 items-center justify-center bg-white p-8 rounded-lg shadow-sm">
+    <div className="h-full flex flex-col gap-y-8 items-center justify-center p-8 rounded-lg shadow-sm">
       <Image src="/logo.svg" width={60} height={60} alt="Logo" />
       <div className="flex flex-col gap-y-4 items-center justify-center max-w-md">
         <div className="flex flex-col gap-y-2 items-center justify-center">
@@ -68,10 +68,10 @@ const JoinPage = () => {
               join.isPending && "opacity-50 cursor-not-allowed"
             ),
             character:
-              "uppercase h-auto rounded-md border border-ray-300 flex items-center justify-center text-lg font-medium text-gray-500",
+              "uppercase h-auto rounded-md border border-ray-300 flex items-center justify-center text-lg font-medium text-muted-foreground",
             characterInactive: "bg-muted",
-            characterSelected: "bg-white text-black",
-            characterFilled: "bg-white text-black",
+            characterSelected: "bg-background text-foreground",
+            characterFilled: "bg-background text-foreground",
           }}
           autoFocus
           onComplete={handleComplete}

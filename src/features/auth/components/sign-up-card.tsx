@@ -141,7 +141,7 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
       <Card className="w-full h-full p-8">
         <CardHeader className="px-0 pt-0 text-center">
           <div className="flex justify-center mb-4">
-            <CheckCircle className="size-12 text-green-500" />
+            <CheckCircle className="size-12 text-brand-green" />
           </div>
           <CardTitle>Check your email</CardTitle>
           <CardDescription>
@@ -183,7 +183,7 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
           <p className="text-xs text-muted-foreground">
             Already have an account?{" "}
             <span
-              className="text-sky-700 hover:underline cursor-pointer"
+              className="text-primary hover:underline cursor-pointer"
               onClick={() => setState("signIn")}
             >
               Sign in
@@ -304,7 +304,7 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
         <p className="text-xs text-muted-foreground">
           Already have an account?{" "}
           <span
-            className="text-sky-700 hover:underline cursor-pointer"
+            className="text-primary hover:underline cursor-pointer"
             onClick={() => setState("signIn")}
           >
             Sign in

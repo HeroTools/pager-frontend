@@ -25,8 +25,8 @@ export const MessageReactions: React.FC<MessageReactionsProps> = ({
             className={cn(
               "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors",
               hasReacted
-                ? "bg-blue-100 text-blue-800 border border-blue-200"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
+                ? "bg-accent text-accent-foreground border"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border-subtle"
             )}
           >
             <span>{reaction.emoji}</span>

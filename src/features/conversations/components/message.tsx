@@ -156,10 +156,10 @@ export const Message = ({
         <ConfirmDialog />
         <div
           className={cn(
-            "flex flex-col gap-2 p-1.5 px-5 hover:bg-gray-100/60 group relative",
-            isEditing && "bg-[#F2C74433] hover:bg-[#F2C74433]",
+            "flex flex-col gap-2 p-1.5 px-5 hover:bg-muted-foreground/60 group relative",
+            isEditing && "bg-muted hover:bg-muted",
             deleteMessage.isPending &&
-              "bg-rose-500/50 transform transition-all scale-y-0 origin-bottom duration-200"
+              "bg-destructive/50 transform transition-all scale-y-0 origin-bottom duration-200"
           )}
         >
           <div className="flex items-start gap-2">
@@ -216,7 +216,7 @@ export const Message = ({
 
   return (
     <>
-      <div className="group relative flex items-start gap-x-2 p-4 hover:bg-slate-100/50">
+      <div className="group relative flex items-start gap-x-2 p-4 hover:bg-muted-foreground">
         <Avatar className="h-8 w-8">
           <AvatarImage src={authorImage} />
           <AvatarFallback>{authorName[0]}</AvatarFallback>
