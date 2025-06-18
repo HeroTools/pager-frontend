@@ -6,7 +6,6 @@ import {
   SendHorizonal,
 } from "lucide-react";
 
-import { InDevelopmentHint } from "@/components/in-development-hint";
 import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations";
 import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
 import { useGetMembers } from "@/features/members/hooks/use-members";
@@ -32,45 +31,42 @@ export const WorkspaceSidebar = () => {
 
   if (getWorkspace.isLoading) {
     return (
-      <div className="flex flex-col bg-[#5E2C5F] h-full items-center justify-center">
-        <Loader className="size-5 text-white animate-spin" />
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader className="size-5 text-muted-foreground animate-spin" />
       </div>
     );
   }
 
   if (!getWorkspace.data) {
     return (
-      <div className="flex flex-col gap-y-2 bg-[#5E2C5F] h-full items-center justify-center">
-        <AlertTriangle className="size-5 text-white" />
-        <p className="text-white text-sm">Workspace not found</p>
+      <div className="flex flex-col gap-y-2 h-full items-center justify-center">
+        <AlertTriangle className="size-5 text-muted-foreground" />
+        <p className="text-muted-foreground text-sm">Workspace not found</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-y-2 bg-[#5E2C5F] h-full">
+    <div className="flex flex-col gap-y-2 h-full">
       <WorkspaceHeader
         workspace={getWorkspace.data}
         isAdmin={getWorkspace.data.role === "admin"}
       />
       <div className="flex flex-col px-2 mt-3">
         {/* TODO: Implement threads and Drafts & Sent features */}
-        <InDevelopmentHint>
+        
           <SidebarItem
             label="Threads"
             icon={MessageSquareText}
             id="threads"
             disabled
           />
-        </InDevelopmentHint>
-        <InDevelopmentHint>
           <SidebarItem
             label="Drafts & Sent"
             icon={SendHorizonal}
             id="drafts"
             disabled
           />
-        </InDevelopmentHint>
       </div>
       <WorkspaceSection
         label="Channels"

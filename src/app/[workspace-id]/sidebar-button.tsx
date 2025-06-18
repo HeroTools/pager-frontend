@@ -27,9 +27,9 @@ export const SidebarButton = ({
         )}
         disabled={disabled}
       >
-        <Icon className="size-5 text-white group-hover:scale-110 transition-all" />
+        <Icon className="size-5 text-foreground group-hover:scale-110 transition-all" />
       </Button>
-      <span className="text-[11px] text-white group-hover:text-accent">
+      <span className="text-[11px] text-foreground group-hover:text-accent">
         {label}
       </span>
     </div>
