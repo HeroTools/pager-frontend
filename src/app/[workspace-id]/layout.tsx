@@ -37,11 +37,10 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
           <ResizablePanel
             defaultSize={20}
             minSize={11}
-            className="bg-[#5E2C5F]"
           >
             <WorkspaceSidebar />
           </ResizablePanel>
-          <ResizableHandle withHandle />
+          <ResizableHandle />
           <ResizablePanel defaultSize={80} minSize={20}>
             {children}
           </ResizablePanel>
@@ -61,7 +60,7 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
                   />
                 ) : (
                   <div className="flex h-ful items-center justify-center">
-                    <Loader className="size-5 animate-spin text-muted-foreground" />
+                    <Loader className="size-5 animate-spin text-foreground" />
                   </div>
                 )}
               </ResizablePanel>

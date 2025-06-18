@@ -66,7 +66,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
               {showDateDivider && (
                 <div className="flex items-center my-4 px-4">
                   <div className="flex-1 border-t border-gray-200" />
-                  <div className="mx-4 text-xs text-gray-500 bg-white px-2">
+                  <div className="mx-4 text-xs text-gray-500 px-2">
                     {new Date(message.timestamp).toLocaleDateString()}
                   </div>
                   <div className="flex-1 border-t border-gray-200" />

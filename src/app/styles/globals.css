@@ -11,76 +11,79 @@ body,
 }
 
 /* ==========================================================================
-   Tailwind v4 Theme Configuration
+   Tailwind v4 Theme Configuration - Modern Black & White
    ========================================================================== */
 
 @theme {
-  /* Colors - Modern Blue/Indigo Palette */
-  --color-background: oklch(0.99 0.005 240);
-  --color-foreground: oklch(0.15 0.02 240);
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.15 0.02 240);
-  --color-popover: oklch(1 0 0);
-  --color-popover-foreground: oklch(0.15 0.02 240);
-  --color-primary: oklch(0.55 0.18 250);
-  --color-primary-foreground: oklch(0.98 0.01 240);
-  --color-secondary: oklch(0.96 0.01 240);
-  --color-secondary-foreground: oklch(0.25 0.02 240);
-  --color-muted: oklch(0.94 0.01 240);
-  --color-muted-foreground: oklch(0.45 0.02 240);
-  --color-accent: oklch(0.92 0.02 250);
-  --color-accent-foreground: oklch(0.25 0.02 240);
-  --color-destructive: oklch(0.65 0.22 15);
-  --color-destructive-foreground: oklch(0.98 0.01 240);
-  --color-border: oklch(0.88 0.01 240);
-  --color-input: oklch(0.88 0.01 240);
-  --color-ring: oklch(0.55 0.18 250);
+  /* Colors - Clean Black & White Palette */
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0a0a0a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0a0a0a;
+  --color-primary: #000000;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f8f9fa;
+  --color-secondary-foreground: #1a1a1a;
+  --color-muted: #f1f3f4;
+  --color-muted-foreground: #6b7280;
+  --color-accent: #f8f9fa;
+  --color-accent-foreground: #1a1a1a;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e5e7eb;
+  --color-input: #f9fafb;
+  --color-ring: #000000;
 
-  /* Chart Colors - Vibrant & Modern */
-  --color-chart-1: oklch(0.65 0.25 280);
-  --color-chart-2: oklch(0.62 0.22 180);
-  --color-chart-3: oklch(0.58 0.28 40);
-  --color-chart-4: oklch(0.7 0.2 320);
-  --color-chart-5: oklch(0.6 0.25 140);
+  /* Chart Colors - Grayscale with subtle accents */
+  --color-chart-1: #000000;
+  --color-chart-2: #4b5563;
+  --color-chart-3: #9ca3af;
+  --color-chart-4: #d1d5db;
+  --color-chart-5: #6b7280;
 
-  /* Border Radius - Slightly more rounded */
-  --radius: 0.75rem;
+  /* Border Radius - Clean, minimal */
+  --radius: 0.5rem;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
-/* Dark Theme - using @media instead of .dark class */
+/* Dark Theme */
 @media (prefers-color-scheme: dark) {
   @theme {
-    --color-background: oklch(0.08 0.01 240);
-    --color-foreground: oklch(0.95 0.01 240);
-    --color-card: oklch(0.12 0.01 240);
-    --color-card-foreground: oklch(0.95 0.01 240);
-    --color-popover: oklch(0.12 0.01 240);
-    --color-popover-foreground: oklch(0.95 0.01 240);
-    --color-primary: oklch(0.7 0.2 250);
-    --color-primary-foreground: oklch(0.08 0.01 240);
-    --color-secondary: oklch(0.18 0.01 240);
-    --color-secondary-foreground: oklch(0.95 0.01 240);
-    --color-muted: oklch(0.18 0.01 240);
-    --color-muted-foreground: oklch(0.65 0.01 240);
-    --color-accent: oklch(0.25 0.02 250);
-    --color-accent-foreground: oklch(0.95 0.01 240);
-    --color-destructive: oklch(0.75 0.25 15);
-    --color-destructive-foreground: oklch(0.08 0.01 240);
-    --color-border: oklch(0.25 0.01 240);
-    --color-input: oklch(0.25 0.01 240);
-    --color-ring: oklch(0.7 0.2 250);
+    --color-background: #0a0a0a;
+    --color-foreground: #ffffff;
+    --color-card: #111111;
+    --color-card-foreground: #ffffff;
+    --color-popover: #111111;
+    --color-popover-foreground: #ffffff;
+    --color-primary: #ffffff;
+    --color-primary-foreground: #000000;
+    --color-secondary: #1a1a1a;
+    --color-secondary-foreground: #ffffff;
+    --color-muted: #1f1f1f;
+    --color-muted-foreground: #9ca3af;
+    --color-accent: #1a1a1a;
+    --color-accent-foreground: #ffffff;
+    --color-destructive: #ef4444;
+    --color-destructive-foreground: #000000;
+    --color-border: #2a2a2a;
+    --color-input: #1a1a1a;
+    --color-ring: #ffffff;
 
-    /* Chart Colors - Dark Theme Variants */
-    --color-chart-1: oklch(0.75 0.28 280);
-    --color-chart-2: oklch(0.72 0.25 180);
-    --color-chart-3: oklch(0.78 0.3 40);
-    --color-chart-4: oklch(0.8 0.22 320);
-    --color-chart-5: oklch(0.7 0.28 140);
+    /* Chart Colors - Dark Theme */
+    --color-chart-1: #ffffff;
+    --color-chart-2: #d1d5db;
+    --color-chart-3: #9ca3af;
+    --color-chart-4: #6b7280;
+    --color-chart-5: #4b5563;
   }
 }
 
 /* ==========================================================================
-   Additional CSS Layer Overrides for shadcn/ui compatibility
+   Additional CSS Layer Overrides
    ========================================================================== */
 
 @layer base {
@@ -89,9 +92,18 @@ body,
   }
 
   body {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: var(--font-sans);
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Improved focus states */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
   }
 }
 
@@ -106,47 +118,116 @@ body,
 
   .messages-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #dcdcdc #f8f8f8;
+    scrollbar-color: #d1d5db transparent;
+  }
+
+  .messages-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .messages-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .messages-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 3px;
+  }
+
+  .messages-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .messages-scrollbar {
+      scrollbar-color: #4b5563 transparent;
+    }
+
+    .messages-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #4b5563;
+    }
+
+    .messages-scrollbar::-webkit-scrollbar-thumb:hover {
+      background-color: #6b7280;
+    }
+  }
+
+  /* Clean shadows */
+  .shadow-clean {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+
+  .shadow-clean-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Subtle hover effects */
+  .hover-lift {
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-1px);
   }
 }
 
 /* ==========================================================================
-   Component Styles
+   Component Styles - Modern & Clean
    ========================================================================== */
 
 @layer components {
-  /* Quill Editor Styles */
+  /* Quill Editor Styles - Modernized */
   .ql-toolbar {
     border: none !important;
-    background-color: #f8f8f8 !important;
+    background-color: var(--color-background) !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    padding: 12px 16px !important;
   }
 
   .ql-toolbar .ql-formats:not(:last-child) {
-    border-right: 1px solid #dcdcdc !important;
-    padding-right: 12px !important;
+    border-right: 1px solid var(--color-border) !important;
+    padding-right: 16px !important;
+    margin-right: 16px !important;
+  }
+
+  .ql-toolbar .ql-stroke {
+    stroke: var(--color-foreground) !important;
+  }
+
+  .ql-toolbar .ql-fill {
+    fill: var(--color-foreground) !important;
+  }
+
+  .ql-toolbar button:hover {
+    background-color: var(--color-accent) !important;
   }
 
   .ql-container {
-    font-family: "Lato", sans-serif !important;
+    font-family: var(--font-sans) !important;
     border: none !important;
     height: unset !important;
+    background-color: var(--color-background) !important;
   }
 
   .ql-editor {
-    line-height: 22px !important;
-    padding: 8px 12px !important;
-    color: #1d1c1d !important;
+    line-height: 1.6 !important;
+    padding: 16px !important;
+    color: var(--color-foreground) !important;
     font-weight: 400 !important;
-    font-family: "Lato", sans-serif !important;
+    font-family: var(--font-sans) !important;
     font-size: 14px !important;
+    min-height: 120px !important;
   }
 
   .ql-editor a {
-    color: #126483 !important;
+    color: var(--color-foreground) !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
   }
 
   .ql-editor a:hover {
     text-decoration: underline !important;
+    text-decoration-thickness: 2px !important;
   }
 
   .ql-renderer {
@@ -154,10 +235,121 @@ body,
   }
 
   .ql-editor:before {
-    left: 12px !important;
-    color: #8d8d8d !important;
-    font-family: "Lato", sans-serif !important;
+    left: 16px !important;
+    color: var(--color-muted-background) !important;
+    font-family: var(--font-sans) !important;
     font-weight: 400 !important;
     font-size: 14px !important;
+    font-style: normal !important;
+  }
+
+  .ql-editor.ql-blank::before {
+    content: "Type a message..." !important;
+  }
+
+  /* Modern Button Styles */
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 90%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background-color: var(--color-secondary);
+    color: var(--color-secondary-foreground);
+    border: 1px solid var(--color-border);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-foreground);
+  }
+
+  /* Clean Card Styles */
+  .card-modern {
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .card-modern:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+
+  /* Sidebar Styles */
+  .sidebar {
+    background-color: var(--color-card);
+    border-right: 1px solid var(--color-border);
+  }
+
+  /* Message Styles */
+  .message-item {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    transition: background-color 0.2s ease-in-out;
+  }
+
+  .message-item:hover {
+    background-color: var(--color-accent);
+  }
+
+  /* Search Box */
+  .search-box {
+    background-color: var(--color-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    font-size: 14px;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .search-box:focus {
+    outline: none;
+    border-color: var(--color-ring);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-ring) 20%, transparent);
+  }
+
+  /* Navigation */
+  .nav-item {
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    color: var(--color-muted-foreground);
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-item:hover {
+    background-color: var(--color-accent);
+    color: var(--color-foreground);
+  }
+
+  .nav-item.active {
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
   }
 }

@@ -41,7 +41,7 @@ export const Chat: React.FC<ChatProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full">
       <ChatHeader channel={channel} onToggleDetails={onToggleChannelDetails} />
 
       <ChatMessageList
