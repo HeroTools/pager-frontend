@@ -290,17 +290,6 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
             <FcGoogle className="size-5 absolute top-3 left-2.5" />
             Continue with Google
           </Button>
-          <Button
-            disabled={signingUp}
-            onClick={handleProviderSignUp("github")}
-            variant="outline"
-            size="lg"
-            className="w-full relative"
-          >
-            <FaGithub className="size-5 absolute top-3 left-2.5" />
-            Continue with Github
-          </Button>
-        </div>
         <p className="text-xs text-muted-foreground">
           Already have an account?{" "}
           <span
