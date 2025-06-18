@@ -18,7 +18,8 @@ export const Sidebar = () => {
       <SidebarButton
         icon={Home}
         label="Home"
-        isActive={pathname.endsWith("/${workspaceId}")}
+        // isActive={pathname.endsWith("/${workspaceId}")}
+        isActive={true}
       />
         <SidebarButton icon={MessagesSquare} label="DMs" disabled />
         <SidebarButton icon={Bell} label="Activity" disabled />

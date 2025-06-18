@@ -13,7 +13,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onToggleDetails,
 }) => {
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-muted-foreground">
+    <div className="flex items-center justify-between px-4 py-3 border-b">
       <div className="flex items-center gap-2">
         {channel.isPrivate ? (
           <Lock className="w-4 h-4 text-muted-foreground" />
@@ -39,7 +39,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           onClick={onToggleDetails}
           className="h-8 w-8 p-0"
         >
-          <Info className="w-4 h-4" />
+          <Info className="w-4 h-4 text-muted-foreground" />
         </Button>
       </div>
     </div>
