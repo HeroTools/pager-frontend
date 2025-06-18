@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,8 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
   const signUp = useSignUp();
   const [signingUp, setSigningUp] = useState(false);
   const [error, setError] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const router = useRouter();
   const supabase = createClient();
 
@@ -56,15 +58,21 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
         console.log("Sign up response:", response);
 
         if (response.success) {
-          // IMPORTANT: Set the session with Supabase client to propagate to cookies
-          await supabase.auth.setSession({
-            access_token: response.data.session.accessToken,
-            refresh_token: response.data.session.refreshToken,
-          });
+          // Check if email confirmation is required
+          if (response.data.session) {
+            // User is immediately signed in (email confirmed)
+            await supabase.auth.setSession({
+              access_token: response.data.session.accessToken,
+              refresh_token: response.data.session.refreshToken,
+            });
 
-          // Redirect to dashboard
-          router.push("/");
-          router.refresh();
+            router.push("/");
+            router.refresh();
+          } else {
+            // Email confirmation required
+            setUserEmail(email);
+            setEmailSent(true);
+          }
         } else {
           setError(response.error || "Failed to sign up");
         }
@@ -101,6 +109,90 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
       setSigningUp(false);
     }
   };
+
+  const handleResendEmail = async () => {
+    if (!userEmail) return;
+
+    setSigningUp(true);
+    setError("");
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: userEmail,
+      });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setError("");
+        // Could show a success message here
+      }
+    } catch (err: any) {
+      setError("Failed to resend email. Please try again.");
+    } finally {
+      setSigningUp(false);
+    }
+  };
+
+  // Show email confirmation screen
+  if (emailSent) {
+    return (
+      <Card className="w-full h-full p-8">
+        <CardHeader className="px-0 pt-0 text-center">
+          <div className="flex justify-center mb-4">
+            <CheckCircle className="size-12 text-green-500" />
+          </div>
+          <CardTitle>Check your email</CardTitle>
+          <CardDescription>
+            We've sent a confirmation link to <strong>{userEmail}</strong>
+          </CardDescription>
+        </CardHeader>
+        {error && (
+          <div className="bg-destructive/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
+            <TriangleAlert className="size-4" />
+            <p>{error}</p>
+          </div>
+        )}
+        <CardContent className="space-y-4 px-0 pb-0 text-center">
+          <p className="text-sm text-muted-foreground">
+            Click the link in the email to verify your account. If you don't see
+            it, check your spam folder.
+          </p>
+          <div className="space-y-2">
+            <Button
+              onClick={handleResendEmail}
+              variant="outline"
+              className="w-full"
+              disabled={signingUp}
+            >
+              {signingUp ? "Sending..." : "Resend email"}
+            </Button>
+            <Button
+              onClick={() => {
+                setEmailSent(false);
+                setUserEmail("");
+                setError("");
+              }}
+              variant="ghost"
+              className="w-full"
+            >
+              Back to sign up
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Already have an account?{" "}
+            <span
+              className="text-sky-700 hover:underline cursor-pointer"
+              onClick={() => setState("signIn")}
+            >
+              Sign in
+            </span>
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full h-full p-8">
