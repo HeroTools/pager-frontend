@@ -174,7 +174,7 @@ const Editor = ({
       />
       <div
         className={cn(
-          "flex flex-col border border-slate-200 rounded-md overflow-hidden focus-within:border-slate-300 focus-within:shadow-sm transition bg-white",
+          "flex flex-col border border-slate-200 rounded-md overflow-hidden focus-within:border-slate-300 focus-within:shadow-sm transition",
           disabled && "opacity-50"
         )}
       >
@@ -188,7 +188,7 @@ const Editor = ({
                     setImage(null);
                     imageElementRef.current!.value = "";
                   }}
-                  className="hidden group-hover/image:flex rounded-full bg-black/70 hover:bg-black absolute -top-2.5 -right-2.5 text-white size-6 z-4 border-2 border-white items-center justify-center"
+                  className="hidden group-hover/image:flex rounded-full bg-black/70 hover:bg-black absolute -top-2.5 -right-2.5 text-white size-6 z-4 border-2 items-center justify-center"
                 >
                   <XIcon className="size-3.5" />
                 </button>
@@ -270,7 +270,7 @@ const Editor = ({
               className={cn(
                 "ml-auto",
                 isEmpty
-                  ? "bg-white hover:bg-white text-muted-foreground"
+                  ? "text-muted-foreground"
                   : "bg-[#007a5a] hover:bg-[#007a5a]/80 text-white"
               )}
               size="sm"
