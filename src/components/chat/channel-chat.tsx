@@ -71,34 +71,31 @@ const ChannelChat = () => {
   });
 
   const transformMessages = (messagesData: any[]): Message[] => {
-    return messagesData.map((msg) => {
-      console.log(msg);
-      return {
-        id: msg.id,
-        content: msg.body,
-        authorId: msg.user.id,
-        author: {
-          id: msg.user.id,
-          name: msg.user.name,
-          avatar: msg.user.image,
-          status: "online" as const,
-        },
-        timestamp: new Date(msg.created_at),
-        image: msg.attachment?.url,
-        reactions:
-          msg.reactions?.map((reaction: any) => ({
-            emoji: reaction.value,
-            count: reaction.count,
-            users: reaction.users,
-            hasReacted: reaction.users.some(
-              (user: any) => user.id === currentUser?.id
-            ),
-          })) || [],
-        threadCount: 0,
-        isEdited: !!msg.edited_at,
-        isOptimistic: msg._isOptimistic || false,
-      };
-    });
+    return messagesData.map((msg) => ({
+      id: msg.id,
+      content: msg.body,
+      authorId: msg.user.id,
+      author: {
+        id: msg.user.id,
+        name: msg.user.name,
+        avatar: msg.user.image,
+        status: "online" as const,
+      },
+      timestamp: new Date(msg.created_at),
+      image: msg.attachment?.url,
+      reactions:
+        msg.reactions?.map((reaction: any) => ({
+          emoji: reaction.value,
+          count: reaction.count,
+          users: reaction.users,
+          hasReacted: reaction.users.some(
+            (user: any) => user.id === currentUser?.id
+          ),
+        })) || [],
+      threadCount: 0,
+      isEdited: !!msg.edited_at,
+      isOptimistic: msg._isOptimistic || false,
+    }));
   };
 
   const transformCurrentUser = (userData: any): User => ({
@@ -117,8 +114,6 @@ const ChannelChat = () => {
 
   // Combined loading state
   const isLoading = isLoadingMessages || isLoadingChannel || !currentUser;
-
-  // Combined error state
   const error = messagesError || channelError;
 
   if (isLoading) {
@@ -283,9 +278,10 @@ const ChannelChat = () => {
         currentUser={user}
         // typingUsers={transformedTypingUsers} // Pass typing users to Chat component
         isLoading={
-          createMessage.isPending ||
-          updateMessage.isPending ||
-          deleteMessage.isPending
+          false
+          // createMessage.isPending ||
+          // updateMessage.isPending ||
+          // deleteMessage.isPending
         }
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
