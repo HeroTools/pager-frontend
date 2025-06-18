@@ -6,11 +6,10 @@ import { Chat } from "@/components/chat/chat";
 import {
   useGetChannel,
   useGetChannelWithMessagesInfinite,
-} from "@/features/channels/hooks/use-channels-mutations";
-import { useMessageOperations } from "@/features/messages/hooks/use-messages";
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
-import { useRealtimeChannel } from "@/features/channels/hooks/use-realtime-channel";
-import { useTypingIndicator } from "@/features/messages/hooks/use-typing-indicator";
+  useRealtimeChannel,
+} from "@/features/channels";
+import { useMessageOperations, useTypingIndicator } from "@/features/messages";
+import { useCurrentUser } from "@/features/auth";
 import { Message, User, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 
@@ -49,10 +48,7 @@ const ChannelChat = () => {
     handleInputChange,
     handleSubmit: handleTypingSubmit,
     isTyping,
-  } = useTypingIndicator({
-    workspaceId,
-    channelId,
-  });
+  } = useTypingIndicator(workspaceId, channelId, undefined);
 
   const {
     createMessage,
@@ -267,7 +263,7 @@ const ChannelChat = () => {
     <div className="flex flex-col h-full">
       {/* Connection status indicator (optional) */}
       {!isConnected && (
-        <div className="bg-yellow-100 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800">
+        <div className="bg-warning/50 border-b border-warning px-4 py-2 text-sm text-warning">
           Reconnecting to real-time updates... (Status: {connectionStatus})
         </div>
       )}

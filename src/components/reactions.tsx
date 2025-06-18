@@ -45,10 +45,10 @@ export const Reactions = ({ messageId, data }: ReactionsProps) => {
         >
           <button
             className={cn(
-              "h-6 px-2 rounded-full bg-slate-200/70 border border-transparent text-slate-800 flex items-center gap-x-1",
+              "h-6 px-2 rounded-full bg-secondary border border-transparent text-secondary-foreground flex items-center gap-x-1",
               currentMember.data &&
                 reaction.memberIds.includes(currentMember.data.id) &&
-                "bg-blue-100/70 border-blue-500 text-blue-500"
+                "bg-accent border-subtle text-accent-foreground"
             )}
             onClick={() => handleReaction(reaction.emoji)}
           >
@@ -58,7 +58,7 @@ export const Reactions = ({ messageId, data }: ReactionsProps) => {
                 "text-xs text-muted-foreground font-semibold",
                 currentMember.data &&
                   reaction.memberIds.includes(currentMember.data.id) &&
-                  "text-blue-500"
+                  "text-accent"
               )}
             >
               {reaction.count}
@@ -70,7 +70,7 @@ export const Reactions = ({ messageId, data }: ReactionsProps) => {
         hint="Add reaction"
         onEmojiSelect={(emoji) => handleReaction(emoji)}
       >
-        <button className="h-7 px-3 rounded-full bg-slate-200/70 border border-transparent text-slate-800 hover:border-slate-500 flex items-center gap-x-1">
+        <button className="h-7 px-3 rounded-full bg-accent border border-transparent text-accent-foreground hover:border-accent flex items-center gap-x-1">
           <MdOutlineAddReaction />
         </button>
       </EmojiPopover>
