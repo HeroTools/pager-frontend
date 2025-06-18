@@ -40,16 +40,16 @@ export const Toolbar = () => {
   };
 
   return (
-    <div className="bg-[#481349] flex items-center justify-between h-10 p-1.5">
+    <div className="flex items-center justify-between h-10 p-1.5 border-b">
       <div className="flex-1"></div>
       <div className="min-w-[280px] max-[642px] grow-2 shrink">
         <Button
           size="sm"
-          className="bg-accent/25 hover:bg-accent-25 w-full justify-start h-7 px-2"
+          className="border hover:bg-accent-25 w-full justify-start h-7 px-2"
           onClick={() => setOpen(true)}
         >
-          <Search className="size-4 text-white mr-2" />
-          <span className="text-white text-xs">Search {workspace?.name}</span>
+          <Search className="size-4 text-muted-foreground mr-2" />
+          <span className="text-muted-foreground text-xs">Search {workspace?.name}</span>
         </Button>
         <CommandDialog open={open} onOpenChange={setOpen}>
           <CommandInput placeholder="Type a command or search..." />

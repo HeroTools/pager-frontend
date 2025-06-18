@@ -13,15 +13,15 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onToggleDetails,
 }) => {
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-muted-foreground">
       <div className="flex items-center gap-2">
         {channel.isPrivate ? (
-          <Lock className="w-4 h-4 text-gray-500" />
+          <Lock className="w-4 h-4 text-muted-foreground" />
         ) : (
-          <Hash className="w-4 h-4 text-gray-500" />
+          <Hash className="w-4 h-4 text-muted-foreground" />
         )}
-        <h2 className="font-semibold text-lg">{channel.name}</h2>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+        <h2 className="font-semibold text-lg text-foreground">{channel.name}</h2>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground">
           <Star className="w-4 h-4" />
         </Button>
       </div>

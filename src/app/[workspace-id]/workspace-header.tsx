@@ -43,16 +43,16 @@ export const WorkspaceHeader = ({
           <DropdownMenuTrigger asChild>
             <Button
               variant="transparent"
-              className="font-semibold text-lg w-auto p-1.5 overflow-hidden"
+              className="font-semibold text-lg w-auto p-1.5 overflow-hidden cursor-pointer"
               size="sm"
             >
-              <span className="truncate">{workspace.name}</span>
-              <ChevronDown className="size-4 ml-1 shrink-0" />
+              <span className="truncate text-foreground">{workspace.name}</span>
+              <ChevronDown className="size-4 ml-1 shrink-0 fill-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom" className="w-64">
             <DropdownMenuItem className="cursor-pointer capitalize">
-              <div className="size-9 relative overflow-hidden bg-[#616061] text-white font-semibold text-xl rounded-md flex items-center justify-center mr-2">
+              <div className="size-9 relative overflow-hidden bg-muted-foreground text-foreground font-semibold text-xl rounded-md flex items-center justify-center mr-2">
                 {workspace.name.charAt(0).toUpperCase()}
               </div>
               <div className="flex flex-col items-start">

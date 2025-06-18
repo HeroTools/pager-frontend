@@ -41,7 +41,7 @@ export const Chat: React.FC<ChatProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full">
       <ChatHeader channel={channel} onToggleDetails={onToggleChannelDetails} />
 
       <ChatMessageList
@@ -54,7 +54,7 @@ export const Chat: React.FC<ChatProps> = ({
         onReaction={onReactToMessage}
       />
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t border-muted-foreground">
         <Editor
           placeholder={`Message #${channel.name}`}
           onSubmit={handleSendMessage}
