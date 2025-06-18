@@ -25,7 +25,7 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content }) => {
             text = `<s>${text}</s>`;
           }
           if (attributes.link) {
-            text = `<a href="${attributes.link}" class="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">${text}</a>`;
+            text = `<a href="${attributes.link}" class="text-accent hover:underline" target="_blank" rel="noopener noreferrer">${text}</a>`;
           }
 
           return (
@@ -41,7 +41,7 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content }) => {
   };
 
   return (
-    <div className="text-gray-900 leading-relaxed whitespace-pre-wrap break-words">
+    <div className="leading-relaxed whitespace-pre-wrap break-words">
       {parseContent(content)}
     </div>
   );

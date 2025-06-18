@@ -55,19 +55,6 @@ export const conversationsApi = {
     return response.data;
   },
 
-  /**
-   * Get conversation with members
-   */
-  getConversationWithMembers: async (
-    workspaceId: string,
-    conversationId: string
-  ): Promise<ConversationWithMembersList> => {
-    const response = await httpClient.get<ConversationWithMembersResponse>(
-      `/workspaces/${workspaceId}/conversations/${conversationId}/members`
-    );
-    return response.data;
-  },
-
   getConversationWithMessages: async (
     workspaceId: string,
     conversationId: string,
@@ -93,6 +80,7 @@ export const conversationsApi = {
     const response = await httpClient.get<ConversationWithMessagesResponse>(
       url
     );
+    console.log(response);
     return response;
   },
 

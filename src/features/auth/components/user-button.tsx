@@ -32,7 +32,7 @@ export const UserButton = () => {
             alt={user.name}
             src={user.image}
           />
-          <AvatarFallback className="rounded-md bg-sky-500 text-foreground ">
+          <AvatarFallback className="rounded-md">
             {user.name!.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
