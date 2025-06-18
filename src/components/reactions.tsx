@@ -1,4 +1,4 @@
-import { MdOutlineAddReaction } from "react-icons/md";
+import { SmilePlus } from "lucide-react";
 
 import { useCurrentMember } from "@/features/members/hooks/use-members";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
@@ -71,7 +71,7 @@ export const Reactions = ({ messageId, data }: ReactionsProps) => {
         onEmojiSelect={(emoji) => handleReaction(emoji)}
       >
         <button className="h-7 px-3 rounded-full bg-accent border border-transparent text-accent-foreground hover:border-accent flex items-center gap-x-1">
-          <MdOutlineAddReaction />
+          <SmilePlus />
         </button>
       </EmojiPopover>
     </div>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { TriangleAlert, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
