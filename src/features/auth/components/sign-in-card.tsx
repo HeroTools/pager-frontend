@@ -141,7 +141,7 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
         <p className="text-xs text-muted-foreground">
           Don&apos;t have an account?{" "}
           <span
-            className="text-sky-700 hover:underline cursor-pointer"
+            className="text-primary hover:underline cursor-pointer"
             onClick={() => setState("signUp")}
           >
             Sign up

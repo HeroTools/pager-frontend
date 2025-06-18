@@ -202,7 +202,7 @@ const Editor = ({
                     if (imageElementRef.current)
                       imageElementRef.current.value = "";
                   }}
-                  className="hidden group-hover/image:flex rounded-full bg-black/70 hover:bg-black absolute -top-2.5 -right-2.5 text-white size-6 z-4 border-2 items-center justify-center"
+                  className="hidden group-hover/image:flex rounded-full bg-primary/70 hover:bg-primary absolute -top-2.5 -right-2.5 text-primary-foreground size-6 z-4 border-2 items-center justify-center"
                 >
                   <XIcon className="size-3.5" />
                 </button>
@@ -262,7 +262,7 @@ const Editor = ({
                 size="sm"
                 onClick={handleSubmit}
                 disabled={disabled || isEmpty}
-                className="bg-[#007a5a] hover:bg-[#007a5a]/80 text-white"
+                className="bg-primary hover:bg-primary/80 text-primary-foreground"
               >
                 Save
               </Button>
@@ -275,7 +275,7 @@ const Editor = ({
                 "ml-auto",
                 isEmpty
                   ? "text-muted-foreground"
-                  : "bg-[#007a5a] hover:bg-[#007a5a]/80 text-white"
+                  : "bg-primary hover:bg-primary/80 text-primary-foreground"
               )}
               size="sm"
             >

@@ -267,7 +267,7 @@ const ChannelChat = () => {
     <div className="flex flex-col h-full">
       {/* Connection status indicator (optional) */}
       {!isConnected && (
-        <div className="bg-yellow-100 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800">
+        <div className="bg-warning/50 border-b border-warning px-4 py-2 text-sm text-warning">
           Reconnecting to real-time updates... (Status: {connectionStatus})
         </div>
       )}

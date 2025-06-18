@@ -23,7 +23,7 @@ export const SidebarButton = ({
         variant="transparent"
         className={cn(
           "size-9 p-2 group-hover:bg-foreground/20",
-          isActive && "bg-foreground/20"
+          isActive && "bg-foreground/20 hover:bg-foreground/20"
         )}
         disabled={disabled}
       >

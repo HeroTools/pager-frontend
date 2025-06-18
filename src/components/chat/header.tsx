@@ -34,7 +34,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
       <div className="flex items-center gap-2">
         {channel.memberCount && (
-          <div className="flex items-center gap-1 text-sm text-gray-600">
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <Users className="w-4 h-4" />
             <span>{channel.memberCount}</span>
           </div>

@@ -25,14 +25,14 @@ export const ThreadBar = ({
   return (
     <button
       onClick={onClick}
-      className="p-1 rounded-md hover:bg-white border border-transparent hover:border-border-subtle flex items-center justify-start group/thread-bar transition max-w-[600px]"
+      className="p-1 rounded-md hover:bg-background border border-transparent hover:border-border-subtle flex items-center justify-start group/thread-bar transition max-w-[600px]"
     >
       <div className="flex items-center gap-2 overflow-hidden">
         <Avatar className="size-6 shrink-0">
           <AvatarImage src={image} />
           <AvatarFallback>{name?.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
-        <span className="text-xs text-sky-700 hover:underline font-bold truncate">
+        <span className="text-xs text-muted-foreground hover:underline font-bold truncate">
           {count} {count > 1 ? "replies" : "reply"}
         </span>
         <span className="text-xs text-muted-foreground truncate group-hover/thread-bar:hidden block">

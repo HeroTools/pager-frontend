@@ -94,11 +94,11 @@ export default async function AuthCallback() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-secondary">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center p-6">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            <p className="mt-4 text-gray-600">Completing sign in...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="mt-4 text-muted-foreground">Completing sign in...</p>
           </CardContent>
         </Card>
       </div>
@@ -107,18 +107,18 @@ export default async function AuthCallback() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-secondary">
         <Card className="w-full max-w-md">
           <CardContent className="p-6">
             <div className="text-center">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                <h2 className="text-lg font-semibold text-red-800 mb-2">
+              <div className="bg-destructive border border-destructive rounded-lg p-6">
+                <h2 className="text-lg font-semibold text-destructive mb-2">
                   Authentication Error
                 </h2>
-                <p className="text-red-600 mb-4">{error}</p>
+                <p className="text-destructive mb-4">{error}</p>
                 <button
                   onClick={() => router.push("/auth/login")}
-                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+                  className="bg-destructive text-destructive-foreground px-4 py-2 rounded hover:bg-destructive/80 transition-colors"
                 >
                   Try Again
                 </button>
