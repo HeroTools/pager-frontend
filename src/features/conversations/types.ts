@@ -52,6 +52,95 @@ export type ConversationMessagesResponse = ApiResponse<ConversationMessage[]>;
 export type ConversationMessageWithRelationsResponse =
   ApiResponse<ConversationMessageWithRelations>;
 
+// === NEW TYPES FOR COMBINED API ENDPOINT ===
+
+// Request parameters for the new combined endpoint
+export interface GetConversationMessagesParams {
+  limit?: number;
+  cursor?: string;
+  before?: string;
+}
+
+// User data from the combined endpoint
+export interface ConversationUser {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
+}
+
+// User status information
+export interface ConversationUserStatus {
+  status: string;
+  custom_status: string | null;
+  status_emoji: string | null;
+  last_seen_at: string | null;
+}
+
+// Message with user data from combined endpoint
+export interface ConversationMessageWithUser {
+  id: string;
+  body: string;
+  attachment_id: string | null;
+  workspace_member_id: string;
+  workspace_id: string;
+  channel_id: string | null;
+  conversation_id: string;
+  parent_message_id: string | null;
+  thread_id: string | null;
+  message_type: string;
+  created_at: string;
+  updated_at: string | null;
+  edited_at: string | null;
+  deleted_at: string | null;
+  user: ConversationUser;
+  attachment?: {
+    id: string;
+    url: string;
+    content_type: string | null;
+    size_bytes: number | null;
+  };
+  reactions?: Array<{
+    id: string;
+    value: string;
+    count: number;
+    users: Array<{
+      id: string;
+      name: string;
+    }>;
+  }>;
+}
+
+// Conversation member with user data from combined endpoint
+export interface ConversationMemberWithUser {
+  id: string;
+  conversation_id: string;
+  workspace_member_id: string;
+  joined_at: string;
+  left_at: string | null;
+  last_read_message_id: string | null;
+  user: ConversationUser;
+  status?: ConversationUserStatus;
+}
+
+// Combined conversation data structure
+export interface ConversationWithMessagesAndMembers {
+  conversation: ConversationEntity;
+  messages: ConversationMessageWithUser[];
+  members: ConversationMemberWithUser[];
+  pagination: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    totalCount: number;
+  };
+}
+
+// API response for the combined endpoint
+export type ConversationWithMessagesResponse =
+  ApiResponse<ConversationWithMessagesAndMembers>;
+
+// === END NEW TYPES ===
+
 // Extended conversation with last message for UI lists
 export interface ConversationListItem extends ConversationEntity {
   last_message?: ConversationMessage;

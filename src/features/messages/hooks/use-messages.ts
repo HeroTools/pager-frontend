@@ -1,293 +1,260 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { messagesApi } from "../api/messages-api";
 import type {
-  MessageEntity,
-  ChannelMessage,
   CreateChannelMessageData,
+  CreateConversationMessageData,
   UpdateMessageData,
-  MessageFilters,
-  AddReactionData,
+  MessageWithUser,
 } from "../types";
 
-// Get messages for a channel
-export const useGetChannelMessages = (
+/**
+ * Hook for creating messages in channels
+ */
+export const useCreateChannelMessage = (
   workspaceId: string,
-  channelId: string,
-  filters?: Partial<MessageFilters>
+  channelId: string
 ) => {
-  return useQuery({
-    queryKey: ["messages", workspaceId, channelId, filters],
-    queryFn: () =>
-      messagesApi.getChannelMessages(workspaceId, channelId, filters),
-    enabled: !!(workspaceId && channelId),
-  });
-};
-
-// Get messages with relations for a channel
-export const useGetChannelMessagesWithRelations = (
-  workspaceId: string,
-  channelId: string,
-  filters?: Partial<MessageFilters>
-) => {
-  return useQuery({
-    queryKey: ["messages", workspaceId, channelId, "relations", filters],
-    queryFn: () =>
-      messagesApi.getChannelMessagesWithRelations(
-        workspaceId,
-        channelId,
-        filters
-      ),
-    enabled: !!(workspaceId && channelId),
-  });
-};
-
-// Get a single message
-export const useGetMessage = (workspaceId: string, messageId: string) => {
-  return useQuery({
-    queryKey: ["message", workspaceId, messageId],
-    queryFn: () => messagesApi.getMessage(workspaceId, messageId),
-    enabled: !!(workspaceId && messageId),
-  });
-};
-
-// Get a single message with relations
-export const useGetMessageWithRelations = (
-  workspaceId: string,
-  messageId: string
-) => {
-  return useQuery({
-    queryKey: ["message", workspaceId, messageId, "relations"],
-    queryFn: () => messagesApi.getMessageWithRelations(workspaceId, messageId),
-    enabled: !!(workspaceId && messageId),
-  });
-};
-
-// Get message thread
-export const useGetMessageThread = (workspaceId: string, messageId: string) => {
-  return useQuery({
-    queryKey: ["messageThread", workspaceId, messageId],
-    queryFn: () => messagesApi.getMessageThread(workspaceId, messageId),
-    enabled: !!(workspaceId && messageId),
-  });
-};
-
-// Search messages
-export const useSearchMessages = (
-  workspaceId: string,
-  query: string,
-  filters?: Partial<MessageFilters>
-) => {
-  return useQuery({
-    queryKey: ["messageSearch", workspaceId, query, filters],
-    queryFn: () => messagesApi.searchMessages(workspaceId, query, filters),
-    enabled: !!(workspaceId && query && query.length > 2),
-  });
-};
-
-// Create a new message
-export const useCreateChannelMessage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      workspaceId,
-      channelId,
-      data,
-    }: {
-      workspaceId: string;
-      channelId: string;
-      data: CreateChannelMessageData;
-    }) => messagesApi.createChannelMessage(workspaceId, channelId, data),
-    onSuccess: (newMessage, variables) => {
-      // Update the messages list cache
-      queryClient.setQueryData<{
-        messages: ChannelMessage[];
-        has_more: boolean;
-      }>(["messages", variables.workspaceId, variables.channelId], (old) =>
-        old
-          ? {
-              ...old,
-              messages: [...old.messages, newMessage as ChannelMessage],
-            }
-          : { messages: [newMessage as ChannelMessage], has_more: false }
-      );
-
-      // Invalidate to ensure fresh data
+    mutationFn: (data: CreateChannelMessageData) =>
+      messagesApi.createChannelMessage(workspaceId, channelId, data),
+    onSuccess: (newMessage) => {
+      // Invalidate and refetch channel messages
       queryClient.invalidateQueries({
-        queryKey: ["messages", variables.workspaceId, variables.channelId],
+        queryKey: ["channel", workspaceId, channelId, "messages"],
       });
 
-      // Update channel cache to reflect new activity
+      // Update channels list (for last message preview)
       queryClient.invalidateQueries({
-        queryKey: ["channel", variables.workspaceId, variables.channelId],
+        queryKey: ["channels", workspaceId],
       });
+
+      // If it's a thread reply, invalidate thread queries
+      if (newMessage.parent_message_id || newMessage.thread_id) {
+        queryClient.invalidateQueries({
+          queryKey: ["thread", workspaceId],
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to send channel message:", error);
     },
   });
 };
 
-// Update a message
-export const useUpdateMessage = () => {
+/**
+ * Hook for creating messages in conversations
+ */
+export const useCreateConversationMessage = (
+  workspaceId: string,
+  conversationId: string
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateConversationMessageData) =>
+      messagesApi.createConversationMessage(workspaceId, conversationId, data),
+    onSuccess: (newMessage) => {
+      // Invalidate and refetch conversation messages
+      queryClient.invalidateQueries({
+        queryKey: ["conversation", workspaceId, conversationId, "messages"],
+      });
+
+      // Update conversations list (for last message preview and unread counts)
+      queryClient.invalidateQueries({
+        queryKey: ["conversations", workspaceId],
+      });
+
+      // If it's a thread reply, invalidate thread queries
+      if (newMessage.parent_message_id || newMessage.thread_id) {
+        queryClient.invalidateQueries({
+          queryKey: ["thread", workspaceId],
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to send conversation message:", error);
+    },
+  });
+};
+
+/**
+ * Hook for updating messages (works for both channels and conversations)
+ */
+export const useUpdateMessage = (workspaceId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({
-      workspaceId,
       messageId,
       data,
     }: {
-      workspaceId: string;
       messageId: string;
       data: UpdateMessageData;
     }) => messagesApi.updateMessage(workspaceId, messageId, data),
-    onSuccess: (updatedMessage, variables) => {
-      // Update the specific message cache
-      queryClient.setQueryData<MessageEntity>(
-        ["message", variables.workspaceId, variables.messageId],
-        updatedMessage
-      );
+    onSuccess: (updatedMessage) => {
+      // Invalidate relevant message lists
+      if (updatedMessage.channel_id) {
+        queryClient.invalidateQueries({
+          queryKey: [
+            "channel",
+            workspaceId,
+            updatedMessage.channel_id,
+            "messages",
+          ],
+        });
+      }
 
-      // Update message in all relevant message lists
-      queryClient.setQueryData<{
-        messages: ChannelMessage[];
-        has_more: boolean;
-      }>(
-        ["messages", variables.workspaceId, updatedMessage.channel_id],
-        (old) =>
-          old
-            ? {
-                ...old,
-                messages: old.messages.map((msg) =>
-                  msg.id === variables.messageId
-                    ? (updatedMessage as ChannelMessage)
-                    : msg
-                ),
-              }
-            : old
-      );
+      if (updatedMessage.conversation_id) {
+        queryClient.invalidateQueries({
+          queryKey: [
+            "conversation",
+            workspaceId,
+            updatedMessage.conversation_id,
+            "messages",
+          ],
+        });
+      }
+
+      // Invalidate thread if it's a thread message
+      if (updatedMessage.parent_message_id || updatedMessage.thread_id) {
+        queryClient.invalidateQueries({
+          queryKey: ["thread", workspaceId],
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to update message:", error);
     },
   });
 };
 
-// Delete a message
-export const useDeleteMessage = () => {
+/**
+ * Hook for deleting messages (works for both channels and conversations)
+ */
+export const useDeleteMessage = (workspaceId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      workspaceId,
-      messageId,
-    }: {
-      workspaceId: string;
-      messageId: string;
-    }) => messagesApi.deleteMessage(workspaceId, messageId),
-    onSuccess: (_, variables) => {
-      // For soft delete, invalidate instead of removing from cache
-      // since the message still exists but is marked as deleted
+    mutationFn: (messageId: string) =>
+      messagesApi.deleteMessage(workspaceId, messageId),
+    onSuccess: (_, messageId) => {
+      // Invalidate all message queries to refresh the lists
+      // We don't know which channel/conversation this message belonged to
       queryClient.invalidateQueries({
-        queryKey: ["messages", variables.workspaceId],
+        queryKey: ["channel", workspaceId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["message", variables.workspaceId, variables.messageId],
+        queryKey: ["conversation", workspaceId],
       });
+
+      queryClient.invalidateQueries({
+        queryKey: ["thread", workspaceId],
+      });
+
+      // Update lists for last message changes
+      queryClient.invalidateQueries({
+        queryKey: ["channels", workspaceId],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["conversations", workspaceId],
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to delete message:", error);
     },
   });
 };
 
-// Reply to a message
-export const useReplyToMessage = () => {
+/**
+ * Hook for adding reactions to messages
+ */
+export const useAddReaction = (workspaceId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      workspaceId,
-      parentMessageId,
-      data,
-    }: {
-      workspaceId: string;
-      parentMessageId: string;
-      data: Omit<CreateChannelMessageData, "parent_message_id">;
-    }) => messagesApi.replyToMessage(workspaceId, parentMessageId, data),
-    onSuccess: (newReply, variables) => {
-      // Invalidate message thread to show new reply
+    mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) =>
+      messagesApi.addReaction(workspaceId, messageId, emoji),
+    onSuccess: () => {
+      // Invalidate message queries to refresh reactions
       queryClient.invalidateQueries({
-        queryKey: [
-          "messageThread",
-          variables.workspaceId,
-          variables.parentMessageId,
-        ],
+        queryKey: ["channel", workspaceId],
       });
 
-      // Invalidate messages list to update thread indicators
       queryClient.invalidateQueries({
-        queryKey: ["messages", variables.workspaceId],
+        queryKey: ["conversation", workspaceId],
       });
+
+      queryClient.invalidateQueries({
+        queryKey: ["thread", workspaceId],
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to add reaction:", error);
     },
   });
 };
 
-// Add reaction to message
-export const useAddReaction = () => {
+/**
+ * Hook for removing reactions from messages
+ */
+export const useRemoveReaction = (workspaceId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      workspaceId,
-      messageId,
-      data,
-    }: {
-      workspaceId: string;
-      messageId: string;
-      data: AddReactionData;
-    }) => messagesApi.addReaction(workspaceId, messageId, data),
-    onSuccess: (_, variables) => {
-      // Invalidate message with relations to show new reaction
+    mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) =>
+      messagesApi.removeReaction(workspaceId, messageId, emoji),
+    onSuccess: () => {
+      // Invalidate message queries to refresh reactions
       queryClient.invalidateQueries({
-        queryKey: [
-          "message",
-          variables.workspaceId,
-          variables.messageId,
-          "relations",
-        ],
+        queryKey: ["channel", workspaceId],
       });
 
-      // Invalidate messages with relations lists
       queryClient.invalidateQueries({
-        queryKey: ["messages", variables.workspaceId],
+        queryKey: ["conversation", workspaceId],
       });
+
+      queryClient.invalidateQueries({
+        queryKey: ["thread", workspaceId],
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to remove reaction:", error);
     },
   });
 };
 
-// Remove reaction from message
-export const useRemoveReaction = () => {
-  const queryClient = useQueryClient();
+/**
+ * Unified hook for message operations (convenience hook)
+ */
+export const useMessageOperations = (
+  workspaceId: string,
+  channelId?: string,
+  conversationId?: string
+) => {
+  const createChannelMessage = useCreateChannelMessage(workspaceId, channelId!);
+  const createConversationMessage = useCreateConversationMessage(
+    workspaceId,
+    conversationId!
+  );
+  const updateMessage = useUpdateMessage(workspaceId);
+  const deleteMessage = useDeleteMessage(workspaceId);
+  const addReaction = useAddReaction(workspaceId);
+  const removeReaction = useRemoveReaction(workspaceId);
 
-  return useMutation({
-    mutationFn: ({
-      workspaceId,
-      messageId,
-      reactionValue,
-    }: {
-      workspaceId: string;
-      messageId: string;
-      reactionValue: string;
-    }) => messagesApi.removeReaction(workspaceId, messageId, reactionValue),
-    onSuccess: (_, variables) => {
-      // Invalidate message with relations to remove reaction
-      queryClient.invalidateQueries({
-        queryKey: [
-          "message",
-          variables.workspaceId,
-          variables.messageId,
-          "relations",
-        ],
-      });
+  return {
+    // Create message based on context
+    createMessage: channelId ? createChannelMessage : createConversationMessage,
+    updateMessage,
+    deleteMessage,
+    addReaction,
+    removeReaction,
 
-      // Invalidate messages with relations lists
-      queryClient.invalidateQueries({
-        queryKey: ["messages", variables.workspaceId],
-      });
-    },
-  });
+    // Individual hooks if needed
+    createChannelMessage,
+    createConversationMessage,
+  };
 };

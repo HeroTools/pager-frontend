@@ -5,6 +5,7 @@ import {
   ApiResponse,
   SendMessageRequest,
   MessageType,
+  Reaction,
 } from "@/types/database";
 
 // Use the database Message type directly
@@ -18,15 +19,6 @@ export type ChannelMessage = Message & { channel_id: string };
 export type ChannelMessageWithRelations = MessageWithRelations & {
   channel_id: string;
 };
-
-// Create message data for channels - based on SendMessageRequest but channel-specific
-export interface CreateChannelMessageData
-  extends Omit<SendMessageRequest, "conversation_id"> {
-  channel_id: string;
-}
-
-// Update message data
-export type UpdateMessageData = UpdateEntityInput<Message>;
 
 // Message filtering and pagination
 export interface MessageFilters {
@@ -84,3 +76,44 @@ export type MessageSearchResponse = ApiResponse<{
   total_count: number;
   has_more: boolean;
 }>;
+
+export interface CreateChannelMessageData {
+  body: string;
+  attachment_id?: string;
+  parent_message_id?: string;
+  thread_id?: string;
+  message_type?: "direct" | "thread" | "system";
+}
+
+export interface CreateConversationMessageData {
+  body: string;
+  attachment_id?: string;
+  parent_message_id?: string;
+  thread_id?: string;
+  message_type?: "direct" | "thread" | "system";
+}
+
+export interface UpdateMessageData {
+  body?: string;
+}
+
+export interface MessageWithUser {
+  id: string;
+  body: string;
+  // ... (rest of the message structure from your lambda)
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image: string | null;
+  };
+  attachment?: {
+    id: string;
+    url: string;
+    content_type: string | null;
+    size_bytes: number | null;
+  };
+  reactions?: Reaction[];
+}
+
+export type MessageWithUserResponse = ApiResponse<MessageWithUser>;

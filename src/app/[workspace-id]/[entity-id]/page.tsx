@@ -1,27 +1,32 @@
 "use client";
 
-import ConversationChat from "@/components/conversation-chat";
-import ChannelChat from "@/components/channel-chat";
-import { useParams } from "next/navigation";
+import ConversationChat from "@/components/chat/conversation-chat";
+import ChannelChat from "@/components/chat/channel-chat";
+import { useParamIds } from "@/hooks/use-param-ids";
+import { AlertTriangle } from "lucide-react";
 
 const ConversationPage = () => {
-  const params = useParams();
-  const entityId = params["entity-id"] as string;
-
-  const firstLetter = entityId.charAt(0).toUpperCase();
-  if (firstLetter === "D") {
+  const { type, id } = useParamIds();
+  console.log(type, id);
+  if (type === "conversation") {
     return (
       <div className="flex flex-col h-full">
         <ConversationChat />
       </div>
     );
-  } else {
+  } else if (type === "channel") {
     return (
       <div className="flex flex-col h-full">
         <ChannelChat />
       </div>
     );
   }
+
+  return (
+    <div className="flex flex-col h-full">
+      <AlertTriangle className="size-5 text-muted-foreground" />
+    </div>
+  );
 };
 
 export default ConversationPage;
