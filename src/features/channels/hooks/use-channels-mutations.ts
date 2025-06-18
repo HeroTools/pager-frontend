@@ -90,14 +90,29 @@ export const useGetChannelWithMessagesInfinite = (
       }),
     enabled: !!(workspaceId && channelId),
     getNextPageParam: (lastPage) => {
-      console.log("lastPage", lastPage);
-      return lastPage.data.pagination.hasMore
-        ? lastPage.data.pagination.nextCursor
-        : undefined;
+      console.log("getNextPageParam - lastPage structure:", lastPage);
+
+      const pagination = lastPage?.pagination;
+
+      if (!pagination) {
+        console.log("No pagination found in response");
+        return undefined;
+      }
+
+      console.log("Pagination:", {
+        hasMore: pagination.hasMore,
+        nextCursor: pagination.nextCursor,
+      });
+
+      return pagination.hasMore ? pagination.nextCursor : undefined;
     },
     staleTime: 30000,
     gcTime: 300000,
     initialPageParam: undefined as string | undefined,
+    select: (data) => ({
+      pages: data.pages,
+      pageParams: data.pageParams,
+    }),
   });
 };
 
