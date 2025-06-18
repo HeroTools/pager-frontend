@@ -130,7 +130,9 @@ export const messagesApi = {
       `/workspaces/${workspaceId}/channels/${channelId}/messages`,
       data
     );
-    return response.data;
+
+    console.log("Response", response);
+    return response;
   },
 
   /**
