@@ -130,7 +130,9 @@ export const messagesApi = {
       `/workspaces/${workspaceId}/channels/${channelId}/messages`,
       data
     );
-    return response.data;
+
+    console.log("Response", response);
+    return response;
   },
 
   /**
@@ -145,6 +147,17 @@ export const messagesApi = {
       `/workspaces/${workspaceId}/conversations/${conversationId}/messages`,
       data
     );
+    return response.data;
+  },
+
+  /**
+   * Send typing indicator
+   */
+  sendTypingIndicator: async (
+    endpoint: string,
+    data: { is_typing: boolean }
+  ): Promise<{ message: string; timestamp: string }> => {
+    const response = await httpClient.post(endpoint, data);
     return response.data;
   },
 

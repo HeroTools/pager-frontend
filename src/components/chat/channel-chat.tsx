@@ -3,9 +3,14 @@
 import { AlertTriangle, Loader } from "lucide-react";
 
 import { Chat } from "@/components/chat/chat";
-import { useGetChannelWithMessages } from "@/features/channels/hooks/use-channels-mutations";
+import {
+  useGetChannel,
+  useGetChannelWithMessagesInfinite,
+} from "@/features/channels/hooks/use-channels-mutations";
 import { useMessageOperations } from "@/features/messages/hooks/use-messages";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useRealtimeChannel } from "@/features/channels/hooks/use-realtime-channel";
+import { useTypingIndicator } from "@/features/messages/hooks/use-typing-indicator";
 import { Message, User, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 
@@ -14,17 +19,41 @@ const ChannelChat = () => {
 
   const { user: currentUser } = useCurrentUser();
 
-  // Use the new combined hook
+  // Fetch messages and members using infinite query
   const {
-    data: channelData,
-    isLoading,
-    error,
-    refetch,
-  } = useGetChannelWithMessages(workspaceId, channelId);
+    data: channelWithMessages,
+    isLoading: isLoadingMessages,
+    error: messagesError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useGetChannelWithMessagesInfinite(workspaceId, channelId);
 
-  console.log(channelData);
+  // Fetch channel details (with cache optimization)
+  const {
+    data: channelDetails,
+    isLoading: isLoadingChannel,
+    error: channelError,
+  } = useGetChannel(workspaceId, channelId);
 
-  // Message operation hooks
+  // Real-time subscription for incoming messages and typing indicators
+  const { isConnected, connectionStatus } = useRealtimeChannel({
+    workspaceId,
+    channelId,
+    currentUserId: currentUser?.id,
+    enabled: !!currentUser && !!channelId,
+  });
+
+  // Typing indicator for current user
+  const {
+    handleInputChange,
+    handleSubmit: handleTypingSubmit,
+    isTyping,
+  } = useTypingIndicator({
+    workspaceId,
+    channelId,
+  });
+
   const {
     createMessage,
     updateMessage,
@@ -55,7 +84,7 @@ const ChannelChat = () => {
       timestamp: new Date(msg.created_at),
       image: msg.attachment?.url,
       reactions:
-        msg.reactions?.map((reaction) => ({
+        msg.reactions?.map((reaction: any) => ({
           emoji: reaction.value,
           count: reaction.count,
           users: reaction.users,
@@ -63,8 +92,9 @@ const ChannelChat = () => {
             (user: any) => user.id === currentUser?.id
           ),
         })) || [],
-      threadCount: 0, // You might want to add thread count to your schema
+      threadCount: 0,
       isEdited: !!msg.edited_at,
+      isOptimistic: msg._isOptimistic || false,
     }));
   };
 
@@ -75,7 +105,18 @@ const ChannelChat = () => {
     status: "online" as const,
   });
 
-  if (isLoading || !currentUser) {
+  // Transform typing users for display
+  // const transformedTypingUsers = typingUsers.map((tu) => ({
+  //   id: tu.user.id,
+  //   name: tu.user.name,
+  //   avatar: tu.user.image,
+  // }));
+
+  // Combined loading state
+  const isLoading = isLoadingMessages || isLoadingChannel || !currentUser;
+  const error = messagesError || channelError;
+
+  if (isLoading) {
     return (
       <div className="h-full flex-1 flex items-center justify-center">
         <Loader className="animate-spin size-5 text-muted-foreground" />
@@ -84,7 +125,7 @@ const ChannelChat = () => {
   }
 
   // Handle error states
-  if (error || !channelData) {
+  if (error || !channelWithMessages || !channelDetails) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
@@ -95,30 +136,30 @@ const ChannelChat = () => {
     );
   }
 
-  // Extract data from the new response structure
-  const { messages: messagesData, members } = channelData;
+  const allMessages =
+    channelWithMessages.pages?.flatMap((page, pageIndex) => {
+      return page?.messages || [];
+    }) || [];
 
-  // Create a mock channel object from the first message's channel data
-  // You might want to modify your API to also return channel metadata
-  const mockChannelData = {
-    id: channelId,
-    name: `Channel ${channelId}`, // You'll want to get this from your channel metadata
-    description: "",
-    channel_type: "public", // You'll want to get this from your channel metadata
-    members,
-  };
+  const sortedMessages = [...allMessages].sort(
+    (a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 
   // Transform data for chat component
-  const channel = transformChannel(mockChannelData);
-  const messages = transformMessages(messagesData || []);
+  const channel = transformChannel(channelDetails);
+  const messages = transformMessages(sortedMessages);
   const user = transformCurrentUser(currentUser);
 
-  // Handle message sending
+  // Handle message sending with real-time integration
   const handleSendMessage = async (content: {
     body: string;
     image: File | null;
   }) => {
     try {
+      // Stop typing indicator immediately when sending
+      handleTypingSubmit();
+
       // Handle file upload first if there's an image
       let attachment_id: string | undefined;
 
@@ -132,7 +173,7 @@ const ChannelChat = () => {
       await createMessage.mutateAsync({
         body: content.body,
         attachment_id,
-        message_type: "direct",
+        message_type: "channel",
       });
 
       console.log("Message sent successfully");
@@ -169,7 +210,7 @@ const ChannelChat = () => {
   const handleReactToMessage = async (messageId: string, emoji: string) => {
     try {
       // Check if user already reacted with this emoji
-      const message = messagesData.find((msg) => msg.id === messageId);
+      const message = allMessages.find((msg) => msg.id === messageId);
       const existingReaction = message?.reactions?.find(
         (r) => r.value === emoji
       );
@@ -215,17 +256,32 @@ const ChannelChat = () => {
     console.log("Toggle channel details");
   };
 
+  // Handle loading more messages (when user scrolls up)
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
+      {/* Connection status indicator (optional) */}
+      {!isConnected && (
+        <div className="bg-yellow-100 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800">
+          Reconnecting to real-time updates... (Status: {connectionStatus})
+        </div>
+      )}
+
       <Chat
         channel={channel}
         messages={messages}
         currentUser={user}
+        // typingUsers={transformedTypingUsers} // Pass typing users to Chat component
         isLoading={
-          isLoading ||
-          createMessage.isPending ||
-          updateMessage.isPending ||
-          deleteMessage.isPending
+          false
+          // createMessage.isPending ||
+          // updateMessage.isPending ||
+          // deleteMessage.isPending
         }
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
@@ -233,6 +289,13 @@ const ChannelChat = () => {
         onReplyToMessage={handleReplyToMessage}
         onReactToMessage={handleReactToMessage}
         onToggleChannelDetails={handleToggleChannelDetails}
+        // Pass typing handlers to your message input component
+        onInputChange={handleInputChange}
+        onTypingSubmit={handleTypingSubmit}
+        // Handle infinite scroll
+        onLoadMore={handleLoadMore}
+        hasMoreMessages={hasNextPage}
+        isLoadingMore={isFetchingNextPage}
       />
     </div>
   );

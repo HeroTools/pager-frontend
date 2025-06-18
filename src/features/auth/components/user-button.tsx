@@ -9,9 +9,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "../hooks/use-current-user";
 import { Loader, LogOutIcon } from "lucide-react";
+import { useSignOut } from "../hooks/use-auth-mutations";
 
 export const UserButton = () => {
   const { user, isLoading } = useCurrentUser();
+  const signOut = useSignOut();
 
   if (isLoading) {
     return <Loader className="size-4 animate-spin text-muted-foreground" />;
@@ -36,7 +38,7 @@ export const UserButton = () => {
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" side="right" className="w-60">
-        <DropdownMenuItem onClick={() => {}} className="h-10">
+        <DropdownMenuItem onClick={() => signOut.mutate()} className="h-10">
           <LogOutIcon className="size-4 mr-2" />
           Log out
         </DropdownMenuItem>

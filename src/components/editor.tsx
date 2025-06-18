@@ -32,7 +32,7 @@ interface EditorProps {
   innerRef?: RefObject<Quill | null>;
   placeholder?: string;
   onCancel?: () => void;
-  onSubmit: ({ image, body }: EditorValue) => void;
+  onSubmit: ({ image, body }: EditorValue) => Promise<any> | void;
 }
 
 const Editor = ({
@@ -47,7 +47,7 @@ const Editor = ({
   const [image, setImage] = useState<File | null>(null);
   const [text, setText] = useState("");
   const isEmpty = useMemo(
-    () => !image && text.replace("/s*/g", "").trim().length === 0,
+    () => !image && text.replace(/\s*/g, "").trim().length === 0,
     [text, image]
   );
   const [isToolbarVisible, setIsToolbarVisible] = useState(true);
@@ -55,10 +55,10 @@ const Editor = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const onSubmitRef = useRef(onSubmit);
   const placeholderRef = useRef(placeholder);
-  const quillRef = useRef<Quill | null>(null);
   const defaultValueRef = useRef(defaultValue);
   const disabledRef = useRef(disabled);
   const imageElementRef = useRef<HTMLInputElement>(null);
+  const quillRef = useRef<Quill | null>(null);
 
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
@@ -67,13 +67,38 @@ const Editor = ({
     disabledRef.current = disabled;
   });
 
+  const handleSubmit = async () => {
+    const quill = quillRef.current;
+    if (!quill) return;
+
+    const oldContents = quill.getContents();
+    const oldText = quill.getText();
+    const oldImage = image;
+    const body = JSON.stringify(oldContents);
+
+    try {
+      const result = onSubmitRef.current({ image: oldImage, body });
+      quill.setText("");
+      quill.setContents([]);
+      setText("");
+      setImage(null);
+
+      if (result instanceof Promise) {
+        await result;
+      }
+    } catch (err) {
+      quill.setContents(oldContents);
+      setText(oldText);
+      setImage(oldImage);
+      console.error("Send failed, rolled back:", err);
+    }
+  };
+
   useEffect(() => {
     if (!containerRef.current) return;
-
     const container = containerRef.current;
-    const editorContainer = container.appendChild(
-      container.ownerDocument.createElement("div")
-    );
+    const editorDiv = document.createElement("div");
+    container.appendChild(editorDiv);
 
     const options: QuillOptions = {
       theme: "snow",
@@ -82,37 +107,36 @@ const Editor = ({
         toolbar: [
           ["bold", "italic", "strike"],
           ["link"],
-          [
-            {
-              list: "ordered",
-            },
-            {
-              list: "bullet",
-            },
-          ],
+          [{ list: "ordered" }, { list: "bullet" }],
         ],
         keyboard: {
           bindings: {
-            enter: {
+            enterSubmit: {
               key: "Enter",
-              handler: () => {
-                const text = quill.getText();
+              handler: function (range, context) {
                 const addedImage = imageElementRef.current?.files?.[0] || null;
-                const isEmpty =
-                  !addedImage && text.replace("/s*/g", "").trim().length === 0;
+                const currentText = quillRef.current?.getText() || "";
+                const empty =
+                  !addedImage &&
+                  currentText.replace(/\s*/g, "").trim().length === 0;
 
-                if (isEmpty) return;
+                if (!empty) {
+                  handleSubmit();
+                  return false;
+                }
 
-                const body = JSON.stringify(quill.getContents());
-
-                onSubmitRef.current?.({ body, image: addedImage });
+                return true;
               },
             },
-            shift_enter: {
+            linebreak: {
               key: "Enter",
               shiftKey: true,
-              handler: () => {
-                quill.insertText(quill.getSelection()?.index || 0, "\n");
+              handler: function (range, context) {
+                const quill = quillRef.current!;
+                const index = range ? range.index : quill.getLength();
+                quill.insertText(index, "\n");
+                quill.setSelection(index + 1);
+                return false;
               },
             },
           },
@@ -120,13 +144,10 @@ const Editor = ({
       },
     };
 
-    const quill = new Quill(editorContainer, options);
+    const quill = new Quill(editorDiv, options);
     quillRef.current = quill;
-    quillRef.current.focus();
-
-    if (innerRef) {
-      innerRef.current = quill;
-    }
+    quill.focus();
+    if (innerRef) innerRef.current = quill;
 
     quill.setContents(defaultValueRef.current);
     setText(quill.getText());
@@ -137,30 +158,22 @@ const Editor = ({
 
     return () => {
       quill.off(Quill.events.TEXT_CHANGE);
-      if (container) {
-        container.innerHTML = "";
-      }
-      if (quillRef.current) {
-        quillRef.current = null;
-      }
-      if (innerRef) {
-        innerRef.current = null;
-      }
+      container.innerHTML = "";
+      quillRef.current = null;
+      if (innerRef) innerRef.current = null;
     };
   }, [innerRef]);
 
   const handleToolbarToggle = () => {
-    setIsToolbarVisible((current) => !current);
-    const toolbarElement = containerRef.current?.querySelector(".ql-toolbar");
-    if (toolbarElement) {
-      toolbarElement.classList.toggle("hidden");
-    }
+    setIsToolbarVisible((v) => !v);
+    const toolbarEl = containerRef.current?.querySelector(".ql-toolbar");
+    if (toolbarEl) toolbarEl.classList.toggle("hidden");
   };
 
   const handleEmojiSelect = (emoji: string) => {
     const quill = quillRef.current;
-
-    quill?.insertText(quill?.getSelection()?.index || 0, emoji);
+    const idx = quill?.getSelection()?.index || 0;
+    quill?.insertText(idx, emoji);
   };
 
   return (
@@ -169,12 +182,12 @@ const Editor = ({
         type="file"
         accept="image/*"
         ref={imageElementRef}
-        onChange={(event) => setImage(event.target.files![0])}
+        onChange={(e) => setImage(e.target.files![0])}
         className="hidden"
       />
       <div
         className={cn(
-          "flex flex-col border border-slate-200 rounded-md overflow-hidden focus-within:border-slate-300 focus-within:shadow-sm transition",
+          "flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition",
           disabled && "opacity-50"
         )}
       >
@@ -186,7 +199,8 @@ const Editor = ({
                 <button
                   onClick={() => {
                     setImage(null);
-                    imageElementRef.current!.value = "";
+                    if (imageElementRef.current)
+                      imageElementRef.current.value = "";
                   }}
                   className="hidden group-hover/image:flex rounded-full bg-black/70 hover:bg-black absolute -top-2.5 -right-2.5 text-white size-6 z-4 border-2 items-center justify-center"
                 >
@@ -202,6 +216,7 @@ const Editor = ({
             </div>
           </div>
         )}
+
         <div className="flex px-2 pb-2 z-5">
           <Hint
             label={isToolbarVisible ? "Hide formatting" : "Show formatting"}
@@ -232,7 +247,7 @@ const Editor = ({
               </Button>
             </Hint>
           )}
-          {variant === "update" && (
+          {variant === "update" ? (
             <div className="ml-auto flex items-center gap-x-2">
               <Button
                 variant="outline"
@@ -245,28 +260,17 @@ const Editor = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  onSubmit({
-                    body: JSON.stringify(quillRef.current?.getContents()),
-                    image,
-                  })
-                }
+                onClick={handleSubmit}
                 disabled={disabled || isEmpty}
                 className="bg-[#007a5a] hover:bg-[#007a5a]/80 text-white"
               >
                 Save
               </Button>
             </div>
-          )}
-          {variant === "create" && (
+          ) : (
             <Button
               disabled={disabled || isEmpty}
-              onClick={() =>
-                onSubmit({
-                  body: JSON.stringify(quillRef.current?.getContents()),
-                  image,
-                })
-              }
+              onClick={handleSubmit}
               className={cn(
                 "ml-auto",
                 isEmpty

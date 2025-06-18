@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Modals } from "@/components/modals";
 import ReactQueryProvider from "@/components/react-query-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -20,7 +20,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Slack Clone",
+  title: "Unowned",
 };
 
 export default function RootLayout({
@@ -34,6 +34,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReactQueryProvider>
+          <ReactQueryDevtools />
           <AuthProvider>
             <NuqsAdapter>
               <Toaster />
