@@ -46,7 +46,7 @@ export const WorkspaceSection = ({
               className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto p-0.5 text-sm text-muted-foreground size-6 shrink-0"
               onClick={onNew}
             >
-              <PlusIcon className="size-5" />
+              <PlusIcon className="size-4" />
             </Button>
           </Hint>
         )}
