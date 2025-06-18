@@ -10,6 +10,8 @@ import type {
   AddChannelMemberData,
   UpdateChannelMemberData,
   ChannelFilters,
+  ChannelWithMessagesResponse,
+  GetChannelMessagesParams,
 } from "@/features/channels/types";
 
 export const channelsApi = {
@@ -31,7 +33,7 @@ export const channelsApi = {
     const response = await httpClient.get<ChannelsResponse>(
       `/workspaces/${workspaceId}/channels${queryString}`
     );
-    return response;
+    return response || [];
   },
 
   /**
@@ -44,6 +46,36 @@ export const channelsApi = {
     const response = await httpClient.get<ChannelResponse>(
       `/workspaces/${workspaceId}/channels/${channelId}`
     );
+    return response;
+  },
+
+  /**
+   * Get a channel with all messages
+   */
+  getChannelWithMessages: async (
+    workspaceId: string,
+    channelId: string,
+    params?: GetChannelMessagesParams
+  ): Promise<ChannelWithMessagesResponse> => {
+    const searchParams = new URLSearchParams();
+
+    if (params?.limit) {
+      searchParams.append("limit", params.limit.toString());
+    }
+    if (params?.cursor) {
+      searchParams.append("cursor", params.cursor);
+    }
+    if (params?.before) {
+      searchParams.append("before", params.before);
+    }
+
+    const queryString = searchParams.toString();
+    const url = `/workspaces/${workspaceId}/channels/${channelId}/messages${
+      queryString ? `?${queryString}` : ""
+    }`;
+
+    const response = await httpClient.get<ChannelWithMessagesResponse>(url);
+    console.log("getChannelWithMessages", response);
     return response;
   },
 

@@ -66,13 +66,13 @@ function handlePostSignInRouting(
 
   if (workspaces.length === 1) {
     // Single workspace - go directly there
-    router.push(`/workspace/${workspaces[0].id}`);
+    router.push(`/${workspaces[0].id}`);
     return;
   }
 
   if (defaultWorkspaceId) {
     // Multiple workspaces with a default - go to default
-    router.push(`/workspace/${defaultWorkspaceId}`);
+    router.push(`/${defaultWorkspaceId}`);
     return;
   }
 
@@ -176,7 +176,9 @@ export const useSwitchWorkspace = () => {
       });
 
       // Navigate to the workspace
-      router.push(`/workspace/${workspaceId}`);
+      // router.push(`/workspace/${workspaceId}`);
+      router.push(`/${workspaceId}`);
+
     },
     onError: (error) => {
       console.error("Failed to switch workspace:", error);

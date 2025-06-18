@@ -25,7 +25,7 @@ const JoinPage = () => {
     if (
       workspaceInfo?.members?.some((member) => member.id === workspaceInfo.id)
     ) {
-      router.push(`/workspace/${workspaceId}`);
+      router.push(`/${workspaceId}`);
     }
   }, [workspaceInfo?.members, router, workspaceId]);
 
@@ -33,7 +33,7 @@ const JoinPage = () => {
     join
       .mutateAsync(value)
       .then(() => {
-        router.replace(`/workspace/${workspaceId}`);
+        router.replace(`/${workspaceId}`);
         toast.success("Workspace joined");
       })
       .catch((error) => {

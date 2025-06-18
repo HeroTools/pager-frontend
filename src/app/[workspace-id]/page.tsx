@@ -52,7 +52,7 @@ const WorkspaceIdPage = () => {
     }
 
     if (channelId) {
-      router.push(`/workspace/${workspaceId}/channel/${channelId}`);
+      router.push(`/${workspaceId}/c-${channelId}`);
     } else if (!open && isAdmin) {
       setOpen(true);
     }

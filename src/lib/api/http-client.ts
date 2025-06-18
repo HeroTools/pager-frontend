@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 
 // Base API configuration
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://your-api-gateway-url.com";
+  process.env.NEXT_PUBLIC_API_BASE_URL;
 
 /**
  * HTTP client with automatic token management and error handling
