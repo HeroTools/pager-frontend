@@ -75,7 +75,6 @@ export const channelsApi = {
     }`;
 
     const response = await httpClient.get<ChannelWithMessages>(url);
-    console.log("getChannelWithMessages", response);
     return response;
   },
 
