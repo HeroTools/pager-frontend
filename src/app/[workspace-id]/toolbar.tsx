@@ -40,7 +40,7 @@ export const Toolbar = () => {
   };
 
   return (
-    <div className="flex items-center justify-between h-10 p-1.5 border-b">
+    <div className="flex items-center justify-between h-10 p-1.5 border-b border-border-subtle">
       <div className="flex-1"></div>
       <div className="min-w-[280px] max-[642px] grow-2 shrink">
         <Button
@@ -49,7 +49,9 @@ export const Toolbar = () => {
           onClick={() => setOpen(true)}
         >
           <Search className="size-4 text-muted-foreground mr-2" />
-          <span className="text-muted-foreground text-xs">Search {workspace?.name}</span>
+          <span className="text-muted-foreground text-xs">
+            Search {workspace?.name}
+          </span>
         </Button>
         <CommandDialog open={open} onOpenChange={setOpen}>
           <CommandInput placeholder="Type a command or search..." />

@@ -15,11 +15,13 @@ export const authApi = {
   /**
    * Sign up a new user
    */
-  signUp: async (data: SignInData): Promise<EnhancedAuthResponse> => {
+  signUp: async (data: SignUpData): Promise<EnhancedAuthResponse> => {
     const response = await httpClient.postPublic<EnhancedAuthResponse>(
       "/auth/sign-up",
       data
     );
+
+    console.log(response);
 
     // Store session from Lambda response if provided
     if (response.session) {

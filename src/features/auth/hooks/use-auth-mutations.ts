@@ -6,10 +6,37 @@ import { WorkspaceEntity } from "@/features/workspaces/types";
 
 export const useSignUp = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: authApi.signUp,
-    onSuccess: () => {
-      router.push("/workspace");
+    onSuccess: (data: EnhancedAuthResponse) => {
+      // Cache user data
+      if (data.user) {
+        queryClient.setQueryData(["user"], data.user);
+      }
+
+      // Cache profile data if available
+      if (data.profile) {
+        queryClient.setQueryData(["userProfile"], data.profile);
+      }
+
+      // Cache workspaces data
+      if (data.workspaces) {
+        queryClient.setQueryData(["workspaces"], data.workspaces);
+
+        // Cache individual workspace data for faster navigation
+        data.workspaces.forEach((workspace) => {
+          queryClient.setQueryData(["workspace", workspace.id], workspace);
+        });
+      }
+
+      // Intelligent routing based on workspaces
+      handlePostSignInRouting(data, router);
+    },
+    onError: (error: AuthError) => {
+      console.error("Sign up failed:", error);
+      router.push("/auth");
     },
   });
 };
@@ -178,7 +205,6 @@ export const useSwitchWorkspace = () => {
       // Navigate to the workspace
       // router.push(`/workspace/${workspaceId}`);
       router.push(`/${workspaceId}`);
-
     },
     onError: (error) => {
       console.error("Failed to switch workspace:", error);

@@ -73,7 +73,7 @@ export default async function AuthCallback() {
           }
 
           // Redirect to dashboard
-          router.push("/dashboard");
+          router.push("/");
         } else {
           // No session found, redirect to login
           router.push("/auth/login?error=no_session");
