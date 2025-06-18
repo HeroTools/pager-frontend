@@ -3,7 +3,10 @@
 import { AlertTriangle, Loader } from "lucide-react";
 
 import { Chat } from "@/components/chat/chat";
-import { useGetChannelWithMessages } from "@/features/channels/hooks/use-channels-mutations";
+import {
+  useGetChannel,
+  useGetChannelWithMessages,
+} from "@/features/channels/hooks/use-channels-mutations";
 import { useMessageOperations } from "@/features/messages/hooks/use-messages";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { Message, User, Channel } from "@/types/chat";
@@ -14,15 +17,20 @@ const ChannelChat = () => {
 
   const { user: currentUser } = useCurrentUser();
 
-  // Use the new combined hook
+  // Fetch messages and members
   const {
-    data: channelData,
-    isLoading,
-    error,
+    data: channelWithMessages,
+    isLoading: isLoadingMessages,
+    error: messagesError,
     refetch,
   } = useGetChannelWithMessages(workspaceId, channelId);
 
-  console.log(channelData);
+  // Fetch channel details (with cache optimization)
+  const {
+    data: channelDetails,
+    isLoading: isLoadingChannel,
+    error: channelError,
+  } = useGetChannel(workspaceId, channelId);
 
   // Message operation hooks
   const {
@@ -75,7 +83,13 @@ const ChannelChat = () => {
     status: "online" as const,
   });
 
-  if (isLoading || !currentUser) {
+  // Combined loading state
+  const isLoading = isLoadingMessages || isLoadingChannel || !currentUser;
+
+  // Combined error state
+  const error = messagesError || channelError;
+
+  if (isLoading) {
     return (
       <div className="h-full flex-1 flex items-center justify-center">
         <Loader className="animate-spin size-5 text-muted-foreground" />
@@ -84,7 +98,7 @@ const ChannelChat = () => {
   }
 
   // Handle error states
-  if (error || !channelData) {
+  if (error || !channelWithMessages || !channelDetails) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
@@ -95,21 +109,11 @@ const ChannelChat = () => {
     );
   }
 
-  // Extract data from the new response structure
-  const { messages: messagesData, members } = channelData;
-
-  // Create a mock channel object from the first message's channel data
-  // You might want to modify your API to also return channel metadata
-  const mockChannelData = {
-    id: channelId,
-    name: `Channel ${channelId}`, // You'll want to get this from your channel metadata
-    description: "",
-    channel_type: "public", // You'll want to get this from your channel metadata
-    members,
-  };
+  // Extract data from the responses
+  const { messages: messagesData, members } = channelWithMessages;
 
   // Transform data for chat component
-  const channel = transformChannel(mockChannelData);
+  const channel = transformChannel(channelDetails);
   const messages = transformMessages(messagesData || []);
   const user = transformCurrentUser(currentUser);
 
@@ -222,7 +226,6 @@ const ChannelChat = () => {
         messages={messages}
         currentUser={user}
         isLoading={
-          isLoading ||
           createMessage.isPending ||
           updateMessage.isPending ||
           deleteMessage.isPending

@@ -10,7 +10,7 @@ import type {
   AddChannelMemberData,
   UpdateChannelMemberData,
   ChannelFilters,
-  ChannelWithMessagesResponse,
+  ChannelWithMessages,
   GetChannelMessagesParams,
 } from "@/features/channels/types";
 
@@ -43,7 +43,7 @@ export const channelsApi = {
     workspaceId: string,
     channelId: string
   ): Promise<ChannelEntity> => {
-    const response = await httpClient.get<ChannelResponse>(
+    const response = await httpClient.get<ChannelEntity>(
       `/workspaces/${workspaceId}/channels/${channelId}`
     );
     return response;
@@ -56,7 +56,7 @@ export const channelsApi = {
     workspaceId: string,
     channelId: string,
     params?: GetChannelMessagesParams
-  ): Promise<ChannelWithMessagesResponse> => {
+  ): Promise<ChannelWithMessages> => {
     const searchParams = new URLSearchParams();
 
     if (params?.limit) {
@@ -74,7 +74,7 @@ export const channelsApi = {
       queryString ? `?${queryString}` : ""
     }`;
 
-    const response = await httpClient.get<ChannelWithMessagesResponse>(url);
+    const response = await httpClient.get<ChannelWithMessages>(url);
     console.log("getChannelWithMessages", response);
     return response;
   },
@@ -96,7 +96,7 @@ export const channelsApi = {
    * Create a new channel
    */
   createChannel: async (data: CreateChannelData): Promise<ChannelEntity> => {
-    const response = await httpClient.post<ChannelResponse>(
+    const response = await httpClient.post<ChannelEntity>(
       `/workspaces/${data.workspace_id}/channels`,
       data
     );

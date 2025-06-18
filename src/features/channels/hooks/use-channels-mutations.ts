@@ -28,14 +28,24 @@ export const useGetChannels = (
   });
 };
 
-// Get a single channel
-export const useGetChannel = (workspaceId: string, channelId: string) => {
-  return useQuery({
+export function useGetChannel(workspaceId: string, channelId: string) {
+  const qc = useQueryClient();
+
+  return useQuery<ChannelEntity>({
     queryKey: ["channel", workspaceId, channelId],
     queryFn: () => channelsApi.getChannel(workspaceId, channelId),
-    enabled: !!(workspaceId && channelId),
+    enabled: !!workspaceId && !!channelId,
+    // 1. Seed from your list cache
+    initialData: () =>
+      qc
+        .getQueryData<ChannelEntity[]>(["channels", workspaceId])
+        ?.find((c) => c.id === channelId),
+    // 2. Don’t refetch on every mount/focus
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
-};
+}
 
 // Get a channel with its members
 export const useGetChannelWithMembers = (
