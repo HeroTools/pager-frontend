@@ -10,17 +10,14 @@ import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations
 import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
 import { useGetMembers } from "@/features/members/hooks/use-members";
 import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useParamIds } from "@/hooks/use-param-ids";
 import { SidebarItem } from "./sidebar-item";
 import { UserItem } from "./user-item";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceSection } from "./workspace-section";
-import { useParams } from "next/navigation";
 
 export const WorkspaceSidebar = () => {
-  const workspaceId = useWorkspaceId();
-  const params = useParams();
-  const entityId = (params["entity-id"] as string).slice(2);
+  const { workspaceId, id: entityId } = useParamIds();
 
   const getWorkspace = useGetWorkspace(workspaceId);
   const getChannels = useGetChannels(workspaceId);
@@ -53,19 +50,19 @@ export const WorkspaceSidebar = () => {
       />
       <div className="flex flex-col px-2 mt-3">
         {/* TODO: Implement threads and Drafts & Sent features */}
-        
-          <SidebarItem
-            label="Threads"
-            icon={MessageSquareText}
-            id="threads"
-            disabled
-          />
-          <SidebarItem
-            label="Drafts & Sent"
-            icon={SendHorizonal}
-            id="drafts"
-            disabled
-          />
+
+        <SidebarItem
+          label="Threads"
+          icon={MessageSquareText}
+          id="threads"
+          disabled
+        />
+        <SidebarItem
+          label="Drafts & Sent"
+          icon={SendHorizonal}
+          id="drafts"
+          disabled
+        />
       </div>
       <WorkspaceSection
         label="Channels"
