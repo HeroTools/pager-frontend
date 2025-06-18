@@ -290,6 +290,7 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
             <FcGoogle className="size-5 absolute top-3 left-2.5" />
             Continue with Google
           </Button>
+        </div>
         <p className="text-xs text-muted-foreground">
           Already have an account?{" "}
           <span
