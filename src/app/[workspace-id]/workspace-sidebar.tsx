@@ -46,7 +46,7 @@ export const WorkspaceSidebar = () => {
     <div className="flex flex-col gap-y-2 h-full">
       <WorkspaceHeader
         workspace={getWorkspace.data}
-        isAdmin={getWorkspace.data.role === "admin"}
+        isAdmin={getWorkspace.data.user_role === "admin"}
       />
       <div className="flex flex-col px-2 mt-3">
         {/* TODO: Implement threads and Drafts & Sent features */}
@@ -68,7 +68,7 @@ export const WorkspaceSidebar = () => {
         label="Channels"
         hint="New channel"
         onNew={
-          getWorkspace.data.role === "admin" ? () => setOpen(true) : undefined
+          getWorkspace.data?.user_role === "admin" ? () => setOpen(true) : undefined
         }
       >
         {getChannels.data?.map((item) => (
