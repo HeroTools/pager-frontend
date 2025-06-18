@@ -13,24 +13,32 @@ export const useCreateChannelMessage = (
 ) => {
   const queryClient = useQueryClient();
 
+  // Use the same query key as your infinite query
+  const getInfiniteQueryKey = () => [
+    "channel",
+    workspaceId,
+    channelId,
+    "messages",
+    "infinite",
+  ];
+
   return useMutation({
     mutationFn: (data: CreateChannelMessageData) =>
       messagesApi.createChannelMessage(workspaceId, channelId, data),
 
-    // Optimistic update - add message immediately
+    // Optimistic update - add message immediately to infinite query
     onMutate: async (data) => {
-      // Cancel outgoing refetches
+      // Cancel outgoing refetches for the infinite query
       await queryClient.cancelQueries({
-        queryKey: ["channel", workspaceId, channelId, "messages"],
+        queryKey: getInfiniteQueryKey(),
       });
 
       // Snapshot previous value
-      const previousMessages = queryClient.getQueryData([
-        "channel",
-        workspaceId,
-        channelId,
-        "messages",
-      ]);
+      const previousMessages = queryClient.getQueryData(getInfiniteQueryKey());
+
+      // Get current user info (you'll need to pass this or get it from context)
+      // For now, I'll assume you have access to current user
+      const currentUser = queryClient.getQueryData(["current-user"]) as any;
 
       // Optimistically update with temporary message
       const tempMessage: MessageWithUser = {
@@ -38,7 +46,7 @@ export const useCreateChannelMessage = (
         body: data.body,
         channel_id: channelId,
         workspace_id: workspaceId,
-        message_type: data.message_type || "direct",
+        message_type: data.message_type || "channel",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         edited_at: null,
@@ -46,80 +54,127 @@ export const useCreateChannelMessage = (
         parent_message_id: data.parent_message_id || null,
         thread_id: data.thread_id || null,
         attachment_id: data.attachment_id || null,
-        workspace_member_id: "", // Will be filled by server
+        workspace_member_id: currentUser?.workspace_member_id || "",
         user: {
-          // Get current user from cache or context
-          id: "", // You'll need to pass this
-          name: "You",
-          email: "",
-          image: null,
+          id: currentUser?.id || "",
+          name: currentUser?.name || "You",
+          email: currentUser?.email || "",
+          image: currentUser?.image || null,
         },
-        attachment: null,
+        attachment: data.attachment_id
+          ? {
+              id: data.attachment_id,
+              url: "", // Will be filled by server
+              content_type: null,
+              size_bytes: null,
+            }
+          : undefined,
         reactions: [],
-        // Mark as optimistic
+        // Mark as optimistic for UI feedback
         _isOptimistic: true,
       };
 
-      queryClient.setQueryData(
-        ["channel", workspaceId, channelId, "messages"],
-        (old: any) => {
-          if (!old) return { pages: [[tempMessage]], pageParams: [undefined] };
-
-          // Add to first page
-          const newPages = [...old.pages];
-          newPages[0] = [tempMessage, ...newPages[0]];
-
+      // Update the infinite query data
+      queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
+        if (!old || !old.pages || old.pages.length === 0) {
+          // Create initial structure if no data exists
           return {
-            ...old,
-            pages: newPages,
+            pages: [
+              {
+                messages: [tempMessage],
+                members: [],
+                pagination: {
+                  hasMore: false,
+                  nextCursor: null,
+                  totalCount: 1,
+                },
+              },
+            ],
+            pageParams: [undefined],
           };
         }
-      );
+
+        // Add to the first page (most recent messages)
+        const newPages = [...old.pages];
+        const firstPage = newPages[0];
+
+        if (firstPage) {
+          newPages[0] = {
+            ...firstPage,
+            messages: [tempMessage, ...firstPage.messages],
+            pagination: {
+              ...firstPage.pagination,
+              totalCount: (firstPage.pagination?.totalCount || 0) + 1,
+            },
+          };
+        }
+
+        return {
+          ...old,
+          pages: newPages,
+        };
+      });
 
       return { previousMessages, tempMessage };
     },
 
     onSuccess: (newMessage, variables, context) => {
-      // Replace optimistic message with real one
-      queryClient.setQueryData(
-        ["channel", workspaceId, channelId, "messages"],
-        (old: any) => {
-          if (!old) return old;
+      // Replace optimistic message with real one from server
+      queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
+        if (!old || !context?.tempMessage) return old;
+        console.log("OLD pages in create", old.pages);
+        console.log("TEMP message in create", context.tempMessage);
+        console.log("NEW message in create", newMessage);
+        const newPages = old.pages.map((page: any) => ({
+          ...page,
+          messages: page.messages.map((msg: MessageWithUser) =>
+            msg.id === context.tempMessage.id ? newMessage : msg
+          ),
+        }));
 
-          const newPages = old.pages.map((page: MessageWithUser[]) =>
-            page.map((msg: MessageWithUser) =>
-              msg.id === context?.tempMessage.id ? newMessage : msg
-            )
-          );
+        console.log("NEW pages in create", newPages);
 
-          return {
-            ...old,
-            pages: newPages,
-          };
-        }
-      );
+        return {
+          ...old,
+          pages: newPages,
+        };
+      });
 
-      // Update other caches
+      // Update other related caches
       queryClient.invalidateQueries({
         queryKey: ["channels", workspaceId],
       });
 
+      // If it's a thread message, invalidate thread queries
       if (newMessage?.parent_message_id || newMessage?.thread_id) {
         queryClient.invalidateQueries({
           queryKey: ["thread", workspaceId],
         });
       }
+
+      console.log("Message sent successfully and added to cache");
     },
 
     onError: (error, variables, context) => {
       // Rollback optimistic update
       if (context?.previousMessages) {
         queryClient.setQueryData(
-          ["channel", workspaceId, channelId, "messages"],
+          getInfiniteQueryKey(),
           context.previousMessages
         );
       }
+
       console.error("Failed to send channel message:", error);
+
+      // Optionally show error toast/notification here
+      // toast.error("Failed to send message. Please try again.");
+    },
+
+    onSettled: () => {
+      // Optional: Refetch to ensure consistency
+      // queryClient.invalidateQueries({
+      //   queryKey: getInfiniteQueryKey(),
+      // });
     },
   });
 };
@@ -169,10 +224,10 @@ export const useCreateConversationMessage = (
           email: "",
           image: null,
         },
-        attachment: null,
         reactions: [],
         _isOptimistic: true,
       };
+      console.log(tempMessage);
 
       queryClient.setQueryData(
         ["conversation", workspaceId, conversationId, "messages"],
