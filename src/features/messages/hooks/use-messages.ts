@@ -35,9 +35,6 @@ export const useCreateChannelMessage = (
 
       // Snapshot previous value
       const previousMessages = queryClient.getQueryData(getInfiniteQueryKey());
-
-      // Get current user info (you'll need to pass this or get it from context)
-      // For now, I'll assume you have access to current user
       const currentUser = queryClient.getQueryData(["current-user"]) as any;
 
       // Optimistically update with temporary message
@@ -70,7 +67,6 @@ export const useCreateChannelMessage = (
             }
           : undefined,
         reactions: [],
-        // Mark as optimistic for UI feedback
         _isOptimistic: true,
       };
 
