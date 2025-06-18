@@ -217,7 +217,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
   if (isLoadingParent || isLoadingThread) {
     return (
       <div className="h-full flex flex-col">
-        <div className="flex justify-between items-center h-[49px] px-4 border-b">
+        <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
           <p className="text-lg font-bold">Thread</p>
           <Button onClick={onClose} size="iconSm" variant="ghost">
             <XIcon className="size-5 stroke-[1.5]" />
@@ -233,7 +233,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
   if (!parentMessage?.data) {
     return (
       <div className="h-full flex flex-col">
-        <div className="flex justify-between items-center h-[49px] px-4 border-b">
+        <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
           <p className="text-lg font-bold">Thread</p>
           <Button onClick={onClose} size="iconSm" variant="ghost">
             <XIcon className="size-5 stroke-[1.5]" />
@@ -249,7 +249,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex justify-between items-center h-[49px] px-4 border-b">
+      <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
         <p className="text-lg font-bold">Thread</p>
         <Button onClick={onClose} size="iconSm" variant="ghost">
           <XIcon className="size-5 stroke-[1.5]" />
@@ -259,8 +259,8 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
         {Object.entries(groupedMessages || {}).map(([dateKey, messages]) => (
           <div key={dateKey}>
             <div className="text-center my-2 relative">
-              <hr className="absolute top-1/2 left-0 right-0 border-t border-gray-300" />
-              <span className="relative inline-block bg-white px-4 py-1 rounded-full text-xs border border-gray-300 shadow-sm">
+              <hr className="absolute top-1/2 left-0 right-0 border-t border-border-subtle" />
+              <span className="relative inline-block bg-white px-4 py-1 rounded-full text-xs border border-border-subtle shadow-sm">
                 {formatDateLabel(dateKey)}
               </span>
             </div>

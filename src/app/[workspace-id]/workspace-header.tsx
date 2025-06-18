@@ -38,7 +38,7 @@ export const WorkspaceHeader = ({
         setOpen={setPreferenceOpen}
         initialVlaue={workspace.name}
       />
-      <div className="flex items-center justify-between px-4 h-[49px] gap-0.5">
+      <div className="flex items-center justify-between px-4 h-[49px] gap-0.5 border-b border-border-subtle">
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button

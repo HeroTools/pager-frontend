@@ -34,10 +34,7 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
           direction="horizontal"
           autoSaveId="wck-workspace-layout"
         >
-          <ResizablePanel
-            defaultSize={20}
-            minSize={11}
-          >
+          <ResizablePanel defaultSize={20} minSize={11}>
             <WorkspaceSidebar />
           </ResizablePanel>
           <ResizableHandle />
