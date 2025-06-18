@@ -60,7 +60,7 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
           });
 
           // Redirect to dashboard
-          router.push("/dashboard");
+          router.push("/");
           router.refresh();
         } else {
           setError(result.error || "Failed to sign up");

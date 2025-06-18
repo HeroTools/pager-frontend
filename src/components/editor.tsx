@@ -174,7 +174,7 @@ const Editor = ({
       />
       <div
         className={cn(
-          "flex flex-col border border-slate-200 rounded-md overflow-hidden focus-within:border-slate-300 focus-within:shadow-sm transition",
+          "flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition",
           disabled && "opacity-50"
         )}
       >

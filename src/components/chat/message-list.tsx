@@ -65,11 +65,11 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
             <React.Fragment key={message.id}>
               {showDateDivider && (
                 <div className="flex items-center my-4 px-4">
-                  <div className="flex-1 border-t border-gray-200" />
+                  <div className="flex-1 border-t border-border-subtle" />
                   <div className="mx-4 text-xs text-gray-500 px-2">
                     {new Date(message.timestamp).toLocaleDateString()}
                   </div>
-                  <div className="flex-1 border-t border-gray-200" />
+                  <div className="flex-1 border-t border-border-subtle" />
                 </div>
               )}
               <ChatMessage

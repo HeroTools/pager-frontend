@@ -54,7 +54,7 @@ export const Chat: React.FC<ChatProps> = ({
         onReaction={onReactToMessage}
       />
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t border-border-subtle">
         <Editor
           placeholder={`Message #${channel.name}`}
           onSubmit={handleSendMessage}

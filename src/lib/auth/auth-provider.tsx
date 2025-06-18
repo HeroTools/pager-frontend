@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "../supabase/client";
 import { Session, User } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   session: Session | null;
@@ -17,6 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
@@ -30,7 +32,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        router.push("/auth");
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -42,9 +47,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+      setSession(null);
+      router.push("/auth");
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  };
+
+  const refreshSession = async () => {
+    try {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.refreshSession();
+      if (error) throw error;
+      if (session) {
+        setUser(session.user);
+        setSession(session);
+      }
+    } catch (error) {
+      console.error("Refresh error:", error);
+      await signOut();
+    }
   };
 
   const value = {
@@ -52,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     loading,
     signOut,
+    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

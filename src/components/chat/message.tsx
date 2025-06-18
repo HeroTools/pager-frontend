@@ -126,7 +126,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
       {/* Message Actions */}
       {isHovered && (
-        <div className="absolute top-0 right-4 bg-white border rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-0 right-4 bg-white border border-border-subtle rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="flex items-center">
             <Button
               variant="ghost"

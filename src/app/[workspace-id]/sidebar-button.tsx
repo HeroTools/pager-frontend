@@ -27,11 +27,9 @@ export const SidebarButton = ({
         )}
         disabled={disabled}
       >
-        <Icon className="size-5 text-foreground group-hover:scale-110 transition-all" />
+        <Icon className="size-5 text-foreground transition-all" />
       </Button>
-      <span className="text-[11px] text-foreground">
-        {label}
-      </span>
+      <span className="text-[11px] text-foreground">{label}</span>
     </div>
   );
 };
