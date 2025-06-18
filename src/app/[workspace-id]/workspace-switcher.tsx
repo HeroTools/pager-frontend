@@ -34,7 +34,7 @@ export const WorkspaceSwitcher = () => {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild className="outline-none relative">
-        <Button className="size-9 relateive overflow-hidden bg-[#ABABAA] hover:bg-[#ABABAD]/80 text-slate-800 font-semibold text-xl">
+        <Button className="size-9 relateive overflow-hidden bg-muted-foreground hover:bg-muted-foreground/80 text-foreground font-semibold text-xl">
           {isLoadingWorkspace ? (
             <Loader className="size-5 animate-spin shrink-0" />
           ) : (
@@ -55,7 +55,7 @@ export const WorkspaceSwitcher = () => {
             onClick={() => router.push(`/${workspace.id}`)}
             className="cursor-pointer capitalize overflow-hidden"
           >
-            <div className="shrink-0 size-9 relative overflow-hidden bg-[#616061] text-white font-semibold text-lg rounded-md flex items-center justify-center mr-2">
+            <div className="shrink-0 size-9 relative overflow-hidden bg-muted-foreground text-foreground font-semibold text-lg rounded-md flex items-center justify-center mr-2">
               {workspace.name.charAt(0).toUpperCase()}
             </div>
             <p className="truncate">{workspace.name}</p>
@@ -65,7 +65,7 @@ export const WorkspaceSwitcher = () => {
           className="cursor-pointer"
           onClick={() => setOpen(true)}
         >
-          <div className="size-9 relative overflow-hidden bg-[#F2F2F2] text-slate-800 font-semibold text-lg rounded-md flex items-center justify-center mr-2">
+          <div className="size-9 relative overflow-hidden bg-muted-foreground text-foreground font-semibold text-lg rounded-md flex items-center justify-center mr-2">
             <PlusIcon />
           </div>
           Create new workspace

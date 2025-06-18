@@ -45,7 +45,7 @@ export const Toolbar = () => {
       <div className="min-w-[280px] max-[642px] grow-2 shrink">
         <Button
           size="sm"
-          className="border hover:bg-accent-25 w-full justify-start h-7 px-2"
+          className="border hover:bg-accent-25 w-full justify-start h-7 px-2 bg-background"
           onClick={() => setOpen(true)}
         >
           <Search className="size-4 text-muted-foreground mr-2" />
@@ -82,7 +82,7 @@ export const Toolbar = () => {
         {/* TODO: Implement info button */}
         <InDevelopmentHint>
           <Button variant="transparent" size="iconSm" disabled>
-            <Info className="size-5 text-white" />
+            <Info className="size-5 text-muted-foreground" />
           </Button>
         </InDevelopmentHint>
       </div>

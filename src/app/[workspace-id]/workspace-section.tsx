@@ -23,21 +23,21 @@ export const WorkspaceSection = ({
   const [on, toggle] = useToggle(true);
 
   return (
-    <div className="flex flex-col mt-3 px-2">
+    <div className="flex flex-col mt-3 px-2 gap-1.5">
       <div className="flex items-center px-3.5 group">
         <Button
           variant="transparent"
-          className="p-0.5 text-sm text-foreground shrink-0 size-6"
+          className="p-0.5 text-sm text-foreground shrink-0 size-6 hover:bg-secondary/90"
           onClick={toggle}
         >
           <FaCaretDown
-            className={cn("size-4 transition-transform", on && "-rotate-90")}
+            className={cn("size-4 transition-transform", !on && "-rotate-90")}
           />
         </Button>
         <Button
           variant="transparent"
           size="sm"
-          className="group px-1.5 text-sm text-foreground h-[28px] justify-start overflow-hidden items-center"
+          className="group px-1.5 text-sm text-foreground h-[28px] justify-start overflow-hidden items-center hover:bg-secondary/90"
         >
           <span className="truncate">{label}</span>
         </Button>
