@@ -18,12 +18,14 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { SignInFlow } from "../types";
 import { authApi } from "@/features/auth/api/auth-api";
+import { useSignUp } from "@/features/auth";
 
 interface SignUpCardProps {
   setState: (state: SignInFlow) => void;
 }
 
 export const SignUpCard = ({ setState }: SignUpCardProps) => {
+  const signUp = useSignUp();
   const [signingUp, setSigningUp] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -49,21 +51,22 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
       setError("");
 
       try {
-        const response = await authApi.signUp({ email, password, name });
-        const result = response.data;
+        const response = await signUp.mutateAsync({ email, password, name });
 
-        if (result.success) {
+        console.log("Sign up response:", response);
+
+        if (response.success) {
           // IMPORTANT: Set the session with Supabase client to propagate to cookies
           await supabase.auth.setSession({
-            access_token: result.data.session.accessToken,
-            refresh_token: result.data.session.refreshToken,
+            access_token: response.data.session.accessToken,
+            refresh_token: response.data.session.refreshToken,
           });
 
           // Redirect to dashboard
           router.push("/");
           router.refresh();
         } else {
-          setError(result.error || "Failed to sign up");
+          setError(response.error || "Failed to sign up");
         }
       } catch (err: any) {
         console.error("Sign up error:", err);

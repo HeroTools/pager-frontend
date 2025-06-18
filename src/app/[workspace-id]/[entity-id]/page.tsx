@@ -5,7 +5,7 @@ import ChannelChat from "@/components/chat/channel-chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { AlertTriangle } from "lucide-react";
 
-const ConversationPage = () => {
+const ChatPage = () => {
   const { type, id } = useParamIds();
   console.log(type, id);
   if (type === "conversation") {
@@ -29,4 +29,4 @@ const ConversationPage = () => {
   );
 };
 
-export default ConversationPage;
+export default ChatPage;

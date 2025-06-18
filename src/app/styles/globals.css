@@ -65,6 +65,20 @@ body,
   --color-border-default: #2a2a2a;
   --color-border-strong: #404040;
 
+  /* Text Colors - Mapped to Tailwind semantic names */
+  --color-foreground: #e6e6e6; /* text-foreground */
+  --color-muted-foreground: #a3a3a3; /* text-muted-foreground */
+  --color-secondary-foreground: #737373; /* text-secondary-foreground */
+  --color-primary-foreground: #000000; /* text-primary-foreground */
+
+  /* Custom text hierarchy */
+  --color-text-subtle: #525252; /* text-text-subtle */
+  --color-text-accent: #ffffff; /* text-text-accent */
+  --color-text-success: #22c55e; /* text-text-success */
+  --color-text-warning: #f59e0b; /* text-text-warning */
+  --color-text-destructive: #ef4444; /* text-text-destructive */
+  --color-text-info: #3b82f6; /* text-text-info */
+
   /* Layout */
   --radius: 0.375rem;
 
@@ -132,6 +146,20 @@ body,
     --color-border-subtle: #f1f3f4;
     --color-border-default: #e5e7eb;
     --color-border-strong: #d1d5db;
+
+    /* Text Colors - Light theme - Mapped to Tailwind semantic names */
+    --color-foreground: #0a0a0a; /* text-foreground */
+    --color-muted-foreground: #6b7280; /* text-muted-foreground */
+    --color-secondary-foreground: #1a1a1a; /* text-secondary-foreground */
+    --color-primary-foreground: #ffffff; /* text-primary-foreground */
+
+    /* Custom text hierarchy */
+    --color-text-subtle: #9ca3af; /* text-text-subtle */
+    --color-text-accent: #000000; /* text-text-accent */
+    --color-text-success: #16a34a; /* text-text-success */
+    --color-text-warning: #d97706; /* text-text-warning */
+    --color-text-destructive: #dc2626; /* text-text-destructive */
+    --color-text-info: #2563eb; /* text-text-info */
   }
 }
 
@@ -260,7 +288,6 @@ body,
   }
 
   .ql-editor.ql-blank::before {
-    content: "Message #private-channel-test" !important;
     color: var(--color-muted-foreground) !important;
     font-style: normal !important;
     left: 16px !important;

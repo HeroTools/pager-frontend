@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { FC, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import {
   MoreHorizontal,
@@ -31,7 +31,7 @@ interface ChatMessageProps {
   onReaction?: (messageId: string, emoji: string) => void;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({
+export const ChatMessage: FC<ChatMessageProps> = ({
   message,
   currentUser,
   isCompact = false,
@@ -47,51 +47,55 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   return (
     <div
       className={cn(
-        "group relative px-4 py-2 hover:bg-gray-50 transition-colors",
-        isCompact && "py-1"
+        "group relative px-4 hover:bg-message-hover transition-colors",
+        isCompact ? "py-0.5" : "py-2"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex gap-3">
-        {showAvatar && !isCompact && (
-          <Avatar className="w-9 h-9 mt-0.5">
+        {showAvatar && !isCompact ? (
+          <Avatar className="w-9 h-9 flex-shrink-0">
             <AvatarImage src={message.author.avatar} />
             <AvatarFallback className="text-sm">
               {message.author.name.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-        )}
-
-        {isCompact && showAvatar && (
-          <div className="w-9 flex justify-center">
-            <span className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer">
-              {new Date(message.timestamp).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
+        ) : (
+          <div className="w-9 flex-shrink-0 flex justify-center items-start pt-0.5">
+            {isCompact && (
+              <span className="text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors opacity-0 group-hover:opacity-100">
+                {new Date(message.timestamp).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            )}
           </div>
         )}
 
         <div className="flex-1 min-w-0">
           {!isCompact && (
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="font-semibold text-gray-900 hover:underline cursor-pointer">
+            <div className="flex items-baseline gap-2 mb-0.5">
+              <span className="font-semibold text-foreground hover:underline cursor-pointer leading-tight">
                 {message.author.name}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted-foreground leading-tight">
                 {formatDistanceToNow(new Date(message.timestamp), {
                   addSuffix: true,
                 })}
               </span>
               {message.isEdited && (
-                <span className="text-xs text-gray-500">(edited)</span>
+                <span className="text-xs text-text-subtle leading-tight">
+                  (edited)
+                </span>
               )}
             </div>
           )}
 
-          <MessageContent content={message.content} />
+          <div className={cn("leading-relaxed", !isCompact && "mt-0")}>
+            <MessageContent content={message.content} />
+          </div>
 
           {message.image && (
             <div className="mt-2 max-w-sm">
@@ -111,10 +115,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             />
           )}
 
-          {message.threadCount && message.threadCount > 0 && (
+          {message.threadCount && Number(message.threadCount) > 0 && (
             <button
               onClick={() => onReply?.(message.id)}
-              className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+              className="mt-2 flex items-center gap-1 text-xs text-text-accent hover:text-text-accent/80 hover:underline transition-colors"
             >
               <MessageSquare className="w-3 h-3" />
               {message.threadCount}{" "}
@@ -126,12 +130,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
       {/* Message Actions */}
       {isHovered && (
-        <div className="absolute top-0 right-4 bg-white border border-border-subtle rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="flex items-center">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 hover:bg-sidebar-hover"
               onClick={() => onReaction?.(message.id, "👍")}
             >
               <Smile className="w-4 h-4" />
@@ -139,14 +143,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 hover:bg-sidebar-hover"
               onClick={() => onReply?.(message.id)}
             >
               <MessageSquare className="w-4 h-4" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                >
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -159,7 +167,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onDelete?.(message.id)}
-                      className="text-red-600"
+                      className="text-text-destructive hover:text-text-destructive/80"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete message
