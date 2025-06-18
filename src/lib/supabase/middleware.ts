@@ -57,7 +57,9 @@ export async function updateSession(request: NextRequest) {
   const isPublicApiRoute = PUBLIC_API_ROUTES.some((route) =>
     pathname.startsWith(route)
   );
-  const isWorkspaceRoute = pathname.startsWith("/workspace/");
+  
+  // Check if the path is a workspace ID (root level)
+  const isWorkspaceRoute = pathname.split("/").filter(Boolean).length === 1 && pathname !== "/";
 
   // Skip auth checks for public API routes
   if (isPublicApiRoute) {
@@ -95,14 +97,14 @@ export async function updateSession(request: NextRequest) {
 
     // Redirect authenticated users away from auth pages
     // Default to workspaces selection - your frontend will handle the smart routing
-    url.pathname = "/workspaces";
+    url.pathname = '/${workspaceId}';
     url.searchParams.delete("redirectTo");
     return NextResponse.redirect(url);
   }
 
   // Handle workspace-specific routes
   if (isWorkspaceRoute) {
-    const workspaceId = pathname.split("/workspace/")[1]?.split("/")[0];
+    const workspaceId = pathname.split("/")[1] || pathname.slice(2); // Handle both /workspaceId and workspaceId formats
 
     if (!workspaceId) {
       // Invalid workspace URL
@@ -133,7 +135,7 @@ export async function updateSession(request: NextRequest) {
 
   // Handle root path for authenticated users
   if (user && pathname === "/") {
-    url.pathname = "/workspaces";
+    url.pathname = "/workspaces"; // Redirect to workspaces page instead of root
     return NextResponse.redirect(url);
   }
 

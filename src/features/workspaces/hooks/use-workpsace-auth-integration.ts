@@ -31,7 +31,7 @@ export const useWorkspaceAuthIntegration = () => {
     }
 
     if (workspaces.length === 1) {
-      router.push(`/workspace/${workspaces[0].id}`);
+      router.push(`/${workspaces[0].id}`);
       return;
     }
 
@@ -40,7 +40,7 @@ export const useWorkspaceAuthIntegration = () => {
       preferredWorkspaceId &&
       workspaces.find((w) => w.id === preferredWorkspaceId)
     ) {
-      router.push(`/workspace/${preferredWorkspaceId}`);
+      router.push(`/${preferredWorkspaceId}`);
       return;
     }
 
@@ -49,7 +49,7 @@ export const useWorkspaceAuthIntegration = () => {
     const targetWorkspace = ownedWorkspace || workspaces[0];
 
     if (targetWorkspace) {
-      router.push(`/workspace/${targetWorkspace.id}`);
+      router.push(`/${targetWorkspace.id}`);
     } else {
       router.push("/workspaces");
     }
@@ -123,7 +123,7 @@ export const useWorkspaceSwitcher = () => {
       }
 
       // Navigate to the workspace
-      router.push(`/workspace/${workspaceId}`);
+      router.push(`/${workspaceId}`);
 
       return true;
     } catch (error) {
