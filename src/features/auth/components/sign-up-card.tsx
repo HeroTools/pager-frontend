@@ -21,9 +21,10 @@ import { useSignUp } from "@/features/auth";
 
 interface SignUpCardProps {
   setState: (state: SignInFlow) => void;
+  hideSignInLink?: boolean;
 }
 
-export const SignUpCard = ({ setState }: SignUpCardProps) => {
+export const SignUpCard = ({ setState, hideSignInLink = false }: SignUpCardProps) => {
   const signUp = useSignUp();
   const [signingUp, setSigningUp] = useState(false);
   const [error, setError] = useState("");
@@ -180,15 +181,17 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
               Back to sign up
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Already have an account?{" "}
-            <span
-              className="text-primary hover:underline cursor-pointer"
-              onClick={() => setState("signIn")}
-            >
-              Sign in
-            </span>
-          </p>
+          {!hideSignInLink && (
+            <p className="text-xs text-muted-foreground">
+              Already have an account?{" "}
+              <span
+                className="text-primary hover:underline cursor-pointer"
+                onClick={() => setState("signIn")}
+              >
+                Sign in
+              </span>
+            </p>
+          )}
         </CardContent>
       </Card>
     );
@@ -291,15 +294,17 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
             Continue with Google
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Already have an account?{" "}
-          <span
-            className="text-primary hover:underline cursor-pointer"
-            onClick={() => setState("signIn")}
-          >
-            Sign in
-          </span>
-        </p>
+        {!hideSignInLink && (
+          <p className="text-xs text-muted-foreground">
+            Already have an account?{" "}
+            <span
+              className="text-primary hover:underline cursor-pointer"
+              onClick={() => setState("signIn")}
+            >
+              Sign in
+            </span>
+          </p>
+        )}
       </CardContent>
     </Card>
   );

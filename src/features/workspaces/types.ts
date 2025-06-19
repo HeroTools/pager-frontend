@@ -18,7 +18,8 @@ export type UpdateWorkspaceData = CreateWorkspaceData;
 
 // Join workspace data
 export interface JoinWorkspaceData {
-  join_code: string; // Using database field name
+  join_code: string;
+  workspace_id: string;
 }
 
 export interface WorkspaceResponseData extends WorkspaceEntity {
