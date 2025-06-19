@@ -138,13 +138,6 @@ export const useGoogleSignIn = () => {
   });
 };
 
-export const useGithubSignIn = () => {
-  return useMutation({
-    mutationFn: ({ redirectTo }: { redirectTo: string }) =>
-      authApi.githubSignIn(redirectTo),
-  });
-};
-
 export const useVerifyEmail = () => {
   const router = useRouter();
   return useMutation({
