@@ -15,6 +15,9 @@ import { SidebarItem } from "./sidebar-item";
 import { UserItem } from "./user-item";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceSection } from "./workspace-section";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export const WorkspaceSidebar = () => {
   const { workspaceId, id: entityId } = useParamIds();
@@ -24,6 +27,7 @@ export const WorkspaceSidebar = () => {
   const getMembers = useGetMembers(workspaceId);
 
   const setOpen = useCreateChannelModal((state) => state.setOpen);
+  const router = useRouter();
 
   if (getWorkspace.isLoading) {
     return (
@@ -80,6 +84,21 @@ export const WorkspaceSidebar = () => {
             variant={entityId === item.id ? "active" : "default"}
           />
         ))}
+        <div className="pt-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="w-full" variant="outline">+ Add Channel</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setOpen(true)}>
+                Create a new channel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push(`/${workspaceId}/browse-channels`)}>
+                Browse channels
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </WorkspaceSection>
       <WorkspaceSection label="Direct Messages" hint="New direct message">
         {getMembers.data?.map((item) => (
