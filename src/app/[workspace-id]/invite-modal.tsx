@@ -1,6 +1,5 @@
 import { CopyIcon, Settings2 } from "lucide-react";
 import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +12,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { useInviteMember } from "@/features/members/hooks/use-members";
 
 interface InviteModalProps {
   open: boolean;
@@ -39,6 +41,7 @@ export const InviteModal = ({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [expiry, setExpiry] = useState("30d");
   const [notify, setNotify] = useState(true);
+  const { mutateAsync, isPending } = useInviteMember();
 
   const inviteLink = `${window.location.origin}/join/${workspaceId}/${joinCode}`;
 
@@ -48,11 +51,18 @@ export const InviteModal = ({
       .then(() => toast.success("Invite link copied to clipboard"));
   };
 
-  // Placeholder for sending invite (not implemented)
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!email) return;
-    toast.success(`Invite sent to ${email}`);
-    setEmail("");
+    try {
+      await mutateAsync({
+        workspaceId: workspaceId!,
+        data: { email },
+      });
+      toast.success(`Invite sent to ${email}`);
+      setEmail("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to send invite");
+    }
   };
 
   // Placeholder for deactivating link
@@ -78,7 +88,7 @@ export const InviteModal = ({
           </DialogHeader>
           <div className="flex flex-col gap-y-4 items-center justify-center py-4 w-full">
             <div className="w-full flex flex-col gap-2">
-              <label htmlFor="invite-email" className="text-sm font-medium">Send to</label>
+              <Label htmlFor="invite-email">Send to</Label>
               <div className="flex gap-2 w-full">
                 <Input
                   id="invite-email"
@@ -88,14 +98,15 @@ export const InviteModal = ({
                   onChange={e => setEmail(e.target.value)}
                   className="flex-1"
                   autoFocus
+                  disabled={isPending}
                 />
-                <Button onClick={handleSend} disabled={!email}>
-                  Send
+                <Button onClick={handleSend} disabled={!email || isPending}>
+                  {isPending ? "Sending..." : "Send"}
                 </Button>
               </div>
             </div>
             <div className="w-full flex flex-col gap-2 mt-4">
-              <label className="text-sm font-medium">Or share this link</label>
+              <Label>Or share this link</Label>
               <div className="flex gap-2 w-full items-center">
                 <Input
                   value={inviteLink}
@@ -135,22 +146,20 @@ export const InviteModal = ({
           </DialogHeader>
           <div className="flex flex-col gap-4 mt-2">
             <div>
-              <label className="text-sm font-medium mb-1 block">Link set to expire after...</label>
-              <select
-                className="w-full rounded border bg-background px-3 py-2 text-foreground"
+              <Label className="mb-1 block">Link set to expire after...</Label>
+              <RadioGroup
+                options={EXPIRY_OPTIONS}
                 value={expiry}
-                onChange={e => setExpiry(e.target.value)}
-              >
-                {EXPIRY_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+                onChange={setExpiry}
+                name="expiry"
+              />
             </div>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={notify}
                 onChange={e => setNotify(e.target.checked)}
+                className="accent-primary size-4 rounded border border-border-subtle"
               />
               Notify me whenever someone joins using this link
             </label>
