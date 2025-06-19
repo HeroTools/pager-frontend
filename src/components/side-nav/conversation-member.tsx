@@ -60,26 +60,9 @@ const getConversationDisplay = (conversation: Conversation) => {
     const names = conversation.members.map(
       (member) => member.workspace_member.user.name
     );
-    const displayName = names.join(", ");
-
-    // If the name is too long, show first few names + count
-    if (displayName.length > 30) {
-      const firstTwoNames = names.slice(0, 2).join(", ");
-      const remainingCount = names.length - 2;
-      return {
-        name: `${firstTwoNames}${
-          remainingCount > 0 ? `, +${remainingCount} others` : ""
-        }`,
-        image: null, // We'll show a group icon or first member's image
-        initials: names
-          .map((name) => name.charAt(0))
-          .join("")
-          .slice(0, 2),
-      };
-    }
 
     return {
-      name: displayName,
+      name: names.join(", "),
       image: conversation.members[0]?.workspace_member.user.image || null,
       initials: names
         .map((name) => name.charAt(0))

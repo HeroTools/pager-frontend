@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { MessageWithUser, ChannelWithMessages } from "../types";
@@ -21,23 +21,28 @@ export const useRealtimeChannel = ({
   currentUserId,
   enabled = true,
 }: UseRealtimeChannelProps) => {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
   const [connectionStatus, setConnectionStatus] =
     useState<string>("connecting");
   const channelRef = useRef<any>(null);
 
-  // Consistent query key - use same key as your infinite query
-  const getQueryKey = () => [
-    "channel",
-    workspaceId,
-    channelId,
-    "messages",
-    "infinite",
-  ];
+  // Memoize the query key function to prevent recreating it
+  const getQueryKey = useMemo(
+    () => () => ["channel", workspaceId, channelId, "messages", "infinite"],
+    [workspaceId, channelId]
+  );
 
   useEffect(() => {
-    if (!enabled || !channelId || !workspaceId) return;
+    console.log("useRealtimeChannel useEffect");
+    if (!enabled || !channelId || !workspaceId || !currentUserId) return;
+
+    // Clean up previous channel if it exists
+    if (channelRef.current) {
+      channelRef.current.unsubscribe();
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
     // Create real-time channel subscription
     const channel = supabase.channel(`channel:${channelId}`, {
@@ -64,8 +69,7 @@ export const useRealtimeChannel = ({
 
         if (messageExists) return old;
 
-        // FIXED: Add new message to the FIRST page at the BEGINNING
-        // Since we're using reverse chronological order in pages
+        // Add new message to the FIRST page at the BEGINNING
         const newPages = [...old.pages];
         if (newPages[0]) {
           newPages[0] = {
@@ -89,7 +93,7 @@ export const useRealtimeChannel = ({
       );
       setConnectionStatus(status);
 
-      if (status === "SUBSCRIPTION_ERROR") {
+      if (status === "CHANNEL_ERROR") {
         console.error(
           "Subscription error - check your Supabase connection and RLS policies"
         );
@@ -100,7 +104,16 @@ export const useRealtimeChannel = ({
     });
 
     channelRef.current = channel;
-  }, [channelId, workspaceId, currentUserId, enabled, queryClient]);
+
+    // return () => {
+    //   console.log("Cleaning up channel subscription for:", channelId);
+    //   if (channelRef.current) {
+    //     channelRef.current.unsubscribe();
+    //     supabase.removeChannel(channelRef.current);
+    //     channelRef.current = null;
+    //   }
+    // };
+  }, [channelId, workspaceId, currentUserId, enabled]);
 
   return {
     isConnected: connectionStatus === "SUBSCRIBED",
