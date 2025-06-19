@@ -91,7 +91,7 @@ export const workspacesApi = {
   /**
    * Join workspace using join code
    */
-  joinWorkspace: async (data: JoinWorkspaceData): Promise<WorkspaceEntity> => {
+  joinWorkspace: async (data: JoinWorkspaceData): Promise<WorkspaceResponseData> => {
     const response = await httpClient.post<WorkspaceResponse>(
       "/workspaces/join",
       data

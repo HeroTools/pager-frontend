@@ -93,7 +93,9 @@ export const useJoinWorkspace = () => {
 
   return useMutation({
     mutationFn: (data: JoinWorkspaceData) => workspacesApi.joinWorkspace(data),
-    onSuccess: (joinedWorkspace) => {
+    onSuccess: (joinedWorkspaceData) => {
+      // joinedWorkspaceData is WorkspaceResponseData
+      const joinedWorkspace: WorkspaceEntity = joinedWorkspaceData;
       // Add the joined workspace to the cache
       queryClient.setQueryData<WorkspaceEntity[]>(["workspaces"], (old) =>
         old ? [...old, joinedWorkspace] : [joinedWorkspace]

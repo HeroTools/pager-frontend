@@ -1,86 +1,72 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import VerificationInput from "react-verification-input";
 import { Loader } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
-import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
 import { useJoinWorkspace } from "@/features/workspaces/hooks/use-workspaces";
-import { cn } from "@/lib/utils";
+import { SignUpCard } from "@/features/auth/components/sign-up-card";
 
 const JoinPage = () => {
   const router = useRouter();
-  const workspaceId = useWorkspaceId();
+  const params = useParams();
+  const workspaceId = params["workspace-id"] as string;
+  const joinCode = params["join-code"] as string;
 
-  const { isLoading, data: workspaceInfo } = useGetWorkspace(workspaceId);
   const join = useJoinWorkspace();
+  const [step, setStep] = useState<"signup" | "joining" | "joined">("signup");
 
-  useEffect(() => {
-    if (
-      workspaceInfo?.members?.some((member) => member.id === workspaceInfo.id)
-    ) {
-      router.push(`/${workspaceId}`);
+  // Handler for after authentication (sign up or sign in)
+  const handleAuthSuccess = async () => {
+    if (!workspaceId || !joinCode) {
+      toast.error("Workspace ID or join code is missing from the URL");
+      return;
     }
-  }, [workspaceInfo?.members, router, workspaceId]);
-
-  const handleComplete = (value: string) => {
+    setStep("joining");
     join
-      .mutateAsync(value)
+      .mutateAsync({ join_code: joinCode, workspace_id: workspaceId })
       .then(() => {
+        setStep("joined");
         router.replace(`/${workspaceId}`);
         toast.success("Workspace joined");
       })
       .catch((error) => {
-        console.error(error);
+        if (typeof error === 'object' && error && 'message' in error) {
+          console.error((error as { message: string }).message);
+        } else {
+          console.error(error);
+        }
         toast.error("Failed to join workspace");
+        setStep("signup");
       });
   };
 
-  if (isLoading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   return (
-    <div className="h-full flex flex-col gap-y-8 items-center justify-center p-8 rounded-lg shadow-sm">
+    <div className="h-full flex flex-col gap-y-8 items-center justify-center p-8 rounded-lg shadow-sm bg-background">
       <Image src="/logo.svg" width={60} height={60} alt="Logo" />
       <div className="flex flex-col gap-y-4 items-center justify-center max-w-md">
         <div className="flex flex-col gap-y-2 items-center justify-center">
-          <h1 className="text-2xl font-bold">Join {workspaceInfo?.name}</h1>
+          <h1 className="text-2xl font-bold">Join Workspace</h1>
           <p className="text-md text-muted-foreground">
-            Enter the workspace code to join
+            {step === "signup"
+              ? "Create an account to join this workspace."
+              : step === "joining"
+              ? "Joining workspace..."
+              : "Redirecting..."}
           </p>
         </div>
-        <VerificationInput
-          length={6}
-          classNames={{
-            container: cn(
-              "flex gap-x-2",
-              join.isPending && "opacity-50 cursor-not-allowed"
-            ),
-            character:
-              "uppercase h-auto rounded-md border border-ray-300 flex items-center justify-center text-lg font-medium text-muted-foreground",
-            characterInactive: "bg-muted",
-            characterSelected: "bg-background text-foreground",
-            characterFilled: "bg-background text-foreground",
-          }}
-          autoFocus
-          onComplete={handleComplete}
-        />
-      </div>
-      <div className="flex gap-x-4">
-        <Button size="lg" variant="outline" asChild>
-          <Link href="/">Home</Link>
-        </Button>
+        {step === "signup" && (
+          <div className="w-full flex flex-col items-center gap-y-4">
+            <SignUpCard setState={handleAuthSuccess} hideSignInLink />
+          </div>
+        )}
+        {step === "joining" && (
+          <div className="w-full flex flex-col items-center gap-y-4">
+            <Loader className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
       </div>
     </div>
   );
