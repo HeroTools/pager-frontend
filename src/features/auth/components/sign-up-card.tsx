@@ -86,19 +86,20 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
     }
   );
 
-  const handleProviderSignUp = (provider: "github" | "google") => async () => {
+  const handleProviderSignUp = (provider: "google") => async () => {
+    if (provider !== "google") {
+      setError("Unsupported sign-in method. Please use Google to sign up.");
+      return;
+    }
     setSigningUp(true);
     setError("");
 
     try {
-      const response = await (provider === "google"
-        ? authApi.googleSignIn(`${window.location.origin}/auth/callback`)
-        : authApi.githubSignIn(`${window.location.origin}/auth/callback`));
-
-      const result = response.data;
-
-      // Redirect to OAuth provider
-      window.location.href = result.url;
+      const response = await authApi.googleSignIn(`${window.location.origin}/auth/callback`);
+      // Redirect to OAuth provider if url exists
+      if (response.url) {
+        window.location.href = response.url;
+      }
     } catch (err: any) {
       console.error(`${provider} sign up error:`, err);
       setError(
@@ -286,7 +287,7 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
             size="lg"
             className="w-full relative"
           >
-            <FcGoogle className="size-5 absolute top-3 left-2.5" />
+            <span className="size-5 absolute top-3 left-2.5">G</span>
             Continue with Google
           </Button>
         </div>
@@ -303,3 +304,13 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
     </Card>
   );
 };
+
+function isApiError(err: unknown): err is { response: { data?: { error?: string } } } {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'response' in err &&
+    typeof (err as any).response === 'object' &&
+    (err as any).response !== null
+  );
+}

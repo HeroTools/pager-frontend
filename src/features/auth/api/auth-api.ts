@@ -103,21 +103,6 @@ export const authApi = {
   },
 
   /**
-   * Sign in with GitHub
-   */
-  githubSignIn: async (redirectTo: string) => {
-    const response = await httpClient.postPublic("/auth/oauth/github", {
-      redirect_to: redirectTo,
-    });
-
-    if (response.url) {
-      window.location.href = response.url;
-    }
-
-    return response;
-  },
-
-  /**
    * Verify email with token
    */
   verifyEmail: async (token: string) => {
