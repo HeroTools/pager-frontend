@@ -8,7 +8,7 @@ import {
 
 import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations";
 import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
-import { useGetMembers } from "@/features/members/hooks/use-members";
+import { useGetMembersWithUsers } from "@/features/members/hooks/use-members";
 import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { SidebarItem } from "./sidebar-item";
@@ -18,16 +18,20 @@ import { WorkspaceSection } from "./workspace-section";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { InviteModal } from "./invite-modal";
+import { useState } from "react";
 
 export const WorkspaceSidebar = () => {
   const { workspaceId, id: entityId } = useParamIds();
 
   const getWorkspace = useGetWorkspace(workspaceId);
   const getChannels = useGetChannels(workspaceId);
-  const getMembers = useGetMembers(workspaceId);
+  const getMembers = useGetMembersWithUsers(workspaceId);
 
   const setOpen = useCreateChannelModal((state) => state.setOpen);
   const router = useRouter();
+
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   if (getWorkspace.isLoading) {
     return (
@@ -110,6 +114,23 @@ export const WorkspaceSidebar = () => {
             variant={entityId === item.id ? "active" : "default"}
           />
         ))}
+        {getWorkspace.data.user_role === "admin" && (
+          <>
+            <Button
+              className="mt-2 w-full"
+              variant="outline"
+              onClick={() => setInviteOpen(true)}
+            >
+              + Invite People
+            </Button>
+            <InviteModal
+              open={inviteOpen}
+              setOpen={setInviteOpen}
+              name={getWorkspace.data.name}
+              joinCode={getWorkspace.data.join_code}
+            />
+          </>
+        )}
       </WorkspaceSection>
     </div>
   );
