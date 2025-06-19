@@ -87,7 +87,7 @@ export const useGetChannelWithMessagesInfinite = (
         limit,
         cursor: pageParam,
       }),
-    enabled: !!(workspaceId && channelId),
+    enabled: !!workspaceId && !!channelId,
     getNextPageParam: (lastPage) => {
       const pagination = lastPage?.pagination;
 

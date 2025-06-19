@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InviteModal } from "./invite-modal";
 import { PreferenceModal } from "./preference-modal";
+import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
 
 interface WorkspaceHeaderProps {
   workspace: Doc<"workspaces">;
@@ -24,6 +25,8 @@ export const WorkspaceHeader = ({
 }: WorkspaceHeaderProps) => {
   const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+
+  const { startConversationCreation } = useConversationCreateStore();
 
   return (
     <>
@@ -90,13 +93,14 @@ export const WorkspaceHeader = ({
             </Button>
             {/* </Hint> */}
           </InDevelopmentHint>
-          <InDevelopmentHint side="bottom">
-            {/* <Hint label="New message" side="bottom"> */}
-            <Button variant="transparent" size="iconSm" disabled>
-              <SquarePen className="size-4" />
-            </Button>
-            {/* </Hint> */}
-          </InDevelopmentHint>
+
+          <Button
+            variant="transparent"
+            size="iconSm"
+            onClick={startConversationCreation}
+          >
+            <SquarePen className="size-4" />
+          </Button>
         </div>
       </div>
     </>

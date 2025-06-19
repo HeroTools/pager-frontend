@@ -4,7 +4,6 @@ import {
   ConversationWithMembers,
   Message,
   MessageWithRelations,
-  CreateEntityInput,
   UpdateEntityInput,
   ApiResponse,
   SendMessageRequest,
@@ -23,9 +22,12 @@ export type ConversationMessageWithRelations = MessageWithRelations & {
 };
 
 // Create conversation data - participants will be added via conversation_members table
-export interface CreateConversationData
-  extends CreateEntityInput<Conversation> {
-  participant_user_ids: string[]; // User IDs to add as participants
+export interface CreateConversationData {
+  participantMemberIds: string[]; // User IDs to add as participants
+}
+
+export interface CreateConversationResponse extends ConversationEntity {
+  member_count: number;
 }
 
 // Message creation for conversations - based on SendMessageRequest but conversation-specific

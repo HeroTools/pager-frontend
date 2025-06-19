@@ -47,7 +47,7 @@ export interface MemberFilters {
 
 // API Response types using the generic ApiResponse
 export type MemberResponse = ApiResponse<MemberEntity>;
-export type MembersResponse = ApiResponse<MemberEntity[]>;
+export type MembersResponse = ApiResponse<MemberWithUser[]>;
 export type MemberWithUserResponse = ApiResponse<MemberWithUser>;
 export type MembersWithUsersResponse = ApiResponse<MemberWithUser[]>;
 
