@@ -8,20 +8,24 @@ import {
 
 import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations";
 import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
-import { useGetMembers } from "@/features/members/hooks/use-members";
+import { useConversations } from "@/features/conversations";
 import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { SidebarItem } from "./sidebar-item";
-import { UserItem } from "./user-item";
+import { ConversationItem } from "./conversation-member";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceSection } from "./workspace-section";
+import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
 
 export const WorkspaceSidebar = () => {
   const { workspaceId, id: entityId } = useParamIds();
 
   const getWorkspace = useGetWorkspace(workspaceId);
+  // TODO optimise this so that we get channels and conversations in one query (might have to change backend to return both)
   const getChannels = useGetChannels(workspaceId);
-  const getMembers = useGetMembers(workspaceId);
+  const { conversations } = useConversations(workspaceId);
+
+  const { startConversationCreation } = useConversationCreateStore();
 
   const setOpen = useCreateChannelModal((state) => state.setOpen);
 
@@ -81,14 +85,16 @@ export const WorkspaceSidebar = () => {
           />
         ))}
       </WorkspaceSection>
-      <WorkspaceSection label="Direct Messages" hint="New direct message">
-        {getMembers.data?.map((item) => (
-          <UserItem
-            id={item.id}
-            image={item.user.image}
-            key={item.id}
-            label={item.user.name}
-            variant={entityId === item.id ? "active" : "default"}
+      <WorkspaceSection
+        label="Direct Messages"
+        hint="New direct message"
+        onNew={startConversationCreation}
+      >
+        {conversations?.map((conversation) => (
+          <ConversationItem
+            key={conversation.id}
+            conversation={conversation}
+            variant={entityId === conversation.id ? "active" : "default"}
           />
         ))}
       </WorkspaceSection>
