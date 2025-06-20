@@ -68,6 +68,9 @@ export const useGetChannelWithMembers = (
     queryKey: ["channel", workspaceId, channelId, "members"],
     queryFn: () => channelsApi.getChannelWithMembers(workspaceId, channelId),
     enabled: !!(workspaceId && channelId),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 };
 

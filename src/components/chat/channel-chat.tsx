@@ -7,6 +7,7 @@ import {
   useGetChannel,
   useGetChannelWithMessagesInfinite,
   useRealtimeChannel,
+  useGetChannelWithMembers,
 } from "@/features/channels";
 import { useMessageOperations, useTypingIndicator } from "@/features/messages";
 import { useCurrentUser } from "@/features/auth";
@@ -34,6 +35,13 @@ const ChannelChat = () => {
     isLoading: isLoadingChannel,
     error: channelError,
   } = useGetChannel(workspaceId, channelId);
+
+  // Fetch channel members for header
+  const {
+    data: channelMembersData,
+    isLoading: isLoadingMembers,
+    error: membersError,
+  } = useGetChannelWithMembers(workspaceId, channelId);
 
   // Real-time subscription for incoming messages and typing indicators
   const { isConnected, connectionStatus } = useRealtimeChannel({
@@ -108,9 +116,16 @@ const ChannelChat = () => {
   //   avatar: tu.user.image,
   // }));
 
+  // Transform members for header
+  const members = (channelMembersData?.members || []).map((member: any) => ({
+    id: member.workspace_member.user.id,
+    name: member.workspace_member.user.name,
+    avatar: member.workspace_member.user.image,
+  }));
+
   // Combined loading state
-  const isLoading = isLoadingMessages || isLoadingChannel || !currentUser;
-  const error = messagesError || channelError;
+  const isLoading = isLoadingMessages || isLoadingChannel || isLoadingMembers || !currentUser;
+  const error = messagesError || channelError || membersError;
 
   if (isLoading) {
     return (
@@ -273,6 +288,7 @@ const ChannelChat = () => {
         messages={messages}
         currentUser={user}
         chatType="channel"
+        members={members}
         // typingUsers={transformedTypingUsers} // Pass typing users to Chat component
         isLoading={
           false
