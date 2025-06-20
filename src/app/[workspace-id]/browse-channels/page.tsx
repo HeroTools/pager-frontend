@@ -69,7 +69,7 @@ export default function BrowseChannels() {
                     <span className="font-medium truncate">
                       #{channel.name}
                     </span>
-                    {channel.joined && (
+                    {channel.is_member && (
                       <span className="text-xs text-green-600 font-semibold ml-2">
                         Joined
                       </span>
