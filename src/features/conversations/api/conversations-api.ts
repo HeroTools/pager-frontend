@@ -17,6 +17,7 @@ import type {
   ConversationMessageFilters,
   GetConversationMessagesParams,
   ConversationWithMessagesResponse,
+  CreateConversationResponse,
 } from "../types";
 
 export const conversationsApi = {
@@ -39,7 +40,8 @@ export const conversationsApi = {
     const response = await httpClient.get<ConversationsResponse>(
       `/workspaces/${workspaceId}/conversations${queryString}`
     );
-    return response.data;
+
+    return response;
   },
 
   /**
@@ -90,12 +92,15 @@ export const conversationsApi = {
   createConversation: async (
     workspaceId: string,
     data: CreateConversationData
-  ): Promise<ConversationEntity> => {
-    const response = await httpClient.post<ConversationResponse>(
+  ): Promise<CreateConversationResponse> => {
+    const response = await httpClient.post<CreateConversationResponse>(
       `/workspaces/${workspaceId}/conversations`,
       data
     );
-    return response.data;
+    return {
+      ...response,
+      workspace_id: workspaceId,
+    };
   },
 
   /**

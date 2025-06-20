@@ -24,6 +24,7 @@ export interface JoinWorkspaceData {
 export interface WorkspaceResponseData extends WorkspaceEntity {
   is_member: boolean;
   members: MemberWithUser[];
+  user_role: string;
 }
 
 // API Response types using the generic ApiResponse

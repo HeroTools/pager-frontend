@@ -16,7 +16,7 @@ import { useParamIds } from "@/hooks/use-param-ids";
 const ChannelChat = () => {
   const { id: channelId, workspaceId } = useParamIds();
 
-  const { user: currentUser } = useCurrentUser();
+  const { user: currentUser, isAuthenticated } = useCurrentUser();
 
   // Fetch messages and members using infinite query
   const {
@@ -40,15 +40,15 @@ const ChannelChat = () => {
     workspaceId,
     channelId,
     currentUserId: currentUser?.id,
-    enabled: !!currentUser && !!channelId,
+    enabled: isAuthenticated && !!channelId && !!workspaceId,
   });
 
   // Typing indicator for current user
-  const {
-    handleInputChange,
-    handleSubmit: handleTypingSubmit,
-    isTyping,
-  } = useTypingIndicator(workspaceId, channelId, undefined);
+  // const {
+  //   handleInputChange,
+  //   handleSubmit: handleTypingSubmit,
+  //   isTyping,
+  // } = useTypingIndicator(workspaceId, channelId, undefined);
 
   const {
     createMessage,
@@ -154,7 +154,7 @@ const ChannelChat = () => {
   }) => {
     try {
       // Stop typing indicator immediately when sending
-      handleTypingSubmit();
+      // handleTypingSubmit();
 
       // Handle file upload first if there's an image
       let attachment_id: string | undefined;
@@ -272,6 +272,7 @@ const ChannelChat = () => {
         channel={channel}
         messages={messages}
         currentUser={user}
+        chatType="channel"
         // typingUsers={transformedTypingUsers} // Pass typing users to Chat component
         isLoading={
           false
@@ -286,8 +287,8 @@ const ChannelChat = () => {
         onReactToMessage={handleReactToMessage}
         onToggleChannelDetails={handleToggleChannelDetails}
         // Pass typing handlers to your message input component
-        onInputChange={handleInputChange}
-        onTypingSubmit={handleTypingSubmit}
+        // onInputChange={handleInputChange}
+        // onTypingSubmit={handleTypingSubmit}
         // Handle infinite scroll
         onLoadMore={handleLoadMore}
         hasMoreMessages={hasNextPage}
