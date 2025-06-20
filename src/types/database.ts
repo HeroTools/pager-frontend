@@ -39,7 +39,6 @@ export interface User extends BaseEntity {
 export interface Workspace extends BaseEntity {
   name: string;
   user_id: string;
-  join_code: string;
 }
 
 export interface WorkspaceMember extends BaseEntity {

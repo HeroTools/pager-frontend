@@ -65,7 +65,6 @@ export interface AuthResponseWithWorkspaces extends AuthResponse {
     is_active: boolean;
     role: "owner" | "admin" | "member" | "guest";
     last_accessed_at?: string;
-    join_code?: string;
   }>;
   defaultWorkspaceId?: string;
 }
@@ -143,4 +142,13 @@ export interface ExtendedAuthState extends AuthState {
 export interface EnhancedAuthResponse extends AuthResponse {
   workspaces: WorkspaceEntity[];
   defaultWorkspaceId?: string;
+}
+
+// Invite link API response type
+export interface InviteLinkResponse {
+  token: string;
+  expires_at: string;
+  usage_count: number;
+  max_uses: number;
+  url: string;
 }
