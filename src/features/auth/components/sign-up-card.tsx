@@ -22,10 +22,10 @@ import { useSignUp } from "@/features/auth";
 interface SignUpCardProps {
   setState: (state: SignInFlow) => void;
   hideSignInLink?: boolean;
-}
+  inviteToken?: string;
+  }
 
-export const SignUpCard = ({ setState, hideSignInLink = false }: SignUpCardProps) => {
-  const signUp = useSignUp();
+export const SignUpCard = ({ onSuccess, hideSignInLink = false, inviteToken }: SignUpCardProps) => {
   const [signingUp, setSigningUp] = useState(false);
   const [error, setError] = useState("");
   const [emailSent, setEmailSent] = useState(false);
@@ -53,34 +53,51 @@ export const SignUpCard = ({ setState, hideSignInLink = false }: SignUpCardProps
       setError("");
 
       try {
-        const response = await signUp.mutateAsync({ email, password, name });
+        const response = await signUp.mutateAsync({
+          email,
+          password,
+          name,
+          inviteToken,
+        });
 
-        console.log("Sign up response:", response);
+        if (response.requires_email_confirmation) {
+          setUserEmail(email);
+          setEmailSent(true);
+          return;
+        }
 
-        if (response.success) {
-          // Check if email confirmation is required
-          if (response.data.session) {
-            // User is immediately signed in (email confirmed)
-            await supabase.auth.setSession({
-              access_token: response.data.session.accessToken,
-              refresh_token: response.data.session.refreshToken,
-            });
+        if (response.session) {
+          await supabase.auth.setSession(response.session);
+        }
 
-            router.push("/");
-            router.refresh();
-          } else {
-            // Email confirmation required
-            setUserEmail(email);
-            setEmailSent(true);
-          }
+        if (onSuccess) {
+          onSuccess(response.workspace?.id);
+        } else if (response.workspace?.id) {
+          router.push(`/${response.workspace.id}`);
+          router.refresh();
         } else {
-          setError(response.error || "Failed to sign up");
+          router.push("/");
+          router.refresh();
         }
       } catch (err: any) {
-        console.error("Sign up error:", err);
-        setError(
-          err.response?.data?.error || "Something went wrong. Please try again."
-        );
+        const error: any = err;
+        if (error instanceof Error) {
+          setError(error.message);
+        } else if (error && typeof error === 'object' && 'response' in error) {
+          const response: any = error.response;
+          if (response && response.data) {
+            const data: any = response.data;
+            if (data.error) {
+              setError(data.error);
+            } else {
+              setError("Something went wrong. Please try again.");
+            }
+          } else {
+            setError("Something went wrong. Please try again.");
+          }
+        } else {
+          setError("Something went wrong. Please try again.");
+        }
       } finally {
         setSigningUp(false);
       }
@@ -169,24 +186,12 @@ export const SignUpCard = ({ setState, hideSignInLink = false }: SignUpCardProps
             >
               {signingUp ? "Sending..." : "Resend email"}
             </Button>
-            <Button
-              onClick={() => {
-                setEmailSent(false);
-                setUserEmail("");
-                setError("");
-              }}
-              variant="ghost"
-              className="w-full"
-            >
-              Back to sign up
-            </Button>
           </div>
           {!hideSignInLink && (
             <p className="text-xs text-muted-foreground">
               Already have an account?{" "}
               <span
                 className="text-primary hover:underline cursor-pointer"
-                onClick={() => setState("signIn")}
               >
                 Sign in
               </span>
@@ -299,7 +304,6 @@ export const SignUpCard = ({ setState, hideSignInLink = false }: SignUpCardProps
             Already have an account?{" "}
             <span
               className="text-primary hover:underline cursor-pointer"
-              onClick={() => setState("signIn")}
             >
               Sign in
             </span>
