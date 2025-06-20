@@ -322,7 +322,7 @@ export default function CreateWorkspacePage() {
       toast.success("Workspace created");
       // Optionally, update user profile with displayName/avatar here
       // Optionally, send invites here
-      router.push(`/${workspace.id}`);
+      router.push(`/${workspace.workspace_id}`);
     } catch (err) {
       toast.error("Failed to create workspace");
     }
