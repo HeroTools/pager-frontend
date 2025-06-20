@@ -131,7 +131,6 @@ export const messagesApi = {
       data
     );
 
-    console.log("Response", response);
     return response;
   },
 
@@ -147,7 +146,7 @@ export const messagesApi = {
       `/workspaces/${workspaceId}/conversations/${conversationId}/messages`,
       data
     );
-    return response.data;
+    return response;
   },
 
   /**
