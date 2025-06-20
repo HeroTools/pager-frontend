@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader } from "lucide-react";
-import { toast } from "sonner";
 import Image from "next/image";
 import { SignUpCard } from "@/features/auth/components/sign-up-card";
 import { useWorkspaceFromInviteToken } from "@/features/workspaces/hooks/use-workspaces";
@@ -13,6 +12,7 @@ const RegisterPage = () => {
   const searchParams = useSearchParams();
   const invitation = searchParams.get("invitation");
   const [step, setStep] = useState<"signup" | "joining" | "joined">("signup");
+  const [joinedWorkspaceId, setJoinedWorkspaceId] = useState<string | null>(null);
 
   // Fetch workspace info from invite token
   const {
@@ -21,34 +21,15 @@ const RegisterPage = () => {
     error: inviteError,
   } = useWorkspaceFromInviteToken(invitation || undefined);
 
-  // Handler for after authentication (sign up or sign in)
-  const handleAuthSuccess = async () => {
-    // if (!invitation) {
-    //   toast.error("Invitation token is missing from the URL");
-    //   return;
-    // }
-    // setStep("joining");
-    // join
-    //   .mutateAsync({ invitation_token: invitation })
-    //   .then((result: any) => {
-    //     setStep("joined");
-    //     // If the backend returns workspace_id, redirect to it
-    //     if (result?.id) {
-    //       router.replace(`/${result.id}`);
-    //     } else {
-    //       router.replace("/");
-    //     }
-    //     toast.success("Workspace joined");
-    //   })
-    //   .catch((error) => {
-    //     if (typeof error === "object" && error && "message" in error) {
-    //       console.error((error as { message: string }).message);
-    //     } else {
-    //       console.error(error);
-    //     }
-    //     toast.error("Failed to join workspace");
-    //     setStep("signup");
-    //   });
+  // Callback for after successful registration
+  const handleRegisterSuccess = (workspaceId?: string) => {
+    setStep("joined");
+    setJoinedWorkspaceId(workspaceId || null);
+    if (workspaceId) {
+      setTimeout(() => router.replace(`/${workspaceId}`), 1500);
+    } else {
+      setTimeout(() => router.replace("/"), 1500);
+    }
   };
 
   return (
@@ -83,12 +64,14 @@ const RegisterPage = () => {
               ? "Create an account to join this workspace."
               : step === "joining"
               ? "Joining workspace..."
+              : step === "joined"
+              ? "Success! Redirecting to workspace..."
               : "Redirecting..."}
           </p>
         </div>
         {step === "signup" && !inviteLoading && !inviteError && inviteInfo?.workspace && (
           <div className="w-full flex flex-col items-center gap-y-4">
-            <SignUpCard setState={handleAuthSuccess} hideSignInLink />
+            <SignUpCard hideSignInLink inviteToken={invitation || undefined} onSuccess={handleRegisterSuccess} />
           </div>
         )}
         {step === "joining" && (
