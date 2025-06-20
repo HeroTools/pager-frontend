@@ -5,7 +5,7 @@ import type {
   WorkspaceWithMembersList,
   CreateWorkspaceData,
   UpdateWorkspaceData,
-  JoinWorkspaceData,
+  WorkspaceInviteInfoResponse,
 } from "../types";
 
 // Get all workspaces
@@ -60,34 +60,6 @@ export const useCreateWorkspace = () => {
       queryClient.setQueryData<WorkspaceEntity>(
         ["workspace", newWorkspace.id],
         newWorkspace
-      );
-
-      // Invalidate to ensure fresh data
-      queryClient.invalidateQueries({
-        queryKey: ["workspaces"],
-      });
-    },
-  });
-};
-
-// Join a workspace
-export const useJoinWorkspace = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: JoinWorkspaceData) => workspacesApi.joinWorkspace(data),
-    onSuccess: (joinedWorkspaceData) => {
-      // joinedWorkspaceData is WorkspaceResponseData
-      const joinedWorkspace: WorkspaceEntity = joinedWorkspaceData;
-      // Add the joined workspace to the cache
-      queryClient.setQueryData<WorkspaceEntity[]>(["workspaces"], (old) =>
-        old ? [...old, joinedWorkspace] : [joinedWorkspace]
-      );
-
-      // Cache the individual workspace
-      queryClient.setQueryData<WorkspaceEntity>(
-        ["workspace", joinedWorkspace.id],
-        joinedWorkspace
       );
 
       // Invalidate to ensure fresh data
@@ -198,3 +170,18 @@ export const useLeaveWorkspace = () => {
     },
   });
 };
+
+/**
+ * Fetch workspace info from invite token
+ */
+export function useWorkspaceFromInviteToken(token?: string) {
+  return useQuery<WorkspaceInviteInfoResponse, Error>({
+    queryKey: ["workspace-invite-info", token],
+    queryFn: () => {
+      if (!token) throw new Error("No invite token provided");
+      return workspacesApi.getWorkspaceFromInviteToken(token);
+    },
+    enabled: !!token,
+    retry: false,
+  });
+}
