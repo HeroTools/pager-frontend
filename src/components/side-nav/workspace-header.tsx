@@ -12,9 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InviteModal } from "./invite-modal";
 import { PreferenceModal } from "./preference-modal";
+import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
+import { Workspace } from "@/types/database";
 
 interface WorkspaceHeaderProps {
-  workspace: Doc<"workspaces">;
+  workspace: Workspace;
   isAdmin: boolean;
 }
 
@@ -25,13 +27,15 @@ export const WorkspaceHeader = ({
   const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
+  const { startConversationCreation } = useConversationCreateStore();
+
   return (
     <>
       <InviteModal
         open={inviteOpen}
         setOpen={setInviteOpen}
         name={workspace.name}
-        joinCode={workspace.joinCode}
+        joinCode={workspace.join_code}
       />
       <PreferenceModal
         open={preferenceOpen}
@@ -90,13 +94,14 @@ export const WorkspaceHeader = ({
             </Button>
             {/* </Hint> */}
           </InDevelopmentHint>
-          <InDevelopmentHint side="bottom">
-            {/* <Hint label="New message" side="bottom"> */}
-            <Button variant="transparent" size="iconSm" disabled>
-              <SquarePen className="size-4" />
-            </Button>
-            {/* </Hint> */}
-          </InDevelopmentHint>
+
+          <Button
+            variant="transparent"
+            size="iconSm"
+            onClick={startConversationCreation}
+          >
+            <SquarePen className="size-4" />
+          </Button>
         </div>
       </div>
     </>

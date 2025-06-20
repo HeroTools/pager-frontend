@@ -1,17 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { conversationsApi } from "../api/conversations-api";
-import {
-  CreateConversationMessageData,
-  UpdateConversationMessageData,
-} from "../types";
 
 export const useConversationWithMessages = (
   workspaceId: string,
   conversationId: string,
   params?: { limit?: number; cursor?: string; before?: string }
 ) => {
-  const queryClient = useQueryClient();
-
   const query = useQuery({
     queryKey: ["conversation", workspaceId, conversationId, "messages", params],
     queryFn: () =>
@@ -24,40 +18,6 @@ export const useConversationWithMessages = (
     staleTime: 30000,
   });
 
-  const createMessage = useMutation({
-    mutationFn: (data: CreateConversationMessageData) =>
-      conversationsApi.createMessage(workspaceId, conversationId, data),
-    onSuccess: () => {
-      query.refetch();
-      queryClient.invalidateQueries({
-        queryKey: ["conversations", workspaceId],
-      });
-    },
-  });
-
-  const updateMessage = useMutation({
-    mutationFn: ({
-      messageId,
-      data,
-    }: {
-      messageId: string;
-      data: UpdateConversationMessageData;
-    }) =>
-      conversationsApi.updateMessage(
-        workspaceId,
-        conversationId,
-        messageId,
-        data
-      ),
-    onSuccess: () => query.refetch(),
-  });
-
-  const deleteMessage = useMutation({
-    mutationFn: (messageId: string) =>
-      conversationsApi.deleteMessage(workspaceId, conversationId, messageId),
-    onSuccess: () => query.refetch(),
-  });
-
   return {
     data: query.data,
     messages: query.data?.data.messages || [],
@@ -67,8 +27,65 @@ export const useConversationWithMessages = (
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,
-    createMessage,
-    updateMessage,
-    deleteMessage,
+  };
+};
+
+export const useGetConversationWithMessagesInfinite = (
+  workspaceId: string,
+  conversationId: string,
+  limit: number = 50
+) => {
+  const infiniteQuery = useInfiniteQuery({
+    queryKey: [
+      "conversation",
+      workspaceId,
+      conversationId,
+      "messages",
+      "infinite",
+    ],
+    queryFn: ({ pageParam }) =>
+      conversationsApi.getConversationWithMessages(
+        workspaceId,
+        conversationId,
+        {
+          limit,
+          cursor: pageParam,
+        }
+      ),
+    enabled: !!workspaceId && !!conversationId,
+    getNextPageParam: (lastPage) => {
+      console.log("getNextPageParam - lastPage structure:", lastPage);
+
+      const pagination = lastPage?.pagination;
+
+      if (!pagination) {
+        console.log("No pagination found in response");
+        return undefined;
+      }
+
+      console.log("Pagination:", {
+        hasMore: pagination.hasMore,
+        nextCursor: pagination.nextCursor,
+      });
+
+      return pagination.hasMore ? pagination.nextCursor : undefined;
+    },
+    staleTime: 30000,
+    gcTime: 300000,
+    initialPageParam: undefined as string | undefined,
+    select: (data) => ({
+      pages: data.pages,
+      pageParams: data.pageParams,
+    }),
+  });
+
+  return {
+    data: infiniteQuery.data,
+    isLoading: infiniteQuery.isLoading,
+    error: infiniteQuery.error,
+    refetch: infiniteQuery.refetch,
+    fetchNextPage: infiniteQuery.fetchNextPage,
+    hasNextPage: infiniteQuery.hasNextPage,
+    isFetchingNextPage: infiniteQuery.isFetchingNextPage,
   };
 };

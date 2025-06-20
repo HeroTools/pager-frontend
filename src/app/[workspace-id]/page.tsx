@@ -4,7 +4,7 @@ import { Loader, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 
-import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations";
+import { useGetUserChannels } from "@/features/channels/hooks/use-channels-mutations";
 import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
 import { useCurrentMember } from "@/features/members/hooks/use-members";
 import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
@@ -30,7 +30,7 @@ const WorkspaceIdPage = () => {
     data: channels,
     isLoading: isChannelsLoading,
     error: channelsError,
-  } = useGetChannels(workspaceId);
+  } = useGetUserChannels(workspaceId);
 
   const channelId = useMemo(() => channels?.[0]?.id, [channels]);
 
