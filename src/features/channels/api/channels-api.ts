@@ -18,7 +18,7 @@ export const channelsApi = {
   /**
    * Get all channels for a workspace
    */
-  getChannels: async (
+  getAllAvailableChannels: async (
     workspaceId: string,
     filters?: Partial<ChannelFilters>
   ): Promise<ChannelEntity[]> => {
@@ -31,7 +31,25 @@ export const channelsApi = {
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
     const response = await httpClient.get<ChannelsResponse>(
-      `/workspaces/${workspaceId}/channels${queryString}`
+      `/workspaces/${workspaceId}/channels/all-available${queryString}`
+    );
+    return response || [];
+  },
+
+  getUserChannels: async (
+    workspaceId: string,
+    filters?: Partial<ChannelFilters>
+  ): Promise<ChannelEntity[]> => {
+    const params = new URLSearchParams();
+    if (filters?.channel_type)
+      params.append("channel_type", filters.channel_type);
+    if (filters?.search_query)
+      params.append("search_query", filters.search_query);
+    if (filters?.member_id) params.append("member_id", filters.member_id);
+
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    const response = await httpClient.get<ChannelsResponse>(
+      `/workspaces/${workspaceId}/user/channels${queryString}`
     );
     return response || [];
   },
