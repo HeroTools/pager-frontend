@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Hash, Lock, Users, Star, Info, MoreVertical } from "lucide-react";
 import { Channel } from "@/types/chat";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface ChatHeaderProps {
   channel: Channel;
@@ -17,6 +18,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onToggleDetails,
   members = [],
 }) => {
+  const [isMembersModalOpen, setMembersModalOpen] = useState(false);
   // Show up to 4 avatars, then a +N indicator
   const maxAvatars = 4;
   const visibleMembers = members.slice(0, maxAvatars);
@@ -43,30 +45,39 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Member Avatars */}
-        <div className="flex items-center -space-x-2">
-          <TooltipProvider>
-            {visibleMembers.map((member) => (
-              <Tooltip key={member.id}>
-                <TooltipTrigger asChild>
-                  <Avatar className="h-7 w-7 border-2 border-background bg-muted">
-                    {member.avatar ? (
-                      <AvatarImage src={member.avatar} alt={member.name} />
-                    ) : (
-                      <AvatarFallback>{member.name[0]}</AvatarFallback>
-                    )}
-                  </Avatar>
-                </TooltipTrigger>
-                <TooltipContent>{member.name}</TooltipContent>
-              </Tooltip>
-            ))}
-          </TooltipProvider>
-          {extraCount > 0 && (
-            <div className="h-7 w-7 flex items-center justify-center rounded-full bg-muted text-xs font-medium border-2 border-background text-muted-foreground">
-              +{extraCount}
-            </div>
-          )}
-        </div>
+        {/* Member Avatars - now clickable to open modal */}
+        <Dialog open={isMembersModalOpen} onOpenChange={setMembersModalOpen}>
+          <DialogTrigger asChild>
+            <button className="flex items-center -space-x-2 focus:outline-none" title="View all members">
+              <TooltipProvider>
+                {visibleMembers.map((member) => (
+                  <Tooltip key={member.id}>
+                    <TooltipTrigger asChild>
+                      <Avatar className="h-7 w-7 border-2 border-background bg-muted">
+                        {member.avatar ? (
+                          <AvatarImage src={member.avatar} alt={member.name} />
+                        ) : (
+                          <AvatarFallback>{member.name?.[0] || <Users className="w-4 h-4" />}</AvatarFallback>
+                        )}
+                      </Avatar>
+                    </TooltipTrigger>
+                    <TooltipContent>{member.name}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </TooltipProvider>
+              {extraCount > 0 && (
+                <div className="h-7 w-7 flex items-center justify-center rounded-full bg-muted text-xs font-medium border-2 border-background text-muted-foreground">
+                  +{extraCount}
+                </div>
+              )}
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md w-full">
+            <DialogTitle>Channel Members</DialogTitle>
+            {/* TODO: Implement ChannelMembersModal content here */}
+            <div className="py-4 text-center text-muted-foreground">Members list coming soon...</div>
+          </DialogContent>
+        </Dialog>
         {/* Kebab Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
