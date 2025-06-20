@@ -17,10 +17,9 @@ export interface CreateWorkspaceData {
 export type UpdateWorkspaceData = CreateWorkspaceData;
 
 // Join workspace data
-export interface JoinWorkspaceData {
-  join_code: string;
-  workspace_id: string;
-}
+export type JoinWorkspaceData =
+  | { workspace_id: string }
+  | { invitation_token: string };
 
 export interface WorkspaceResponseData extends WorkspaceEntity {
   is_member: boolean;
@@ -33,7 +32,6 @@ export type WorkspaceResponse = ApiResponse<WorkspaceResponseData>;
 export type WorkspacesResponse = ApiResponse<WorkspaceEntity[]>;
 export type WorkspaceWithMembersResponse =
   ApiResponse<WorkspaceWithMembersList>;
-export type JoinCodeResponse = ApiResponse<{ join_code: string }>;
 
 // Workspace statistics
 export interface WorkspaceStats {
@@ -49,4 +47,15 @@ export interface WorkspaceListItem extends WorkspaceEntity {
   unread_count?: number;
   user_role?: "owner" | "admin" | "member";
   last_activity_at?: string;
+}
+
+// Types for get-from-invite-token API
+export interface WorkspaceInviteInfo {
+  name: string;
+  image?: string;
+  is_active: boolean;
+}
+
+export interface WorkspaceInviteInfoResponse {
+  workspace: WorkspaceInviteInfo;
 }

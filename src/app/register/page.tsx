@@ -1,39 +1,41 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter, useParams } from "next/navigation";
-
-import { useJoinWorkspace } from "@/features/workspaces/hooks/use-workspaces";
+import Image from "next/image";
 import { SignUpCard } from "@/features/auth/components/sign-up-card";
+import { useJoinWorkspace } from "@/features/workspaces/hooks/use-workspaces";
 
-const JoinPage = () => {
+const RegisterPage = () => {
   const router = useRouter();
-  const params = useParams();
-  const workspaceId = params["workspace-id"] as string;
-  const joinCode = params["join-code"] as string;
-
+  const searchParams = useSearchParams();
+  const invitation = searchParams.get("invitation");
   const join = useJoinWorkspace();
   const [step, setStep] = useState<"signup" | "joining" | "joined">("signup");
 
   // Handler for after authentication (sign up or sign in)
   const handleAuthSuccess = async () => {
-    if (!workspaceId || !joinCode) {
-      toast.error("Workspace ID or join code is missing from the URL");
+    if (!invitation) {
+      toast.error("Invitation token is missing from the URL");
       return;
     }
     setStep("joining");
     join
-      .mutateAsync({ join_code: joinCode, workspace_id: workspaceId })
-      .then(() => {
+      .mutateAsync({ invitation_token: invitation })
+      .then((result: any) => {
         setStep("joined");
-        router.replace(`/${workspaceId}`);
+        // If the backend returns workspace_id, redirect to it
+        if (result?.id) {
+          router.replace(`/${result.id}`);
+        } else {
+          router.replace("/");
+        }
         toast.success("Workspace joined");
       })
       .catch((error) => {
-        if (typeof error === 'object' && error && 'message' in error) {
+        if (typeof error === "object" && error && "message" in error) {
           console.error((error as { message: string }).message);
         } else {
           console.error(error);
@@ -72,4 +74,4 @@ const JoinPage = () => {
   );
 };
 
-export default JoinPage;
+export default RegisterPage; 

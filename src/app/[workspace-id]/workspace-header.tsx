@@ -26,13 +26,13 @@ export const WorkspaceHeader = ({
   const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
+  console.log('worlkspace', workspace);
   return (
     <>
       <InviteModal
         open={inviteOpen}
         setOpen={setInviteOpen}
         name={workspace.name}
-        joinCode={workspace.join_code}
       />
       <PreferenceModal
         open={preferenceOpen}
@@ -54,7 +54,7 @@ export const WorkspaceHeader = ({
           <DropdownMenuContent align="start" side="bottom" className="w-64">
             <DropdownMenuItem className="cursor-pointer capitalize">
               <div className="size-9 relative overflow-hidden bg-primary text-primary-foreground font-semibold text-xl rounded-md flex items-center justify-center mr-2">
-                {workspace.name.charAt(0).toUpperCase()}
+                {workspace.name?.charAt(0).toUpperCase()}
               </div>
               <div className="flex flex-col items-start">
                 <p className="font-bold">{workspace.name}</p>

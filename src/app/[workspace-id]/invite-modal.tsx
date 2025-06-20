@@ -11,14 +11,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useParamIds } from "@/hooks/use-param-ids";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { useInviteMember } from "@/features/members/hooks/use-members";
+import { useInviteLink } from "@/features/auth/hooks/use-auth-mutations";
 
 interface InviteModalProps {
   open: boolean;
-  joinCode: string;
   name: string;
   setOpen: (open: boolean) => void;
 }
@@ -32,37 +32,61 @@ const EXPIRY_OPTIONS = [
 
 export const InviteModal = ({
   open,
-  joinCode,
   name,
   setOpen,
 }: InviteModalProps) => {
   const { workspaceId } = useParamIds();
-  const [email, setEmail] = useState("");
+  const [inviteInput, setInviteInput] = useState("");
+  const [invites, setInvites] = useState<string[]>([]);
+  const { mutateAsync, isPending } = useInviteMember();
+  const inviteLinkMutation = useInviteLink();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [expiry, setExpiry] = useState("30d");
   const [notify, setNotify] = useState(true);
-  const { mutateAsync, isPending } = useInviteMember();
 
-  const inviteLink = `${window.location.origin}/join/${workspaceId}/${joinCode}`;
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const handleCopy = () => {
-    navigator.clipboard
-      .writeText(inviteLink)
-      .then(() => toast.success("Invite link copied to clipboard"));
+  useEffect(() => {
+    if (open && workspaceId) {
+      inviteLinkMutation.mutate(workspaceId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, workspaceId]);
+
+  const handleInviteAdd = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (inviteInput && isValidEmail(inviteInput) && !invites.includes(inviteInput)) {
+      setInvites([...invites, inviteInput]);
+      setInviteInput("");
+    }
   };
 
-  const handleSend = async () => {
-    if (!email) return;
+  const handleInviteRemove = (email: string) => {
+    setInvites(invites.filter((i) => i !== email));
+  };
+
+  const handleSendInvites = async () => {
+    if (!invites.length) return;
     try {
-      await mutateAsync({
-        workspaceId: workspaceId!,
-        data: { email },
-      });
-      toast.success(`Invite sent to ${email}`);
-      setEmail("");
+      await Promise.all(
+        invites.map(async (email) => {
+          await mutateAsync({
+            workspaceId: workspaceId!,
+            data: { email },
+          });
+        })
+      );
+      toast.success(`Invites sent to ${invites.join(", ")}`);
+      setInvites([]);
     } catch (err: any) {
-      toast.error(err?.message || "Failed to send invite");
+      toast.error(err?.message || "Failed to send invites");
     }
+  };
+
+  const handleCopy = () => {
+    const url = inviteLinkMutation.data?.url;
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => toast.success("Invite link copied to clipboard"));
   };
 
   // Placeholder for deactivating link
@@ -83,49 +107,62 @@ export const InviteModal = ({
           <DialogHeader>
             <DialogTitle>Invite people to {name}</DialogTitle>
             <DialogDescription>
-              Enter an email address to send an invite, or copy the invite link below.
+              Enter email addresses to send invites, or copy the invite link below.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-y-4 items-center justify-center py-4 w-full">
             <div className="w-full flex flex-col gap-2">
               <Label htmlFor="invite-email">Send to</Label>
-              <div className="flex gap-2 w-full">
+              <form className="flex gap-2 w-full" onSubmit={handleInviteAdd}>
                 <Input
                   id="invite-email"
                   type="email"
                   placeholder="name@company.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  value={inviteInput}
+                  onChange={e => setInviteInput(e.target.value)}
                   className="flex-1"
                   autoFocus
                   disabled={isPending}
                 />
-                <Button onClick={handleSend} disabled={!email || isPending}>
-                  {isPending ? "Sending..." : "Send"}
+                <Button type="submit" disabled={!isValidEmail(inviteInput) || invites.includes(inviteInput) || isPending}>
+                  Add
                 </Button>
+              </form>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {invites.map((email) => (
+                  <span key={email} className="flex items-center cursor-pointer bg-muted px-2 py-1 rounded text-xs">
+                    {email}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="ml-1 h-4 w-4 p-0"
+                      onClick={() => handleInviteRemove(email)}
+                      aria-label={`Remove ${email}`}
+                    >
+                      ×
+                    </Button>
+                  </span>
+                ))}
               </div>
+              <Button
+                className="mt-2"
+                onClick={handleSendInvites}
+                disabled={!invites.length || isPending}
+              >
+                {isPending ? "Sending..." : "Send Invites"}
+              </Button>
             </div>
             <div className="w-full flex flex-col gap-2 mt-4">
               <Label>Or share this link</Label>
-              <div className="flex gap-2 w-full items-center">
-                <Input
-                  value={inviteLink}
-                  readOnly
-                  className="flex-1 cursor-pointer"
-                  onClick={e => {
-                    (e.target as HTMLInputElement).select();
-                  }}
-                />
-                <Button variant="ghost" size="sm" onClick={handleCopy}>
-                  <CopyIcon className="size-4" />
-                </Button>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
-                  <Settings2 className="size-4 mr-2" />
-                  Edit link settings
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleCopy}
+                disabled={inviteLinkMutation.status === 'pending'}
+              >
+                {inviteLinkMutation.status === 'pending' ? "Loading..." : "Copy Invite Link"}
+              </Button>
             </div>
           </div>
           <div className="flex items-center justify-end w-full mt-2">

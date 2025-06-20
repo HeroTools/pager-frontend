@@ -8,6 +8,7 @@ import type {
   AuthResponse,
   EnhancedAuthResponse,
   UserPreferences,
+  InviteLinkResponse,
 } from "@/features/auth/types";
 import { User } from "@supabase/supabase-js";
 
@@ -216,6 +217,17 @@ export const authApi = {
 
   updateUserPreferences: async (data: UserPreferences) => {
     const response = await httpClient.put("/auth/user-preferences", data);
+    return response;
+  },
+
+  /**
+   * Get workspace invite link
+   */
+  getInviteLink: async (workspaceId: string): Promise<InviteLinkResponse> => {
+    const response = await httpClient.post<InviteLinkResponse>(
+      "/auth/invite-link",
+      { workspaceId }
+    );
     return response;
   },
 };

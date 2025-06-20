@@ -8,7 +8,6 @@ import type {
   WorkspaceResponse,
   WorkspacesResponse,
   WorkspaceWithMembersResponse,
-  JoinCodeResponse,
   WorkspaceStats,
   WorkspaceResponseData,
 } from "../types";
@@ -76,27 +75,6 @@ export const workspacesApi = {
    */
   deleteWorkspace: async (id: string): Promise<void> => {
     await httpClient.delete(`/workspaces/${id}`);
-  },
-
-  /**
-   * Generate new join code for workspace
-   */
-  generateJoinCode: async (id: string): Promise<string> => {
-    const response = await httpClient.post<JoinCodeResponse>(
-      `/workspaces/${id}/join-code`
-    );
-    return response.data.join_code;
-  },
-
-  /**
-   * Join workspace using join code
-   */
-  joinWorkspace: async (data: JoinWorkspaceData): Promise<WorkspaceResponseData> => {
-    const response = await httpClient.post<WorkspaceResponse>(
-      "/workspaces/join",
-      data
-    );
-    return response.data;
   },
 
   /**

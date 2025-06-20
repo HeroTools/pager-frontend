@@ -70,23 +70,6 @@ export const useCreateWorkspace = () => {
   });
 };
 
-// Generate a new join code
-export const useNewJoinCode = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (workspaceId: string) =>
-      workspacesApi.generateJoinCode(workspaceId),
-    onSuccess: (newJoinCode, workspaceId) => {
-      // Update the workspace cache with new join code
-      queryClient.setQueryData<WorkspaceEntity>(
-        ["workspace", workspaceId],
-        (old) => (old ? { ...old, join_code: newJoinCode } : old)
-      );
-    },
-  });
-};
-
 // Join a workspace
 export const useJoinWorkspace = () => {
   const queryClient = useQueryClient();

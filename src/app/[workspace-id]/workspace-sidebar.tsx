@@ -91,7 +91,7 @@ export const WorkspaceSidebar = () => {
         <div className="pt-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="w-full" variant="outline">+ Add Channel</Button>
+              <Button className="w-full" variant="ghost">+ Add Channel</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setOpen(true)}>
@@ -118,7 +118,7 @@ export const WorkspaceSidebar = () => {
           <>
             <Button
               className="mt-2 w-full"
-              variant="outline"
+              variant="ghost"
               onClick={() => setInviteOpen(true)}
             >
               + Invite People
@@ -127,7 +127,6 @@ export const WorkspaceSidebar = () => {
               open={inviteOpen}
               setOpen={setInviteOpen}
               name={getWorkspace.data.name}
-              joinCode={getWorkspace.data.join_code}
             />
           </>
         )}
