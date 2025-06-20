@@ -1,43 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { conversationsApi } from "../api/conversations-api";
+import { ConversationEntity } from "../types";
 
-export const useCurrentConversation = (workspaceId: string) => {
-  const {
-    data: conversation,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["current-conversation", workspaceId],
-    queryFn: () => conversationsApi.getCurrentConversation(workspaceId),
-    enabled: !!workspaceId,
-  });
-
-  return {
-    conversation,
-    isLoading,
-    error,
-  };
-};
-
-// features/conversations/hooks/use-get-conversation.ts
-export const useGetConversation = (
+export function useGetConversation(
   workspaceId: string,
   conversationId: string
-) => {
-  const {
-    data: conversation,
-    isLoading,
-    error,
-  } = useQuery({
+) {
+  const qc = useQueryClient();
+
+  return useQuery<ConversationEntity>({
     queryKey: ["conversation", workspaceId, conversationId],
     queryFn: () =>
       conversationsApi.getConversation(workspaceId, conversationId),
-    enabled: !!conversationId,
+    enabled: !!workspaceId && !!conversationId,
+    // 1. Seed from your list cache
+    initialData: () =>
+      qc
+        .getQueryData<ConversationEntity[]>(["conversations", workspaceId])
+        ?.find((c) => c.id === conversationId),
+    // 2. Don’t refetch on every mount/focus
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
-
-  return {
-    conversation,
-    isLoading,
-    error,
-  };
-};
+}

@@ -1,26 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import { MessageWithUser, ChannelWithMessages } from "../types";
+import {
+  ConversationMessageWithUser,
+  ConversationWithMessagesAndMembers,
+} from "../types";
 
-interface UseRealtimeChannelProps {
+interface UseRealtimeConversationProps {
   workspaceId: string;
-  channelId: string;
+  conversationId: string;
   currentUserId?: string;
   enabled?: boolean;
 }
 
 interface InfiniteQueryData {
-  pages: ChannelWithMessages[];
+  pages: ConversationWithMessagesAndMembers[];
   pageParams: (string | undefined)[];
 }
 
-export const useRealtimeChannel = ({
+export const useRealtimeConversation = ({
   workspaceId,
-  channelId,
+  conversationId,
   currentUserId,
   enabled = true,
-}: UseRealtimeChannelProps) => {
+}: UseRealtimeConversationProps) => {
   const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
   const [connectionStatus, setConnectionStatus] =
@@ -29,13 +32,14 @@ export const useRealtimeChannel = ({
 
   // Memoize the query key function to prevent recreating it
   const getQueryKey = useMemo(
-    () => () => ["channel", workspaceId, channelId, "messages", "infinite"],
-    [workspaceId, channelId]
+    () => () =>
+      ["conversation", workspaceId, conversationId, "messages", "infinite"],
+    [workspaceId, conversationId]
   );
 
   useEffect(() => {
-    console.log("useRealtimeChannel useEffect");
-    if (!enabled || !channelId || !workspaceId || !currentUserId) return;
+    console.log("useRealtimeConversation useEffect");
+    if (!enabled || !conversationId || !workspaceId || !currentUserId) return;
 
     // Clean up previous channel if it exists
     if (channelRef.current) {
@@ -45,7 +49,7 @@ export const useRealtimeChannel = ({
     }
 
     // Create real-time channel subscription
-    const channel = supabase.channel(`channel:${channelId}`, {
+    const channel = supabase.channel(`conversation:${conversationId}`, {
       config: {
         broadcast: { self: false },
       },
@@ -53,7 +57,9 @@ export const useRealtimeChannel = ({
 
     // Listen for new messages
     channel.on("broadcast", { event: "new_message" }, (payload) => {
-      const { message } = payload.payload as { message: MessageWithUser };
+      const { message } = payload.payload as {
+        message: ConversationMessageWithUser;
+      };
 
       if (message.user?.id === currentUserId) return;
 
@@ -88,7 +94,7 @@ export const useRealtimeChannel = ({
     // Subscribe to the channel
     channel.subscribe((status) => {
       console.log(
-        `Real-time subscription status for channel ${channelId}:`,
+        `Real-time subscription status for conversation ${conversationId}:`,
         status
       );
       setConnectionStatus(status);
@@ -104,16 +110,7 @@ export const useRealtimeChannel = ({
     });
 
     channelRef.current = channel;
-
-    // return () => {
-    //   console.log("Cleaning up channel subscription for:", channelId);
-    //   if (channelRef.current) {
-    //     channelRef.current.unsubscribe();
-    //     supabase.removeChannel(channelRef.current);
-    //     channelRef.current = null;
-    //   }
-    // };
-  }, [channelId, workspaceId, currentUserId, enabled]);
+  }, [conversationId, workspaceId, currentUserId, enabled]);
 
   return {
     isConnected: connectionStatus === "SUBSCRIBED",

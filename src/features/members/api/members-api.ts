@@ -20,7 +20,7 @@ export const membersApi = {
   getMembers: async (
     workspaceId: string,
     filters?: Partial<MemberFilters>
-  ): Promise<MemberEntity[]> => {
+  ): Promise<MemberWithUser[]> => {
     const params = new URLSearchParams();
     if (filters?.role) params.append("role", filters.role);
     if (filters?.search_query)
