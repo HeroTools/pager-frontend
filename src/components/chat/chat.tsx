@@ -25,6 +25,7 @@ interface ChatProps {
   typingUsers?: { id: string; name: string; avatar?: string }[];
   onInputChange?: (value: string) => void;
   onTypingSubmit?: () => void;
+  members?: { id: string; name: string; avatar?: string }[];
 }
 
 export const Chat: FC<ChatProps> = ({
@@ -46,6 +47,7 @@ export const Chat: FC<ChatProps> = ({
   typingUsers,
   onInputChange,
   onTypingSubmit,
+  members,
 }) => {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -100,7 +102,7 @@ export const Chat: FC<ChatProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <ChatHeader channel={channel} onToggleDetails={onToggleChannelDetails} />
+      <ChatHeader channel={channel} onToggleDetails={onToggleChannelDetails} members={members} />
 
       <ChatMessageList
         messages={messages}
