@@ -25,7 +25,7 @@ export default function CreateWorkspacePage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [inviteEmails, setInviteEmails] = useState("");
-  const [inviteLink] = useState(() => `${window?.location.origin}/invite/placeholder-link`);
+  const [inviteLink] = useState(() => "www.placeholder.com");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step 1: Workspace name
@@ -86,7 +86,13 @@ export default function CreateWorkspacePage() {
               />
             </CardContent>
             <CardFooter className="justify-end">
-              <Button onClick={workspaceForm.handleSubmit(() => setStep(1))} disabled={!workspaceForm.formState.isValid || isCreating}>
+              <Button
+                onClick={async () => {
+                  const valid = await workspaceForm.trigger();
+                  if (valid) setStep(1);
+                }}
+                disabled={isCreating}
+              >
                 Next
               </Button>
             </CardFooter>
@@ -155,7 +161,13 @@ export default function CreateWorkspacePage() {
                   }}
                 >
                   <Avatar className="w-20 h-20">
-                    {avatarUrl ? <AvatarImage src={avatarUrl} /> : <AvatarFallback>U</AvatarFallback>}
+                    {avatarUrl ? (
+                      <AvatarImage src={avatarUrl} />
+                    ) : (
+                      <AvatarFallback>
+                        {profileForm.watch("displayName")?.trim().charAt(0).toUpperCase() || ""}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                 </div>
                 <input
@@ -180,7 +192,15 @@ export default function CreateWorkspacePage() {
             </CardContent>
             <CardFooter className="justify-between">
               <Button variant="ghost" onClick={() => setStep(0)} disabled={isCreating}>Back</Button>
-              <Button onClick={profileForm.handleSubmit(() => setStep(2))} disabled={!profileForm.formState.isValid || isCreating}>Next</Button>
+              <Button
+                onClick={async () => {
+                  const valid = await profileForm.trigger();
+                  if (valid) setStep(2);
+                }}
+                disabled={isCreating}
+              >
+                Next
+              </Button>
             </CardFooter>
           </Card>
         </Form>
@@ -188,8 +208,26 @@ export default function CreateWorkspacePage() {
     );
   }
 
-  // Step 3: Invite Teammates
-  function InviteTeammatesStep() {
+  // Invite teammates state and logic
+  function InviteTeammatesStep({ isCreating, inviteLink, handleCreateWorkspace, setStep }: {
+    isCreating: boolean;
+    inviteLink: string;
+    handleCreateWorkspace: (emails?: string) => Promise<void>;
+    setStep: (step: number) => void;
+  }) {
+    const [inviteInput, setInviteInput] = useState("");
+    const [invites, setInvites] = useState<string[]>([]);
+    const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const handleInviteAdd = (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      if (inviteInput && isValidEmail(inviteInput) && !invites.includes(inviteInput)) {
+        setInvites([...invites, inviteInput]);
+        setInviteInput("");
+      }
+    };
+    const handleInviteRemove = (email: string) => {
+      setInvites(invites.filter((i) => i !== email));
+    };
     return (
       <Card className="max-w-md mx-auto w-full">
         <CardHeader>
@@ -199,12 +237,37 @@ export default function CreateWorkspacePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Input
-            placeholder="Type emails, separated by commas"
-            value={inviteEmails}
-            onChange={e => setInviteEmails(e.target.value)}
-            disabled={isCreating}
-          />
+          <form className="space-y-4" onSubmit={handleInviteAdd}>
+            <div className="mb-2 text-sm font-medium">Invite teammates</div>
+            <div className="flex gap-2">
+              <Input
+                value={inviteInput}
+                onChange={e => setInviteInput(e.target.value)}
+                placeholder="Enter email address"
+                disabled={isCreating}
+              />
+              <Button type="submit" variant="ghost" size="sm" disabled={isCreating || !isValidEmail(inviteInput) || invites.includes(inviteInput)}>
+                Add
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {invites.map((email) => (
+                <span key={email} className="flex items-center cursor-pointer bg-muted px-2 py-1 rounded text-xs">
+                  {email}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="ml-1 h-4 w-4 p-0"
+                    onClick={() => handleInviteRemove(email)}
+                    aria-label={`Remove ${email}`}
+                  >
+                    ×
+                  </Button>
+                </span>
+              ))}
+            </div>
+          </form>
           <div className="flex gap-2 mt-4">
             <Button
               type="button"
@@ -236,7 +299,7 @@ export default function CreateWorkspacePage() {
             </Button>
             <Button
               onClick={async () => {
-                await handleCreateWorkspace(inviteEmails);
+                await handleCreateWorkspace(invites.join(","));
               }}
               disabled={isCreating}
             >
@@ -255,11 +318,11 @@ export default function CreateWorkspacePage() {
       const displayName = profileForm.getValues("displayName");
       const avatar = profileForm.getValues("avatar");
       // TODO: send emails to backend if needed
-      const workspaceId = await createWorkspace({ name });
+      const workspace = await createWorkspace({ name });
       toast.success("Workspace created");
       // Optionally, update user profile with displayName/avatar here
       // Optionally, send invites here
-      router.push(`/${workspaceId}`);
+      router.push(`/${workspace.id}`);
     } catch (err) {
       toast.error("Failed to create workspace");
     }
@@ -270,7 +333,14 @@ export default function CreateWorkspacePage() {
       <Stepper />
       {step === 0 && <WorkspaceNameStep />}
       {step === 1 && <UserProfileStep />}
-      {step === 2 && <InviteTeammatesStep />}
+      {step === 2 && (
+        <InviteTeammatesStep
+          isCreating={isCreating}
+          inviteLink={inviteLink}
+          handleCreateWorkspace={handleCreateWorkspace}
+          setStep={setStep}
+        />
+      )}
     </div>
   );
 }
