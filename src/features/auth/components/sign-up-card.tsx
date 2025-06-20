@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { FcGoogle } from "react-icons/fc";
 import { TriangleAlert, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -20,12 +19,14 @@ import { authApi } from "@/features/auth/api/auth-api";
 import { useSignUp } from "@/features/auth";
 
 interface SignUpCardProps {
+  onSuccess?: (workspaceId?: string) => void;
   setState: (state: SignInFlow) => void;
   hideSignInLink?: boolean;
   inviteToken?: string;
   }
 
 export const SignUpCard = ({ onSuccess, hideSignInLink = false, inviteToken }: SignUpCardProps) => {
+  const signUp = useSignUp();
   const [signingUp, setSigningUp] = useState(false);
   const [error, setError] = useState("");
   const [emailSent, setEmailSent] = useState(false);
