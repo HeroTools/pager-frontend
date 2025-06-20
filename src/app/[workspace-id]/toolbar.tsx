@@ -14,7 +14,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations";
+import { useGetAllAvailableChannels } from "@/features/channels/hooks/use-channels-mutations";
 import { useGetMembers } from "@/features/members/hooks/use-members";
 import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
@@ -24,7 +24,7 @@ export const Toolbar = () => {
   const workspaceId = useWorkspaceId() as string;
 
   const { data: workspace } = useGetWorkspace(workspaceId);
-  const getChannels = useGetChannels(workspaceId);
+  const getChannels = useGetAllAvailableChannels(workspaceId);
   const getMembers = useGetMembers(workspaceId);
 
   const [open, setOpen] = useState(false);

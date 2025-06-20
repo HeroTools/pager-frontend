@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations";
+import { useGetUserChannels } from "@/features/channels/hooks/use-channels-mutations";
 import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
 import { useConversations } from "@/features/conversations";
 import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
@@ -26,17 +26,17 @@ import {
 import { Button } from "@/components/ui/button";
 
 export const WorkspaceSidebar = () => {
+  const router = useRouter();
   const { workspaceId, id: entityId } = useParamIds();
 
   const getWorkspace = useGetWorkspace(workspaceId);
-  // TODO optimise this so that we get channels and conversations in one query (might have to change backend to return both)
-  const getChannels = useGetChannels(workspaceId);
+  // TODO optimise this to get the channels and conversations from the get workspace query just add include_details=true but update BE first
+  const getUserChannels = useGetUserChannels(workspaceId);
   const { conversations } = useConversations(workspaceId);
 
   const { startConversationCreation } = useConversationCreateStore();
 
   const setOpen = useCreateChannelModal((state) => state.setOpen);
-  const router = useRouter();
 
   if (getWorkspace.isLoading) {
     return (
@@ -86,7 +86,7 @@ export const WorkspaceSidebar = () => {
             : undefined
         }
       >
-        {getChannels.data?.map((item) => (
+        {(getUserChannels.data || [])?.map((item) => (
           <SidebarItem
             key={item.id}
             label={item.name}
