@@ -1,6 +1,6 @@
 import "quill/dist/quill.snow.css";
 
-import { ImageIcon, Smile, XIcon } from "lucide-react";
+import { ImageIcon, Smile, XIcon, SendHorizontal, CaseSensitive } from "lucide-react";
 import Quill, { QuillOptions } from "quill";
 import { Delta, Op } from "quill/core";
 import {
@@ -11,8 +11,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { MdSend } from "react-icons/md";
-import { PiTextAa } from "react-icons/pi";
 
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -227,7 +225,7 @@ const Editor = ({
               variant="ghost"
               onClick={handleToolbarToggle}
             >
-              <PiTextAa className="size-4" />
+              <CaseSensitive className="size-4" />
             </Button>
           </Hint>
           <EmojiPopover onEmojiSelect={handleEmojiSelect}>
@@ -279,7 +277,7 @@ const Editor = ({
               )}
               size="sm"
             >
-              <MdSend className="size-4" />
+              <SendHorizontal className="size-4" />
             </Button>
           )}
         </div>
