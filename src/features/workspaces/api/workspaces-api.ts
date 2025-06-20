@@ -4,12 +4,12 @@ import type {
   WorkspaceWithMembersList,
   CreateWorkspaceData,
   UpdateWorkspaceData,
-  JoinWorkspaceData,
   WorkspaceResponse,
   WorkspacesResponse,
   WorkspaceWithMembersResponse,
   WorkspaceStats,
   WorkspaceResponseData,
+  WorkspaceInviteInfoResponse,
 } from "../types";
 
 export const workspacesApi = {
@@ -92,5 +92,15 @@ export const workspacesApi = {
    */
   leaveWorkspace: async (id: string): Promise<void> => {
     await httpClient.post(`/workspaces/${id}/leave`);
+  },
+
+  /**
+   * Get workspace info from invite token
+   */
+  getWorkspaceFromInviteToken: async (token: string): Promise<WorkspaceInviteInfoResponse> => {
+    const response = await httpClient.get<WorkspaceInviteInfoResponse>(
+      `/workspaces/invite-token?token=${token}`
+    );
+    return response;
   },
 };
