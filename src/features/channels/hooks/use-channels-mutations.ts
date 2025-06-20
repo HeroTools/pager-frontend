@@ -75,7 +75,6 @@ export const useGetChannelWithMessages = (
   });
 };
 
-// Hook for infinite scrolling
 export const useGetChannelWithMessagesInfinite = (
   workspaceId: string,
   channelId: string,
@@ -90,19 +89,11 @@ export const useGetChannelWithMessagesInfinite = (
       }),
     enabled: !!(workspaceId && channelId),
     getNextPageParam: (lastPage) => {
-      console.log("getNextPageParam - lastPage structure:", lastPage);
-
       const pagination = lastPage?.pagination;
 
       if (!pagination) {
-        console.log("No pagination found in response");
         return undefined;
       }
-
-      console.log("Pagination:", {
-        hasMore: pagination.hasMore,
-        nextCursor: pagination.nextCursor,
-      });
 
       return pagination.hasMore ? pagination.nextCursor : undefined;
     },
