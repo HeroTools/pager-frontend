@@ -5,6 +5,7 @@ import {
   MessageSquareText,
   SendHorizonal,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations";
 import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
@@ -16,6 +17,13 @@ import { ConversationItem } from "./conversation-member";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceSection } from "./workspace-section";
 import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export const WorkspaceSidebar = () => {
   const { workspaceId, id: entityId } = useParamIds();
@@ -28,6 +36,7 @@ export const WorkspaceSidebar = () => {
   const { startConversationCreation } = useConversationCreateStore();
 
   const setOpen = useCreateChannelModal((state) => state.setOpen);
+  const router = useRouter();
 
   if (getWorkspace.isLoading) {
     return (
@@ -50,7 +59,7 @@ export const WorkspaceSidebar = () => {
     <div className="flex flex-col gap-y-2 h-full">
       <WorkspaceHeader
         workspace={getWorkspace.data}
-        isAdmin={getWorkspace.data.role === "admin"}
+        isAdmin={getWorkspace.data.user_role === "admin"}
       />
       <div className="flex flex-col px-2 mt-3">
         {/* TODO: Implement threads and Drafts & Sent features */}
@@ -72,7 +81,9 @@ export const WorkspaceSidebar = () => {
         label="Channels"
         hint="New channel"
         onNew={
-          getWorkspace.data.role === "admin" ? () => setOpen(true) : undefined
+          getWorkspace.data?.user_role === "admin"
+            ? () => setOpen(true)
+            : undefined
         }
       >
         {getChannels.data?.map((item) => (
@@ -84,6 +95,25 @@ export const WorkspaceSidebar = () => {
             variant={entityId === item.id ? "active" : "default"}
           />
         ))}
+        <div className="pt-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="w-full" variant="outline">
+                + Add Channel
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setOpen(true)}>
+                Create a new channel
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => router.push(`/${workspaceId}/browse-channels`)}
+              >
+                Browse channels
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </WorkspaceSection>
       <WorkspaceSection
         label="Direct Messages"

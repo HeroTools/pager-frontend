@@ -1,5 +1,4 @@
 import { useForm } from "react-hook-form";
-import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { Button } from "@/components/ui/button";
 import {
@@ -126,16 +125,6 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
           >
             <FcGoogle className="size-5 absolute top-3 left-2.5" />
             {googleSignIn.isPending ? "Connecting..." : "Continue with Google"}
-          </Button>
-          <Button
-            disabled={isLoading}
-            onClick={handleGithubSignIn}
-            variant="outline"
-            size="lg"
-            className="w-full relative"
-          >
-            <FaGithub className="size-5 absolute top-3 left-2.5" />
-            {githubSignIn.isPending ? "Connecting..." : "Continue with Github"}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">

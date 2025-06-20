@@ -1,8 +1,6 @@
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, ChevronDown } from "lucide-react";
 import { ReactNode } from "react";
-import { FaCaretDown } from "react-icons/fa";
 import { useToggle } from "react-use";
-
 import { Hint } from "@/components/hint";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -30,7 +28,7 @@ export const WorkspaceSection = ({
           className="p-0.5 text-sm text-foreground shrink-0 size-6 hover:bg-secondary/90"
           onClick={toggle}
         >
-          <FaCaretDown
+          <ChevronDown
             className={cn("size-4 transition-transform", !on && "-rotate-90")}
           />
         </Button>
@@ -48,7 +46,7 @@ export const WorkspaceSection = ({
               className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto p-0.5 text-sm text-muted-foreground size-6 shrink-0"
               onClick={onNew}
             >
-              <PlusIcon className="size-5" />
+              <PlusIcon className="size-4" />
             </Button>
           </Hint>
         )}
