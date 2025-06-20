@@ -1,13 +1,17 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { FC, useCallback, useEffect, useRef, useState } from "react";
 import { Message, User, Channel } from "@/types/chat";
 import { ChatHeader } from "./header";
 import { ChatMessageList } from "./message-list";
 import Editor from "@/components/editor";
+import { useGetMembers } from "@/features/members";
+import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
 
 interface ChatProps {
   channel: Channel;
   messages: Message[];
   currentUser: User;
+  workspaceId: string;
+  chatType?: "conversation" | "channel";
   onLoadMore: () => void;
   hasMoreMessages: boolean;
   isLoadingMore: boolean;
@@ -23,10 +27,12 @@ interface ChatProps {
   onTypingSubmit?: () => void;
 }
 
-export const Chat: React.FC<ChatProps> = ({
+export const Chat: FC<ChatProps> = ({
   channel,
   messages,
   currentUser,
+  workspaceId,
+  chatType,
   isLoading = false,
   onSendMessage,
   onEditMessage,
@@ -108,7 +114,9 @@ export const Chat: React.FC<ChatProps> = ({
 
       <div className="p-4 border-t border-border-subtle">
         <Editor
-          placeholder={`Message #${channel.name}`}
+          placeholder={`Message ${chatType === "conversation" && "#"}${
+            channel.name
+          }`}
           onSubmit={handleSendMessage}
           disabled={isLoading}
         />

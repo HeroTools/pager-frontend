@@ -11,9 +11,9 @@ import {
 import { Profile } from "@/features/members/components/profile";
 import { Thread } from "@/features/messages/component/thread";
 import { usePanel } from "@/hooks/use-panel";
-import { Sidebar } from "./sidebar";
+import { Sidebar } from "@/components/side-nav/sidebar";
 import { Toolbar } from "./toolbar";
-import { WorkspaceSidebar } from "./workspace-sidebar";
+import { WorkspaceSidebar } from "@/components/side-nav/workspace-sidebar";
 import { Id } from "@/types";
 
 interface WorkspaceIdLayoutProps {
@@ -34,11 +34,11 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
           direction="horizontal"
           autoSaveId="wck-workspace-layout"
         >
-          <ResizablePanel defaultSize={20} minSize={11}>
+          <ResizablePanel defaultSize={26} minSize={11}>
             <WorkspaceSidebar />
           </ResizablePanel>
           <ResizableHandle />
-          <ResizablePanel defaultSize={80} minSize={20}>
+          <ResizablePanel defaultSize={74} minSize={20}>
             {children}
           </ResizablePanel>
           {showPanel && (

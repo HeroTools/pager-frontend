@@ -4,14 +4,10 @@ import { AlertTriangle, Loader } from "lucide-react";
 
 import { Chat } from "@/components/chat/chat";
 import {
-  useGetConversation,
   useGetConversationWithMessagesInfinite,
   useRealtimeConversation,
 } from "@/features/conversations";
-import {
-  useMessageOperations,
-  useTypingIndicator,
-} from "@/features/messages/hooks/use-messages";
+import { useMessageOperations } from "@/features/messages/hooks/use-messages";
 import { useCurrentUser } from "@/features/auth";
 import { Message, User, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
@@ -30,25 +26,13 @@ const ConversationChat = () => {
     isFetchingNextPage,
   } = useGetConversationWithMessagesInfinite(workspaceId, conversationId);
 
-  // const {
-  //   data: conversationDetails,
-  //   isLoading: isLoadingConversation,
-  //   error: conversationError,
-  // } = useGetConversation(workspaceId, conversationId);
-
   // Real-time subscription for incoming messages and typing indicators
   const { isConnected, connectionStatus } = useRealtimeConversation({
     workspaceId,
     conversationId,
     currentUserId: currentUser?.id,
-    enabled: !!currentUser && !!conversationId,
+    enabled: !!currentUser?.id && !!conversationId && !!workspaceId,
   });
-
-  const {
-    handleInputChange,
-    handleSubmit: handleTypingSubmit,
-    isTyping,
-  } = useTypingIndicator(workspaceId, undefined, conversationId);
 
   // Message operation hooks
   const {
@@ -60,20 +44,19 @@ const ConversationChat = () => {
   } = useMessageOperations(workspaceId, undefined, conversationId);
 
   const transformConversation = (conversationData: any): Channel => {
-    // For conversations, we can create a display name from participants
     const otherMembers = conversationData.members.filter(
       (member: any) => member.user.id !== currentUser?.id
     );
     const displayName =
       otherMembers.length === 1
-        ? otherMembers[0].user.name // Direct message
-        : `${otherMembers.map((m: any) => m.user.name).join(", ")}`; // Group conversation
+        ? otherMembers[0].user.name
+        : `${otherMembers.map((m: any) => m.user.name).join(", ")}`;
 
     return {
       id: conversationData.id,
       name: displayName,
       description: `Conversation with ${conversationData.members.length} members`,
-      isPrivate: true, // Conversations are always private
+      isPrivate: true,
       memberCount: conversationData.members.length,
     };
   };
@@ -177,7 +160,7 @@ const ConversationChat = () => {
       await createMessage.mutateAsync({
         body: content.body,
         attachment_id,
-        message_type: "channel",
+        message_type: "direct",
       });
 
       console.log("Message sent successfully");
@@ -279,6 +262,7 @@ const ConversationChat = () => {
         channel={conversationChannel}
         messages={messages}
         currentUser={user}
+        chatType="conversation"
         // typingUsers={transformedTypingUsers} // Pass typing users to Chat component
         isLoading={
           false
@@ -286,6 +270,7 @@ const ConversationChat = () => {
           // updateMessage.isPending ||
           // deleteMessage.isPending
         }
+        workspaceId={workspaceId}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
@@ -293,8 +278,8 @@ const ConversationChat = () => {
         onReactToMessage={handleReactToMessage}
         onToggleChannelDetails={handleToggleConversationDetails}
         // Pass typing handlers to your message input component
-        onInputChange={handleInputChange}
-        onTypingSubmit={handleTypingSubmit}
+        // onInputChange={handleInputChange}
+        // onTypingSubmit={handleTypingSubmit}
         // Handle infinite scroll
         onLoadMore={handleLoadMore}
         hasMoreMessages={hasNextPage}

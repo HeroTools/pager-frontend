@@ -1,4 +1,5 @@
 import { useParams } from "next/navigation";
+import { useMemo } from "react";
 
 export const useParamIds = (): {
   id: string;
@@ -6,23 +7,28 @@ export const useParamIds = (): {
   workspaceId: string;
 } => {
   const params = useParams();
-  const entityId = params["entity-id"] as string;
-  const workspaceId = params["workspace-id"] as string;
 
-  if (!entityId) {
-    return { id: "", type: "channel", workspaceId };
-  }
+  return useMemo(() => {
+    const entityId = params["entity-id"] as string;
+    const workspaceId = (params["workspace-id"] as string) || "";
 
-  const prefix = entityId.charAt(0);
-  const cleanId = entityId.slice(2); // Remove prefix and dash
+    if (!entityId) {
+      return { id: "", type: "channel" as const, workspaceId };
+    }
 
-  if (prefix === "c") {
-    return { id: cleanId, type: "channel", workspaceId };
-  }
+    const prefix = entityId.charAt(0);
+    const cleanId = entityId.slice(2);
 
-  if (prefix === "d") {
-    return { id: cleanId, type: "conversation", workspaceId };
-  }
+    if (prefix === "c") {
+      return { id: cleanId, type: "channel" as const, workspaceId };
+    }
 
-  throw new Error(`Invalid entity ID format: ${entityId}`);
+    if (prefix === "d") {
+      return { id: cleanId, type: "conversation" as const, workspaceId };
+    }
+
+    // Return default instead of throwing
+    console.error(`Invalid entity ID format: ${entityId}`);
+    return { id: "", type: "channel" as const, workspaceId };
+  }, [params]);
 };
