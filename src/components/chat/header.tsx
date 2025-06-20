@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Hash, Lock, Users, Star, Info, MoreVertical } from "lucide-react";
+import { Hash, Lock, Users, Star, Info, MoreVertical, Settings, LogOut } from "lucide-react";
 import { Channel } from "@/types/chat";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { ChannelDetailsModal } from "./channel-details-modal";
 
 interface ChatHeaderProps {
   channel: Channel;
@@ -18,7 +18,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onToggleDetails,
   members = [],
 }) => {
-  const [isMembersModalOpen, setMembersModalOpen] = useState(false);
+  const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
   // Show up to 4 avatars, then a +N indicator
   const maxAvatars = 4;
   const visibleMembers = members.slice(0, maxAvatars);
@@ -45,39 +45,35 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Member Avatars - now clickable to open modal */}
-        <Dialog open={isMembersModalOpen} onOpenChange={setMembersModalOpen}>
-          <DialogTrigger asChild>
-            <button className="flex items-center -space-x-2 focus:outline-none" title="View all members">
-              <TooltipProvider>
-                {visibleMembers.map((member) => (
-                  <Tooltip key={member.id}>
-                    <TooltipTrigger asChild>
-                      <Avatar className="h-7 w-7 border-2 border-background bg-muted">
-                        {member.avatar ? (
-                          <AvatarImage src={member.avatar} alt={member.name} />
-                        ) : (
-                          <AvatarFallback>{member.name?.[0] || <Users className="w-4 h-4" />}</AvatarFallback>
-                        )}
-                      </Avatar>
-                    </TooltipTrigger>
-                    <TooltipContent>{member.name}</TooltipContent>
-                  </Tooltip>
-                ))}
-              </TooltipProvider>
-              {extraCount > 0 && (
-                <div className="h-7 w-7 flex items-center justify-center rounded-full bg-muted text-xs font-medium border-2 border-background text-muted-foreground">
-                  +{extraCount}
-                </div>
-              )}
-            </button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md w-full">
-            <DialogTitle>Channel Members</DialogTitle>
-            {/* TODO: Implement ChannelMembersModal content here */}
-            <div className="py-4 text-center text-muted-foreground">Members list coming soon...</div>
-          </DialogContent>
-        </Dialog>
+        {/* Member Avatars - click to open channel details */}
+        <Button 
+          onClick={() => setDetailsModalOpen(true)}
+          variant="ghost"
+          className="flex items-center -space-x-2 focus:outline-none group relative px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
+          title="Channel details"
+        >
+          <TooltipProvider>
+            {visibleMembers.map((member) => (
+              <Tooltip key={member.id}>
+                <TooltipTrigger asChild>
+                  <Avatar className="h-7 w-7 border-2 border-background bg-muted">
+                    {member.avatar ? (
+                      <AvatarImage src={member.avatar} alt={member.name} />
+                    ) : (
+                      <AvatarFallback>{member.name?.[0] || <Users className="w-4 h-4" />}</AvatarFallback>
+                    )}
+                  </Avatar>
+                </TooltipTrigger>
+                <TooltipContent>{member.name}</TooltipContent>
+              </Tooltip>
+            ))}
+          </TooltipProvider>
+          {extraCount > 0 && (
+            <div className="h-7 w-7 flex items-center justify-center rounded-full bg-muted text-xs font-medium border-2 border-background text-muted-foreground">
+              +{extraCount}
+            </div>
+          )}
+        </Button>
         {/* Kebab Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -85,19 +81,26 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               <MoreVertical className="w-5 h-5 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Channel Settings</DropdownMenuItem>
-            <DropdownMenuItem>Manage Members</DropdownMenuItem>
-            <DropdownMenuItem>Leave Channel</DropdownMenuItem>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={() => setDetailsModalOpen(true)}>
+              <Info className="w-4 h-4 mr-2" />
+              Open channel details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              setDetailsModalOpen(true);
+              // In a real app, you might want to set the active tab to settings
+              // This would require lifting the tab state up or using a ref
+            }}>
+              <Settings className="w-4 h-4 mr-2" />
+              Edit settings
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive focus:text-destructive">
+              <LogOut className="w-4 h-4 mr-2" />
+              Leave channel
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         {/* Member count and info button */}
-        {channel.memberCount && (
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Users className="w-4 h-4" />
-            <span>{channel.memberCount}</span>
-          </div>
-        )}
         <Button
           variant="ghost"
           size="sm"
@@ -107,6 +110,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Info className="w-4 h-4 text-muted-foreground" />
         </Button>
       </div>
+      
+      <ChannelDetailsModal 
+        isOpen={isDetailsModalOpen}
+        onClose={() => setDetailsModalOpen(false)}
+        channel={channel}
+        members={members}
+      />
     </div>
   );
 };

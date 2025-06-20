@@ -117,7 +117,6 @@ const ChannelChat = () => {
   // }));
 
   // Transform members for header
-  console.log("Channel members to pass to chat:", channelMembersData);
   const members = (channelMembersData || []).map((member: any) => ({
     id: member.user.id,
     name: member.user.name,
