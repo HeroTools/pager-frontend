@@ -13,9 +13,10 @@ import {
 import { InviteModal } from "./invite-modal";
 import { PreferenceModal } from "./preference-modal";
 import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
+import { Workspace } from "@/types/database";
 
 interface WorkspaceHeaderProps {
-  workspace: Doc<"workspaces">;
+  workspace: Workspace;
   isAdmin: boolean;
 }
 
@@ -34,7 +35,7 @@ export const WorkspaceHeader = ({
         open={inviteOpen}
         setOpen={setInviteOpen}
         name={workspace.name}
-        joinCode={workspace.joinCode}
+        joinCode={workspace.join_code}
       />
       <PreferenceModal
         open={preferenceOpen}
