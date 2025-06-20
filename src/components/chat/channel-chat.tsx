@@ -117,10 +117,11 @@ const ChannelChat = () => {
   // }));
 
   // Transform members for header
-  const members = (channelMembersData?.members || []).map((member: any) => ({
-    id: member.workspace_member.user.id,
-    name: member.workspace_member.user.name,
-    avatar: member.workspace_member.user.image,
+  console.log("Channel members to pass to chat:", channelMembersData);
+  const members = (channelMembersData || []).map((member: any) => ({
+    id: member.user.id,
+    name: member.user.name,
+    avatar: member.user.image,
   }));
 
   // Combined loading state
