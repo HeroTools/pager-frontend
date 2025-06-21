@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { useCurrentMember } from "@/features/members/hooks/use-members";
 import { useMessageOperations } from "@/features/messages/hooks/use-messages";
-import { useGetUploadUrl } from "@/features/upload/api/use-upload";
+import { useGetUploadUrl } from "@/features/file-upload/hooks/use-upload";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { useQuery } from "@tanstack/react-query";
 import { messagesApi } from "@/features/messages/api/messages-api";

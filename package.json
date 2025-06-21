@@ -45,6 +45,7 @@
     "react-verification-input": "^4.2.2",
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.1",
+    "uuid": "^11.1.0",
     "zustand": "^5.0.5"
   },
   "devDependencies": {

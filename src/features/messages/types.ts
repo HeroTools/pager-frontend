@@ -79,7 +79,7 @@ export type MessageSearchResponse = ApiResponse<{
 
 export interface CreateChannelMessageData {
   body: string;
-  attachment_id?: string;
+  attachment_ids?: string[];
   parent_message_id?: string;
   thread_id?: string;
   message_type?: "direct" | "thread" | "system";
@@ -87,7 +87,7 @@ export interface CreateChannelMessageData {
 
 export interface CreateConversationMessageData {
   body: string;
-  attachment_id?: string;
+  attachment_ids?: string[];
   parent_message_id?: string;
   thread_id?: string;
   message_type?: "direct" | "thread" | "system";
