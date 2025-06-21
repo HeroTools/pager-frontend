@@ -1,6 +1,13 @@
 import "quill/dist/quill.snow.css";
 
-import { ImageIcon, Smile, XIcon, SendHorizontal, CaseSensitive } from "lucide-react";
+import {
+  ImageIcon,
+  Smile,
+  XIcon,
+  SendHorizontal,
+  CaseSensitive,
+  Paperclip,
+} from "lucide-react";
 import Quill, { QuillOptions } from "quill";
 import { Delta, Op } from "quill/core";
 import {
@@ -17,11 +24,25 @@ import Image from "next/image";
 import { EmojiPopover } from "./emoji-popover";
 import { Hint } from "./hint";
 import { Button } from "./ui/button";
+import AttachmentUploader from "@/features/file-upload/components/attachment-uploader";
+import { toast } from "sonner";
 
 type EditorValue = {
   image: File | null;
   body: string;
+  attachmentIds: string[];
 };
+
+interface UploadedAttachment {
+  id: string;
+  originalFilename: string;
+  contentType: string;
+  sizeBytes: number;
+  url: string;
+  uploadProgress: number;
+  status: "uploading" | "completed" | "error";
+  error?: string;
+}
 
 interface EditorProps {
   variant?: "create" | "update";
@@ -29,8 +50,13 @@ interface EditorProps {
   disabled?: boolean;
   innerRef?: RefObject<Quill | null>;
   placeholder?: string;
+  workspaceId: string;
   onCancel?: () => void;
-  onSubmit: ({ image, body }: EditorValue) => Promise<any> | void;
+  onSubmit: ({
+    image,
+    body,
+    attachmentIds,
+  }: EditorValue) => Promise<any> | void;
 }
 
 const Editor = ({
@@ -39,14 +65,21 @@ const Editor = ({
   disabled = false,
   innerRef,
   placeholder = "Write something...",
+  workspaceId,
   onCancel,
   onSubmit,
 }: EditorProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [text, setText] = useState("");
+  const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
+  const [showAttachments, setShowAttachments] = useState(false);
+
   const isEmpty = useMemo(
-    () => !image && text.replace(/\s*/g, "").trim().length === 0,
-    [text, image]
+    () =>
+      !image &&
+      attachments.length === 0 &&
+      text.replace(/\s*/g, "").trim().length === 0,
+    [text, image, attachments.length]
   );
   const [isToolbarVisible, setIsToolbarVisible] = useState(true);
 
@@ -69,25 +102,48 @@ const Editor = ({
     const quill = quillRef.current;
     if (!quill) return;
 
+    // Check if any attachments are still uploading
+    const uploadingAttachments = attachments.filter(
+      (att) => att.status === "uploading"
+    );
+    if (uploadingAttachments.length > 0) {
+      toast("Please wait for all attachments to finish uploading.");
+      return;
+    }
+
     const oldContents = quill.getContents();
     const oldText = quill.getText();
     const oldImage = image;
+    const oldAttachments = attachments;
     const body = JSON.stringify(oldContents);
+    const attachmentIds = attachments
+      .filter((att) => att.status === "completed")
+      .map((att) => att.id);
 
     try {
-      const result = onSubmitRef.current({ image: oldImage, body });
+      const result = onSubmitRef.current({
+        image: oldImage,
+        body,
+        attachmentIds,
+      });
+
+      // Clear form
       quill.setText("");
       quill.setContents([]);
       setText("");
       setImage(null);
+      setAttachments([]);
+      setShowAttachments(false);
 
       if (result instanceof Promise) {
         await result;
       }
     } catch (err) {
+      // Rollback on error
       quill.setContents(oldContents);
       setText(oldText);
       setImage(oldImage);
+      setAttachments(oldAttachments);
       console.error("Send failed, rolled back:", err);
     }
   };
@@ -116,6 +172,7 @@ const Editor = ({
                 const currentText = quillRef.current?.getText() || "";
                 const empty =
                   !addedImage &&
+                  attachments.length === 0 &&
                   currentText.replace(/\s*/g, "").trim().length === 0;
 
                 if (!empty) {
@@ -160,7 +217,7 @@ const Editor = ({
       quillRef.current = null;
       if (innerRef) innerRef.current = null;
     };
-  }, [innerRef]);
+  }, [innerRef, attachments.length]);
 
   const handleToolbarToggle = () => {
     setIsToolbarVisible((v) => !v);
@@ -174,6 +231,10 @@ const Editor = ({
     quill?.insertText(idx, emoji);
   };
 
+  const toggleAttachments = () => {
+    setShowAttachments(!showAttachments);
+  };
+
   return (
     <div className="flex flex-col">
       <input
@@ -183,6 +244,19 @@ const Editor = ({
         onChange={(e) => setImage(e.target.files![0])}
         className="hidden"
       />
+
+      {/* Attachment Uploader */}
+      {showAttachments && (
+        <div className="mb-4 p-4 border border-border-default rounded-md bg-muted/30">
+          <AttachmentUploader
+            workspaceId={workspaceId}
+            onAttachmentsChange={setAttachments}
+            maxFiles={10}
+            maxFileSizeBytes={20 * 1024 * 1024} // 10MB
+          />
+        </div>
+      )}
+
       <div
         className={cn(
           "flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition",
@@ -190,6 +264,8 @@ const Editor = ({
         )}
       >
         <div ref={containerRef} className="h-full ql-custom"></div>
+
+        {/* Legacy single image support */}
         {!!image && (
           <div className="p-2">
             <div className="relative size-[62px] flex items-center justify-center group/image">
@@ -233,6 +309,27 @@ const Editor = ({
               <Smile className="size-4" />
             </Button>
           </EmojiPopover>
+
+          <Hint label="Attach files">
+            <Button
+              disabled={disabled}
+              size="sm"
+              variant="ghost"
+              onClick={toggleAttachments}
+              className={cn(
+                showAttachments && "bg-accent text-accent-foreground"
+              )}
+            >
+              <Paperclip className="size-4" />
+              {attachments.length > 0 && (
+                <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1 min-w-4 h-4 flex items-center justify-center">
+                  {attachments.length}
+                </span>
+              )}
+            </Button>
+          </Hint>
+
+          {/* Legacy image button - keep for backward compatibility */}
           {variant === "create" && (
             <Hint label="Image">
               <Button
@@ -245,6 +342,7 @@ const Editor = ({
               </Button>
             </Hint>
           )}
+
           {variant === "update" ? (
             <div className="ml-auto flex items-center gap-x-2">
               <Button
@@ -282,6 +380,14 @@ const Editor = ({
           )}
         </div>
       </div>
+
+      {!showAttachments && attachments.length > 0 && (
+        <div className="mt-2 text-xs text-muted-foreground">
+          {attachments.length} file{attachments.length !== 1 ? "s" : ""}{" "}
+          attached
+        </div>
+      )}
+
       {variant === "create" && (
         <div
           className={cn(

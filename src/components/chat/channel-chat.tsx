@@ -151,6 +151,7 @@ const ChannelChat = () => {
   const handleSendMessage = async (content: {
     body: string;
     image: File | null;
+    attachmentIds: string[];
   }) => {
     try {
       // Stop typing indicator immediately when sending
@@ -168,7 +169,7 @@ const ChannelChat = () => {
 
       await createMessage.mutateAsync({
         body: content.body,
-        attachment_id,
+        attachment_ids: content.attachmentIds,
         message_type: "channel",
       });
 

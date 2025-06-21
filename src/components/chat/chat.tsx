@@ -3,20 +3,22 @@ import { Message, User, Channel } from "@/types/chat";
 import { ChatHeader } from "./header";
 import { ChatMessageList } from "./message-list";
 import Editor from "@/components/editor";
-import { useGetMembers } from "@/features/members";
-import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
+import { useParamIds } from "@/hooks/use-param-ids";
 
 interface ChatProps {
   channel: Channel;
   messages: Message[];
   currentUser: User;
-  workspaceId: string;
   chatType?: "conversation" | "channel";
   onLoadMore: () => void;
   hasMoreMessages: boolean;
   isLoadingMore: boolean;
   isLoading?: boolean;
-  onSendMessage: (content: { body: string; image: File | null }) => void;
+  onSendMessage: (content: {
+    body: string;
+    image: File | null;
+    attachmentIds: string[];
+  }) => void;
   onEditMessage?: (messageId: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onReplyToMessage?: (messageId: string) => void;
@@ -31,7 +33,6 @@ export const Chat: FC<ChatProps> = ({
   channel,
   messages,
   currentUser,
-  workspaceId,
   chatType,
   isLoading = false,
   onSendMessage,
@@ -47,12 +48,17 @@ export const Chat: FC<ChatProps> = ({
   onInputChange,
   onTypingSubmit,
 }) => {
+  const { workspaceId } = useParamIds();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
 
-  const handleSendMessage = (content: { body: string; image: File | null }) => {
+  const handleSendMessage = (content: {
+    body: string;
+    image: File | null;
+    attachmentIds: string[];
+  }) => {
     onSendMessage(content);
   };
 
@@ -114,6 +120,7 @@ export const Chat: FC<ChatProps> = ({
 
       <div className="p-4 border-t border-border-subtle">
         <Editor
+          workspaceId={workspaceId}
           placeholder={`Message ${chatType === "conversation" && "#"}${
             channel.name
           }`}

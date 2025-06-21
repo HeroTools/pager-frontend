@@ -6,10 +6,12 @@ import type {
   UpdateMessageData,
   MessageWithUser,
 } from "../types";
+import { toast } from "sonner";
 
 export const useCreateChannelMessage = (
   workspaceId: string,
-  channelId: string
+  channelId: string,
+  attachmentIds: string[]
 ) => {
   const queryClient = useQueryClient();
 
@@ -50,7 +52,7 @@ export const useCreateChannelMessage = (
         deleted_at: null,
         parent_message_id: data.parent_message_id || null,
         thread_id: data.thread_id || null,
-        attachment_id: data.attachment_id || null,
+        attachment_id: null,
         workspace_member_id: currentUser?.workspace_member_id || "",
         user: {
           id: currentUser?.id || "",
@@ -161,9 +163,7 @@ export const useCreateChannelMessage = (
       }
 
       console.error("Failed to send channel message:", error);
-
-      // Optionally show error toast/notification here
-      // toast.error("Failed to send message. Please try again.");
+      toast.error("Failed to send message. Please try again.");
     },
 
     onSettled: () => {
