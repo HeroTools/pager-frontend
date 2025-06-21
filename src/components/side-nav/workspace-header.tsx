@@ -13,6 +13,7 @@ import {
 import { InviteModal } from "./invite-modal";
 import { PreferenceModal } from "./preference-modal";
 import type { WorkspaceEntity } from "@/features/workspaces/types";
+import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
 
 interface WorkspaceHeaderProps {
   workspace: WorkspaceEntity;
@@ -26,7 +27,8 @@ export const WorkspaceHeader = ({
   const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  console.log('worlkspace', workspace);
+  const { startConversationCreation } = useConversationCreateStore();
+
   return (
     <>
       <InviteModal
@@ -91,13 +93,14 @@ export const WorkspaceHeader = ({
             </Button>
             {/* </Hint> */}
           </InDevelopmentHint>
-          <InDevelopmentHint side="bottom">
-            {/* <Hint label="New message" side="bottom"> */}
-            <Button variant="transparent" size="iconSm" disabled>
-              <SquarePen className="size-4" />
-            </Button>
-            {/* </Hint> */}
-          </InDevelopmentHint>
+
+          <Button
+            variant="transparent"
+            size="iconSm"
+            onClick={startConversationCreation}
+          >
+            <SquarePen className="size-4" />
+          </Button>
         </div>
       </div>
     </>

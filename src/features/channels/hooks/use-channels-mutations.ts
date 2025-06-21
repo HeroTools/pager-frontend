@@ -16,14 +16,26 @@ import type {
   GetChannelMessagesParams,
 } from "../types";
 
-// Get all channels for a workspace
-export const useGetChannels = (
+// Get all public and joined channels for a workspace for the user
+export const useGetAllAvailableChannels = (
   workspaceId: string,
   filters?: Partial<ChannelFilters>
 ) => {
   return useQuery({
     queryKey: ["channels", workspaceId, filters],
-    queryFn: () => channelsApi.getChannels(workspaceId, filters),
+    queryFn: () => channelsApi.getAllAvailableChannels(workspaceId, filters),
+    enabled: !!workspaceId,
+  });
+};
+
+// Get all channels the user belongs to
+export const useGetUserChannels = (
+  workspaceId: string,
+  filters?: Partial<ChannelFilters>
+) => {
+  return useQuery({
+    queryKey: ["user-channels", workspaceId, filters],
+    queryFn: () => channelsApi.getUserChannels(workspaceId, filters),
     enabled: !!workspaceId,
   });
 };
@@ -87,7 +99,7 @@ export const useGetChannelWithMessagesInfinite = (
         limit,
         cursor: pageParam,
       }),
-    enabled: !!(workspaceId && channelId),
+    enabled: !!workspaceId && !!channelId,
     getNextPageParam: (lastPage) => {
       const pagination = lastPage?.pagination;
 

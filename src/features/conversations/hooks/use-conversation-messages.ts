@@ -52,7 +52,7 @@ export const useGetConversationWithMessagesInfinite = (
           cursor: pageParam,
         }
       ),
-    enabled: !!(workspaceId && conversationId),
+    enabled: !!workspaceId && !!conversationId,
     getNextPageParam: (lastPage) => {
       console.log("getNextPageParam - lastPage structure:", lastPage);
 
