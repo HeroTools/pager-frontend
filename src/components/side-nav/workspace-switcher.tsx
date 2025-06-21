@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Loader, PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -10,57 +11,60 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  useGetWorkspace,
-  useGetWorkspaces,
-} from "@/features/workspaces/hooks/use-workspaces";
+import { useGetWorkspaces } from "@/features/workspaces/hooks/use-workspaces";
 import { useCreateWorkspaceModal } from "@/features/workspaces/store/use-create-workspace-modal";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useParamIds } from "@/hooks/use-param-ids";
 
 export const WorkspaceSwitcher = () => {
   const router = useRouter();
-  const workspaceId = useWorkspaceId();
+  const { workspaceId } = useParamIds();
   const setOpen = useCreateWorkspaceModal((state) => state.setOpen);
 
-  const { data: currentWorkspace, isLoading: isLoadingWorkspace } =
-    useGetWorkspace(workspaceId);
+  const { data: workspaces, isLoading } = useGetWorkspaces();
 
-  const { data: workspaces } = useGetWorkspaces();
+  const currentWorkspace = useMemo(
+    () => workspaces?.find((w) => w.id === workspaceId),
+    [workspaces, workspaceId]
+  );
 
-  const filteredWorkspaces = workspaces?.filter(
-    (workspace) => workspace.id !== currentWorkspace?.id
+  const otherWorkspaces = useMemo(
+    () => workspaces?.filter((w) => w.id !== workspaceId),
+    [workspaces, workspaceId]
   );
 
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild className="outline-none relative">
         <Button className="size-9 relative overflow-hidden bg-primary hover:bg-primary/80 text-primary-foreground font-semibold text-xl">
-          {isLoadingWorkspace ? (
+          {isLoading ? (
             <Loader className="size-5 animate-spin shrink-0" />
           ) : (
             currentWorkspace?.name?.charAt(0).toUpperCase()
           )}
         </Button>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent align="start" side="bottom" className="w-60">
-        <DropdownMenuItem className="cursor-pointer flex-col justify-start items-start capitalize">
-          {currentWorkspace?.name}
+        <DropdownMenuItem className="cursor-default flex-col items-start capitalize">
+          {currentWorkspace?.name || "Unknown Workspace"}
           <span className="text-xs text-muted-foreground">
             Active workspace
           </span>
         </DropdownMenuItem>
-        {filteredWorkspaces?.map((workspace) => (
+
+        {otherWorkspaces?.map((ws) => (
           <DropdownMenuItem
-            key={workspace.id}
-            onClick={() => router.push(`/${workspace.id}`)}
+            key={ws.id}
+            onClick={() => router.push(`/${ws.id}`)}
             className="cursor-pointer capitalize overflow-hidden"
           >
             <div className="shrink-0 size-9 relative overflow-hidden bg-muted-foreground text-foreground font-semibold text-lg rounded-md flex items-center justify-center mr-2">
-              {workspace.name.charAt(0).toUpperCase()}
+              {ws.name.charAt(0).toUpperCase()}
             </div>
-            <p className="truncate">{workspace.name}</p>
+            <p className="truncate">{ws.name}</p>
           </DropdownMenuItem>
         ))}
+
         <DropdownMenuItem
           className="cursor-pointer"
           onClick={() => setOpen(true)}

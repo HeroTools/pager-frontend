@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   HashIcon,
@@ -6,30 +8,39 @@ import {
   SendHorizonal,
 } from "lucide-react";
 
-import { useGetChannels } from "@/features/channels/hooks/use-channels-mutations";
+import { useGetUserChannels } from "@/features/channels/hooks/use-channels-mutations";
 import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
-import { useGetMembersWithUsers } from "@/features/members/hooks/use-members";
+import { useConversations } from "@/features/conversations";
 import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { SidebarItem } from "./sidebar-item";
-import { UserItem } from "./user-item";
+import { ConversationItem } from "./conversation-member";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceSection } from "./workspace-section";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import { InviteModal } from "./invite-modal";
-import { useState } from "react";
+import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 
 export const WorkspaceSidebar = () => {
+  const router = useRouter();
   const { workspaceId, id: entityId } = useParamIds();
 
   const getWorkspace = useGetWorkspace(workspaceId);
-  const getChannels = useGetChannels(workspaceId);
-  const getMembers = useGetMembersWithUsers(workspaceId);
+  // TODO optimise this to get the channels and conversations from the get workspace query just add include_details=true but update BE first
+  const getUserChannels = useGetUserChannels(workspaceId);
+  const { conversations } = useConversations(workspaceId);
+  const { user: currentUser } = useCurrentUser();
+
+  const { startConversationCreation } = useConversationCreateStore();
 
   const setOpen = useCreateChannelModal((state) => state.setOpen);
-  const router = useRouter();
 
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -76,10 +87,12 @@ export const WorkspaceSidebar = () => {
         label="Channels"
         hint="New channel"
         onNew={
-          getWorkspace.data?.user_role === "admin" ? () => setOpen(true) : undefined
+          getWorkspace.data?.user_role === "admin"
+            ? () => setOpen(true)
+            : undefined
         }
       >
-        {getChannels.data?.map((item) => (
+        {(getUserChannels.data || [])?.map((item) => (
           <SidebarItem
             key={item.id}
             label={item.name}
@@ -91,30 +104,36 @@ export const WorkspaceSidebar = () => {
         <div className="pt-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="w-full" variant="ghost">+ Add Channel</Button>
+              <Button className="w-full" variant="ghost">
+                + Add Channel
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setOpen(true)}>
                 Create a new channel
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push(`/${workspaceId}/browse-channels`)}>
+              <DropdownMenuItem
+                onClick={() => router.push(`/${workspaceId}/browse-channels`)}
+              >
                 Browse channels
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </WorkspaceSection>
-      <WorkspaceSection label="Direct Messages" hint="New direct message">
-        {getMembers.data?.map((item) => (
-          <UserItem
-            id={item.id}
-            image={item.user.image}
-            key={item.id}
-            label={item.user.name}
-            variant={entityId === item.id ? "active" : "default"}
+      <WorkspaceSection
+        label="Direct Messages"
+        hint="New direct message"
+        onNew={startConversationCreation}
+      >
+        {conversations?.map((conversation) => (
+          <ConversationItem
+            key={conversation.id}
+            conversation={conversation}
+            variant={entityId === conversation.id ? "active" : "default"}
           />
         ))}
-        {getWorkspace.data.user_role === "admin" && (
+        {currentUser?.role === "admin" && (
           <>
             <Button
               className="mt-2 w-full"
