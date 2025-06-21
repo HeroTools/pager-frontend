@@ -4,13 +4,12 @@ import type {
   WorkspaceWithMembersList,
   CreateWorkspaceData,
   UpdateWorkspaceData,
-  JoinWorkspaceData,
   WorkspaceResponse,
   WorkspacesResponse,
   WorkspaceWithMembersResponse,
-  JoinCodeResponse,
   WorkspaceStats,
   WorkspaceResponseData,
+  WorkspaceInviteInfoResponse,
 } from "../types";
 
 export const workspacesApi = {
@@ -79,27 +78,6 @@ export const workspacesApi = {
   },
 
   /**
-   * Generate new join code for workspace
-   */
-  generateJoinCode: async (id: string): Promise<string> => {
-    const response = await httpClient.post<JoinCodeResponse>(
-      `/workspaces/${id}/join-code`
-    );
-    return response.data.join_code;
-  },
-
-  /**
-   * Join workspace using join code
-   */
-  joinWorkspace: async (data: JoinWorkspaceData): Promise<WorkspaceEntity> => {
-    const response = await httpClient.post<WorkspaceResponse>(
-      "/workspaces/join",
-      data
-    );
-    return response.data;
-  },
-
-  /**
    * Get workspace statistics
    */
   getWorkspaceStats: async (id: string): Promise<WorkspaceStats> => {
@@ -114,5 +92,15 @@ export const workspacesApi = {
    */
   leaveWorkspace: async (id: string): Promise<void> => {
     await httpClient.post(`/workspaces/${id}/leave`);
+  },
+
+  /**
+   * Get workspace info from invite token
+   */
+  getWorkspaceFromInviteToken: async (token: string): Promise<WorkspaceInviteInfoResponse> => {
+    const response = await httpClient.get<WorkspaceInviteInfoResponse>(
+      `/workspaces/invite-token?token=${token}`
+    );
+    return response;
   },
 };

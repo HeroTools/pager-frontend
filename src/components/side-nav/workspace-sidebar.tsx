@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   HashIcon,
@@ -5,7 +7,6 @@ import {
   MessageSquareText,
   SendHorizonal,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { useGetUserChannels } from "@/features/channels/hooks/use-channels-mutations";
 import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
@@ -24,6 +25,8 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { InviteModal } from "./invite-modal";
+import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 
 export const WorkspaceSidebar = () => {
   const router = useRouter();
@@ -33,10 +36,13 @@ export const WorkspaceSidebar = () => {
   // TODO optimise this to get the channels and conversations from the get workspace query just add include_details=true but update BE first
   const getUserChannels = useGetUserChannels(workspaceId);
   const { conversations } = useConversations(workspaceId);
+  const { user: currentUser } = useCurrentUser();
 
   const { startConversationCreation } = useConversationCreateStore();
 
   const setOpen = useCreateChannelModal((state) => state.setOpen);
+
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   if (getWorkspace.isLoading) {
     return (
@@ -98,7 +104,7 @@ export const WorkspaceSidebar = () => {
         <div className="pt-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="w-full" variant="outline">
+              <Button className="w-full" variant="ghost">
                 + Add Channel
               </Button>
             </DropdownMenuTrigger>
@@ -127,6 +133,22 @@ export const WorkspaceSidebar = () => {
             variant={entityId === conversation.id ? "active" : "default"}
           />
         ))}
+        {currentUser?.role === "admin" && (
+          <>
+            <Button
+              className="mt-2 w-full"
+              variant="ghost"
+              onClick={() => setInviteOpen(true)}
+            >
+              + Invite People
+            </Button>
+            <InviteModal
+              open={inviteOpen}
+              setOpen={setInviteOpen}
+              name={getWorkspace.data.name}
+            />
+          </>
+        )}
       </WorkspaceSection>
     </div>
   );
