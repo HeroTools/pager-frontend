@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { TriangleAlert } from "lucide-react";
 import { SignInFlow } from "../types";
-import { useSignIn, useGoogleSignIn, useGithubSignIn } from "@/features/auth";
+import { useSignIn, useGoogleSignIn } from "@/features/auth";
 
 interface SignInCardProps {
   setState: (state: SignInFlow) => void;
@@ -21,7 +21,6 @@ interface SignInCardProps {
 export const SignInCard = ({ setState }: SignInCardProps) => {
   const signIn = useSignIn();
   const googleSignIn = useGoogleSignIn();
-  const githubSignIn = useGithubSignIn();
 
   const form = useForm({
     defaultValues: {
@@ -36,24 +35,22 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
     }
   );
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async (provider: "google" = "google") => {
+    if (provider !== "google") {
+      alert("Unsupported sign-in method. Please use Google to sign in.");
+      return;
+    }
     googleSignIn.mutate({
-      redirectTo: `${window.location.origin}/auth/callback`,
-    });
-  };
-
-  const handleGithubSignIn = async () => {
-    githubSignIn.mutate({
       redirectTo: `${window.location.origin}/auth/callback`,
     });
   };
 
   // Get loading state from any of the mutations
   const isLoading =
-    signIn.isPending || googleSignIn.isPending || githubSignIn.isPending;
+    signIn.isPending || googleSignIn.isPending;
 
   // Get error from the most recent mutation
-  const error = signIn.error || googleSignIn.error || githubSignIn.error;
+  const error = signIn.error || googleSignIn.error;
 
   return (
     <Card className="w-full h-full p-8">
@@ -118,12 +115,12 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
         <div className="flex flex-col gap-y-2.5">
           <Button
             disabled={isLoading}
-            onClick={handleGoogleSignIn}
+            onClick={() => handleGoogleSignIn("google")}
             variant="outline"
             size="lg"
             className="w-full relative"
           >
-            <FcGoogle className="size-5 absolute top-3 left-2.5" />
+            <span className="size-5 absolute top-3 left-2.5">G</span>
             {googleSignIn.isPending ? "Connecting..." : "Continue with Google"}
           </Button>
         </div>
