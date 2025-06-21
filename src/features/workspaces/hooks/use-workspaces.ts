@@ -5,7 +5,7 @@ import type {
   WorkspaceWithMembersList,
   CreateWorkspaceData,
   UpdateWorkspaceData,
-  JoinWorkspaceData,
+  WorkspaceInviteInfoResponse,
 } from "../types";
 
 // Get all workspaces
@@ -60,49 +60,6 @@ export const useCreateWorkspace = () => {
       queryClient.setQueryData<WorkspaceEntity>(
         ["workspace", newWorkspace.id],
         newWorkspace
-      );
-
-      // Invalidate to ensure fresh data
-      queryClient.invalidateQueries({
-        queryKey: ["workspaces"],
-      });
-    },
-  });
-};
-
-// Generate a new join code
-export const useNewJoinCode = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (workspaceId: string) =>
-      workspacesApi.generateJoinCode(workspaceId),
-    onSuccess: (newJoinCode, workspaceId) => {
-      // Update the workspace cache with new join code
-      queryClient.setQueryData<WorkspaceEntity>(
-        ["workspace", workspaceId],
-        (old) => (old ? { ...old, join_code: newJoinCode } : old)
-      );
-    },
-  });
-};
-
-// Join a workspace
-export const useJoinWorkspace = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: JoinWorkspaceData) => workspacesApi.joinWorkspace(data),
-    onSuccess: (joinedWorkspace) => {
-      // Add the joined workspace to the cache
-      queryClient.setQueryData<WorkspaceEntity[]>(["workspaces"], (old) =>
-        old ? [...old, joinedWorkspace] : [joinedWorkspace]
-      );
-
-      // Cache the individual workspace
-      queryClient.setQueryData<WorkspaceEntity>(
-        ["workspace", joinedWorkspace.id],
-        joinedWorkspace
       );
 
       // Invalidate to ensure fresh data
@@ -213,3 +170,18 @@ export const useLeaveWorkspace = () => {
     },
   });
 };
+
+/**
+ * Fetch workspace info from invite token
+ */
+export function useWorkspaceFromInviteToken(token?: string) {
+  return useQuery<WorkspaceInviteInfoResponse, Error>({
+    queryKey: ["workspace-invite-info", token],
+    queryFn: () => {
+      if (!token) throw new Error("No invite token provided");
+      return workspacesApi.getWorkspaceFromInviteToken(token);
+    },
+    enabled: !!token,
+    retry: false,
+  });
+}

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { authApi } from "../api/auth-api";
-import { AuthError, EnhancedAuthResponse, SignInData } from "../types";
+import { AuthError, EnhancedAuthResponse, SignInData, InviteLinkResponse } from "../types";
 import { WorkspaceEntity } from "@/features/workspaces/types";
 
 export const useSignUp = () => {
@@ -138,13 +138,6 @@ export const useGoogleSignIn = () => {
   });
 };
 
-export const useGithubSignIn = () => {
-  return useMutation({
-    mutationFn: ({ redirectTo }: { redirectTo: string }) =>
-      authApi.githubSignIn(redirectTo),
-  });
-};
-
 export const useVerifyEmail = () => {
   const router = useRouter();
   return useMutation({
@@ -209,5 +202,11 @@ export const useSwitchWorkspace = () => {
     onError: (error) => {
       console.error("Failed to switch workspace:", error);
     },
+  });
+};
+
+export const useInviteLink = () => {
+  return useMutation<InviteLinkResponse, Error, string>({
+    mutationFn: (workspaceId: string) => authApi.getInviteLink(workspaceId),
   });
 };
