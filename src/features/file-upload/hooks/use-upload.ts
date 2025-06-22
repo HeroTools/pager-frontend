@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  uploadApi,
-  PresignedUrlRequest,
   ConfirmUploadRequest,
   DeleteAttachmentRequest,
-} from "../api/upload-api";
+  PresignedUrlRequest,
+} from "../types";
+import { uploadApi } from "../api/upload-api";
 
 export interface UploadProgress {
   loaded: number;
@@ -15,7 +15,7 @@ export interface UploadProgress {
 export interface FileUploadResult {
   attachmentId: string;
   filename: string;
-  url: string;
+  publicUrl: string;
   contentType: string;
   sizeBytes: number;
   status: "success" | "error";
@@ -25,10 +25,10 @@ export interface FileUploadResult {
 /**
  * Hook for getting presigned URLs
  */
-export const useGetPresignedUrl = (workspaceId: string) => {
+export const useGetPresignedUrl = () => {
   return useMutation({
     mutationFn: (request: PresignedUrlRequest) =>
-      uploadApi.getPresignedUrl(workspaceId, request),
+      uploadApi.getPresignedUrl(request),
     onError: (error) => {
       console.error("Failed to get presigned URL:", error);
     },
@@ -38,43 +38,120 @@ export const useGetPresignedUrl = (workspaceId: string) => {
 /**
  * Hook for uploading files with Supabase's uploadToSignedUrl
  */
-export const useUploadFile = (workspaceId: string) => {
+export const useUploadFile = () => {
   return useMutation({
     mutationFn: async ({
+      workspaceId,
       supabase,
       path,
       token,
       file,
       onProgress,
     }: {
+      workspaceId: string;
       supabase: any; // Supabase client
       path: string;
       token: string;
       file: File;
       onProgress?: (progress: UploadProgress) => void;
     }) => {
+      // Convert File to FileBody (ArrayBuffer) as required by Supabase
+      const fileBody = await file.arrayBuffer();
+
+      // Use uploadToSignedUrl with the correct FileBody type
       const { data, error } = await supabase.storage
         .from("attachments")
-        .uploadToSignedUrl(path, token, file, {
+        .uploadToSignedUrl(path, token, fileBody, {
+          upsert: false, // Make sure this matches your token settings
+          contentType: file.type, // Explicitly set content type
           onUploadProgress: onProgress
             ? (progress: any) => {
                 onProgress({
                   loaded: progress.loaded,
                   total: progress.total,
-                  percentage: (progress.loaded / progress.total) * 100,
+                  percentage: Math.round(
+                    (progress.loaded / progress.total) * 100
+                  ),
                 });
               }
             : undefined,
         });
 
       if (error) {
-        throw new Error(error.message);
+        console.error("Supabase upload error:", error);
+        throw new Error(`Upload failed: ${error.message}`);
       }
 
       return data;
     },
     onError: (error) => {
       console.error("File upload failed:", error);
+    },
+  });
+};
+
+/**
+ * Alternative manual upload method if uploadToSignedUrl continues to have issues
+ */
+export const useManualUpload = () => {
+  return useMutation({
+    mutationFn: async ({
+      signedUrl,
+      file,
+      onProgress,
+    }: {
+      signedUrl: string;
+      file: File;
+      onProgress?: (progress: UploadProgress) => void;
+    }) => {
+      return new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        // Track upload progress
+        if (onProgress) {
+          xhr.upload.addEventListener("progress", (event) => {
+            if (event.lengthComputable) {
+              onProgress({
+                loaded: event.loaded,
+                total: event.total,
+                percentage: Math.round((event.loaded / event.total) * 100),
+              });
+            }
+          });
+        }
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(
+              new Error(
+                `Upload failed with status: ${xhr.status} - ${xhr.responseText}`
+              )
+            );
+          }
+        });
+
+        xhr.addEventListener("error", () => {
+          reject(new Error("Network error during upload"));
+        });
+
+        xhr.addEventListener("timeout", () => {
+          reject(new Error("Upload timeout"));
+        });
+
+        // Open PUT request to signed URL
+        xhr.open("PUT", signedUrl);
+
+        // Set content type to match the file
+        xhr.setRequestHeader("Content-Type", file.type);
+
+        // Send the raw file data (not multipart)
+        xhr.send(file);
+      });
+    },
+    onError: (error) => {
+      console.error("Manual upload failed:", error);
     },
   });
 };
@@ -123,11 +200,13 @@ export const useDeleteAttachment = () => {
 export const useFileUpload = (workspaceId: string, supabase: any) => {
   const getPresignedUrlMutation = useGetPresignedUrl();
   const uploadFileMutation = useUploadFile();
+  const manualUploadMutation = useManualUpload();
   const confirmUploadMutation = useConfirmUpload();
 
   const uploadFile = async (
     file: File,
-    onProgress?: (progress: UploadProgress) => void
+    onProgress?: (progress: UploadProgress) => void,
+    useManualMethod: boolean = false
   ): Promise<FileUploadResult> => {
     try {
       const fileId = crypto.randomUUID();
@@ -139,40 +218,42 @@ export const useFileUpload = (workspaceId: string, supabase: any) => {
         filename: file.name,
         contentType: file.type,
         sizeBytes: file.size,
+        filePurpose: "attachments",
       });
 
-      if (!presignedUrlResponse.success) {
-        throw new Error(
-          presignedUrlResponse.error || "Failed to get presigned URL"
-        );
+      const { signed_url, token, path, public_url, file_id } =
+        presignedUrlResponse;
+
+      // Step 2: Upload file
+      if (useManualMethod) {
+        // Use manual XMLHttpRequest method
+        await manualUploadMutation.mutateAsync({
+          signedUrl: signed_url,
+          file,
+          onProgress,
+        });
+      } else {
+        // Use Supabase's uploadToSignedUrl method
+        await uploadFileMutation.mutateAsync({
+          workspaceId,
+          supabase,
+          path,
+          token,
+          file,
+          onProgress,
+        });
       }
-
-      const { signedUrl, token, path, publicUrl, attachmentId } =
-        presignedUrlResponse.data;
-
-      // Step 2: Upload file using Supabase's uploadToSignedUrl
-      await uploadFileMutation.mutateAsync({
-        supabase,
-        path,
-        token,
-        file,
-        onProgress,
-      });
 
       // Step 3: Confirm upload
-      const confirmResponse = await confirmUploadMutation.mutateAsync({
-        attachmentId,
+      await confirmUploadMutation.mutateAsync({
         workspaceId,
+        attachmentId: file_id,
       });
 
-      if (!confirmResponse.success) {
-        throw new Error(confirmResponse.error || "Failed to confirm upload");
-      }
-
       return {
-        attachmentId,
+        attachmentId: file_id,
         filename: file.name,
-        url: publicUrl,
+        publicUrl: public_url,
         contentType: file.type,
         sizeBytes: file.size,
         status: "success",
@@ -183,7 +264,7 @@ export const useFileUpload = (workspaceId: string, supabase: any) => {
       return {
         attachmentId: "",
         filename: file.name,
-        url: "",
+        publicUrl: "",
         contentType: file.type,
         sizeBytes: file.size,
         status: "error",
@@ -195,7 +276,8 @@ export const useFileUpload = (workspaceId: string, supabase: any) => {
   const uploadMultipleFiles = async (
     files: File[],
     onProgress?: (fileIndex: number, progress: UploadProgress) => void,
-    maxConcurrency: number = 3
+    maxConcurrency: number = 3,
+    useManualMethod: boolean = false
   ): Promise<FileUploadResult[]> => {
     const results: FileUploadResult[] = [];
 
@@ -205,9 +287,13 @@ export const useFileUpload = (workspaceId: string, supabase: any) => {
 
       const batchPromises = batch.map((file, batchIndex) => {
         const fileIndex = i + batchIndex;
-        return uploadFile(file, (progress) => {
-          onProgress?.(fileIndex, progress);
-        });
+        return uploadFile(
+          file,
+          (progress) => {
+            onProgress?.(fileIndex, progress);
+          },
+          useManualMethod
+        );
       });
 
       const batchResults = await Promise.all(batchPromises);
@@ -223,10 +309,12 @@ export const useFileUpload = (workspaceId: string, supabase: any) => {
     isUploading:
       getPresignedUrlMutation.isPending ||
       uploadFileMutation.isPending ||
+      manualUploadMutation.isPending ||
       confirmUploadMutation.isPending,
     error:
       getPresignedUrlMutation.error ||
       uploadFileMutation.error ||
+      manualUploadMutation.error ||
       confirmUploadMutation.error,
   };
 };

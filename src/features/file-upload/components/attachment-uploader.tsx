@@ -2,23 +2,12 @@ import React, { useState, useCallback } from "react";
 import {
   useFileUpload,
   useDeleteAttachment,
-  FileUploadResult,
   UploadProgress,
 } from "@/features/file-upload/hooks/use-upload";
 import { createClient } from "@/lib/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { X } from "lucide-react";
-
-interface UploadedAttachment {
-  id: string;
-  originalFilename: string;
-  contentType: string;
-  sizeBytes: number;
-  url: string;
-  uploadProgress: number;
-  status: "uploading" | "completed" | "error";
-  error?: string;
-}
+import { UploadedAttachment } from "../types";
 
 interface AttachmentUploaderProps {
   workspaceId: string;
@@ -95,7 +84,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
           originalFilename: file.name,
           contentType: file.type,
           sizeBytes: file.size,
-          url: "",
+          publicUrl: "",
           uploadProgress: 0,
           status: "uploading",
         })
@@ -119,7 +108,8 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
               })
             );
           },
-          3 // Max 3 concurrent uploads
+          3, // Max 3 concurrent uploads
+          true
         );
 
         setAttachments((prev) => {
@@ -128,12 +118,13 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
 
             if (resultIndex >= 0 && resultIndex < results.length) {
               const result = results[resultIndex];
+              console.log(result, "result.publicUrl");
               return {
                 id: result.attachmentId || att.id,
                 originalFilename: att.originalFilename,
                 contentType: att.contentType,
                 sizeBytes: att.sizeBytes,
-                url: result.url,
+                publicUrl: result.publicUrl,
                 uploadProgress: 100,
                 status:
                   result.status === "success"

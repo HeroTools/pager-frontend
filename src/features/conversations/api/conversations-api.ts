@@ -1,4 +1,4 @@
-import { httpClient } from "@/lib/api/http-client";
+import api from "@/lib/api/axios-client";
 import type {
   ConversationEntity,
   ConversationWithMembersList,
@@ -37,7 +37,7 @@ export const conversationsApi = {
       params.append("search_query", filters.search_query);
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await httpClient.get<ConversationsResponse>(
+    const { data: response } = await api.get<ConversationsResponse>(
       `/workspaces/${workspaceId}/conversations${queryString}`
     );
 
@@ -51,7 +51,7 @@ export const conversationsApi = {
     workspaceId: string,
     conversationId: string
   ): Promise<ConversationEntity> => {
-    const response = await httpClient.get<ConversationResponse>(
+    const { data: response } = await api.get<ConversationResponse>(
       `/workspaces/${workspaceId}/conversations/${conversationId}`
     );
     return response.data;
@@ -64,25 +64,18 @@ export const conversationsApi = {
   ): Promise<ConversationWithMessagesResponse> => {
     const searchParams = new URLSearchParams();
 
-    if (params?.limit) {
-      searchParams.append("limit", params.limit.toString());
-    }
-    if (params?.cursor) {
-      searchParams.append("cursor", params.cursor);
-    }
-    if (params?.before) {
-      searchParams.append("before", params.before);
-    }
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.cursor) searchParams.append("cursor", params.cursor);
+    if (params?.before) searchParams.append("before", params.before);
 
     const queryString = searchParams.toString();
     const url = `/workspaces/${workspaceId}/conversations/${conversationId}/messages${
       queryString ? `?${queryString}` : ""
     }`;
 
-    const response = await httpClient.get<ConversationWithMessagesResponse>(
+    const { data: response } = await api.get<ConversationWithMessagesResponse>(
       url
     );
-    console.log(response);
     return response;
   },
 
@@ -93,7 +86,7 @@ export const conversationsApi = {
     workspaceId: string,
     data: CreateConversationData
   ): Promise<CreateConversationResponse> => {
-    const response = await httpClient.post<CreateConversationResponse>(
+    const { data: response } = await api.post<CreateConversationResponse>(
       `/workspaces/${workspaceId}/conversations`,
       data
     );
@@ -110,7 +103,7 @@ export const conversationsApi = {
     workspaceId: string,
     conversationId: string
   ): Promise<void> => {
-    await httpClient.delete(
+    await api.delete(
       `/workspaces/${workspaceId}/conversations/${conversationId}`
     );
   },
@@ -123,7 +116,7 @@ export const conversationsApi = {
     conversationId: string,
     data: AddConversationParticipantData
   ): Promise<void> => {
-    await httpClient.post(
+    await api.post(
       `/workspaces/${workspaceId}/conversations/${conversationId}/participants`,
       data
     );
@@ -137,7 +130,7 @@ export const conversationsApi = {
     conversationId: string,
     participantId: string
   ): Promise<void> => {
-    await httpClient.delete(
+    await api.delete(
       `/workspaces/${workspaceId}/conversations/${conversationId}/participants/${participantId}`
     );
   },
@@ -149,7 +142,7 @@ export const conversationsApi = {
     workspaceId: string,
     conversationId: string
   ): Promise<void> => {
-    await httpClient.post(
+    await api.post(
       `/workspaces/${workspaceId}/conversations/${conversationId}/leave`
     );
   },
@@ -170,7 +163,7 @@ export const conversationsApi = {
       params.append("search_query", filters.search_query);
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await httpClient.get<ConversationMessagesResponse>(
+    const { data: response } = await api.get<ConversationMessagesResponse>(
       `/workspaces/${workspaceId}/conversations/${conversationId}/messages${queryString}`
     );
     return response.data;
@@ -193,7 +186,7 @@ export const conversationsApi = {
     params.append("include_relations", "true");
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await httpClient.get<ConversationMessagesResponse>(
+    const { data: response } = await api.get<ConversationMessagesResponse>(
       `/workspaces/${workspaceId}/conversations/${conversationId}/messages${queryString}`
     );
     return response.data as ConversationMessageWithRelations[];
@@ -207,7 +200,7 @@ export const conversationsApi = {
     conversationId: string,
     data: CreateConversationMessageData
   ): Promise<ConversationMessage> => {
-    const response = await httpClient.post<ConversationMessageResponse>(
+    const { data: response } = await api.post<ConversationMessageResponse>(
       `/workspaces/${workspaceId}/conversations/${conversationId}/messages`,
       data
     );
@@ -223,7 +216,7 @@ export const conversationsApi = {
     messageId: string,
     data: UpdateConversationMessageData
   ): Promise<ConversationMessage> => {
-    const response = await httpClient.patch<ConversationMessageResponse>(
+    const { data: response } = await api.patch<ConversationMessageResponse>(
       `/workspaces/${workspaceId}/conversations/${conversationId}/messages/${messageId}`,
       data
     );
@@ -238,7 +231,7 @@ export const conversationsApi = {
     conversationId: string,
     messageId: string
   ): Promise<void> => {
-    await httpClient.delete(
+    await api.delete(
       `/workspaces/${workspaceId}/conversations/${conversationId}/messages/${messageId}`
     );
   },
@@ -251,7 +244,7 @@ export const conversationsApi = {
     conversationId: string,
     messageId: string
   ): Promise<void> => {
-    await httpClient.patch(
+    await api.patch(
       `/workspaces/${workspaceId}/conversations/${conversationId}/read`,
       { last_read_message_id: messageId }
     );
@@ -264,7 +257,7 @@ export const conversationsApi = {
     workspaceId: string,
     participantUserId: string
   ): Promise<ConversationEntity> => {
-    const response = await httpClient.post<ConversationResponse>(
+    const { data: response } = await api.post<ConversationResponse>(
       `/workspaces/${workspaceId}/conversations/direct`,
       { participant_user_id: participantUserId }
     );
@@ -279,7 +272,7 @@ export const conversationsApi = {
     conversationId: string,
     isTyping: boolean
   ): Promise<void> => {
-    await httpClient.post(
+    await api.post(
       `/workspaces/${workspaceId}/conversations/${conversationId}/typing`,
       { is_typing: isTyping }
     );

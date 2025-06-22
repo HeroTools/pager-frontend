@@ -37,6 +37,7 @@ export const useGetUserChannels = (
     queryKey: ["user-channels", workspaceId, filters],
     queryFn: () => channelsApi.getUserChannels(workspaceId, filters),
     enabled: !!workspaceId,
+    staleTime: 2 * 60 * 60 * 1000,
   });
 };
 

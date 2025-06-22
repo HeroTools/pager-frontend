@@ -6,7 +6,9 @@ import {
   SendMessageRequest,
   MessageType,
   Reaction,
+  Attachment,
 } from "@/types/database";
+import { UploadedAttachment } from "../file-upload/types";
 
 // Use the database Message type directly
 export type MessageEntity = Message;
@@ -93,6 +95,14 @@ export interface CreateConversationMessageData {
   message_type?: "direct" | "thread" | "system";
 }
 
+export interface CreateMessageData {
+  body: string;
+  attachments?: UploadedAttachment[];
+  parent_message_id?: string;
+  thread_id?: string;
+  message_type?: "direct" | "thread" | "system";
+}
+
 export interface UpdateMessageData {
   body?: string;
 }
@@ -112,6 +122,7 @@ export interface MessageWithUser {
   updated_at: string | null;
   edited_at: string | null;
   deleted_at: string | null;
+  attachments: Attachment[];
   user: {
     id: string;
     name: string;

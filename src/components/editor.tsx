@@ -26,23 +26,13 @@ import { Hint } from "./hint";
 import { Button } from "./ui/button";
 import AttachmentUploader from "@/features/file-upload/components/attachment-uploader";
 import { toast } from "sonner";
+import { UploadedAttachment } from "@/features/file-upload/types";
 
 type EditorValue = {
   image: File | null;
   body: string;
-  attachmentIds: string[];
+  attachments: UploadedAttachment[];
 };
-
-interface UploadedAttachment {
-  id: string;
-  originalFilename: string;
-  contentType: string;
-  sizeBytes: number;
-  url: string;
-  uploadProgress: number;
-  status: "uploading" | "completed" | "error";
-  error?: string;
-}
 
 interface EditorProps {
   variant?: "create" | "update";
@@ -52,11 +42,7 @@ interface EditorProps {
   placeholder?: string;
   workspaceId: string;
   onCancel?: () => void;
-  onSubmit: ({
-    image,
-    body,
-    attachmentIds,
-  }: EditorValue) => Promise<any> | void;
+  onSubmit: ({ image, body, attachments }: EditorValue) => Promise<any> | void;
 }
 
 const Editor = ({
@@ -116,15 +102,12 @@ const Editor = ({
     const oldImage = image;
     const oldAttachments = attachments;
     const body = JSON.stringify(oldContents);
-    const attachmentIds = attachments
-      .filter((att) => att.status === "completed")
-      .map((att) => att.id);
 
     try {
       const result = onSubmitRef.current({
         image: oldImage,
         body,
-        attachmentIds,
+        attachments,
       });
 
       // Clear form
