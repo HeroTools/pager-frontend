@@ -27,7 +27,7 @@ import {
 import { useCreateWorkspace } from "@/features/workspaces";
 import {
   useUploadFile,
-  useGetUploadUrl,
+  // useGetUploadUrl,
 } from "@/features/file-upload/hooks/use-upload";
 
 const steps = ["Workspace Name", "Your Profile", "Invite Teammates"];
@@ -54,7 +54,7 @@ export default function CreateWorkspacePage() {
 
   const { mutateAsync: createWorkspace, isPending: isCreating } =
     useCreateWorkspace();
-  const uploadUrlMutation = useGetUploadUrl();
+  // const uploadUrlMutation = useGetUploadUrl();
   const uploadFileMutation = useUploadFile();
 
   // Stepper UI
@@ -138,28 +138,28 @@ export default function CreateWorkspacePage() {
   }
 
   // Step 2: User Profile
-  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploading(true);
-    try {
-      const { url, key } = await uploadUrlMutation.mutateAsync({
-        fileName: file.name,
-        fileType: file.type,
-      });
-      await uploadFileMutation.mutateAsync({ url, file });
-      // Construct public URL from key
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const bucket = "avatars"; // Change if your bucket is named differently
-      const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${key}`;
-      setAvatarUrl(publicUrl);
-      profileForm.setValue("avatar", publicUrl);
-    } catch (err) {
-      toast.error("Failed to upload image");
-    } finally {
-      setIsUploading(false);
-    }
-  }
+  // async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
+  //   setIsUploading(true);
+  //   try {
+  //     const { url, key } = await uploadUrlMutation.mutateAsync({
+  //       fileName: file.name,
+  //       fileType: file.type,
+  //     });
+  //     await uploadFileMutation.mutateAsync({ url, file });
+  //     // Construct public URL from key
+  //     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  //     const bucket = "avatars"; // Change if your bucket is named differently
+  //     const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${key}`;
+  //     setAvatarUrl(publicUrl);
+  //     profileForm.setValue("avatar", publicUrl);
+  //   } catch (err) {
+  //     toast.error("Failed to upload image");
+  //   } finally {
+  //     setIsUploading(false);
+  //   }
+  // }
 
   function UserProfileStep() {
     return (
@@ -222,14 +222,14 @@ export default function CreateWorkspacePage() {
                     )}
                   </Avatar>
                 </div>
-                <input
+                {/* <input
                   type="file"
                   accept="image/*"
                   className="hidden"
                   ref={fileInputRef}
                   onChange={handleAvatarUpload}
                   disabled={isUploading}
-                />
+                /> */}
                 <Button
                   type="button"
                   variant="ghost"

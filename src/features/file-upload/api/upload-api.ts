@@ -1,40 +1,11 @@
-import { httpClient } from "@/lib/api/http-client";
-
-export interface PresignedUrlRequest {
-  workspaceId: string;
-  fileId: string;
-  filename: string;
-  contentType: string;
-  sizeBytes: number;
-}
-
-export interface PresignedUrlResponse {
-  success: boolean;
-  data: {
-    signedUrl: string;
-    token: string;
-    path: string;
-    publicUrl: string;
-    attachmentId: string;
-    expiresIn: number;
-  };
-  error?: string;
-}
-
-export interface ConfirmUploadResponse {
-  success: boolean;
-  data: {
-    attachment: {
-      id: string;
-      original_filename: string;
-      content_type: string;
-      size_bytes: number;
-      url: string;
-      status: string;
-    };
-  };
-  error?: string;
-}
+import api from "@/lib/api/axios-client";
+import {
+  ConfirmUploadRequest,
+  ConfirmUploadResponse,
+  DeleteAttachmentRequest,
+  PresignedUrlRequest,
+  PresignedUrlResponse,
+} from "../types";
 
 export interface DeleteAttachmentResponse {
   success: boolean;
@@ -45,37 +16,38 @@ export const uploadApi = {
   /**
    * Request a presigned URL for file upload
    */
-  getPresignedUrl: (
-    workspaceId: string,
+  getPresignedUrl: async (
     request: PresignedUrlRequest
   ): Promise<PresignedUrlResponse> => {
-    return httpClient.post(
-      `/workspaces/${workspaceId}/attachments/generate-presigned-url`,
+    const { data } = await api.post<PresignedUrlResponse>(
+      `/workspaces/${request.workspaceId}/attachments/generate-presigned-url`,
       request
     );
+    return data;
   },
 
   /**
    * Confirm upload completion
    */
-  confirmUpload: (
-    workspaceId: string,
-    attachmentId: string
+  confirmUpload: async (
+    request: ConfirmUploadRequest
   ): Promise<ConfirmUploadResponse> => {
-    return httpClient.post(
-      `/workspaces/${workspaceId}/attachments/${attachmentId}/confirm-upload`
+    const { data } = await api.post<ConfirmUploadResponse>(
+      `/workspaces/${request.workspaceId}/attachments/${request.attachmentId}/confirm-upload`,
+      request
     );
+    return data;
   },
 
   /**
    * Delete an attachment
    */
-  deleteAttachment: (
-    workspaceId: string,
-    attachmentId: string
+  deleteAttachment: async (
+    request: DeleteAttachmentRequest
   ): Promise<DeleteAttachmentResponse> => {
-    return httpClient.delete(
-      `/workspaces/${workspaceId}/attachments/${attachmentId}`
+    const { data } = await api.delete<DeleteAttachmentResponse>(
+      `/workspaces/${request.workspaceId}/attachments/${request.attachmentId}`
     );
+    return data;
   },
 };

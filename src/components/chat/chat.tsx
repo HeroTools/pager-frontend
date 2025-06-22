@@ -4,6 +4,7 @@ import { ChatHeader } from "./header";
 import { ChatMessageList } from "./message-list";
 import Editor from "@/components/editor";
 import { useParamIds } from "@/hooks/use-param-ids";
+import { UploadedAttachment } from "@/features/file-upload/types";
 
 interface ChatProps {
   channel: Channel;
@@ -17,7 +18,7 @@ interface ChatProps {
   onSendMessage: (content: {
     body: string;
     image: File | null;
-    attachmentIds: string[];
+    attachments: UploadedAttachment[];
   }) => void;
   onEditMessage?: (messageId: string) => void;
   onDeleteMessage?: (messageId: string) => void;
@@ -57,7 +58,7 @@ export const Chat: FC<ChatProps> = ({
   const handleSendMessage = (content: {
     body: string;
     image: File | null;
-    attachmentIds: string[];
+    attachments: UploadedAttachment[];
   }) => {
     onSendMessage(content);
   };

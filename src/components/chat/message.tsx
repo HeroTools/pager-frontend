@@ -97,10 +97,10 @@ export const ChatMessage: FC<ChatMessageProps> = ({
             <MessageContent content={message.content} />
           </div>
 
-          {message.image && (
+          {message.attachments?.[0]?.id && (
             <div className="mt-2 max-w-sm">
               <img
-                src={message.image}
+                src={message.attachments[0]?.public_url}
                 alt="Uploaded image"
                 className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
               />
