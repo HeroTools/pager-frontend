@@ -190,14 +190,38 @@ export const messagesApi = {
   /**
    * Get message thread (parent message + replies)
    */
-  getMessageThread: async (
-    workspaceId: string,
-    messageId: string
-  ): Promise<MessageThread> => {
-    const { data: response } = await api.get<MessageThreadResponse>(
-      `/workspaces/${workspaceId}/messages/${messageId}/thread`
+  getMessageReplies: async ({
+    workspaceId,
+    messageId,
+    params,
+  }: {
+    workspaceId: string;
+    messageId: string;
+    params?: {
+      limit?: number;
+      cursor?: string;
+      before?: string;
+      after?: string;
+      entity_type?: "channel" | "conversation";
+      entity_id?: string;
+      include_reactions?: string;
+      include_attachments?: string;
+    };
+  }): Promise<MessageThread> => {
+    const appendedParams = new URLSearchParams();
+    if (params?.before) appendedParams.append("before", params.before);
+    if (params?.after) appendedParams.append("after", params.after);
+    if (params?.limit) appendedParams.append("limit", params.limit.toString());
+    if (params?.entity_type)
+      appendedParams.append("entity_type", params.entity_type);
+    if (params?.entity_id) appendedParams.append("entity_id", params.entity_id);
+
+    const qs = appendedParams.toString() ? `?${appendedParams.toString()}` : "";
+    const { data: response } = await api.get<MessagesResponse>(
+      `/workspaces/${workspaceId}/messages/${messageId}/replies${qs}`
     );
-    return response.data;
+
+    return response;
   },
 
   /**
