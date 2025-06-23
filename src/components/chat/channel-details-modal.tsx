@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Channel } from "@/types/chat";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +30,7 @@ interface ChannelDetailsModalProps {
   onClose: () => void;
   channel: Channel;
   members?: Member[];
+  initialTab?: "members" | "settings";
 }
 
 export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
@@ -37,10 +38,18 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
   onClose,
   channel,
   members: initialMembers = [],
+  initialTab = "members",
 }) => {
-  const [activeTab, setActiveTab] = useState("about");
+  const [activeTab, setActiveTab] = useState<"members" | "settings">(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddingMembers, setIsAddingMembers] = useState(false);
+
+  // Update active tab when initialTab changes
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
   const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [availableMembers] = useState<Member[]>([
@@ -87,14 +96,11 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
         
         <Tabs 
           value={activeTab} 
-          onValueChange={setActiveTab}
+          onValueChange={(value) => setActiveTab(value as "members" | "settings")}
           className="flex-1 flex flex-col h-full"
         >
           <div className="px-6">
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="about" className="flex items-center gap-2">
-                <Info className="w-4 h-4" /> About
-              </TabsTrigger>
+            <TabsList className="w-full grid grid-cols-2">
               <TabsTrigger value="members" className="flex items-center gap-2">
                 <Users className="w-4 h-4" /> Members {members.length > 0 && `(${members.length})`}
               </TabsTrigger>
@@ -103,38 +109,6 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
               </TabsTrigger>
             </TabsList>
           </div>
-
-          <TabsContent value="about" className="flex-1 overflow-y-auto mt-4 px-6">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <h3 className="font-medium text-foreground">Description</h3>
-                <p className="text-sm text-muted-foreground">
-                  {channel.description || "No description provided."}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h3 className="font-medium text-foreground">Created</h3>
-                <p className="text-sm text-muted-foreground">
-                  {channel.createdAt ? new Date(channel.createdAt).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  }) : 'Unknown date'}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h3 className="font-medium text-foreground">Channel ID</h3>
-                <div className="flex items-center gap-2">
-                  <code className="text-xs px-2 py-1 bg-muted rounded text-muted-foreground">
-                    {channel.id}
-                  </code>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs">
-                    Copy ID
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
 
           <TabsContent value="members" className="flex-1 overflow-hidden flex flex-col mt-0">
             <div className="p-6 pt-4 space-y-4">
@@ -303,8 +277,6 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Message</DropdownMenuItem>
-                            <DropdownMenuItem>Mention</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive">
                               Remove from channel
                             </DropdownMenuItem>

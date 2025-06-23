@@ -19,10 +19,16 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   members = [],
 }) => {
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [modalInitialTab, setModalInitialTab] = useState<"members" | "settings">("members");
   // Show up to 4 avatars, then a +N indicator
   const maxAvatars = 4;
   const visibleMembers = members.slice(0, maxAvatars);
   const extraCount = members.length - maxAvatars;
+
+  const openModal = (tab: "members" | "settings" = "members") => {
+    setModalInitialTab(tab);
+    setDetailsModalOpen(true);
+  };
 
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
@@ -47,7 +53,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <div className="flex items-center gap-3">
         {/* Member Avatars - click to open channel details */}
         <Button 
-          onClick={() => setDetailsModalOpen(true)}
+          onClick={() => openModal("members")}
           variant="ghost"
           className="flex items-center -space-x-2 focus:outline-none group relative px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
           title="Channel details"
@@ -82,17 +88,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => setDetailsModalOpen(true)}>
-              <Info className="w-4 h-4 mr-2" />
-              Open channel details
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => {
-              setDetailsModalOpen(true);
-              // In a real app, you might want to set the active tab to settings
-              // This would require lifting the tab state up or using a ref
+              openModal("settings");
             }}>
               <Settings className="w-4 h-4 mr-2" />
-              Edit settings
+               Settings
             </DropdownMenuItem>
             <DropdownMenuItem className="text-destructive focus:text-destructive">
               <LogOut className="w-4 h-4 mr-2" />
@@ -116,6 +116,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         onClose={() => setDetailsModalOpen(false)}
         channel={channel}
         members={members}
+        initialTab={modalInitialTab}
       />
     </div>
   );
