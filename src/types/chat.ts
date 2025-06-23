@@ -15,6 +15,9 @@ export interface Message {
   reactions?: Reaction[];
   attachments: Attachment[];
   threadCount?: number;
+  threadParticipants?: User[];
+  threadId?: string;
+  threadLastReplyAt?: Date;
   isEdited?: boolean;
 }
 

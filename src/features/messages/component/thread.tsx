@@ -1,20 +1,27 @@
-import dayjs from "dayjs";
 import { AlertTriangle, Loader, XIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import Quill from "quill";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  isToday,
+  isYesterday,
+  format,
+  parseISO,
+  differenceInMinutes,
+} from "date-fns"; // Added differenceInMinutes
 
 import { ChatMessage } from "@/components/chat/message";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
-import { useCurrentMember } from "@/features/members/hooks/use-members";
 import {
   useMessageOperations,
   useMessageReplies,
 } from "@/features/messages/hooks/use-messages";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { useUIStore } from "@/store/ui-store";
+import { transformMessages } from "../helpers";
+import { User } from "@/types/chat";
 
 const Editor = dynamic(() => import("@/components/editor/editor"), {
   ssr: false,
@@ -65,6 +72,7 @@ interface ThreadMessage {
   created_at: string;
   updated_at: string | null;
   edited_at: string | null;
+  timestamp: string; // Added timestamp to reflect transformed data
   user: {
     id: string;
     name: string;
@@ -88,13 +96,32 @@ interface ThreadMessage {
   }>;
 }
 
-const TIME_THRESHOLD = 5;
+const TIME_THRESHOLD = 5; // minutes
 
-const formatDateLabel = (dateStr: string) => {
-  const date = dayjs(dateStr);
-  if (date.isToday()) return "Today";
-  if (date.isYesterday()) return "Yesterday";
-  return date.format("MMMM D, YYYY");
+interface ThreadHeaderProps {
+  onClose: () => void;
+  title: string;
+}
+
+const ThreadHeader = ({ onClose, title }: ThreadHeaderProps) => (
+  <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
+    <p className="text-lg font-bold">{title}</p>
+    <Button onClick={onClose} size="iconSm" variant="ghost">
+      <XIcon className="size-5 stroke-[1.5]" />
+    </Button>
+  </div>
+);
+
+const formatDateLabel = (dateInput: string | Date): string => {
+  const date = typeof dateInput === "string" ? parseISO(dateInput) : dateInput;
+
+  if (isToday(date)) {
+    return "Today";
+  }
+  if (isYesterday(date)) {
+    return "Yesterday";
+  }
+  return format(date, "MMMM d, yyyy"); // Date-fns format string for "Month Day, Year"
 };
 
 export const Thread = ({ onClose }: ThreadProps) => {
@@ -103,24 +130,17 @@ export const Thread = ({ onClose }: ThreadProps) => {
     setThreadOpen,
     isThreadOpen,
   } = useUIStore();
-  const { workspaceId, id: entityId } = useParamIds();
-  const { user: currentUser } = useCurrentUser();
-  const { data, isLoadingThread, threadError } = useMessageReplies(
-    workspaceId,
-    parentMessage?.id,
-    {
-      limit: 50,
-      entity_id: entityId,
-      entity_type: "channel",
-    }
-  );
-
-  // Determine if this is a channel or conversation based on the URL
-  const isChannel = entityId?.startsWith("c_");
-  const channelId = isChannel ? entityId?.slice(2) : undefined;
-  const conversationId = !isChannel ? entityId?.slice(2) : undefined;
-
-  const workspaceMember = useCurrentMember(workspaceId);
+  const { workspaceId, id: entityId, type } = useParamIds();
+  const { user: currentUser } = useCurrentUser(); // Destructure currentUser here
+  const {
+    data = { replies: [] },
+    isLoadingThread,
+    threadError,
+  } = useMessageReplies(workspaceId, parentMessage?.id, {
+    limit: 50,
+    entity_id: entityId,
+    entity_type: type,
+  });
 
   // Message operations
   const {
@@ -129,25 +149,32 @@ export const Thread = ({ onClose }: ThreadProps) => {
     deleteMessage,
     addReaction,
     removeReaction,
-  } = useMessageOperations(workspaceId, channelId, conversationId);
+  } = useMessageOperations(workspaceId, entityId, type);
 
   const editorRef = useRef<Quill | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editorKey, setEditorKey] = useState(0);
   const [isPending, setIsPending] = useState(false);
 
-  const replies = data?.replies || [];
+  const replies = transformMessages(
+    data?.replies || [],
+    currentUser as unknown as User
+  );
 
   // Sort replies chronologically (oldest first)
   const sortedReplies = [...replies].sort(
-    (a, b) =>
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
   const groupedMessages = sortedReplies.reduce(
     (groups: Record<string, ThreadMessage[]>, message: ThreadMessage) => {
-      const date = new Date(message.created_at);
-      const dateKey = dayjs(date).format("YYYY-MM-DD");
+      // FIX: Ensure message.timestamp is a Date object before formatting
+      const messageDate =
+        typeof message.timestamp === "string"
+          ? parseISO(message.timestamp)
+          : message.timestamp;
+
+      const dateKey = format(messageDate, "MMMM d, yyyy");
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
@@ -166,26 +193,21 @@ export const Thread = ({ onClose }: ThreadProps) => {
   }) => {
     try {
       setIsPending(true);
-      editorRef.current?.enable(false);
-
-      let attachment_ids: string[] = [];
 
       await createMessage.mutateAsync({
         body,
-        attachments: attachment_ids,
+        attachments: [],
         parent_message_id: parentMessage?.id,
-        thread_id: parentMessage?.thread_id || parentMessage?.id, // Use existing thread_id or make this message the thread root
+        thread_id: parentMessage?.thread_id || parentMessage?.id,
         message_type: "thread",
       });
 
       setEditorKey((prev) => prev + 1);
-      toast.success("Reply sent!");
     } catch (error) {
       console.error("Failed to send thread reply:", error);
-      toast.error("Failed to send reply");
+      toast.error("Failed to send reply. Please try again.");
     } finally {
       setIsPending(false);
-      editorRef.current?.enable(true);
     }
   };
 
@@ -196,20 +218,18 @@ export const Thread = ({ onClose }: ThreadProps) => {
         data: { body: newContent },
       });
       setEditingId(null);
-      toast.success("Message updated!");
     } catch (error) {
       console.error("Failed to edit message:", error);
-      toast.error("Failed to edit message");
+      toast.error("Failed to edit message. Please try again.");
     }
   };
 
   const handleDelete = async (messageId: string) => {
     try {
       await deleteMessage.mutateAsync(messageId);
-      toast.success("Message deleted!");
     } catch (error) {
       console.error("Failed to delete message:", error);
-      toast.error("Failed to delete message");
+      toast.error("Failed to delete message. Please try again.");
     }
   };
 
@@ -233,19 +253,14 @@ export const Thread = ({ onClose }: ThreadProps) => {
       }
     } catch (error) {
       console.error("Failed to react to message:", error);
-      toast.error("Failed to add reaction");
+      toast.error("Failed to add reaction. Please try again.");
     }
   };
 
   if (isLoadingThread) {
     return (
       <div className="h-full flex flex-col">
-        <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
-          <p className="text-lg font-bold">Thread</p>
-          <Button onClick={onClose} size="iconSm" variant="ghost">
-            <XIcon className="size-5 stroke-[1.5]" />
-          </Button>
-        </div>
+        <ThreadHeader onClose={onClose} title="Thread" />
         <div className="flex h-full items-center justify-center">
           <Loader className="size-5 animate-spin text-muted-foreground" />
         </div>
@@ -256,12 +271,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
   if (threadError) {
     return (
       <div className="h-full flex flex-col">
-        <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
-          <p className="text-lg font-bold">Thread</p>
-          <Button onClick={onClose} size="iconSm" variant="ghost">
-            <XIcon className="size-5 stroke-[1.5]" />
-          </Button>
-        </div>
+        <ThreadHeader onClose={onClose} title="Thread" />
         <div className="flex flex-col gap-y-2 h-full items-center justify-center">
           <AlertTriangle className="size-5 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Failed to load thread</p>
@@ -273,12 +283,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
-        <p className="text-lg font-bold">Thread</p>
-        <Button onClick={onClose} size="iconSm" variant="ghost">
-          <XIcon className="size-5 stroke-[1.5]" />
-        </Button>
-      </div>
+      <ThreadHeader onClose={onClose} title="Thread" />
 
       {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto messages-scrollbar">
@@ -293,6 +298,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onReaction={handleReaction}
+              // hide replies
             />
           </div>
 
@@ -304,18 +310,27 @@ export const Thread = ({ onClose }: ThreadProps) => {
                   <div className="text-center my-4 relative">
                     <hr className="absolute top-1/2 left-0 right-0 border-t border-border-subtle" />
                     <span className="relative inline-block px-4 py-1 rounded-full text-xs border border-border-subtle bg-background shadow-sm">
-                      {formatDateLabel(dateKey)}
+                      {formatDateLabel(messages[0].timestamp)}
                     </span>
                   </div>
                   {messages.map((message, index) => {
                     const prevMessage = messages[index - 1];
+                    // FIX: Ensure timestamp is Date object for differenceInMinutes
+                    const messageTime =
+                      typeof message.timestamp === "string"
+                        ? parseISO(message.timestamp)
+                        : message.timestamp;
+                    const prevMessageTime =
+                      prevMessage && typeof prevMessage.timestamp === "string"
+                        ? parseISO(prevMessage.timestamp)
+                        : prevMessage?.timestamp;
+
                     const isCompact =
                       prevMessage &&
                       prevMessage.user?.id === message.user?.id &&
-                      dayjs(message.created_at).diff(
-                        dayjs(prevMessage.created_at),
-                        "minute"
-                      ) < TIME_THRESHOLD;
+                      prevMessageTime && // Ensure prevMessageTime exists
+                      differenceInMinutes(messageTime, prevMessageTime) <
+                        TIME_THRESHOLD;
                     return (
                       <ChatMessage
                         key={message.id}
@@ -338,11 +353,12 @@ export const Thread = ({ onClose }: ThreadProps) => {
       {/* Editor at the bottom */}
       <div className="px-4 py-4 border-t border-border-subtle bg-background">
         <Editor
+          workspaceId={workspaceId}
           onSubmit={handleSubmit}
-          disabled={isPending || createMessage.isPending}
           placeholder="Reply..."
           key={editorKey}
-          innerRef={editorRef}
+          maxFiles={10}
+          maxFileSizeBytes={20 * 1024 * 1024}
         />
       </div>
     </div>
