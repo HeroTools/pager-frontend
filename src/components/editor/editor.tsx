@@ -1,16 +1,6 @@
 import "quill/dist/quill.snow.css";
 
-import {
-  ImageIcon,
-  Smile,
-  SendHorizontal,
-  CaseSensitive,
-  Paperclip,
-  X,
-  FileIcon,
-  PlayIcon,
-  Loader2,
-} from "lucide-react";
+import { Smile, SendHorizontal, CaseSensitive, Paperclip } from "lucide-react";
 import Quill, { QuillOptions } from "quill";
 import { Delta, Op } from "quill/core";
 import {
@@ -24,12 +14,17 @@ import {
 } from "react";
 
 import { cn } from "@/lib/utils";
-import { EmojiPopover } from "./emoji-popover";
-import { Hint } from "./hint";
-import { Button } from "./ui/button";
+import { EmojiPopover } from "../emoji-popover";
+import { Hint } from "../hint";
+import { Button } from "../ui/button";
 import { toast } from "sonner";
-import { UploadedAttachment } from "@/features/file-upload/types";
-import { useFileUpload } from "@/features/file-upload";
+import {
+  ManagedAttachment,
+  UploadedAttachment,
+} from "@/features/file-upload/types";
+import { useDeleteAttachment, useFileUpload } from "@/features/file-upload";
+import AttachmentPreview from "./attachment-preview";
+import validateFile from "@/lib/helpers/validate-file";
 
 type EditorValue = {
   image: File | null;
@@ -46,25 +41,8 @@ interface EditorProps {
   workspaceId: string;
   onCancel?: () => void;
   onSubmit: ({ image, body, attachments }: EditorValue) => Promise<any> | void;
-  deleteAttachment?: (
-    attachmentId: string,
-    workspaceId: string
-  ) => Promise<void>;
   maxFiles?: number;
   maxFileSizeBytes?: number;
-}
-
-// Enhanced attachment interface to track upload state
-interface ManagedAttachment {
-  id: string;
-  originalFilename: string;
-  contentType: string;
-  sizeBytes: number;
-  publicUrl: string;
-  uploadProgress: number;
-  status: "uploading" | "completed" | "error";
-  error?: string;
-  file?: File; // Store file for preview during upload
 }
 
 const Editor = ({
@@ -76,7 +54,6 @@ const Editor = ({
   workspaceId,
   onCancel,
   onSubmit,
-  deleteAttachment,
   maxFiles = 10,
   maxFileSizeBytes = 20 * 1024 * 1024, // 20MB
 }: EditorProps) => {
@@ -84,9 +61,7 @@ const Editor = ({
   const [text, setText] = useState("");
   const [attachments, setAttachments] = useState<ManagedAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-
-  // Track active upload batches to prevent state confusion
-  const activeUploadBatchRef = useRef<string | null>(null);
+  const [isToolbarVisible, setIsToolbarVisible] = useState(true);
 
   const isEmpty = useMemo(
     () =>
@@ -101,8 +76,7 @@ const Editor = ({
     [attachments]
   );
 
-  const [isToolbarVisible, setIsToolbarVisible] = useState(true);
-
+  const activeUploadBatchRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
   const onSubmitRef = useRef(onSubmit);
@@ -116,6 +90,7 @@ const Editor = ({
   const handleSubmitRef = useRef(handleSubmit);
 
   const { uploadMultipleFiles } = useFileUpload(workspaceId);
+  const deleteAttachment = useDeleteAttachment();
 
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
@@ -133,36 +108,6 @@ const Editor = ({
     handleSubmit,
   ]);
 
-  // File validation
-  const validateFile = (file: File): string | null => {
-    if (file.size > maxFileSizeBytes) {
-      return `File "${file.name}" is too large. Maximum size is ${Math.round(
-        maxFileSizeBytes / 1024 / 1024
-      )}MB.`;
-    }
-
-    const allowedTypes = [
-      "image/",
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument",
-      "video/",
-      "audio/",
-      "text/",
-      "application/zip",
-    ];
-
-    const isAllowedType = allowedTypes.some((type) =>
-      file.type.startsWith(type)
-    );
-    if (!isAllowedType) {
-      return `File type "${file.type}" is not supported.`;
-    }
-
-    return null;
-  };
-
-  // Handle file uploads using uploadMultipleFiles
   const handleFiles = useCallback(
     async (files: FileList) => {
       if (!uploadMultipleFiles) {
@@ -178,7 +123,7 @@ const Editor = ({
       }
 
       const validationErrors = fileArray
-        .map((file) => validateFile(file))
+        .map((file) => validateFile(file, maxFileSizeBytes))
         .filter((error) => error !== null);
 
       if (validationErrors.length > 0) {
@@ -232,29 +177,24 @@ const Editor = ({
           3 // Max concurrent uploads
         );
 
-        // This `setAttachments` block is now guaranteed to receive the correct
-        // status and publicUrl from the hook, fixing the bug.
         if (activeUploadBatchRef.current === batchId) {
           setAttachments((prev) => {
             const updatedAttachments = prev.map((att) => {
-              // Find the original attachment by its temporary ID
               const originalFileIndex = fileIds.indexOf(att.id);
-              if (originalFileIndex === -1) return att; // Not part of this batch
+              if (originalFileIndex === -1) return att;
 
               const result = results[originalFileIndex];
 
-              // If the upload was successful, update with the final data
               if (result.status === "success") {
                 return {
                   ...att,
-                  id: result.attachmentId, // Replace temporary ID with the real one from the database
+                  id: result.attachmentId,
                   publicUrl: result.publicUrl,
                   uploadProgress: 100,
                   status: "completed",
                   file: undefined, // Clear the preview file from memory
                 };
               } else {
-                // If it failed, mark it as an error
                 return {
                   ...att,
                   status: "error",
@@ -271,7 +211,6 @@ const Editor = ({
         }
       } catch (error) {
         console.error("Upload batch failed:", error);
-        // Only update if this is still the active batch
         if (activeUploadBatchRef.current === batchId) {
           setAttachments((prev) =>
             prev.map((att) =>
@@ -287,19 +226,20 @@ const Editor = ({
     [attachments.length, maxFiles, uploadMultipleFiles]
   );
 
-  // Remove attachment
   const removeAttachment = async (attachmentId: string) => {
     const attachment = attachments.find((att) => att.id === attachmentId);
     if (!attachment) return;
 
-    // If it's a completed attachment (has real ID), delete from server
     if (
       attachment.status === "completed" &&
       !attachmentId.startsWith("upload-") &&
       deleteAttachment
     ) {
       try {
-        await deleteAttachment(attachmentId, workspaceId);
+        await deleteAttachment.mutateAsync({
+          attachmentId,
+          workspaceId,
+        });
       } catch (error) {
         console.error("Failed to delete attachment:", error);
       }
@@ -311,7 +251,6 @@ const Editor = ({
     });
   };
 
-  // Drag and drop handlers
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
@@ -346,13 +285,10 @@ const Editor = ({
     const quill = quillRef.current;
     if (!quill) return;
 
-    // Simple, reliable check for uploads in progress
     if (hasUploadsInProgress) {
       toast.error("Please wait for all attachments to finish uploading.");
       return;
     }
-
-    // Check for failed uploads
     const failedAttachments = attachments.filter(
       (att) => att.status === "error"
     );
@@ -389,7 +325,6 @@ const Editor = ({
         attachments: attachmentsForSubmit,
       });
 
-      // Clear form
       quill.setText("");
       quill.setContents([]);
       setText("");
@@ -401,7 +336,6 @@ const Editor = ({
         await result;
       }
     } catch (err) {
-      // Rollback on error
       quill.setContents(oldContents);
       setText(oldText);
       setImage(oldImage);
@@ -430,18 +364,15 @@ const Editor = ({
             enterSubmit: {
               key: "Enter",
               handler: function (range, context) {
-                // 3. Use the .current property of the refs inside the handler
                 const addedImage = imageElementRef.current?.files?.[0] || null;
                 const currentText = quillRef.current?.getText() || "";
 
-                // Read the LATEST attachments state via the ref
                 const empty =
                   !addedImage &&
                   attachmentsRef.current.length === 0 &&
                   currentText.replace(/\s*/g, "").trim().length === 0;
 
                 if (!empty) {
-                  // Call the LATEST handleSubmit function via the ref
                   handleSubmitRef.current();
                   return false;
                 }
@@ -497,76 +428,6 @@ const Editor = ({
     quill?.insertText(idx, emoji);
   };
 
-  // Render attachment preview
-  const renderAttachmentPreview = (attachment: ManagedAttachment) => {
-    const isImage = attachment.contentType?.startsWith("image/");
-    const isVideo = attachment.contentType?.startsWith("video/");
-    const isUploading = attachment.status === "uploading";
-    const hasError = attachment.status === "error";
-
-    return (
-      <div
-        key={attachment.id}
-        className="relative w-16 h-16 bg-muted border border-border rounded-lg overflow-hidden group"
-      >
-        {/* Remove button */}
-        <button
-          onClick={() => removeAttachment(attachment.id)}
-          className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 text-xs"
-        >
-          <X className="w-3 h-3" />
-        </button>
-
-        {/* Content */}
-        <div className="w-full h-full flex items-center justify-center">
-          {isUploading && (
-            <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
-              <Loader2 className="w-4 h-4 animate-spin text-primary mb-1" />
-              <span className="text-xs text-muted-foreground">
-                {Math.round(attachment.uploadProgress)}%
-              </span>
-            </div>
-          )}
-
-          {hasError && (
-            <div className="absolute inset-0 bg-destructive/10 flex items-center justify-center">
-              <span className="text-xs text-destructive font-medium">
-                Error
-              </span>
-            </div>
-          )}
-
-          {isImage && (attachment.file || attachment.publicUrl) && (
-            <img
-              src={
-                attachment.file
-                  ? URL.createObjectURL(attachment.file)
-                  : attachment.publicUrl
-              }
-              alt={attachment.originalFilename}
-              className="w-full h-full object-cover"
-            />
-          )}
-
-          {isVideo && (
-            <div className="w-full h-full bg-black/80 flex items-center justify-center">
-              <PlayIcon className="w-6 h-6 text-white" />
-            </div>
-          )}
-
-          {!isImage && !isVideo && (
-            <div className="flex flex-col items-center justify-center p-1">
-              <FileIcon className="w-4 h-4 text-muted-foreground mb-1" />
-              <span className="text-xs text-muted-foreground text-center leading-tight truncate w-full">
-                {attachment.originalFilename?.split(".").pop()?.toUpperCase()}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="flex flex-col">
       <input
@@ -616,7 +477,15 @@ const Editor = ({
         {attachments.length > 0 && (
           <div className="px-3 pb-2">
             <div className="flex flex-wrap gap-2">
-              {attachments.map(renderAttachmentPreview)}
+              {attachments.map((attachment) => (
+                <AttachmentPreview
+                  key={attachment.id}
+                  attachment={attachment}
+                  attachments={attachments}
+                  workspaceId={workspaceId}
+                  setAttachments={setAttachments}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -658,20 +527,6 @@ const Editor = ({
               )}
             </Button>
           </Hint>
-
-          {/* Legacy image button */}
-          {variant === "create" && (
-            <Hint label="Image">
-              <Button
-                disabled={disabled}
-                size="sm"
-                variant="ghost"
-                onClick={() => imageElementRef.current?.click()}
-              >
-                <ImageIcon className="size-4" />
-              </Button>
-            </Hint>
-          )}
 
           {variant === "update" ? (
             <div className="ml-auto flex items-center gap-x-2">
