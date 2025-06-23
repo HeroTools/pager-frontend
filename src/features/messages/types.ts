@@ -6,7 +6,9 @@ import {
   SendMessageRequest,
   MessageType,
   Reaction,
+  Attachment,
 } from "@/types/database";
+import { UploadedAttachment } from "../file-upload/types";
 
 // Use the database Message type directly
 export type MessageEntity = Message;
@@ -79,7 +81,7 @@ export type MessageSearchResponse = ApiResponse<{
 
 export interface CreateChannelMessageData {
   body: string;
-  attachment_id?: string;
+  attachment_ids?: string[];
   parent_message_id?: string;
   thread_id?: string;
   message_type?: "direct" | "thread" | "system";
@@ -87,7 +89,15 @@ export interface CreateChannelMessageData {
 
 export interface CreateConversationMessageData {
   body: string;
-  attachment_id?: string;
+  attachment_ids?: string[];
+  parent_message_id?: string;
+  thread_id?: string;
+  message_type?: "direct" | "thread" | "system";
+}
+
+export interface CreateMessageData {
+  body: string;
+  attachments?: UploadedAttachment[];
   parent_message_id?: string;
   thread_id?: string;
   message_type?: "direct" | "thread" | "system";
@@ -112,6 +122,7 @@ export interface MessageWithUser {
   updated_at: string | null;
   edited_at: string | null;
   deleted_at: string | null;
+  attachments: Attachment[];
   user: {
     id: string;
     name: string;

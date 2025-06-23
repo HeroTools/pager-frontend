@@ -1,4 +1,4 @@
-import { httpClient } from "@/lib/api/http-client";
+import api from "@/lib/api/axios-client";
 import type {
   MemberEntity,
   MemberWithUser,
@@ -29,7 +29,7 @@ export const membersApi = {
       params.append("active_only", filters.active_only.toString());
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await httpClient.get<MembersResponse>(
+    const { data: response } = await api.get<MembersResponse>(
       `/workspaces/${workspaceId}/members${queryString}`
     );
     return response;
@@ -51,7 +51,7 @@ export const membersApi = {
     params.append("include_users", "true");
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await httpClient.get<MembersWithUsersResponse>(
+    const { data: response } = await api.get<MembersWithUsersResponse>(
       `/workspaces/${workspaceId}/members${queryString}`
     );
     return response;
@@ -64,7 +64,7 @@ export const membersApi = {
     workspaceId: string,
     memberId: string
   ): Promise<MemberEntity> => {
-    const response = await httpClient.get<MemberResponse>(
+    const { data: response } = await api.get<MemberResponse>(
       `/workspaces/${workspaceId}/members/${memberId}`
     );
     return response;
@@ -77,7 +77,7 @@ export const membersApi = {
     workspaceId: string,
     memberId: string
   ): Promise<MemberWithUser> => {
-    const response = await httpClient.get<MemberResponse>(
+    const { data: response } = await api.get<MemberResponse>(
       `/workspaces/${workspaceId}/members/${memberId}?include_user=true`
     );
     return response as MemberWithUser;
@@ -87,10 +87,9 @@ export const membersApi = {
    * Get current user's member record for a workspace
    */
   getCurrentMember: async (workspaceId: string): Promise<MemberWithUser> => {
-    const response = await httpClient.get<MemberResponse>(
+    const { data: response } = await api.get<MemberResponse>(
       `/workspaces/${workspaceId}/members/current`
     );
-
     return response as MemberWithUser;
   },
 
@@ -102,7 +101,7 @@ export const membersApi = {
     memberId: string,
     data: UpdateMemberRoleData
   ): Promise<MemberEntity> => {
-    const response = await httpClient.patch<MemberResponse>(
+    const { data: response } = await api.patch<MemberResponse>(
       `/workspaces/${workspaceId}/members/${memberId}`,
       data
     );
@@ -116,7 +115,7 @@ export const membersApi = {
     workspaceId: string,
     memberId: string
   ): Promise<void> => {
-    await httpClient.delete(`/workspaces/${workspaceId}/members/${memberId}`);
+    await api.delete(`/workspaces/${workspaceId}/members/${memberId}`);
   },
 
   /**
@@ -126,7 +125,7 @@ export const membersApi = {
     workspaceId: string,
     data: InviteMemberData
   ): Promise<void> => {
-    await httpClient.post(`/workspaces/${workspaceId}/members/invite`, data);
+    await api.post(`/workspaces/${workspaceId}/members/invite`, data);
   },
 
   /**
@@ -136,10 +135,7 @@ export const membersApi = {
     workspaceId: string,
     data: BulkUpdateMembersData
   ): Promise<void> => {
-    await httpClient.patch(
-      `/workspaces/${workspaceId}/members/bulk-update`,
-      data
-    );
+    await api.patch(`/workspaces/${workspaceId}/members/bulk-update`, data);
   },
 
   /**
@@ -149,17 +145,14 @@ export const membersApi = {
     workspaceId: string,
     data: BulkRemoveMembersData
   ): Promise<void> => {
-    await httpClient.post(
-      `/workspaces/${workspaceId}/members/bulk-remove`,
-      data
-    );
+    await api.post(`/workspaces/${workspaceId}/members/bulk-remove`, data);
   },
 
   /**
    * Get member statistics
    */
   getMemberStats: async (workspaceId: string): Promise<MemberStats> => {
-    const response = await httpClient.get<{ data: MemberStats }>(
+    const { data: response } = await api.get<{ data: MemberStats }>(
       `/workspaces/${workspaceId}/members/stats`
     );
     return response.data;
@@ -169,6 +162,6 @@ export const membersApi = {
    * Leave workspace (current user leaves)
    */
   leaveWorkspace: async (workspaceId: string): Promise<void> => {
-    await httpClient.post(`/workspaces/${workspaceId}/leave`);
+    await api.post(`/workspaces/${workspaceId}/leave`);
   },
 };

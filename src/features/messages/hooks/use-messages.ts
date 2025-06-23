@@ -5,7 +5,10 @@ import type {
   CreateConversationMessageData,
   UpdateMessageData,
   MessageWithUser,
+  CreateMessageData,
 } from "../types";
+import { toast } from "sonner";
+import { UploadedAttachment } from "@/features/file-upload/types";
 
 export const useCreateChannelMessage = (
   workspaceId: string,
@@ -23,8 +26,14 @@ export const useCreateChannelMessage = (
   ];
 
   return useMutation({
-    mutationFn: (data: CreateChannelMessageData) =>
-      messagesApi.createChannelMessage(workspaceId, channelId, data),
+    mutationFn: (data: CreateMessageData) =>
+      messagesApi.createChannelMessage(workspaceId, channelId, {
+        body: data.body,
+        attachment_ids: data.attachments?.map((attachment) => attachment.id),
+        parent_message_id: data.parent_message_id,
+        thread_id: data.thread_id,
+        message_type: data.message_type,
+      }),
 
     // Optimistic update - add message immediately to infinite query
     onMutate: async (data) => {
@@ -36,6 +45,8 @@ export const useCreateChannelMessage = (
       // Snapshot previous value
       const previousMessages = queryClient.getQueryData(getInfiniteQueryKey());
       const currentUser = queryClient.getQueryData(["current-user"]) as any;
+
+      console.log(currentUser, "currentUser");
 
       // Optimistically update with temporary message
       const tempMessage: MessageWithUser = {
@@ -50,7 +61,7 @@ export const useCreateChannelMessage = (
         deleted_at: null,
         parent_message_id: data.parent_message_id || null,
         thread_id: data.thread_id || null,
-        attachment_id: data.attachment_id || null,
+        attachment_id: null,
         workspace_member_id: currentUser?.workspace_member_id || "",
         user: {
           id: currentUser?.id || "",
@@ -58,14 +69,18 @@ export const useCreateChannelMessage = (
           email: currentUser?.email || "",
           image: currentUser?.image || null,
         },
-        attachment: data.attachment_id
-          ? {
-              id: data.attachment_id,
-              url: "", // Will be filled by server
-              content_type: null,
-              size_bytes: null,
-            }
-          : undefined,
+        attachments:
+          data.attachments?.map((attachment: UploadedAttachment) => ({
+            id: attachment.id,
+            public_url: attachment.publicUrl,
+            content_type: attachment.contentType,
+            size_bytes: attachment.sizeBytes,
+            s3_bucket: "",
+            s3_key: "",
+            uploaded_by: "",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })) || [],
         reactions: [],
         _isOptimistic: true,
       };
@@ -104,6 +119,8 @@ export const useCreateChannelMessage = (
             },
           };
         }
+
+        console.log("NEW pages in create", tempMessage);
 
         return {
           ...old,
@@ -161,9 +178,7 @@ export const useCreateChannelMessage = (
       }
 
       console.error("Failed to send channel message:", error);
-
-      // Optionally show error toast/notification here
-      // toast.error("Failed to send message. Please try again.");
+      toast.error("Failed to send message. Please try again.");
     },
 
     onSettled: () => {
@@ -197,8 +212,14 @@ export const useCreateConversationMessage = (
   ];
 
   return useMutation({
-    mutationFn: (data: CreateConversationMessageData) =>
-      messagesApi.createConversationMessage(workspaceId, conversationId, data),
+    mutationFn: (data: CreateMessageData) =>
+      messagesApi.createConversationMessage(workspaceId, conversationId, {
+        body: data.body,
+        attachment_ids: data.attachments?.map((attachment) => attachment.id),
+        parent_message_id: data.parent_message_id,
+        thread_id: data.thread_id,
+        message_type: data.message_type,
+      }),
 
     // Optimistic update - add message immediately to infinite query
     onMutate: async (data) => {
@@ -224,7 +245,6 @@ export const useCreateConversationMessage = (
         deleted_at: null,
         parent_message_id: data.parent_message_id || null,
         thread_id: data.thread_id || null,
-        attachment_id: data.attachment_id || null,
         workspace_member_id: currentUser?.workspace_member_id || "",
         user: {
           id: currentUser?.id || "",
@@ -232,14 +252,18 @@ export const useCreateConversationMessage = (
           email: currentUser?.email || "",
           image: currentUser?.image || null,
         },
-        attachment: data.attachment_id
-          ? {
-              id: data.attachment_id,
-              url: "", // Will be filled by server
-              content_type: null,
-              size_bytes: null,
-            }
-          : undefined,
+        attachments:
+          data.attachments?.map((attachment: UploadedAttachment) => ({
+            id: attachment.id,
+            public_url: attachment.publicUrl,
+            content_type: attachment.contentType,
+            size_bytes: attachment.sizeBytes,
+            s3_bucket: "",
+            s3_key: "",
+            uploaded_by: "",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })) || [],
         reactions: [],
         _isOptimistic: true,
       };

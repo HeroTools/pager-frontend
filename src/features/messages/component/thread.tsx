@@ -5,17 +5,19 @@ import Quill from "quill";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Message } from "@/features/conversations/components/message";
+import { ChatMessage } from "@/components/chat/message";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { useCurrentMember } from "@/features/members/hooks/use-members";
 import { useMessageOperations } from "@/features/messages/hooks/use-messages";
-import { useGetUploadUrl } from "@/features/upload/api/use-upload";
+import { useGetPresignedUrl } from "@/features/file-upload/hooks/use-upload";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { useQuery } from "@tanstack/react-query";
 import { messagesApi } from "@/features/messages/api/messages-api";
 
-const Editor = dynamic(() => import("@/components/editor"), { ssr: false });
+const Editor = dynamic(() => import("@/components/editor/editor"), {
+  ssr: false,
+});
 
 interface ThreadProps {
   messageId: string;
@@ -72,7 +74,6 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
   const conversationId = !isChannel ? entityId?.slice(2) : undefined;
 
   const workspaceMember = useCurrentMember(workspaceId);
-  const generateUploadUrl = useGetUploadUrl();
 
   // Get the parent message
   const { data: parentMessage, isLoading: isLoadingParent } = useQuery({
@@ -127,30 +128,13 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
       setIsPending(true);
       editorRef.current?.enable(false);
 
-      let attachment_id: string | undefined;
-
-      if (image) {
-        const url = await generateUploadUrl.mutateAsync({});
-
-        const result = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": image.type },
-          body: image,
-        });
-
-        if (!result.ok) {
-          throw new Error("Failed to upload image");
-        }
-
-        const { storageId } = await result.json();
-        attachment_id = storageId;
-      }
+      let attachment_ids: string[] = [];
 
       await createMessage.mutateAsync({
         body,
-        attachment_id,
+        attachment_ids,
         parent_message_id: messageId,
-        thread_id: parentMessage?.data.thread_id || messageId, // Use existing thread_id or make this message the thread root
+        thread_id: parentMessage?.thread_id || messageId, // Use existing thread_id or make this message the thread root
         message_type: "thread",
       });
 
@@ -192,10 +176,9 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
   const handleReaction = async (messageId: string, emoji: string) => {
     try {
       // Find the message to check current reaction state
-      const message = [
-        parentMessage?.data,
-        ...(threadMessages?.data || []),
-      ].find((m) => m?.id === messageId);
+      const message = [parentMessage, ...(threadMessages?.data || [])].find(
+        (m) => m?.id === messageId
+      );
       const existingReaction = message?.reactions?.find(
         (r) => r.value === emoji
       );
@@ -230,7 +213,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
     );
   }
 
-  if (!parentMessage?.data) {
+  if (!parentMessage) {
     return (
       <div className="h-full flex flex-col">
         <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
@@ -274,7 +257,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
                   "minute"
                 ) < TIME_THRESHOLD;
               return (
-                <Message
+                <ChatMessage
                   key={message.id}
                   id={message.id}
                   memberId={message.workspace_member_id}
@@ -306,7 +289,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
         ))}
 
         {/* Parent message at the bottom */}
-        <Message
+        <ChatMessage
           id={parentMessage.data.id}
           memberId={parentMessage.data.workspace_member_id}
           authorImage={parentMessage.data.user.image}

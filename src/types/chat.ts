@@ -13,6 +13,7 @@ export interface Message {
   timestamp: Date;
   image?: string;
   reactions?: Reaction[];
+  attachments: Attachment[];
   threadCount?: number;
   isEdited?: boolean;
 }
@@ -29,4 +30,11 @@ export interface Channel {
   description?: string;
   isPrivate: boolean;
   memberCount?: number;
+}
+
+export interface Attachment {
+  content_type: string;
+  id: string;
+  size_bytes: number;
+  public_url: string;
 }

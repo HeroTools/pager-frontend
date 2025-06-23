@@ -57,6 +57,9 @@ export const createClient = () => {
         // Add heartbeat to keep connection alive
         heartbeatIntervalMs: 30000, // 30 seconds
         // Reconnect settings
+
+        timeout: 20_000, // wait up to 20 s for a pong
+
         reconnectAfterMs: (tries) => Math.min(tries * 1000, 30000), // Exponential backoff up to 30s
       },
       global: {
@@ -67,3 +70,5 @@ export const createClient = () => {
     }
   );
 };
+
+export const supabase = createClient();

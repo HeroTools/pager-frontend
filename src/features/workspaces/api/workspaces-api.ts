@@ -1,4 +1,4 @@
-import { httpClient } from "@/lib/api/http-client";
+import api from "@/lib/api/axios-client";
 import type {
   WorkspaceEntity,
   WorkspaceWithMembersList,
@@ -17,7 +17,7 @@ export const workspacesApi = {
    * Get all workspaces for current user
    */
   getWorkspaces: async (): Promise<WorkspaceEntity[]> => {
-    const response = await httpClient.get<WorkspacesResponse>(`/workspaces`);
+    const { data: response } = await api.get<WorkspacesResponse>(`/workspaces`);
     return response || [];
   },
 
@@ -25,7 +25,7 @@ export const workspacesApi = {
    * Get workspace by ID
    */
   getWorkspace: async (id: string): Promise<WorkspaceResponseData> => {
-    const response = await httpClient.get<WorkspaceResponse>(
+    const { data: response } = await api.get<WorkspaceResponse>(
       `/workspaces/${id}?include_details=false`
     );
     return response?.workspace;
@@ -37,7 +37,7 @@ export const workspacesApi = {
   getAllWorkspaceDataForMember: async (
     id: string
   ): Promise<WorkspaceWithMembersList> => {
-    const response = await httpClient.get<WorkspaceWithMembersResponse>(
+    const { data: response } = await api.get<WorkspaceWithMembersResponse>(
       `/workspaces/${id}?include_details=true`
     );
     return response;
@@ -49,7 +49,7 @@ export const workspacesApi = {
   createWorkspace: async (
     data: CreateWorkspaceData
   ): Promise<WorkspaceEntity> => {
-    const response = await httpClient.post<WorkspaceResponse>(
+    const { data: response } = await api.post<WorkspaceResponse>(
       "/workspaces",
       data
     );
@@ -63,7 +63,7 @@ export const workspacesApi = {
     id: string,
     data: UpdateWorkspaceData
   ): Promise<WorkspaceEntity> => {
-    const response = await httpClient.patch<WorkspaceResponse>(
+    const { data: response } = await api.patch<WorkspaceResponse>(
       `/workspaces/${id}`,
       data
     );
@@ -74,14 +74,14 @@ export const workspacesApi = {
    * Delete workspace
    */
   deleteWorkspace: async (id: string): Promise<void> => {
-    await httpClient.delete(`/workspaces/${id}`);
+    await api.delete(`/workspaces/${id}`);
   },
 
   /**
    * Get workspace statistics
    */
   getWorkspaceStats: async (id: string): Promise<WorkspaceStats> => {
-    const response = await httpClient.get<{ data: WorkspaceStats }>(
+    const { data: response } = await api.get<{ data: WorkspaceStats }>(
       `/workspaces/${id}/stats`
     );
     return response.data;
@@ -91,14 +91,16 @@ export const workspacesApi = {
    * Leave workspace (current user leaves)
    */
   leaveWorkspace: async (id: string): Promise<void> => {
-    await httpClient.post(`/workspaces/${id}/leave`);
+    await api.post(`/workspaces/${id}/leave`);
   },
 
   /**
    * Get workspace info from invite token
    */
-  getWorkspaceFromInviteToken: async (token: string): Promise<WorkspaceInviteInfoResponse> => {
-    const response = await httpClient.get<WorkspaceInviteInfoResponse>(
+  getWorkspaceFromInviteToken: async (
+    token: string
+  ): Promise<WorkspaceInviteInfoResponse> => {
+    const { data: response } = await api.get<WorkspaceInviteInfoResponse>(
       `/workspaces/invite-token?token=${token}`
     );
     return response;
