@@ -91,7 +91,7 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
           );
 
           return (
-            <Tooltip key={reaction.id}>
+            <Tooltip key={reaction.id + "-tooltip" + currentUserId}>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
@@ -100,12 +100,10 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
                     "h-6 px-2 py-0 text-xs rounded-full border transition-all duration-200",
                     hasUserReacted
                       ? [
-                          // Active reaction state using generic interactive variables
                           "bg-interactive-active border-interactive-active-border text-interactive-active-text",
                           "hover:bg-interactive-active-hover hover:border-interactive-active-border-hover",
                         ]
                       : [
-                          // Inactive reaction state using generic interactive variables
                           "bg-interactive-inactive border-interactive-inactive-border text-interactive-inactive-text",
                           "hover:bg-interactive-inactive-hover hover:border-interactive-inactive-border-hover hover:text-interactive-inactive-text-hover",
                         ]
