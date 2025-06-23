@@ -475,8 +475,8 @@ const Editor = ({
 
         {/* Attachment previews */}
         {attachments.length > 0 && (
-          <div className="px-3 pb-2">
-            <div className="flex flex-wrap gap-2">
+          <div className="px-2 pb-2">
+            <div className="flex flex-wrap">
               {attachments.map((attachment) => (
                 <AttachmentPreview
                   key={attachment.id}
