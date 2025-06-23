@@ -37,7 +37,6 @@ interface ChatMessageProps {
   onReaction?: (messageId: string, emoji: string) => void;
 }
 
-// Image Attachment Component
 const ImageAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -81,7 +80,6 @@ const ImageAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   );
 };
 
-// Video Attachment Component
 const VideoAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -111,7 +109,6 @@ const VideoAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   );
 };
 
-// Audio Attachment Component
 const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
     <div className="bg-muted rounded-lg p-3 max-w-sm">
@@ -140,7 +137,6 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   );
 };
 
-// Document Attachment Component
 const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   const getFileIcon = (filename: string) => {
     const extension = filename.split(".").pop()?.toLowerCase();
@@ -187,7 +183,6 @@ const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
     </div>
   );
 };
-
 // Generic File Attachment Component
 const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
@@ -213,7 +208,6 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   );
 };
 
-// Attachment Grid Component
 const AttachmentGrid: FC<{ attachments: Attachment[] }> = ({ attachments }) => {
   const renderAttachment = (attachment: Attachment) => {
     const mimeType = attachment.content_type || "";
@@ -336,7 +330,6 @@ export const ChatMessage: FC<ChatMessageProps> = ({
             <MessageContent content={message.content} />
           </div>
 
-          {/* Enhanced Attachments Rendering */}
           {message.attachments && message.attachments.length > 0 && (
             <AttachmentGrid attachments={message.attachments} />
           )}

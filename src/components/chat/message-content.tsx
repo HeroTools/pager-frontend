@@ -76,9 +76,9 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content }) => {
         "width",
         "height",
         "style",
-        "data-*", // Allow inline styles and data attributes
+        "data-*",
         "colspan",
-        "rowspan", // Table attributes
+        "rowspan",
       ],
     });
   }, [content]);
