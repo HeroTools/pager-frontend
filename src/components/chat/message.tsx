@@ -32,6 +32,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageReactions } from "./message-reactions";
 import { MessageContent } from "./message-content";
+import { useUIStore } from "@/store/ui-store";
 
 interface ChatMessageProps {
   message: Message;
@@ -283,15 +284,20 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   onReaction,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const { openEmojiPickerMessageId, setEmojiPickerOpen } = useUIStore();
   const isOwnMessage = message.authorId === currentUser.id;
+
+  const isEmojiPickerOpen = openEmojiPickerMessageId === message.id;
 
   const handleEmojiSelect = (emoji: string) => {
     onReaction?.(message.id, emoji);
-    setIsEmojiPickerOpen(false);
+    setEmojiPickerOpen(null);
   };
 
-  // Show actions if message is hovered OR if emoji picker is open
+  const handleEmojiPickerToggle = (open: boolean) => {
+    setEmojiPickerOpen(open ? message.id : null);
+  };
+
   const shouldShowActions = isHovered || isEmojiPickerOpen;
 
   return (
@@ -379,7 +385,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
             {/* Emoji Picker Popover */}
             <Popover
               open={isEmojiPickerOpen}
-              onOpenChange={setIsEmojiPickerOpen}
+              onOpenChange={handleEmojiPickerToggle}
             >
               <PopoverTrigger asChild>
                 <Button
