@@ -366,7 +366,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
 
           {message?.threadCount && Number(message.threadCount) > 0 ? (
             <button
-              onClick={() => onReply?.(message.id)}
+              onClick={() => setThreadOpen(message)}
               className="mt-2 flex items-center gap-1 text-xs text-text-accent hover:text-text-accent/80 hover:underline transition-colors"
             >
               <MessageSquare className="w-3 h-3" />

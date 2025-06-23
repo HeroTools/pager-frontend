@@ -217,7 +217,7 @@ export const messagesApi = {
     if (params?.entity_id) appendedParams.append("entity_id", params.entity_id);
 
     const qs = appendedParams.toString() ? `?${appendedParams.toString()}` : "";
-    const { data: response } = await api.get<MessagesResponse>(
+    const { data: response } = await api.get<MessageThreadResponse>(
       `/workspaces/${workspaceId}/messages/${messageId}/replies${qs}`
     );
 

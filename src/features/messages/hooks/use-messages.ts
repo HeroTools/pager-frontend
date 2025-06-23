@@ -543,7 +543,6 @@ export const useCreateChannelMessage = (
 ) => {
   const queryClient = useQueryClient();
 
-  // Use the same query key as your infinite query
   const getInfiniteQueryKey = () => [
     "channel",
     workspaceId,
@@ -552,32 +551,48 @@ export const useCreateChannelMessage = (
     "infinite",
   ];
 
+  const getThreadQueryKey = (threadParentId: string) => [
+    "thread",
+    workspaceId,
+    threadParentId,
+  ];
+
   return useMutation({
+    mutationKey: ["createChannelMessage", workspaceId, channelId],
+
     mutationFn: (data: CreateMessageData) =>
       messagesApi.createChannelMessage(workspaceId, channelId, {
         body: data.body,
-        attachment_ids: data.attachments?.map((attachment) => attachment.id),
+        attachment_ids: data.attachments?.map((att) => att.id),
         parent_message_id: data.parent_message_id,
         thread_id: data.thread_id,
         message_type: data.message_type,
       }),
 
-    // Optimistic update - add message immediately to infinite query
     onMutate: async (data) => {
-      // Cancel outgoing refetches for the infinite query
-      await queryClient.cancelQueries({
-        queryKey: getInfiniteQueryKey(),
-      });
+      const threadParentId = data.parent_message_id || data.thread_id;
+      const isThreadMessage = Boolean(threadParentId);
 
-      // Snapshot previous value
-      const previousMessages = queryClient.getQueryData(getInfiniteQueryKey());
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: getInfiniteQueryKey() });
+      if (isThreadMessage) {
+        await queryClient.cancelQueries({
+          queryKey: getThreadQueryKey(threadParentId),
+        });
+      }
+
+      // Snapshot the previous values
+      const previousChannelMessages = queryClient.getQueryData(
+        getInfiniteQueryKey()
+      );
+      const previousThreadMessages = isThreadMessage
+        ? queryClient.getQueryData(getThreadQueryKey(threadParentId))
+        : null;
+
       const currentUser = queryClient.getQueryData(["current-user"]) as any;
 
-      console.log(currentUser, "currentUser");
-
-      // Optimistically update with temporary message
-      const tempMessage: MessageWithUser = {
-        id: `temp-${Date.now()}`, // Temporary ID
+      const optimisticMessage: MessageWithUser = {
+        id: `temp-${Date.now()}-${Math.random()}`,
         body: data.body,
         channel_id: channelId,
         workspace_id: workspaceId,
@@ -612,95 +627,109 @@ export const useCreateChannelMessage = (
         _isOptimistic: true,
       };
 
-      // Update the infinite query data
-      queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
-        if (!old || !old.pages || old.pages.length === 0) {
-          // Create initial structure if no data exists
-          return {
-            pages: [
-              {
-                messages: [tempMessage],
+      // Optimistically update the cache
+      if (isThreadMessage) {
+        // Update thread messages
+        queryClient.setQueryData(
+          getThreadQueryKey(threadParentId),
+          (old: any) => {
+            if (!old) {
+              return {
+                replies: [optimisticMessage],
                 members: [],
-                pagination: {
-                  hasMore: false,
-                  nextCursor: null,
-                  totalCount: 1,
-                },
+                pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
+              };
+            }
+            return {
+              ...old,
+              replies: [...(old.replies || []), optimisticMessage],
+              pagination: {
+                ...old.pagination,
+                totalCount: (old.pagination?.totalCount || 0) + 1,
               },
-            ],
-            pageParams: [undefined],
-          };
-        }
+            };
+          }
+        );
 
-        // Add to the first page (most recent messages)
-        const newPages = [...old.pages];
-        const firstPage = newPages[0];
+        // Update thread reply count in channel
+        queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
+          if (!old?.pages) return old;
+          const updatedPages = old.pages.map((page: any) => ({
+            ...page,
+            messages: page.messages.map((msg: any) =>
+              msg.id === threadParentId
+                ? {
+                    ...msg,
+                    thread_reply_count: (msg.thread_reply_count || 0) + 1,
+                  }
+                : msg
+            ),
+          }));
+          return { ...old, pages: updatedPages };
+        });
+      } else {
+        // Update channel messages
+        queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
+          if (!old?.pages?.length) {
+            return {
+              pages: [
+                {
+                  messages: [optimisticMessage],
+                  members: [],
+                  pagination: {
+                    hasMore: false,
+                    nextCursor: null,
+                    totalCount: 1,
+                  },
+                },
+              ],
+              pageParams: [undefined],
+            };
+          }
 
-        if (firstPage) {
+          const newPages = [...old.pages];
+          const firstPage = newPages[0];
+
+          // Add to the beginning of the first page
           newPages[0] = {
             ...firstPage,
-            messages: [tempMessage, ...firstPage.messages],
+            messages: [optimisticMessage, ...firstPage.messages],
             pagination: {
               ...firstPage.pagination,
-              totalCount: (firstPage.pagination?.totalCount || 0) + 1,
+              totalCount: (firstPage.pagination.totalCount || 0) + 1,
             },
           };
-        }
 
-        console.log("NEW pages in create", tempMessage);
-
-        return {
-          ...old,
-          pages: newPages,
-        };
-      });
-
-      return { previousMessages, tempMessage };
-    },
-
-    onSuccess: (newMessage, variables, context) => {
-      // Replace optimistic message with real one from server
-      queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
-        if (!old || !context?.tempMessage) return old;
-        console.log("OLD pages in create", old.pages);
-        console.log("TEMP message in create", context.tempMessage);
-        console.log("NEW message in create", newMessage);
-        const newPages = old.pages.map((page: any) => ({
-          ...page,
-          messages: page.messages.map((msg: MessageWithUser) =>
-            msg.id === context.tempMessage.id ? newMessage : msg
-          ),
-        }));
-
-        console.log("NEW pages in create", newPages);
-
-        return {
-          ...old,
-          pages: newPages,
-        };
-      });
-
-      // Update other related caches
-      queryClient.invalidateQueries({
-        queryKey: ["channels", workspaceId],
-      });
-
-      // If it's a thread message, invalidate thread queries
-      if (newMessage?.parent_message_id || newMessage?.thread_id) {
-        queryClient.invalidateQueries({
-          queryKey: ["thread", workspaceId],
+          return { ...old, pages: newPages };
         });
       }
 
-      console.log("Message sent successfully and added to cache");
+      // Return context for rollback
+      return {
+        previousChannelMessages,
+        previousThreadMessages,
+        isThreadMessage,
+        threadParentId,
+      };
     },
 
+    // If the mutation fails, rollback
     onError: (error, variables, context) => {
-      // Rollback optimistic update
-      if (context?.previousMessages) {
+      if (context?.previousChannelMessages) {
         queryClient.setQueryData(
           getInfiniteQueryKey(),
-          context.previousMessages
+          context.previousChannelMessages
+        );
+      }
+
+      if (
+        context?.isThreadMessage &&
+        context?.threadParentId &&
+        context?.previousThreadMessages
+      ) {
+        queryClient.setQueryData(
+          getThreadQueryKey(context.threadParentId),
+          context.previousThreadMessages
         );
       }
 
@@ -708,11 +737,17 @@ export const useCreateChannelMessage = (
       toast.error("Failed to send message. Please try again.");
     },
 
-    onSettled: () => {
-      // Optional: Refetch to ensure consistency
-      // queryClient.invalidateQueries({
-      //   queryKey: getInfiniteQueryKey(),
-      // });
+    // Always refetch after error or success
+    onSettled: (data, error, variables, context) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ["channels", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: getInfiniteQueryKey() });
+
+      if (context?.isThreadMessage && context?.threadParentId) {
+        queryClient.invalidateQueries({
+          queryKey: getThreadQueryKey(context.threadParentId),
+        });
+      }
     },
   });
 };
@@ -732,7 +767,15 @@ export const useCreateConversationMessage = (
     "infinite",
   ];
 
+  const getThreadQueryKey = (threadParentId: string) => [
+    "thread",
+    workspaceId,
+    threadParentId,
+  ];
+
   return useMutation({
+    mutationKey: ["createConversationMessage", workspaceId, conversationId],
+
     mutationFn: (data: CreateMessageData) =>
       messagesApi.createConversationMessage(workspaceId, conversationId, {
         body: data.body,
@@ -744,18 +787,29 @@ export const useCreateConversationMessage = (
 
     // Optimistic update - add message immediately to infinite query
     onMutate: async (data) => {
-      // Cancel outgoing refetches for the infinite query
+      const threadParentId = data.parent_message_id || data.thread_id;
+      const isThreadMessage = Boolean(threadParentId);
+
+      // Cancel outgoing refetches
       await queryClient.cancelQueries({
         queryKey: getInfiniteQueryKey(),
       });
+      if (isThreadMessage) {
+        await queryClient.cancelQueries({
+          queryKey: getThreadQueryKey(threadParentId),
+        });
+      }
 
-      // Snapshot previous value
+      // Snapshot previous values
       const previousMessages = queryClient.getQueryData(getInfiniteQueryKey());
+      const previousThreadMessages = isThreadMessage
+        ? queryClient.getQueryData(getThreadQueryKey(threadParentId))
+        : null;
       const currentUser = queryClient.getQueryData(["current-user"]) as any;
 
       // Optimistically update with temporary message
       const tempMessage: MessageWithUser = {
-        id: `temp-${Date.now()}`, // Temporary ID
+        id: `temp-${Date.now()}-${Math.random()}`, // Temporary ID
         body: data.body,
         conversation_id: conversationId,
         workspace_id: workspaceId,
@@ -789,89 +843,99 @@ export const useCreateConversationMessage = (
         _isOptimistic: true,
       };
 
-      // Update the infinite query data
-      queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
-        if (!old || !old.pages || old.pages.length === 0) {
-          // Create initial structure if no data exists
-          return {
-            pages: [
-              {
-                messages: [tempMessage],
+      // Optimistically update the cache
+      if (isThreadMessage) {
+        // Update thread messages
+        queryClient.setQueryData(
+          getThreadQueryKey(threadParentId),
+          (old: any) => {
+            if (!old) {
+              return {
+                replies: [tempMessage],
                 members: [],
-                pagination: {
-                  hasMore: false,
-                  nextCursor: null,
-                  totalCount: 1,
-                },
+                pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
+              };
+            }
+            return {
+              ...old,
+              replies: [...(old.replies || []), tempMessage],
+              pagination: {
+                ...old.pagination,
+                totalCount: (old.pagination?.totalCount || 0) + 1,
               },
-            ],
-            pageParams: [undefined],
+            };
+          }
+        );
+
+        // Update thread reply count in conversation
+        queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
+          if (!old?.pages) return old;
+          const updatedPages = old.pages.map((page: any) => ({
+            ...page,
+            messages: page.messages.map((msg: any) =>
+              msg.id === threadParentId
+                ? {
+                    ...msg,
+                    thread_reply_count: (msg.thread_reply_count || 0) + 1,
+                  }
+                : msg
+            ),
+          }));
+          return { ...old, pages: updatedPages };
+        });
+      } else {
+        // Update conversation messages
+        queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
+          if (!old || !old.pages || old.pages.length === 0) {
+            // Create initial structure if no data exists
+            return {
+              pages: [
+                {
+                  messages: [tempMessage],
+                  members: [],
+                  pagination: {
+                    hasMore: false,
+                    nextCursor: null,
+                    totalCount: 1,
+                  },
+                },
+              ],
+              pageParams: [undefined],
+            };
+          }
+
+          // Add to the first page (most recent messages)
+          const newPages = [...old.pages];
+          const firstPage = newPages[0];
+
+          if (firstPage) {
+            newPages[0] = {
+              ...firstPage,
+              messages: [tempMessage, ...firstPage.messages],
+              pagination: {
+                ...firstPage.pagination,
+                totalCount: (firstPage.pagination?.totalCount || 0) + 1,
+              },
+            };
+          }
+
+          return {
+            ...old,
+            pages: newPages,
           };
-        }
-
-        // Add to the first page (most recent messages)
-        const newPages = [...old.pages];
-        const firstPage = newPages[0];
-
-        if (firstPage) {
-          newPages[0] = {
-            ...firstPage,
-            messages: [tempMessage, ...firstPage.messages],
-            pagination: {
-              ...firstPage.pagination,
-              totalCount: (firstPage.pagination?.totalCount || 0) + 1,
-            },
-          };
-        }
-
-        return {
-          ...old,
-          pages: newPages,
-        };
-      });
-
-      return { previousMessages, tempMessage };
-    },
-
-    onSuccess: (newMessage, variables, context) => {
-      // Replace optimistic message with real one from server
-      queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
-        if (!old || !context?.tempMessage) return old;
-
-        console.log("OLD pages in create", old.pages);
-        console.log("TEMP message in create", context.tempMessage);
-        console.log("NEW message in create", newMessage);
-
-        const newPages = old.pages.map((page: any) => ({
-          ...page,
-          messages: page.messages.map((msg: MessageWithUser) =>
-            msg.id === context.tempMessage.id ? newMessage : msg
-          ),
-        }));
-
-        console.log("NEW pages in create", newPages);
-
-        return {
-          ...old,
-          pages: newPages,
-        };
-      });
-
-      // Update other related caches
-      queryClient.invalidateQueries({
-        queryKey: ["conversations", workspaceId],
-      });
-
-      // If it's a thread message, invalidate thread queries
-      if (newMessage?.parent_message_id || newMessage?.thread_id) {
-        queryClient.invalidateQueries({
-          queryKey: ["thread", workspaceId],
         });
       }
 
-      console.log("Message sent successfully and added to cache");
+      return {
+        previousMessages,
+        previousThreadMessages,
+        tempMessage,
+        isThreadMessage,
+        threadParentId,
+      };
     },
 
+    // If the mutation fails, rollback
     onError: (error, variables, context) => {
       // Rollback optimistic update
       if (context?.previousMessages) {
@@ -881,21 +945,39 @@ export const useCreateConversationMessage = (
         );
       }
 
-      console.error("Failed to send conversation message:", error);
+      if (
+        context?.isThreadMessage &&
+        context?.threadParentId &&
+        context?.previousThreadMessages
+      ) {
+        queryClient.setQueryData(
+          getThreadQueryKey(context.threadParentId),
+          context.previousThreadMessages
+        );
+      }
 
-      // Optionally show error toast/notification here
+      console.error("Failed to send conversation message:", error);
       // toast.error("Failed to send message. Please try again.");
     },
 
-    onSettled: () => {
-      // Optional: Refetch to ensure consistency
-      // queryClient.invalidateQueries({
-      //   queryKey: getInfiniteQueryKey(),
-      // });
+    // Always refetch after error or success
+    onSettled: (data, error, variables, context) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({
+        queryKey: ["conversations", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: getInfiniteQueryKey(),
+      });
+
+      if (context?.isThreadMessage && context?.threadParentId) {
+        queryClient.invalidateQueries({
+          queryKey: getThreadQueryKey(context.threadParentId),
+        });
+      }
     },
   });
 };
-
 /**
  * Hook for updating messages with optimistic updates
  */
@@ -1233,8 +1315,9 @@ export const useMessageReplies = (
     enabled:
       !!workspaceId &&
       !!messageId &&
-      !!params?.context_type &&
-      !!params?.context_id,
+      !messageId.includes("temp") &&
+      !!params?.entity_type &&
+      !!params?.entity_id,
   });
 
   return { data, isLoadingThread, threadError };

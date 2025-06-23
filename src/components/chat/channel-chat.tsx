@@ -13,6 +13,7 @@ import { useCurrentUser } from "@/features/auth";
 import { Message, User, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
+import { transformMessages } from "@/features/messages/helpers";
 
 const ChannelChat = () => {
   const { id: channelId, workspaceId } = useParamIds();
@@ -61,40 +62,6 @@ const ChannelChat = () => {
     isPrivate: channelData.channel_type === "private",
     memberCount: channelData.members?.length || 0,
   });
-
-  const transformMessages = (messagesData: any[]): Message[] => {
-    return messagesData.map((msg) => {
-      if (!msg.user?.id) {
-        console.log(msg, "msg");
-      }
-      return {
-        id: msg.id,
-        content: msg.body,
-        authorId: msg.user.id,
-        author: {
-          id: msg.user.id,
-          name: msg.user.name,
-          avatar: msg.user.image,
-          status: "online" as const,
-        },
-        timestamp: new Date(msg.created_at),
-        reactions:
-          msg.reactions?.map((reaction: any) => ({
-            id: reaction.id,
-            emoji: reaction.value,
-            count: reaction.count,
-            users: reaction.users,
-            hasReacted: reaction.users.some(
-              (user: any) => user.id === currentUser?.id
-            ),
-          })) || [],
-        threadCount: 0,
-        isEdited: !!msg.edited_at,
-        isOptimistic: msg._isOptimistic || false,
-        attachments: msg?.attachments || [],
-      };
-    });
-  };
 
   const transformCurrentUser = (userData: any): User => ({
     id: userData.id,
@@ -146,7 +113,7 @@ const ChannelChat = () => {
 
   // Transform data for chat component
   const channel = transformChannel(channelDetails);
-  const messages = transformMessages(sortedMessages);
+  const messages = transformMessages(sortedMessages, currentUser);
   const user = transformCurrentUser(currentUser);
 
   // Handle message sending with real-time integration
