@@ -42,6 +42,7 @@ export interface ConfirmUploadResponse {
     content_type: string;
     size_bytes: number;
     uploaded_by: string;
+    public_url: string;
     status: "uploading" | "uploaded" | "failed" | "orphaned";
     file_purpose:
       | "attachments"
@@ -84,4 +85,8 @@ export interface UploadedAttachment {
   uploadProgress: number;
   status: "uploading" | "completed" | "error";
   error?: string;
+}
+
+export interface ManagedAttachment extends UploadedAttachment {
+  file?: File; // Store file for preview during upload
 }

@@ -5,7 +5,7 @@ import Quill from "quill";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Message } from "@/features/conversations/components/message";
+import { ChatMessage } from "@/components/chat/message";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { useCurrentMember } from "@/features/members/hooks/use-members";
@@ -15,7 +15,9 @@ import { useParamIds } from "@/hooks/use-param-ids";
 import { useQuery } from "@tanstack/react-query";
 import { messagesApi } from "@/features/messages/api/messages-api";
 
-const Editor = dynamic(() => import("@/components/editor"), { ssr: false });
+const Editor = dynamic(() => import("@/components/editor"), {
+  ssr: false,
+});
 
 interface ThreadProps {
   messageId: string;
@@ -255,7 +257,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
                   "minute"
                 ) < TIME_THRESHOLD;
               return (
-                <Message
+                <ChatMessage
                   key={message.id}
                   id={message.id}
                   memberId={message.workspace_member_id}
@@ -287,7 +289,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
         ))}
 
         {/* Parent message at the bottom */}
-        <Message
+        <ChatMessage
           id={parentMessage.data.id}
           memberId={parentMessage.data.workspace_member_id}
           authorImage={parentMessage.data.user.image}

@@ -3,10 +3,13 @@ import "quill/dist/quill.snow.css";
 import {
   ImageIcon,
   Smile,
-  XIcon,
   SendHorizontal,
   CaseSensitive,
   Paperclip,
+  X,
+  FileIcon,
+  PlayIcon,
+  Loader2,
 } from "lucide-react";
 import Quill, { QuillOptions } from "quill";
 import { Delta, Op } from "quill/core";
@@ -17,16 +20,16 @@ import {
   useMemo,
   useRef,
   useState,
+  useCallback,
 } from "react";
 
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import { EmojiPopover } from "./emoji-popover";
 import { Hint } from "./hint";
 import { Button } from "./ui/button";
-import AttachmentUploader from "@/features/file-upload/components/attachment-uploader";
 import { toast } from "sonner";
 import { UploadedAttachment } from "@/features/file-upload/types";
+import { useFileUpload } from "@/features/file-upload";
 
 type EditorValue = {
   image: File | null;
@@ -43,6 +46,25 @@ interface EditorProps {
   workspaceId: string;
   onCancel?: () => void;
   onSubmit: ({ image, body, attachments }: EditorValue) => Promise<any> | void;
+  deleteAttachment?: (
+    attachmentId: string,
+    workspaceId: string
+  ) => Promise<void>;
+  maxFiles?: number;
+  maxFileSizeBytes?: number;
+}
+
+// Enhanced attachment interface to track upload state
+interface ManagedAttachment {
+  id: string;
+  originalFilename: string;
+  contentType: string;
+  sizeBytes: number;
+  publicUrl: string;
+  uploadProgress: number;
+  status: "uploading" | "completed" | "error";
+  error?: string;
+  file?: File; // Store file for preview during upload
 }
 
 const Editor = ({
@@ -54,11 +76,17 @@ const Editor = ({
   workspaceId,
   onCancel,
   onSubmit,
+  deleteAttachment,
+  maxFiles = 10,
+  maxFileSizeBytes = 20 * 1024 * 1024, // 20MB
 }: EditorProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [text, setText] = useState("");
-  const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
-  const [showAttachments, setShowAttachments] = useState(false);
+  const [attachments, setAttachments] = useState<ManagedAttachment[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Track active upload batches to prevent state confusion
+  const activeUploadBatchRef = useRef<string | null>(null);
 
   const isEmpty = useMemo(
     () =>
@@ -67,33 +95,271 @@ const Editor = ({
       text.replace(/\s*/g, "").trim().length === 0,
     [text, image, attachments.length]
   );
+
+  const hasUploadsInProgress = useMemo(
+    () => attachments.some((att) => att.status === "uploading"),
+    [attachments]
+  );
+
   const [isToolbarVisible, setIsToolbarVisible] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const editorWrapperRef = useRef<HTMLDivElement>(null);
   const onSubmitRef = useRef(onSubmit);
   const placeholderRef = useRef(placeholder);
   const defaultValueRef = useRef(defaultValue);
   const disabledRef = useRef(disabled);
   const imageElementRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<Quill | null>(null);
+  const attachmentsRef = useRef(attachments);
+  const handleSubmitRef = useRef(handleSubmit);
+
+  const { uploadMultipleFiles } = useFileUpload(workspaceId);
 
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
     placeholderRef.current = placeholder;
     defaultValueRef.current = defaultValue;
     disabledRef.current = disabled;
-  });
+    attachmentsRef.current = attachments;
+    handleSubmitRef.current = handleSubmit;
+  }, [
+    onSubmit,
+    placeholder,
+    defaultValue,
+    disabled,
+    attachments,
+    handleSubmit,
+  ]);
 
-  const handleSubmit = async () => {
+  // File validation
+  const validateFile = (file: File): string | null => {
+    if (file.size > maxFileSizeBytes) {
+      return `File "${file.name}" is too large. Maximum size is ${Math.round(
+        maxFileSizeBytes / 1024 / 1024
+      )}MB.`;
+    }
+
+    const allowedTypes = [
+      "image/",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument",
+      "video/",
+      "audio/",
+      "text/",
+      "application/zip",
+    ];
+
+    const isAllowedType = allowedTypes.some((type) =>
+      file.type.startsWith(type)
+    );
+    if (!isAllowedType) {
+      return `File type "${file.type}" is not supported.`;
+    }
+
+    return null;
+  };
+
+  // Handle file uploads using uploadMultipleFiles
+  const handleFiles = useCallback(
+    async (files: FileList) => {
+      if (!uploadMultipleFiles) {
+        toast.error("File upload not configured");
+        return;
+      }
+
+      const fileArray = Array.from(files);
+
+      if (attachments.length + fileArray.length > maxFiles) {
+        toast.error(`Cannot upload more than ${maxFiles} files total.`);
+        return;
+      }
+
+      const validationErrors = fileArray
+        .map((file) => validateFile(file))
+        .filter((error) => error !== null);
+
+      if (validationErrors.length > 0) {
+        toast.error(validationErrors.join("\n"));
+        return;
+      }
+
+      // Create batch ID to track this upload session
+      const batchId = `batch-${Date.now()}-${Math.random()}`;
+      activeUploadBatchRef.current = batchId;
+
+      // Create initial attachment entries with unique IDs
+      const fileIds = fileArray.map(
+        () => `upload-${Date.now()}-${Math.random()}`
+      );
+
+      const initialAttachments: ManagedAttachment[] = fileArray.map(
+        (file, index) => ({
+          id: fileIds[index],
+          originalFilename: file.name,
+          contentType: file.type,
+          sizeBytes: file.size,
+          publicUrl: "",
+          uploadProgress: 0,
+          status: "uploading",
+          file, // Store file for preview
+        })
+      );
+
+      setAttachments((prev) => {
+        const newState = [...prev, ...initialAttachments];
+        return newState;
+      });
+
+      try {
+        // Use uploadMultipleFiles with proper progress tracking
+        const results = await uploadMultipleFiles(
+          fileArray,
+          (fileIndex: number, progress: { percentage: number }) => {
+            if (activeUploadBatchRef.current === batchId) {
+              const targetId = fileIds[fileIndex];
+              setAttachments((prev) =>
+                prev.map((att) =>
+                  att.id === targetId
+                    ? { ...att, uploadProgress: progress.percentage }
+                    : att
+                )
+              );
+            }
+          },
+          3 // Max concurrent uploads
+        );
+
+        // This `setAttachments` block is now guaranteed to receive the correct
+        // status and publicUrl from the hook, fixing the bug.
+        if (activeUploadBatchRef.current === batchId) {
+          setAttachments((prev) => {
+            const updatedAttachments = prev.map((att) => {
+              // Find the original attachment by its temporary ID
+              const originalFileIndex = fileIds.indexOf(att.id);
+              if (originalFileIndex === -1) return att; // Not part of this batch
+
+              const result = results[originalFileIndex];
+
+              // If the upload was successful, update with the final data
+              if (result.status === "success") {
+                return {
+                  ...att,
+                  id: result.attachmentId, // Replace temporary ID with the real one from the database
+                  publicUrl: result.publicUrl,
+                  uploadProgress: 100,
+                  status: "completed",
+                  file: undefined, // Clear the preview file from memory
+                };
+              } else {
+                // If it failed, mark it as an error
+                return {
+                  ...att,
+                  status: "error",
+                  error: result.error,
+                  file: undefined,
+                };
+              }
+            });
+
+            return updatedAttachments;
+          });
+
+          activeUploadBatchRef.current = null;
+        }
+      } catch (error) {
+        console.error("Upload batch failed:", error);
+        // Only update if this is still the active batch
+        if (activeUploadBatchRef.current === batchId) {
+          setAttachments((prev) =>
+            prev.map((att) =>
+              fileIds.includes(att.id)
+                ? { ...att, status: "error", error: "Upload failed" }
+                : att
+            )
+          );
+          activeUploadBatchRef.current = null;
+        }
+      }
+    },
+    [attachments.length, maxFiles, uploadMultipleFiles]
+  );
+
+  // Remove attachment
+  const removeAttachment = async (attachmentId: string) => {
+    const attachment = attachments.find((att) => att.id === attachmentId);
+    if (!attachment) return;
+
+    // If it's a completed attachment (has real ID), delete from server
+    if (
+      attachment.status === "completed" &&
+      !attachmentId.startsWith("upload-") &&
+      deleteAttachment
+    ) {
+      try {
+        await deleteAttachment(attachmentId, workspaceId);
+      } catch (error) {
+        console.error("Failed to delete attachment:", error);
+      }
+    }
+
+    setAttachments((prev) => {
+      const newState = prev.filter((att) => att.id !== attachmentId);
+      return newState;
+    });
+  };
+
+  // Drag and drop handlers
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFiles(e.dataTransfer.files);
+      }
+    },
+    [handleFiles]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (
+      editorWrapperRef.current &&
+      !editorWrapperRef.current.contains(e.relatedTarget as Node)
+    ) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  async function handleSubmit() {
     const quill = quillRef.current;
     if (!quill) return;
 
-    // Check if any attachments are still uploading
-    const uploadingAttachments = attachments.filter(
-      (att) => att.status === "uploading"
+    // Simple, reliable check for uploads in progress
+    if (hasUploadsInProgress) {
+      toast.error("Please wait for all attachments to finish uploading.");
+      return;
+    }
+
+    // Check for failed uploads
+    const failedAttachments = attachments.filter(
+      (att) => att.status === "error"
     );
-    if (uploadingAttachments.length > 0) {
-      toast("Please wait for all attachments to finish uploading.");
+    if (failedAttachments.length > 0) {
+      toast.error(
+        "Some uploads failed. Please remove failed uploads or try again."
+      );
       return;
     }
 
@@ -104,10 +370,23 @@ const Editor = ({
     const body = JSON.stringify(oldContents);
 
     try {
+      const completedAttachments = attachments.filter((att) => !!att.publicUrl);
+
+      const attachmentsForSubmit: UploadedAttachment[] =
+        completedAttachments.map((att) => ({
+          id: att.id,
+          originalFilename: att.originalFilename,
+          contentType: att.contentType,
+          sizeBytes: att.sizeBytes,
+          publicUrl: att.publicUrl,
+          uploadProgress: att.uploadProgress,
+          status: "completed" as const,
+        }));
+
       const result = onSubmitRef.current({
         image: oldImage,
         body,
-        attachments,
+        attachments: attachmentsForSubmit,
       });
 
       // Clear form
@@ -116,7 +395,7 @@ const Editor = ({
       setText("");
       setImage(null);
       setAttachments([]);
-      setShowAttachments(false);
+      activeUploadBatchRef.current = null;
 
       if (result instanceof Promise) {
         await result;
@@ -129,7 +408,7 @@ const Editor = ({
       setAttachments(oldAttachments);
       console.error("Send failed, rolled back:", err);
     }
-  };
+  }
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -151,15 +430,19 @@ const Editor = ({
             enterSubmit: {
               key: "Enter",
               handler: function (range, context) {
+                // 3. Use the .current property of the refs inside the handler
                 const addedImage = imageElementRef.current?.files?.[0] || null;
                 const currentText = quillRef.current?.getText() || "";
+
+                // Read the LATEST attachments state via the ref
                 const empty =
                   !addedImage &&
-                  attachments.length === 0 &&
+                  attachmentsRef.current.length === 0 &&
                   currentText.replace(/\s*/g, "").trim().length === 0;
 
                 if (!empty) {
-                  handleSubmit();
+                  // Call the LATEST handleSubmit function via the ref
+                  handleSubmitRef.current();
                   return false;
                 }
 
@@ -200,7 +483,7 @@ const Editor = ({
       quillRef.current = null;
       if (innerRef) innerRef.current = null;
     };
-  }, [innerRef, attachments.length]);
+  }, []);
 
   const handleToolbarToggle = () => {
     setIsToolbarVisible((v) => !v);
@@ -214,8 +497,74 @@ const Editor = ({
     quill?.insertText(idx, emoji);
   };
 
-  const toggleAttachments = () => {
-    setShowAttachments(!showAttachments);
+  // Render attachment preview
+  const renderAttachmentPreview = (attachment: ManagedAttachment) => {
+    const isImage = attachment.contentType?.startsWith("image/");
+    const isVideo = attachment.contentType?.startsWith("video/");
+    const isUploading = attachment.status === "uploading";
+    const hasError = attachment.status === "error";
+
+    return (
+      <div
+        key={attachment.id}
+        className="relative w-16 h-16 bg-muted border border-border rounded-lg overflow-hidden group"
+      >
+        {/* Remove button */}
+        <button
+          onClick={() => removeAttachment(attachment.id)}
+          className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 text-xs"
+        >
+          <X className="w-3 h-3" />
+        </button>
+
+        {/* Content */}
+        <div className="w-full h-full flex items-center justify-center">
+          {isUploading && (
+            <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-primary mb-1" />
+              <span className="text-xs text-muted-foreground">
+                {Math.round(attachment.uploadProgress)}%
+              </span>
+            </div>
+          )}
+
+          {hasError && (
+            <div className="absolute inset-0 bg-destructive/10 flex items-center justify-center">
+              <span className="text-xs text-destructive font-medium">
+                Error
+              </span>
+            </div>
+          )}
+
+          {isImage && (attachment.file || attachment.publicUrl) && (
+            <img
+              src={
+                attachment.file
+                  ? URL.createObjectURL(attachment.file)
+                  : attachment.publicUrl
+              }
+              alt={attachment.originalFilename}
+              className="w-full h-full object-cover"
+            />
+          )}
+
+          {isVideo && (
+            <div className="w-full h-full bg-black/80 flex items-center justify-center">
+              <PlayIcon className="w-6 h-6 text-white" />
+            </div>
+          )}
+
+          {!isImage && !isVideo && (
+            <div className="flex flex-col items-center justify-center p-1">
+              <FileIcon className="w-4 h-4 text-muted-foreground mb-1" />
+              <span className="text-xs text-muted-foreground text-center leading-tight truncate w-full">
+                {attachment.originalFilename?.split(".").pop()?.toUpperCase()}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -227,49 +576,47 @@ const Editor = ({
         onChange={(e) => setImage(e.target.files![0])}
         className="hidden"
       />
-
-      {/* Attachment Uploader */}
-      {showAttachments && (
-        <div className="mb-4 p-4 border border-border-default rounded-md bg-muted/30">
-          <AttachmentUploader
-            workspaceId={workspaceId}
-            onAttachmentsChange={setAttachments}
-            maxFiles={10}
-            maxFileSizeBytes={20 * 1024 * 1024} // 10MB
-          />
-        </div>
-      )}
+      <input
+        type="file"
+        multiple
+        ref={fileInputRef}
+        onChange={(e) => e.target.files && handleFiles(e.target.files)}
+        className="hidden"
+      />
 
       <div
+        ref={editorWrapperRef}
         className={cn(
-          "flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition",
-          disabled && "opacity-50"
+          "flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition-all duration-200 relative",
+          disabled && "opacity-50",
+          isDragging && "border-primary bg-accent/50"
         )}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
       >
+        {/* Drag overlay */}
+        {isDragging && (
+          <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center border-2 border-dashed border-primary rounded-md">
+            <div className="text-center">
+              <div className="text-lg font-medium text-primary mb-2">
+                Drop files here
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Max {maxFiles} files, up to{" "}
+                {Math.round(maxFileSizeBytes / 1024 / 1024)}MB each
+              </div>
+            </div>
+          </div>
+        )}
+
         <div ref={containerRef} className="h-full ql-custom"></div>
 
-        {/* Legacy single image support */}
-        {!!image && (
-          <div className="p-2">
-            <div className="relative size-[62px] flex items-center justify-center group/image">
-              <Hint label="Remove image">
-                <button
-                  onClick={() => {
-                    setImage(null);
-                    if (imageElementRef.current)
-                      imageElementRef.current.value = "";
-                  }}
-                  className="hidden group-hover/image:flex rounded-full bg-primary/70 hover:bg-primary absolute -top-2.5 -right-2.5 text-primary-foreground size-6 z-4 border-2 items-center justify-center"
-                >
-                  <XIcon className="size-3.5" />
-                </button>
-              </Hint>
-              <Image
-                src={URL.createObjectURL(image)}
-                alt="Uploaded"
-                fill
-                className="rounded-xl overflow-hidden object-cover"
-              />
+        {/* Attachment previews */}
+        {attachments.length > 0 && (
+          <div className="px-3 pb-2">
+            <div className="flex flex-wrap gap-2">
+              {attachments.map(renderAttachmentPreview)}
             </div>
           </div>
         )}
@@ -298,9 +645,9 @@ const Editor = ({
               disabled={disabled}
               size="sm"
               variant="ghost"
-              onClick={toggleAttachments}
+              onClick={() => fileInputRef.current?.click()}
               className={cn(
-                showAttachments && "bg-accent text-accent-foreground"
+                attachments.length > 0 && "bg-accent text-accent-foreground"
               )}
             >
               <Paperclip className="size-4" />
@@ -312,7 +659,7 @@ const Editor = ({
             </Button>
           </Hint>
 
-          {/* Legacy image button - keep for backward compatibility */}
+          {/* Legacy image button */}
           {variant === "create" && (
             <Hint label="Image">
               <Button
@@ -340,7 +687,7 @@ const Editor = ({
                 variant="outline"
                 size="sm"
                 onClick={handleSubmit}
-                disabled={disabled || isEmpty}
+                disabled={disabled || isEmpty || hasUploadsInProgress}
                 className="bg-primary hover:bg-primary/80 text-primary-foreground"
               >
                 Save
@@ -348,11 +695,11 @@ const Editor = ({
             </div>
           ) : (
             <Button
-              disabled={disabled || isEmpty}
+              disabled={disabled || isEmpty || hasUploadsInProgress}
               onClick={handleSubmit}
               className={cn(
                 "ml-auto",
-                isEmpty
+                isEmpty || hasUploadsInProgress
                   ? "text-muted-foreground"
                   : "bg-primary hover:bg-primary/80 text-primary-foreground"
               )}
@@ -363,13 +710,6 @@ const Editor = ({
           )}
         </div>
       </div>
-
-      {!showAttachments && attachments.length > 0 && (
-        <div className="mt-2 text-xs text-muted-foreground">
-          {attachments.length} file{attachments.length !== 1 ? "s" : ""}{" "}
-          attached
-        </div>
-      )}
 
       {variant === "create" && (
         <div

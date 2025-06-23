@@ -122,11 +122,13 @@ export const Chat: FC<ChatProps> = ({
       <div className="p-4 border-t border-border-subtle">
         <Editor
           workspaceId={workspaceId}
-          placeholder={`Message ${chatType === "conversation" && "#"}${
+          placeholder={`Message ${chatType === "channel" ? "#" : ""}${
             channel.name
           }`}
           onSubmit={handleSendMessage}
           disabled={isLoading}
+          maxFiles={10}
+          maxFileSizeBytes={20 * 1024 * 1024}
         />
       </div>
     </div>
