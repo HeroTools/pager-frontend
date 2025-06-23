@@ -36,146 +36,6 @@ export const useGetPresignedUrl = () => {
 };
 
 /**
- * Hook for uploading files with Supabase's uploadToSignedUrl
- */
-export const useUploadFile = () => {
-  return useMutation({
-    mutationFn: async ({
-      workspaceId,
-      supabase,
-      path,
-      token,
-      file,
-      onProgress,
-    }: {
-      workspaceId: string;
-      supabase: any; // Supabase client
-      path: string;
-      token: string;
-      file: File;
-      onProgress?: (progress: UploadProgress) => void;
-    }) => {
-      // Convert File to FileBody (ArrayBuffer) as required by Supabase
-      const fileBody = await file.arrayBuffer();
-
-      // Use uploadToSignedUrl with the correct FileBody type
-      const { data, error } = await supabase.storage
-        .from("attachments")
-        .uploadToSignedUrl(path, token, fileBody, {
-          upsert: false, // Make sure this matches your token settings
-          contentType: file.type, // Explicitly set content type
-          onUploadProgress: onProgress
-            ? (progress: any) => {
-                onProgress({
-                  loaded: progress.loaded,
-                  total: progress.total,
-                  percentage: Math.round(
-                    (progress.loaded / progress.total) * 100
-                  ),
-                });
-              }
-            : undefined,
-        });
-
-      if (error) {
-        console.error("Supabase upload error:", error);
-        throw new Error(`Upload failed: ${error.message}`);
-      }
-
-      return data;
-    },
-    onError: (error) => {
-      console.error("File upload failed:", error);
-    },
-  });
-};
-
-/**
- * Alternative manual upload method if uploadToSignedUrl continues to have issues
- */
-export const useManualUpload = () => {
-  return useMutation({
-    mutationFn: async ({
-      signedUrl,
-      file,
-      onProgress,
-    }: {
-      signedUrl: string;
-      file: File;
-      onProgress?: (progress: UploadProgress) => void;
-    }) => {
-      return new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-
-        // Track upload progress
-        if (onProgress) {
-          xhr.upload.addEventListener("progress", (event) => {
-            if (event.lengthComputable) {
-              onProgress({
-                loaded: event.loaded,
-                total: event.total,
-                percentage: Math.round((event.loaded / event.total) * 100),
-              });
-            }
-          });
-        }
-
-        xhr.addEventListener("load", () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else {
-            reject(
-              new Error(
-                `Upload failed with status: ${xhr.status} - ${xhr.responseText}`
-              )
-            );
-          }
-        });
-
-        xhr.addEventListener("error", () => {
-          reject(new Error("Network error during upload"));
-        });
-
-        xhr.addEventListener("timeout", () => {
-          reject(new Error("Upload timeout"));
-        });
-
-        // Open PUT request to signed URL
-        xhr.open("PUT", signedUrl);
-
-        // Set content type to match the file
-        xhr.setRequestHeader("Content-Type", file.type);
-
-        // Send the raw file data (not multipart)
-        xhr.send(file);
-      });
-    },
-    onError: (error) => {
-      console.error("Manual upload failed:", error);
-    },
-  });
-};
-
-/**
- * Hook for confirming upload completion
- */
-export const useConfirmUpload = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (request: ConfirmUploadRequest) =>
-      uploadApi.confirmUpload(request),
-    onSuccess: () => {
-      // Invalidate relevant queries (e.g., attachment lists)
-      queryClient.invalidateQueries({ queryKey: ["attachments"] });
-    },
-    onError: (error) => {
-      console.error("Failed to confirm upload:", error);
-    },
-  });
-};
-
-/**
  * Hook for deleting attachments
  */
 export const useDeleteAttachment = () => {
@@ -195,126 +55,157 @@ export const useDeleteAttachment = () => {
 };
 
 /**
- * Comprehensive hook that handles the entire upload process
+ * Alternative manual upload method
  */
-export const useFileUpload = (workspaceId: string, supabase: any) => {
+export const useManualUpload = () => {
+  return useMutation({
+    mutationFn: async ({
+      signedUrl,
+      file,
+      onProgress,
+    }: {
+      signedUrl: string;
+      file: File;
+      onProgress?: (progress: UploadProgress) => void;
+    }) => {
+      return new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        if (onProgress) {
+          xhr.upload.addEventListener("progress", (e) => {
+            if (e.lengthComputable) {
+              onProgress({
+                loaded: e.loaded,
+                total: e.total,
+                percentage: Math.round((e.loaded / e.total) * 100),
+              });
+            }
+          });
+        }
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Upload failed: ${xhr.status}`));
+          }
+        });
+        xhr.addEventListener("error", () => reject(new Error("Network error")));
+        xhr.open("PUT", signedUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.send(file);
+      });
+    },
+  });
+};
+
+/**
+ * Hook for confirming upload completion
+ */
+export const useConfirmUpload = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: ConfirmUploadRequest) =>
+      uploadApi.confirmUpload(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["attachments"] });
+    },
+    onError: (error) => {
+      console.error("Failed to confirm upload:", error);
+    },
+  });
+};
+
+/**
+ * Comprehensive hook that handles the entire upload process.
+ * This is the corrected and completed version.
+ */
+export const useFileUpload = (workspaceId: string) => {
   const getPresignedUrlMutation = useGetPresignedUrl();
-  const uploadFileMutation = useUploadFile();
   const manualUploadMutation = useManualUpload();
   const confirmUploadMutation = useConfirmUpload();
 
-  const uploadFile = async (
-    file: File,
-    onProgress?: (progress: UploadProgress) => void,
-    useManualMethod: boolean = false
-  ): Promise<FileUploadResult> => {
-    try {
-      const fileId = crypto.randomUUID();
+  /**
+   * Orchestrates the entire upload flow for multiple files concurrently.
+   * @param files - The array of files to upload.
+   * @param onTotalProgress - Callback for overall progress updates.
+   * @param maxConcurrentUploads - Number of files to upload simultaneously.
+   * @returns An array of FileUploadResult objects.
+   */
+  const uploadMultipleFiles = async (
+    files: File[],
+    onFileProgress: (fileIndex: number, progress: UploadProgress) => void,
+    maxConcurrentUploads: number = 3
+  ): Promise<FileUploadResult[]> => {
+    // This function processes a single file through all three stages.
+    const processFile = async (
+      file: File,
+      index: number
+    ): Promise<FileUploadResult> => {
+      try {
+        const fileId = crypto.randomUUID();
 
-      // Step 1: Get presigned URL
-      const presignedUrlResponse = await getPresignedUrlMutation.mutateAsync({
-        workspaceId,
-        fileId,
-        filename: file.name,
-        contentType: file.type,
-        sizeBytes: file.size,
-        filePurpose: "attachments",
-      });
+        // 1. Get Presigned URL from your backend
+        const presignedUrlResponse = await getPresignedUrlMutation.mutateAsync({
+          workspaceId,
+          fileId,
+          filename: file.name,
+          contentType: file.type,
+          sizeBytes: file.size,
+          filePurpose: "attachments",
+        });
 
-      const { signed_url, token, path, public_url, file_id } =
-        presignedUrlResponse;
+        const { signed_url, file_id } = presignedUrlResponse;
 
-      // Step 2: Upload file
-      if (useManualMethod) {
-        // Use manual XMLHttpRequest method
+        // 2. Upload the file to the storage provider (e.g., S3, Supabase Storage)
         await manualUploadMutation.mutateAsync({
           signedUrl: signed_url,
           file,
-          onProgress,
+          onProgress: (progress) => onFileProgress(index, progress),
         });
-      } else {
-        // Use Supabase's uploadToSignedUrl method
-        await uploadFileMutation.mutateAsync({
+
+        // 3. Confirm the upload with your backend
+        const confirmedAttachment = await confirmUploadMutation.mutateAsync({
           workspaceId,
-          supabase,
-          path,
-          token,
-          file,
-          onProgress,
+          attachmentId: file_id,
         });
+
+        const fileData = confirmedAttachment.file;
+
+        return {
+          attachmentId: fileData.id,
+          filename: fileData.original_filename,
+          publicUrl: fileData.public_url,
+          contentType: fileData.content_type,
+          sizeBytes: fileData.size_bytes,
+          status: "success",
+        };
+      } catch (error: any) {
+        console.error(`Failed to upload ${file.name}:`, error);
+        // Return an error result object
+        return {
+          attachmentId: `error-${file.name}-${Date.now()}`,
+          filename: file.name,
+          publicUrl: "",
+          contentType: file.type,
+          sizeBytes: file.size,
+          status: "error",
+          error: error.message || "An unknown error occurred",
+        };
       }
+    };
 
-      // Step 3: Confirm upload
-      await confirmUploadMutation.mutateAsync({
-        workspaceId,
-        attachmentId: file_id,
-      });
-
-      return {
-        attachmentId: file_id,
-        filename: file.name,
-        publicUrl: public_url,
-        contentType: file.type,
-        sizeBytes: file.size,
-        status: "success",
-      };
-    } catch (error) {
-      console.error("Upload process failed:", error);
-
-      return {
-        attachmentId: "",
-        filename: file.name,
-        publicUrl: "",
-        contentType: file.type,
-        sizeBytes: file.size,
-        status: "error",
-        error: error instanceof Error ? error.message : "Upload failed",
-      };
-    }
-  };
-
-  const uploadMultipleFiles = async (
-    files: File[],
-    onProgress?: (fileIndex: number, progress: UploadProgress) => void,
-    maxConcurrency: number = 3,
-    useManualMethod: boolean = false
-  ): Promise<FileUploadResult[]> => {
-    const results: FileUploadResult[] = [];
-
-    // Upload files in batches to avoid overwhelming the server
-    for (let i = 0; i < files.length; i += maxConcurrency) {
-      const batch = files.slice(i, i + maxConcurrency);
-
-      const batchPromises = batch.map((file, batchIndex) => {
-        const fileIndex = i + batchIndex;
-        return uploadFile(
-          file,
-          (progress) => {
-            onProgress?.(fileIndex, progress);
-          },
-          useManualMethod
-        );
-      });
-
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults);
-    }
+    // Process all files using the function above
+    const results = await Promise.all(
+      files.map((file, index) => processFile(file, index))
+    );
 
     return results;
   };
 
   return {
-    uploadFile,
     uploadMultipleFiles,
     isUploading:
       getPresignedUrlMutation.isPending ||
-      uploadFileMutation.isPending ||
       manualUploadMutation.isPending ||
       confirmUploadMutation.isPending,
-    error:
-      getPresignedUrlMutation.error ||
-      uploadFileMutation.error ||
-      manualUploadMutation.error ||
-      confirmUploadMutation.error,
   };
 };
