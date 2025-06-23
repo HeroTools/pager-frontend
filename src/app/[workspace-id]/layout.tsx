@@ -15,15 +15,14 @@ import { Sidebar } from "@/components/side-nav/sidebar";
 import { Toolbar } from "./toolbar";
 import { WorkspaceSidebar } from "@/components/side-nav/workspace-sidebar";
 import { Id } from "@/types";
+import { useUIStore } from "@/store/ui-store";
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;
 }
 
 const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
-  const { parentMessageId, profileMemberId, close } = usePanel();
-
-  const showPanel = !!parentMessageId || !!profileMemberId;
+  const { setThreadOpen, isThreadOpen, openThreadMessageId } = useUIStore();
 
   return (
     <div className="h-full">
@@ -41,25 +40,14 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
           <ResizablePanel defaultSize={74} minSize={20}>
             {children}
           </ResizablePanel>
-          {showPanel && (
+          {isThreadOpen() && openThreadMessageId && (
             <>
               <ResizableHandle />
               <ResizablePanel minSize={20} defaultSize={29}>
-                {parentMessageId ? (
-                  <Thread
-                    messageId={parentMessageId as Id<"messages">}
-                    onClose={close}
-                  />
-                ) : profileMemberId ? (
-                  <Profile
-                    memberId={profileMemberId as Id<"members">}
-                    onClose={close}
-                  />
-                ) : (
-                  <div className="flex h-ful items-center justify-center">
-                    <Loader className="size-5 animate-spin text-foreground" />
-                  </div>
-                )}
+                <Thread
+                  messageId={openThreadMessageId}
+                  onClose={() => setThreadOpen(null)}
+                />
               </ResizablePanel>
             </>
           )}

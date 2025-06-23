@@ -9,11 +9,12 @@ import { ChatMessage } from "@/components/chat/message";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { useCurrentMember } from "@/features/members/hooks/use-members";
-import { useMessageOperations } from "@/features/messages/hooks/use-messages";
-import { useGetPresignedUrl } from "@/features/file-upload/hooks/use-upload";
+import {
+  useMessageOperations,
+  useMessageReplies,
+} from "@/features/messages/hooks/use-messages";
 import { useParamIds } from "@/hooks/use-param-ids";
-import { useQuery } from "@tanstack/react-query";
-import { messagesApi } from "@/features/messages/api/messages-api";
+import { useUIStore } from "@/store/ui-store";
 
 const Editor = dynamic(() => import("@/components/editor/editor"), {
   ssr: false,
@@ -22,6 +23,38 @@ const Editor = dynamic(() => import("@/components/editor/editor"), {
 interface ThreadProps {
   messageId: string;
   onClose: () => void;
+  // Add the parent message data since we already have it
+  parentMessage: {
+    id: string;
+    body: string;
+    attachment_id: string | null;
+    workspace_member_id: string;
+    created_at: string;
+    updated_at: string | null;
+    edited_at: string | null;
+    thread_id?: string | null;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      image: string | null;
+    };
+    attachment?: {
+      id: string;
+      url: string;
+      content_type: string | null;
+      size_bytes: number | null;
+    };
+    reactions?: Array<{
+      id: string;
+      value: string;
+      count: number;
+      users: Array<{
+        id: string;
+        name: string;
+      }>;
+    }>;
+  };
 }
 
 interface ThreadMessage {
@@ -64,30 +97,30 @@ const formatDateLabel = (dateStr: string) => {
   return date.format("MMMM D, YYYY");
 };
 
-export const Thread = ({ messageId, onClose }: ThreadProps) => {
+export const Thread = ({ onClose }: ThreadProps) => {
+  const {
+    selectedThreadParentMessage: parentMessage,
+    setThreadOpen,
+    isThreadOpen,
+  } = useUIStore();
   const { workspaceId, id: entityId } = useParamIds();
   const { user: currentUser } = useCurrentUser();
+  const { data, isLoadingThread, threadError } = useMessageReplies(
+    workspaceId,
+    parentMessage?.id,
+    {
+      limit: 50,
+      entity_id: entityId,
+      entity_type: "channel",
+    }
+  );
 
   // Determine if this is a channel or conversation based on the URL
-  const isChannel = entityId?.startsWith("ch_");
+  const isChannel = entityId?.startsWith("c_");
   const channelId = isChannel ? entityId?.slice(2) : undefined;
   const conversationId = !isChannel ? entityId?.slice(2) : undefined;
 
   const workspaceMember = useCurrentMember(workspaceId);
-
-  // Get the parent message
-  const { data: parentMessage, isLoading: isLoadingParent } = useQuery({
-    queryKey: ["message", workspaceId, messageId],
-    queryFn: () => messagesApi.getMessage(workspaceId, messageId),
-    enabled: !!(workspaceId && messageId),
-  });
-
-  // Get thread messages (messages with this messageId as parent or thread_id)
-  const { data: threadMessages, isLoading: isLoadingThread } = useQuery({
-    queryKey: ["thread", workspaceId, messageId],
-    queryFn: () => messagesApi.getThreadMessages(workspaceId, messageId),
-    enabled: !!(workspaceId && messageId),
-  });
 
   // Message operations
   const {
@@ -103,9 +136,16 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
   const [editorKey, setEditorKey] = useState(0);
   const [isPending, setIsPending] = useState(false);
 
-  // Group messages by date
-  const groupedMessages = (threadMessages?.data || []).reduce(
-    (groups, message) => {
+  const replies = data?.replies || [];
+
+  // Sort replies chronologically (oldest first)
+  const sortedReplies = [...replies].sort(
+    (a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
+  const groupedMessages = sortedReplies.reduce(
+    (groups: Record<string, ThreadMessage[]>, message: ThreadMessage) => {
       const date = new Date(message.created_at);
       const dateKey = dayjs(date).format("YYYY-MM-DD");
       if (!groups[dateKey]) {
@@ -132,9 +172,9 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
 
       await createMessage.mutateAsync({
         body,
-        attachment_ids,
-        parent_message_id: messageId,
-        thread_id: parentMessage?.thread_id || messageId, // Use existing thread_id or make this message the thread root
+        attachments: attachment_ids,
+        parent_message_id: parentMessage?.id,
+        thread_id: parentMessage?.thread_id || parentMessage?.id, // Use existing thread_id or make this message the thread root
         message_type: "thread",
       });
 
@@ -176,7 +216,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
   const handleReaction = async (messageId: string, emoji: string) => {
     try {
       // Find the message to check current reaction state
-      const message = [parentMessage, ...(threadMessages?.data || [])].find(
+      const message = [parentMessage, ...replies].find(
         (m) => m?.id === messageId
       );
       const existingReaction = message?.reactions?.find(
@@ -197,7 +237,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
     }
   };
 
-  if (isLoadingParent || isLoadingThread) {
+  if (isLoadingThread) {
     return (
       <div className="h-full flex flex-col">
         <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
@@ -213,7 +253,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
     );
   }
 
-  if (!parentMessage) {
+  if (threadError) {
     return (
       <div className="h-full flex flex-col">
         <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
@@ -224,7 +264,7 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
         </div>
         <div className="flex flex-col gap-y-2 h-full items-center justify-center">
           <AlertTriangle className="size-5 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Message not found</p>
+          <p className="text-sm text-muted-foreground">Failed to load thread</p>
         </div>
       </div>
     );
@@ -232,85 +272,71 @@ export const Thread = ({ messageId, onClose }: ThreadProps) => {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Header */}
       <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
         <p className="text-lg font-bold">Thread</p>
         <Button onClick={onClose} size="iconSm" variant="ghost">
           <XIcon className="size-5 stroke-[1.5]" />
         </Button>
       </div>
-      <div className="flex-1 flex flex-col-reverse pb-4 overflow-y-auto messages-scrollbar">
-        {Object.entries(groupedMessages || {}).map(([dateKey, messages]) => (
-          <div key={dateKey}>
-            <div className="text-center my-2 relative">
-              <hr className="absolute top-1/2 left-0 right-0 border-t border-border-subtle" />
-              <span className="relative inline-block px-4 py-1 rounded-full text-xs border border-border-subtle shadow-sm">
-                {formatDateLabel(dateKey)}
-              </span>
-            </div>
-            {messages.map((message, index) => {
-              const prevMessage = messages[index - 1];
-              const isCompact =
-                prevMessage &&
-                prevMessage.user?.id === message.user?.id &&
-                dayjs(message.created_at).diff(
-                  dayjs(prevMessage.created_at),
-                  "minute"
-                ) < TIME_THRESHOLD;
-              return (
-                <ChatMessage
-                  key={message.id}
-                  id={message.id}
-                  memberId={message.workspace_member_id}
-                  authorImage={message.user.image}
-                  authorName={message.user.name}
-                  reactions={message.reactions || []}
-                  body={message.body}
-                  image={message.attachment?.url}
-                  updatedAt={message.updated_at}
-                  createdAt={message.created_at}
-                  threadCount={0} // Threads don't have nested threads
-                  threadImage={undefined}
-                  threadTimestamp={undefined}
-                  threadName={undefined}
-                  isEditing={editingId === message.id}
-                  setEditingId={setEditingId}
-                  isCompact={isCompact}
-                  hideThreadButton={true}
-                  isAuthor={
-                    workspaceMember.data?.id === message.workspace_member_id
-                  }
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onReaction={handleReaction}
-                />
-              );
-            })}
-          </div>
-        ))}
 
-        {/* Parent message at the bottom */}
-        <ChatMessage
-          id={parentMessage.data.id}
-          memberId={parentMessage.data.workspace_member_id}
-          authorImage={parentMessage.data.user.image}
-          authorName={parentMessage.data.user.name}
-          reactions={parentMessage.data.reactions || []}
-          body={parentMessage.data.body}
-          image={parentMessage.data.attachment?.url}
-          updatedAt={parentMessage.data.updated_at}
-          createdAt={parentMessage.data.created_at}
-          isEditing={editingId === parentMessage.data.id}
-          setEditingId={setEditingId}
-          hideThreadButton={true}
-          isAuthor={
-            workspaceMember.data?.id === parentMessage.data.workspace_member_id
-          }
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onReaction={handleReaction}
-        />
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto messages-scrollbar">
+        <div className="flex flex-col">
+          {/* Parent message at the top */}
+          <div className="px-4 pt-4 pb-2 border-b border-border-subtle">
+            <ChatMessage
+              message={parentMessage}
+              currentUser={currentUser}
+              showAvatar={true}
+              isCompact={false}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onReaction={handleReaction}
+            />
+          </div>
+
+          {/* Thread replies */}
+          <div className="px-4">
+            {replies.length > 0 &&
+              Object.entries(groupedMessages).map(([dateKey, messages]) => (
+                <div key={dateKey}>
+                  <div className="text-center my-4 relative">
+                    <hr className="absolute top-1/2 left-0 right-0 border-t border-border-subtle" />
+                    <span className="relative inline-block px-4 py-1 rounded-full text-xs border border-border-subtle bg-background shadow-sm">
+                      {formatDateLabel(dateKey)}
+                    </span>
+                  </div>
+                  {messages.map((message, index) => {
+                    const prevMessage = messages[index - 1];
+                    const isCompact =
+                      prevMessage &&
+                      prevMessage.user?.id === message.user?.id &&
+                      dayjs(message.created_at).diff(
+                        dayjs(prevMessage.created_at),
+                        "minute"
+                      ) < TIME_THRESHOLD;
+                    return (
+                      <ChatMessage
+                        key={message.id}
+                        message={message}
+                        currentUser={currentUser}
+                        showAvatar={true}
+                        isCompact={isCompact}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onReaction={handleReaction}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+          </div>
+        </div>
       </div>
-      <div className="px-4">
+
+      {/* Editor at the bottom */}
+      <div className="px-4 py-4 border-t border-border-subtle bg-background">
         <Editor
           onSubmit={handleSubmit}
           disabled={isPending || createMessage.isPending}

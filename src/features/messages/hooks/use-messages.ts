@@ -1,5 +1,5 @@
 import { useRef, useCallback } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { messagesApi } from "../api/messages-api";
 import type { MessageWithUser, CreateMessageData } from "../types";
 import { toast } from "sonner";
@@ -1199,6 +1199,45 @@ export const useTypingIndicator = (
     stopTyping,
     isLoading: mutation.isPending,
   };
+};
+
+export const useMessageReplies = (
+  workspaceId: string,
+  messageId: string,
+  params?: {
+    limit?: number;
+    cursor?: string;
+    before?: string;
+    entity_type?: "channel" | "conversation";
+    entity_id?: string;
+  }
+) => {
+  const {
+    data,
+    isLoading: isLoadingThread,
+    error: threadError,
+  } = useQuery({
+    queryKey: ["thread", workspaceId, messageId],
+    queryFn: () =>
+      messagesApi.getMessageReplies({
+        workspaceId,
+        messageId,
+        params: {
+          limit: params?.limit || 50,
+          include_reactions: "true",
+          include_attachments: "true",
+          entity_type: params?.entity_type,
+          entity_id: params?.entity_id,
+        },
+      }),
+    enabled:
+      !!workspaceId &&
+      !!messageId &&
+      !!params?.context_type &&
+      !!params?.context_id,
+  });
+
+  return { data, isLoadingThread, threadError };
 };
 
 /**

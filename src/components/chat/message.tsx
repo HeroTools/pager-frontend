@@ -284,7 +284,12 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   onReaction,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const { openEmojiPickerMessageId, setEmojiPickerOpen } = useUIStore();
+  const {
+    openEmojiPickerMessageId,
+    setEmojiPickerOpen,
+    openThreadMessageId,
+    setThreadOpen,
+  } = useUIStore();
   const isOwnMessage = message.authorId === currentUser.id;
 
   const isEmojiPickerOpen = openEmojiPickerMessageId === message.id;
@@ -421,7 +426,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-              onClick={() => onReply?.(message.id)}
+              onClick={() => setThreadOpen(message)}
             >
               <MessageSquare className="w-4 h-4" />
             </Button>
