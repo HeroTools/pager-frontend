@@ -15,7 +15,7 @@ import { useParamIds } from "@/hooks/use-param-ids";
 import { useQuery } from "@tanstack/react-query";
 import { messagesApi } from "@/features/messages/api/messages-api";
 
-const Editor = dynamic(() => import("@/components/editor"), {
+const Editor = dynamic(() => import("@/components/editor/editor"), {
   ssr: false,
 });
 

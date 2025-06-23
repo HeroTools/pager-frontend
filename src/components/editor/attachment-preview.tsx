@@ -1,11 +1,24 @@
 import { ManagedAttachment } from "@/features/file-upload/types";
 import { X, Loader2, PlayIcon, FileIcon } from "lucide-react";
+import { useDeleteAttachment } from "@/features/file-upload/hooks/use-upload";
 
-const AttachmentPreview = (attachment: ManagedAttachment) => {
+const AttachmentPreview = ({
+  attachment,
+  attachments,
+  workspaceId,
+  setAttachments,
+}: {
+  attachment: ManagedAttachment;
+  attachments: ManagedAttachment[];
+  workspaceId: string;
+  setAttachments: (attachments: ManagedAttachment[]) => void;
+}) => {
   const isImage = attachment.contentType?.startsWith("image/");
   const isVideo = attachment.contentType?.startsWith("video/");
   const isUploading = attachment.status === "uploading";
   const hasError = attachment.status === "error";
+
+  const deleteAttachment = useDeleteAttachment();
 
   const removeAttachment = async (attachmentId: string) => {
     console.log("Removing attachment", attachmentId);
@@ -16,11 +29,13 @@ const AttachmentPreview = (attachment: ManagedAttachment) => {
     // If it's a completed attachment (has real ID), delete from server
     if (
       attachment.status === "completed" &&
-      !attachmentId.startsWith("upload-") &&
-      deleteAttachment
+      !attachmentId.startsWith("upload-")
     ) {
       try {
-        await deleteAttachment(attachmentId, workspaceId);
+        await deleteAttachment.mutateAsync({
+          attachmentId,
+          workspaceId,
+        });
       } catch (error) {
         console.error("Failed to delete attachment:", error);
       }
@@ -28,10 +43,6 @@ const AttachmentPreview = (attachment: ManagedAttachment) => {
 
     setAttachments((prev) => {
       const newState = prev.filter((att) => att.id !== attachmentId);
-      debugLog("After removal", {
-        removedId: attachmentId,
-        newCount: newState.length,
-      });
       return newState;
     });
   };
@@ -96,3 +107,5 @@ const AttachmentPreview = (attachment: ManagedAttachment) => {
     </div>
   );
 };
+
+export default AttachmentPreview;
