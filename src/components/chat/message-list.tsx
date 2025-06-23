@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { Message, User } from "@/types/chat";
 import { ChatMessage } from "./message";
 import { isSameDay } from "date-fns";
+import { useUIStore } from "@/store/ui-store";
+import { cn } from "@/lib/utils";
 
 interface ChatMessageListProps {
   messages: Message[];
@@ -23,6 +25,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   onReaction,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { isEmojiPickerOpen } = useUIStore();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -55,7 +58,12 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-chat">
+    <div
+      className={cn(
+        "flex-1 bg-chat",
+        isEmojiPickerOpen() ? "overflow-y-hidden" : "overflow-y-auto"
+      )}
+    >
       <div className="pb-4">
         {messages.map((message, index) => {
           const showAvatar = shouldShowAvatar(message, index);

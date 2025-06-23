@@ -1,4 +1,4 @@
-import { httpClient } from "@/lib/api/http-client";
+import api from "@/lib/api/axios-client";
 import type {
   ChannelEntity,
   ChannelWithMembersList,
@@ -30,7 +30,7 @@ export const channelsApi = {
     if (filters?.member_id) params.append("member_id", filters.member_id);
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await httpClient.get<ChannelsResponse>(
+    const { data: response } = await api.get<ChannelsResponse>(
       `/workspaces/${workspaceId}/channels/all-available${queryString}`
     );
     return response || [];
@@ -48,7 +48,7 @@ export const channelsApi = {
     if (filters?.member_id) params.append("member_id", filters.member_id);
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await httpClient.get<ChannelsResponse>(
+    const { data: response } = await api.get<ChannelsResponse>(
       `/workspaces/${workspaceId}/user/channels${queryString}`
     );
     return response || [];
@@ -61,7 +61,7 @@ export const channelsApi = {
     workspaceId: string,
     channelId: string
   ): Promise<ChannelEntity> => {
-    const response = await httpClient.get<ChannelEntity>(
+    const { data: response } = await api.get<ChannelEntity>(
       `/workspaces/${workspaceId}/channels/${channelId}`
     );
     return response;
@@ -76,23 +76,15 @@ export const channelsApi = {
     params?: GetChannelMessagesParams
   ): Promise<ChannelWithMessages> => {
     const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.cursor) searchParams.append("cursor", params.cursor);
+    if (params?.before) searchParams.append("before", params.before);
 
-    if (params?.limit) {
-      searchParams.append("limit", params.limit.toString());
-    }
-    if (params?.cursor) {
-      searchParams.append("cursor", params.cursor);
-    }
-    if (params?.before) {
-      searchParams.append("before", params.before);
-    }
-
-    const queryString = searchParams.toString();
+    const qs = searchParams.toString();
     const url = `/workspaces/${workspaceId}/channels/${channelId}/messages${
-      queryString ? `?${queryString}` : ""
+      qs ? `?${qs}` : ""
     }`;
-
-    const response = await httpClient.get<ChannelWithMessages>(url);
+    const { data: response } = await api.get<ChannelWithMessages>(url);
     return response;
   },
 
@@ -103,7 +95,7 @@ export const channelsApi = {
     workspaceId: string,
     channelId: string
   ): Promise<ChannelWithMembersList> => {
-    const response = await httpClient.get<ChannelWithMembersResponse>(
+    const { data: response } = await api.get<ChannelWithMembersResponse>(
       `/workspaces/${workspaceId}/channels/${channelId}/members`
     );
     return response;
@@ -113,7 +105,7 @@ export const channelsApi = {
    * Create a new channel
    */
   createChannel: async (data: CreateChannelData): Promise<ChannelEntity> => {
-    const response = await httpClient.post<ChannelEntity>(
+    const { data: response } = await api.post<ChannelEntity>(
       `/workspaces/${data.workspace_id}/channels`,
       data
     );
@@ -128,7 +120,7 @@ export const channelsApi = {
     channelId: string,
     data: UpdateChannelData
   ): Promise<ChannelEntity> => {
-    const response = await httpClient.patch<ChannelResponse>(
+    const { data: response } = await api.patch<ChannelResponse>(
       `/workspaces/${workspaceId}/channels/${channelId}`,
       data
     );
@@ -142,7 +134,7 @@ export const channelsApi = {
     workspaceId: string,
     channelId: string
   ): Promise<void> => {
-    await httpClient.delete(`/workspaces/${workspaceId}/channels/${channelId}`);
+    await api.delete(`/workspaces/${workspaceId}/channels/${channelId}`);
   },
 
   /**
@@ -152,9 +144,7 @@ export const channelsApi = {
     workspaceId: string,
     channelId: string
   ): Promise<void> => {
-    await httpClient.post(
-      `/workspaces/${workspaceId}/channels/${channelId}/join`
-    );
+    await api.post(`/workspaces/${workspaceId}/channels/${channelId}/join`);
   },
 
   /**
@@ -164,9 +154,7 @@ export const channelsApi = {
     workspaceId: string,
     channelId: string
   ): Promise<void> => {
-    await httpClient.post(
-      `/workspaces/${workspaceId}/channels/${channelId}/leave`
-    );
+    await api.post(`/workspaces/${workspaceId}/channels/${channelId}/leave`);
   },
 
   /**
@@ -177,7 +165,7 @@ export const channelsApi = {
     channelId: string,
     data: AddChannelMemberData
   ): Promise<void> => {
-    await httpClient.post(
+    await api.post(
       `/workspaces/${workspaceId}/channels/${channelId}/members`,
       data
     );
@@ -192,7 +180,7 @@ export const channelsApi = {
     memberId: string,
     data: UpdateChannelMemberData
   ): Promise<void> => {
-    await httpClient.patch(
+    await api.patch(
       `/workspaces/${workspaceId}/channels/${channelId}/members/${memberId}`,
       data
     );
@@ -206,7 +194,7 @@ export const channelsApi = {
     channelId: string,
     memberId: string
   ): Promise<void> => {
-    await httpClient.delete(
+    await api.delete(
       `/workspaces/${workspaceId}/channels/${channelId}/members/${memberId}`
     );
   },
@@ -219,10 +207,9 @@ export const channelsApi = {
     channelId: string,
     messageId: string
   ): Promise<void> => {
-    await httpClient.patch(
-      `/workspaces/${workspaceId}/channels/${channelId}/read`,
-      { last_read_message_id: messageId }
-    );
+    await api.patch(`/workspaces/${workspaceId}/channels/${channelId}/read`, {
+      last_read_message_id: messageId,
+    });
   },
 
   /**
@@ -233,7 +220,7 @@ export const channelsApi = {
     channelId: string,
     enabled: boolean
   ): Promise<void> => {
-    await httpClient.patch(
+    await api.patch(
       `/workspaces/${workspaceId}/channels/${channelId}/notifications`,
       { notifications_enabled: enabled }
     );

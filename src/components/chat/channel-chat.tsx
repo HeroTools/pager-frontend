@@ -9,10 +9,11 @@ import {
   useRealtimeChannel,
   useGetChannelWithMembers,
 } from "@/features/channels";
-import { useMessageOperations, useTypingIndicator } from "@/features/messages";
+import { useMessageOperations } from "@/features/messages";
 import { useCurrentUser } from "@/features/auth";
 import { Message, User, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
+import { UploadedAttachment } from "@/features/file-upload/types";
 
 const ChannelChat = () => {
   const { id: channelId, workspaceId } = useParamIds();
@@ -58,13 +59,8 @@ const ChannelChat = () => {
   //   isTyping,
   // } = useTypingIndicator(workspaceId, channelId, undefined);
 
-  const {
-    createMessage,
-    updateMessage,
-    deleteMessage,
-    addReaction,
-    removeReaction,
-  } = useMessageOperations(workspaceId, channelId, undefined);
+  const { createMessage, updateMessage, deleteMessage, toggleReaction } =
+    useMessageOperations(workspaceId, channelId, undefined);
 
   const transformChannel = (channelData: any): Channel => ({
     id: channelData.id,
@@ -75,31 +71,37 @@ const ChannelChat = () => {
   });
 
   const transformMessages = (messagesData: any[]): Message[] => {
-    return messagesData.map((msg) => ({
-      id: msg.id,
-      content: msg.body,
-      authorId: msg.user.id,
-      author: {
-        id: msg.user.id,
-        name: msg.user.name,
-        avatar: msg.user.image,
-        status: "online" as const,
-      },
-      timestamp: new Date(msg.created_at),
-      image: msg.attachment?.url,
-      reactions:
-        msg.reactions?.map((reaction: any) => ({
-          emoji: reaction.value,
-          count: reaction.count,
-          users: reaction.users,
-          hasReacted: reaction.users.some(
-            (user: any) => user.id === currentUser?.id
-          ),
-        })) || [],
-      threadCount: 0,
-      isEdited: !!msg.edited_at,
-      isOptimistic: msg._isOptimistic || false,
-    }));
+    return messagesData.map((msg) => {
+      if (!msg.user?.id) {
+        console.log(msg, "msg");
+      }
+      return {
+        id: msg.id,
+        content: msg.body,
+        authorId: msg.user.id,
+        author: {
+          id: msg.user.id,
+          name: msg.user.name,
+          avatar: msg.user.image,
+          status: "online" as const,
+        },
+        timestamp: new Date(msg.created_at),
+        reactions:
+          msg.reactions?.map((reaction: any) => ({
+            id: reaction.id,
+            emoji: reaction.value,
+            count: reaction.count,
+            users: reaction.users,
+            hasReacted: reaction.users.some(
+              (user: any) => user.id === currentUser?.id
+            ),
+          })) || [],
+        threadCount: 0,
+        isEdited: !!msg.edited_at,
+        isOptimistic: msg._isOptimistic || false,
+        attachments: msg?.attachments || [],
+      };
+    });
   };
 
   const transformCurrentUser = (userData: any): User => ({
@@ -165,26 +167,16 @@ const ChannelChat = () => {
   // Handle message sending with real-time integration
   const handleSendMessage = async (content: {
     body: string;
-    image: File | null;
+    attachments: UploadedAttachment[];
   }) => {
     try {
       // Stop typing indicator immediately when sending
       // handleTypingSubmit();
 
-      // Handle file upload first if there's an image
-      let attachment_id: string | undefined;
-
-      if (content.image) {
-        // TODO: Implement file upload logic
-        // const uploadResult = await uploadFile(content.image);
-        // attachment_id = uploadResult.id;
-        console.log("File upload not implemented yet");
-      }
-
       await createMessage.mutateAsync({
         body: content.body,
-        attachment_id,
-        message_type: "channel",
+        attachments: content.attachments,
+        message_type: "direct",
       });
 
       console.log("Message sent successfully");
@@ -228,16 +220,11 @@ const ChannelChat = () => {
       const hasReacted = existingReaction?.users.some(
         (user: any) => user.id === currentUser?.id
       );
-
-      if (hasReacted) {
-        // Remove reaction
-        await removeReaction.mutateAsync({ messageId, emoji });
-        console.log("Reaction removed");
-      } else {
-        // Add reaction
-        await addReaction.mutateAsync({ messageId, emoji });
-        console.log("Reaction added");
-      }
+      await toggleReaction.mutateAsync({
+        messageId,
+        emoji,
+        currentlyReacted: hasReacted || false,
+      });
     } catch (error) {
       console.error("Failed to react to message:", error);
     }
