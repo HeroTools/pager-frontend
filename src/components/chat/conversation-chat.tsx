@@ -36,13 +36,8 @@ const ConversationChat = () => {
   });
 
   // Message operation hooks
-  const {
-    createMessage,
-    updateMessage,
-    deleteMessage,
-    addReaction,
-    removeReaction,
-  } = useMessageOperations(workspaceId, undefined, conversationId);
+  const { createMessage, updateMessage, deleteMessage, toggleReaction } =
+    useMessageOperations(workspaceId, undefined, conversationId);
 
   const transformConversation = (conversationData: any): Channel => {
     const otherMembers = conversationData.members.filter(
@@ -193,16 +188,11 @@ const ConversationChat = () => {
       const hasReacted = existingReaction?.users.some(
         (user: any) => user.id === currentUser?.id
       );
-
-      if (hasReacted) {
-        // Remove reaction
-        await removeReaction.mutateAsync({ messageId, emoji });
-        console.log("Reaction removed");
-      } else {
-        // Add reaction
-        await addReaction.mutateAsync({ messageId, emoji });
-        console.log("Reaction added");
-      }
+      await toggleReaction.mutateAsync({
+        messageId,
+        emoji,
+        currentlyReacted: hasReacted || false,
+      });
     } catch (error) {
       console.error("Failed to react to message:", error);
     }
