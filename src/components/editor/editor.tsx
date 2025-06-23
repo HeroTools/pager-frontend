@@ -1,8 +1,7 @@
-import "quill/dist/quill.snow.css";
-
 import { Smile, SendHorizontal, CaseSensitive, Paperclip } from "lucide-react";
 import Quill, { QuillOptions } from "quill";
 import { Delta, Op } from "quill/core";
+import hljs from "highlight.js";
 import {
   RefObject,
   useEffect,
@@ -354,10 +353,11 @@ const Editor = ({
       theme: "snow",
       placeholder: placeholderRef.current,
       modules: {
+        syntax: { hljs },
         toolbar: [
-          ["bold", "italic", "strike"],
-          ["link"],
-          [{ list: "ordered" }, { list: "bullet" }],
+          ["bold", "italic", "underline", "strike"],
+          ["blockquote", "code-block"],
+          [{ list: "ordered" }, { list: "bullet" }, "link"],
         ],
         keyboard: {
           bindings: {

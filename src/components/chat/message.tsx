@@ -10,11 +10,8 @@ import {
   File,
   FileText,
   Music,
-  Video,
   Archive,
   Image as ImageIcon,
-  Play,
-  Pause,
 } from "lucide-react";
 import { Message, User, Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
