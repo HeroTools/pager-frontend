@@ -216,31 +216,17 @@ export const messagesApi = {
   },
 
   /**
-   * Add reaction to message
+   * toggle reaction from message
    */
-  addReaction: async (
-    workspaceId: string,
-    messageId: string,
-    data: AddReactionData
-  ): Promise<void> => {
-    await api.post(
-      `/workspaces/${workspaceId}/messages/${messageId}/reactions`,
-      data
-    );
-  },
-
-  /**
-   * Remove reaction from message
-   */
-  removeReaction: async (
+  toggleReaction: async (
+    action: "add" | "remove",
     workspaceId: string,
     messageId: string,
     reactionValue: string
   ): Promise<void> => {
-    await api.delete(
-      `/workspaces/${workspaceId}/messages/${messageId}/reactions/${encodeURIComponent(
-        reactionValue
-      )}`
+    await api.post(
+      `/workspaces/${workspaceId}/messages/${messageId}/reactions/toggle`,
+      { action, value: reactionValue }
     );
   },
 
