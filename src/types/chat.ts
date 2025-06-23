@@ -19,9 +19,10 @@ export interface Message {
 }
 
 export interface Reaction {
+  id: string;
   emoji: string;
   count: number;
-  users: string[];
+  users: User[];
 }
 
 export interface Channel {
