@@ -80,6 +80,7 @@ const ChannelChat = () => {
         timestamp: new Date(msg.created_at),
         reactions:
           msg.reactions?.map((reaction: any) => ({
+            id: reaction.id,
             emoji: reaction.value,
             count: reaction.count,
             users: reaction.users,
