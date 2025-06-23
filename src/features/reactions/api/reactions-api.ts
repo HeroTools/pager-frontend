@@ -1,4 +1,4 @@
-import { httpClient } from "@/lib/api/http-client";
+import api from "@/lib/api/axios-client";
 import type {
   Reaction,
   AddReactionData,
@@ -13,7 +13,7 @@ export const reactionsApi = {
    * Get all reactions for a message
    */
   getReactions: async (messageId: string): Promise<Reaction[]> => {
-    const response = await httpClient.get<ReactionsResponse>(
+    const { data: response } = await api.get<ReactionsResponse>(
       `/messages/${messageId}/reactions`
     );
     return response.data.reactions;
@@ -26,7 +26,7 @@ export const reactionsApi = {
     messageId: string,
     emoji: string
   ): Promise<{ reaction?: Reaction; removed: boolean }> => {
-    const response = await httpClient.post<ToggleReactionResponse>(
+    const { data: response } = await api.post<ToggleReactionResponse>(
       `/messages/${messageId}/reactions/toggle`,
       { emoji }
     );
@@ -37,7 +37,7 @@ export const reactionsApi = {
    * Add reaction to a message
    */
   addReaction: async (messageId: string, emoji: string): Promise<Reaction> => {
-    const response = await httpClient.post<ReactionResponse>(
+    const { data: response } = await api.post<ReactionResponse>(
       `/messages/${messageId}/reactions`,
       { emoji }
     );
@@ -51,6 +51,6 @@ export const reactionsApi = {
     messageId: string,
     reactionId: string
   ): Promise<void> => {
-    await httpClient.delete(`/messages/${messageId}/reactions/${reactionId}`);
+    await api.delete(`/messages/${messageId}/reactions/${reactionId}`);
   },
 };

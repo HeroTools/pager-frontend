@@ -11,6 +11,7 @@ import { useMessageOperations } from "@/features/messages/hooks/use-messages";
 import { useCurrentUser } from "@/features/auth";
 import { Message, User, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
+import { UploadedAttachment } from "@/features/file-upload/types";
 
 const ConversationChat = () => {
   const { id: conversationId, workspaceId } = useParamIds();
@@ -73,7 +74,6 @@ const ConversationChat = () => {
         status: "online" as const,
       },
       timestamp: new Date(msg.created_at),
-      image: msg.attachment?.url,
       reactions:
         msg.reactions?.map((reaction: any) => ({
           emoji: reaction.value,
@@ -85,6 +85,7 @@ const ConversationChat = () => {
         })) || [],
       threadCount: 0,
       isEdited: !!msg.edited_at,
+      attachments: msg?.attachments || [],
       isOptimistic: msg._isOptimistic || false,
     }));
   };
@@ -141,25 +142,12 @@ const ConversationChat = () => {
   // Handle message sending with real-time integration
   const handleSendMessage = async (content: {
     body: string;
-    image: File | null;
+    attachments: UploadedAttachment[];
   }) => {
     try {
-      // Stop typing indicator immediately when sending
-      // handleTypingSubmit();
-
-      // Handle file upload first if there's an image
-      let attachment_id: string | undefined;
-
-      if (content.image) {
-        // TODO: Implement file upload logic
-        // const uploadResult = await uploadFile(content.image);
-        // attachment_id = uploadResult.id;
-        console.log("File upload not implemented yet");
-      }
-
       await createMessage.mutateAsync({
         body: content.body,
-        attachment_id,
+        attachments: content.attachments,
         message_type: "direct",
       });
 

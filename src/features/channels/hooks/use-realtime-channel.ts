@@ -1,6 +1,7 @@
+// src/hooks/useRealtimeChannel.ts
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import { MessageWithUser, ChannelWithMessages } from "../types";
 
 interface UseRealtimeChannelProps {
@@ -21,99 +22,79 @@ export const useRealtimeChannel = ({
   currentUserId,
   enabled = true,
 }: UseRealtimeChannelProps) => {
-  const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
-  const [connectionStatus, setConnectionStatus] =
-    useState<string>("connecting");
+  const [connectionStatus, setConnectionStatus] = useState<
+    "CONNECTING" | "SUBSCRIBED" | "CHANNEL_ERROR" | "CLOSED"
+  >("CONNECTING");
   const channelRef = useRef<any>(null);
 
-  // Memoize the query key function to prevent recreating it
+  // Stable query-key generator
   const getQueryKey = useMemo(
     () => () => ["channel", workspaceId, channelId, "messages", "infinite"],
     [workspaceId, channelId]
   );
 
   useEffect(() => {
-    console.log("useRealtimeChannel useEffect");
     if (!enabled || !channelId || !workspaceId || !currentUserId) return;
 
-    // Clean up previous channel if it exists
+    // Tear down any existing subscription
     if (channelRef.current) {
-      channelRef.current.unsubscribe();
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
-    // Create real-time channel subscription
-    const channel = supabase.channel(`channel:${channelId}`, {
-      config: {
-        broadcast: { self: false },
-      },
-    });
+    // Create a new realtime “channel”
+    const channel = supabase
+      .channel(`channel:${channelId}`, {
+        config: { broadcast: { self: false } },
+      })
+      .on(
+        "broadcast",
+        { event: "new_message" },
+        ({ payload }: { payload: any }) => {
+          const message = payload.message as MessageWithUser;
+          // ignore our own messages
+          if (message.user?.id === currentUserId) return;
 
-    // Listen for new messages
-    channel.on("broadcast", { event: "new_message" }, (payload) => {
-      const { message } = payload.payload as { message: MessageWithUser };
-
-      if (message.user?.id === currentUserId) return;
-
-      console.log("Received new message:", message);
-
-      queryClient.setQueryData<InfiniteQueryData>(getQueryKey(), (old) => {
-        if (!old) return old;
-
-        // Check if message already exists
-        const messageExists = old.pages.some((page) =>
-          page.messages.some((msg) => msg.id === message.id)
-        );
-
-        if (messageExists) return old;
-
-        // Add new message to the FIRST page at the BEGINNING
-        const newPages = [...old.pages];
-        if (newPages[0]) {
-          newPages[0] = {
-            ...newPages[0],
-            messages: [message, ...newPages[0].messages],
-          };
+          queryClient.setQueryData<InfiniteQueryData>(getQueryKey(), (old) => {
+            if (!old) return old;
+            // skip duplicates
+            const exists = old.pages.some((page) =>
+              page.messages.some((m) => m.id === message.id)
+            );
+            if (exists) return old;
+            // prepend to first page
+            const newPages = [...old.pages];
+            if (newPages[0]) {
+              newPages[0] = {
+                ...newPages[0],
+                messages: [message, ...newPages[0].messages],
+              };
+            }
+            return { ...old, pages: newPages };
+          });
         }
-
-        return {
-          ...old,
-          pages: newPages,
-        };
-      });
-    });
-
-    // Subscribe to the channel
-    channel.subscribe((status) => {
-      console.log(
-        `Real-time subscription status for channel ${channelId}:`,
-        status
       );
-      setConnectionStatus(status);
 
+    console.log("subscribing to channel:", channelId);
+    channel.subscribe((status, error) => {
+      console.log(`Realtime status for channel ${channelId}:`, status);
+      setConnectionStatus(status as any);
       if (status === "CHANNEL_ERROR") {
-        console.error(
-          "Subscription error - check your Supabase connection and RLS policies"
-        );
-      }
-      if (status === "CLOSED") {
-        console.warn("Real-time connection closed");
+        console.error("Realtime error:", error);
       }
     });
 
     channelRef.current = channel;
 
-    // return () => {
-    //   console.log("Cleaning up channel subscription for:", channelId);
-    //   if (channelRef.current) {
-    //     channelRef.current.unsubscribe();
-    //     supabase.removeChannel(channelRef.current);
-    //     channelRef.current = null;
-    //   }
-    // };
-  }, [channelId, workspaceId, currentUserId, enabled]);
+    return () => {
+      console.log("cleaning up channel subscription:", channelId);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [channelId, workspaceId, currentUserId, enabled, queryClient]);
 
   return {
     isConnected: connectionStatus === "SUBSCRIBED",

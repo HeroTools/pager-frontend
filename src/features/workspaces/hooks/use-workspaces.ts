@@ -13,6 +13,10 @@ export const useGetWorkspaces = () => {
   return useQuery({
     queryKey: ["workspaces"],
     queryFn: () => workspacesApi.getWorkspaces(),
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    staleTime: 4 * 60 * 60 * 1000,
   });
 };
 
@@ -22,6 +26,10 @@ export const useGetWorkspace = (id: string) => {
     queryKey: ["workspace", id],
     queryFn: () => workspacesApi.getWorkspace(id),
     enabled: !!id,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    staleTime: 2 * 60 * 60 * 1000,
   });
 };
 
