@@ -1,5 +1,5 @@
+import api from "@/lib/api/axios-client";
 import { createClient } from "@/lib/supabase/client";
-import { httpClient } from "@/lib/api/http-client";
 import type {
   SignUpData,
   SignInData,
@@ -8,6 +8,7 @@ import type {
   AuthResponse,
   EnhancedAuthResponse,
   UserPreferences,
+  InviteLinkResponse,
 } from "@/features/auth/types";
 import { User } from "@supabase/supabase-js";
 
@@ -16,7 +17,7 @@ export const authApi = {
    * Sign up a new user
    */
   signUp: async (data: SignUpData): Promise<EnhancedAuthResponse> => {
-    const response = await httpClient.postPublic<EnhancedAuthResponse>(
+    const { data: response } = await api.post<EnhancedAuthResponse>(
       "/auth/sign-up",
       data
     );
@@ -35,8 +36,8 @@ export const authApi = {
   /**
    * Sign in an existing user
    */
-  signIn: async (data: SignInData): Promise<EnhancedAuthResponse> => {
-    const response = await httpClient.postPublic<EnhancedAuthResponse>(
+  signIn: async (data: SignInData): Promise<AuthResponse> => {
+    const { data: response } = await api.post<EnhancedAuthResponse>(
       "/auth/sign-in",
       data
     );
@@ -58,7 +59,7 @@ export const authApi = {
   signOut: async () => {
     // Call Lambda to handle server-side cleanup
     try {
-      await httpClient.post("/auth/sign-out");
+      await api.post("/auth/sign-out");
     } catch (error) {
       // Even if Lambda fails, clear local session
       console.warn("Lambda signout failed:", error);
@@ -73,9 +74,10 @@ export const authApi = {
    * Refresh the current session token
    */
   refreshToken: async (refreshToken: string) => {
-    const response = await httpClient.postPublic("/auth/refresh", {
-      refresh_token: refreshToken,
-    });
+    const { data: response } = await api.post<{ session: string }>(
+      "/auth/refresh",
+      { refresh_token: refreshToken }
+    );
 
     // Update local session
     if (response.session) {
@@ -90,26 +92,12 @@ export const authApi = {
    * Sign in with Google
    */
   googleSignIn: async (redirectTo: string) => {
-    const response = await httpClient.postPublic("/auth/oauth/google", {
-      redirect_to: redirectTo,
-    });
+    const { data: response } = await api.post<{ url?: string }>(
+      "/auth/oauth/google",
+      { redirect_to: redirectTo }
+    );
 
     // Handle OAuth URL redirection
-    if (response.url) {
-      window.location.href = response.url;
-    }
-
-    return response;
-  },
-
-  /**
-   * Sign in with GitHub
-   */
-  githubSignIn: async (redirectTo: string) => {
-    const response = await httpClient.postPublic("/auth/oauth/github", {
-      redirect_to: redirectTo,
-    });
-
     if (response.url) {
       window.location.href = response.url;
     }
@@ -121,49 +109,58 @@ export const authApi = {
    * Verify email with token
    */
   verifyEmail: async (token: string) => {
-    return await httpClient.postPublic("/auth/verify-email", { token });
+    const { data: response } = await api.post<{ success: boolean }>(
+      "/auth/verify-email",
+      { token }
+    );
+    return response;
   },
 
   /**
    * Update user profile
    */
   updateProfile: async (data: UpdateProfileData) => {
-    return await httpClient.put("/auth/profile", data);
+    const { data: response } = await api.put("/auth/profile", data);
+    return response;
   },
 
   /**
    * Update user password
    */
   updatePassword: async (data: UpdatePasswordData) => {
-    return await httpClient.put("/auth/password", data);
+    const { data: response } = await api.put("/auth/password", data);
+    return response;
   },
 
   /**
    * Request password reset
    */
   resetPasswordRequest: async (email: string) => {
-    return await httpClient.postPublic("/auth/reset-password-request", {
-      email,
-    });
+    const { data: response } = await api.post<{ success: boolean }>(
+      "/auth/reset-password-request",
+      { email }
+    );
+    return response;
   },
 
   /**
    * Reset password with token
    */
   resetPassword: async (token: string, newPassword: string) => {
-    return await httpClient.postPublic("/auth/reset-password", {
+    const { data: response } = await api.post("/auth/reset-password", {
       token,
       new_password: newPassword,
     });
+    return response;
   },
 
   /**
    * Get current user from Lambda/database
    */
   getCurrentUser: async (): Promise<User> => {
-    const response = await httpClient.get("/auth/user");
+    const { data: response } = await api.get<{ profile: User }>("/auth/user");
     console.log(response);
-    return response.profile as User;
+    return response.profile;
   },
 
   /**
@@ -195,14 +192,15 @@ export const authApi = {
    * Get user by ID (admin function)
    */
   getUserById: async (userId: string): Promise<User> => {
-    return await httpClient.get(`/admin/users/${userId}`);
+    const { data: response } = await api.get<User>(`/admin/users/${userId}`);
+    return response;
   },
 
   /**
    * Delete user account
    */
   deleteAccount: async () => {
-    const response = await httpClient.delete("/auth/account");
+    const { data: response } = await api.delete("/auth/account");
 
     // Clear local session after successful deletion
     const supabase = createClient();
@@ -215,10 +213,10 @@ export const authApi = {
    * Handle OAuth callback (for use in callback page)
    */
   handleOAuthCallback: async (code: string, state?: string) => {
-    const response = await httpClient.postPublic("/auth/oauth/callback", {
-      code,
-      state,
-    });
+    const { data: response } = await api.post<EnhancedAuthResponse>(
+      "/auth/oauth/callback",
+      { code, state }
+    );
 
     // Store session from OAuth callback
     if (response.session) {
@@ -230,7 +228,18 @@ export const authApi = {
   },
 
   updateUserPreferences: async (data: UserPreferences) => {
-    const response = await httpClient.put("/auth/user-preferences", data);
+    const { data: response } = await api.put("/auth/user-preferences", data);
+    return response;
+  },
+
+  /**
+   * Get workspace invite link
+   */
+  getInviteLink: async (workspaceId: string): Promise<InviteLinkResponse> => {
+    const { data: response } = await api.post<InviteLinkResponse>(
+      "/auth/invite-link",
+      { workspaceId }
+    );
     return response;
   },
 };

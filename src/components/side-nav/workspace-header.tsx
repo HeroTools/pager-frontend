@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InviteModal } from "./invite-modal";
 import { PreferenceModal } from "./preference-modal";
+import type { WorkspaceEntity } from "@/features/workspaces/types";
 import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
-import { Workspace } from "@/types/database";
 
 interface WorkspaceHeaderProps {
-  workspace: Workspace;
+  workspace: WorkspaceEntity;
   isAdmin: boolean;
 }
 
@@ -35,7 +35,6 @@ export const WorkspaceHeader = ({
         open={inviteOpen}
         setOpen={setInviteOpen}
         name={workspace.name}
-        joinCode={workspace.join_code}
       />
       <PreferenceModal
         open={preferenceOpen}

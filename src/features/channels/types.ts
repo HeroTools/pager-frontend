@@ -5,6 +5,7 @@ import {
   UpdateEntityInput,
   ApiResponse,
   ChannelType,
+  Attachment,
 } from "@/types/database";
 
 // Use the database Channel type directly
@@ -89,12 +90,7 @@ export interface MessageWithUser {
     email: string;
     image: string | null;
   };
-  attachment?: {
-    id: string;
-    url: string;
-    content_type: string | null;
-    size_bytes: number | null;
-  };
+  attachments?: Attachment[];
   reactions?: Array<{
     id: string;
     value: string;

@@ -1,177 +1,286 @@
 @import "tailwindcss";
 
-html,
-body,
 :root {
+  /* Core colors */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.09 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.09 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.09 0 0);
+  --primary: oklch(0.09 0 0);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.145 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  --accent: oklch(0.96 0 0);
+  --accent-foreground: oklch(0.145 0 0);
+  --destructive: oklch(0.576 0.194 25.331);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.92 0 0);
+  --input: oklch(0.97 0 0);
+  --ring: oklch(0.09 0 0);
+
+  /* Chart colors */
+  --chart-1: oklch(0.09 0 0);
+  --chart-2: oklch(0.35 0 0);
+  --chart-3: oklch(0.45 0 0);
+  --chart-4: oklch(0.65 0 0);
+  --chart-5: oklch(0.8 0 0);
+
+  /* Brand colors */
+  --brand-green: oklch(0.7 0.14 162);
+  --brand-blue: oklch(0.5 0.12 252);
+
+  /* Sidebar colors */
+  --sidebar: oklch(0.96 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-muted: oklch(0.45 0 0);
+  --sidebar-active: oklch(0.92 0 0);
+  --sidebar-hover: oklch(0.94 0 0);
+
+  /* Header colors */
+  --header: oklch(1 0 0);
+  --header-foreground: oklch(0.09 0 0);
+  --header-border: oklch(0.92 0 0);
+
+  /* Chat interface colors */
+  --chat: oklch(1 0 0);
+  --chat-foreground: oklch(0.09 0 0);
+  --message-bubble: oklch(0.96 0 0);
+  --message-bubble-foreground: oklch(0.145 0 0);
+  --message-hover: oklch(0.94 0 0);
+
+  /* Panel colors */
+  --panel: oklch(0.96 0 0);
+  --panel-foreground: oklch(0.145 0 0);
+  --panel-border: oklch(0.92 0 0);
+
+  /* Border variations */
+  --border-subtle: oklch(0.94 0 0);
+  --border-default: oklch(0.92 0 0);
+  --border-strong: oklch(0.8 0 0);
+
+  /* Text variations */
+  --text-subtle: oklch(0.6 0 0);
+  --text-accent: oklch(0.09 0 0);
+  --text-success: oklch(0.65 0.15 145);
+  --text-warning: oklch(0.7 0.15 70);
+  --text-destructive: oklch(0.576 0.194 25.331);
+  --text-info: oklch(0.6 0.15 252);
+
+  --interactive-active: oklch(0.95 0.05 252);
+  --interactive-active-border: oklch(0.85 0.08 252);
+  --interactive-active-text: oklch(0.35 0.12 252);
+  --interactive-active-hover: oklch(0.92 0.06 252);
+  --interactive-active-border-hover: oklch(0.8 0.1 252);
+
+  --interactive-inactive: oklch(0.96 0 0);
+  --interactive-inactive-border: oklch(0.85 0 0);
+  --interactive-inactive-text: oklch(0.45 0 0);
+  --interactive-inactive-hover: oklch(0.92 0 0);
+  --interactive-inactive-border-hover: oklch(0.8 0 0);
+  --interactive-inactive-text-hover: oklch(0.35 0 0);
+
+  /* Other properties */
+  --radius: 0.375rem;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    sans-serif;
+
+  /* Ensure full height */
   height: 100%;
 }
 
-@theme {
-  /* Core Colors - Available in both themes */
-  --color-background: #0f0f0f;
-  --color-foreground: #e6e6e6;
-  --color-card: #1a1a1a;
-  --color-card-foreground: #e6e6e6;
-  --color-popover: #1a1a1a;
-  --color-popover-foreground: #e6e6e6;
-  --color-primary: #ffffff;
-  --color-primary-foreground: #000000;
-  --color-secondary: #2a2a2a;
-  --color-secondary-foreground: #e6e6e6;
-  --color-muted: #1e1e1e;
-  --color-muted-foreground: #a3a3a3;
-  --color-accent: #2a2a2a;
-  --color-accent-foreground: #e6e6e6;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #ffffff;
-  --color-border: #2a2a2a;
-  --color-input: #1e1e1e;
-  --color-ring: #ffffff;
-
-  /* Chart Colors - Available in both themes */
-  --color-chart-1: #ffffff;
-  --color-chart-2: #a3a3a3;
-  --color-chart-3: #737373;
-  --color-chart-4: #525252;
-  --color-chart-5: #404040;
-
-  /* Brand Colors - Available in both themes */
-  --color-brand-green: #2eb67d;
-  --color-brand-blue: #1164a3;
-
-  /* Semantic Layout Colors */
-  --color-sidebar: #1a1a1a;
-  --color-sidebar-foreground: #e6e6e6;
-  --color-sidebar-muted: #a3a3a3;
-  --color-sidebar-active: #2a2a2a;
-  --color-sidebar-hover: #262626;
-
-  --color-header: #0f0f0f;
-  --color-header-foreground: #e6e6e6;
-  --color-header-border: #2a2a2a;
-
-  --color-chat: #0f0f0f;
-  --color-chat-foreground: #e6e6e6;
-  --color-message-bubble: #1a1a1a;
-  --color-message-bubble-foreground: #e6e6e6;
-  --color-message-hover: #1e1e1e;
-
-  --color-panel: #1a1a1a;
-  --color-panel-foreground: #e6e6e6;
-  --color-panel-border: #2a2a2a;
-
-  /* Border Colors */
-  --color-border-subtle: #1a1a1a;
-  --color-border-default: #2a2a2a;
-  --color-border-strong: #404040;
-
-  /* Text Colors - Mapped to Tailwind semantic names */
-  --color-foreground: #e6e6e6; /* text-foreground */
-  --color-muted-foreground: #a3a3a3; /* text-muted-foreground */
-  --color-secondary-foreground: #737373; /* text-secondary-foreground */
-  --color-primary-foreground: #000000; /* text-primary-foreground */
-
-  /* Custom text hierarchy */
-  --color-text-subtle: #525252; /* text-text-subtle */
-  --color-text-accent: #ffffff; /* text-text-accent */
-  --color-text-success: #22c55e; /* text-text-success */
-  --color-text-warning: #f59e0b; /* text-text-warning */
-  --color-text-destructive: #ef4444; /* text-text-destructive */
-  --color-text-info: #3b82f6; /* text-text-info */
-
-  /* Layout */
-  --radius: 0.375rem;
-
-  /* Typography */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    sans-serif;
+html,
+body {
+  height: 100%;
 }
 
-/* Light Theme Override */
-@media (prefers-color-scheme: light) {
-  @theme {
-    --color-background: #ffffff;
-    --color-foreground: #0a0a0a;
-    --color-card: #ffffff;
-    --color-card-foreground: #0a0a0a;
-    --color-popover: #ffffff;
-    --color-popover-foreground: #0a0a0a;
-    --color-primary: #000000;
-    --color-primary-foreground: #ffffff;
-    --color-secondary: #f8f9fa;
-    --color-secondary-foreground: #1a1a1a;
-    --color-muted: #f1f3f4;
-    --color-muted-foreground: #6b7280;
-    --color-accent: #f8f9fa;
-    --color-accent-foreground: #1a1a1a;
-    --color-destructive: #dc2626;
-    --color-destructive-foreground: #ffffff;
-    --color-border: #e5e7eb;
-    --color-input: #f9fafb;
-    --color-ring: #000000;
+/* 3. Dark mode overrides */
+.dark {
+  --background: oklch(0.09 0 0);
+  --foreground: oklch(0.9 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.9 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.9 0 0);
+  --primary: oklch(0.98 0 0);
+  --primary-foreground: oklch(0.09 0 0);
+  --secondary: oklch(0.2 0 0);
+  --secondary-foreground: oklch(0.9 0 0);
+  --muted: oklch(0.15 0 0);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.2 0 0);
+  --accent-foreground: oklch(0.9 0 0);
+  --destructive: oklch(0.62 0.194 25.331);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.2 0 0);
+  --input: oklch(0.15 0 0);
+  --ring: oklch(0.98 0 0);
 
-    /* Chart Colors - Light theme variants */
-    --color-chart-1: #000000;
-    --color-chart-2: #525252;
-    --color-chart-3: #737373;
-    --color-chart-4: #a3a3a3;
-    --color-chart-5: #d1d5db;
+  /* Chart colors for dark mode */
+  --chart-1: oklch(0.98 0 0);
+  --chart-2: oklch(0.65 0 0);
+  --chart-3: oklch(0.45 0 0);
+  --chart-4: oklch(0.35 0 0);
+  --chart-5: oklch(0.25 0 0);
 
-    /* Brand colors remain the same in light theme */
-    --color-brand-green: #2eb67d;
-    --color-brand-blue: #1164a3;
+  /* Sidebar colors for dark mode */
+  --sidebar: oklch(0.145 0 0);
+  --sidebar-foreground: oklch(0.9 0 0);
+  --sidebar-muted: oklch(0.65 0 0);
+  --sidebar-active: oklch(0.2 0 0);
+  --sidebar-hover: oklch(0.18 0 0);
 
-    /* Semantic Layout Colors - Light theme */
-    --color-sidebar: #f8f9fa;
-    --color-sidebar-foreground: #1a1a1a;
-    --color-sidebar-muted: #6b7280;
-    --color-sidebar-active: #e5e7eb;
-    --color-sidebar-hover: #f1f3f4;
+  /* Header colors for dark mode */
+  --header: oklch(0.09 0 0);
+  --header-foreground: oklch(0.9 0 0);
+  --header-border: oklch(0.2 0 0);
 
-    --color-header: #ffffff;
-    --color-header-foreground: #0a0a0a;
-    --color-header-border: #e5e7eb;
+  /* Chat interface colors for dark mode */
+  --chat: oklch(0.09 0 0);
+  --chat-foreground: oklch(0.9 0 0);
+  --message-bubble: oklch(0.145 0 0);
+  --message-bubble-foreground: oklch(0.9 0 0);
+  --message-hover: oklch(0.15 0 0);
 
-    --color-chat: #ffffff;
-    --color-chat-foreground: #0a0a0a;
-    --color-message-bubble: #f8f9fa;
-    --color-message-bubble-foreground: #1a1a1a;
-    --color-message-hover: #f1f3f4;
+  /* Panel colors for dark mode */
+  --panel: oklch(0.145 0 0);
+  --panel-foreground: oklch(0.9 0 0);
+  --panel-border: oklch(0.2 0 0);
 
-    --color-panel: #f8f9fa;
-    --color-panel-foreground: #1a1a1a;
-    --color-panel-border: #e5e7eb;
+  /* Border variations for dark mode */
+  --border-subtle: oklch(0.145 0 0);
+  --border-default: oklch(0.2 0 0);
+  --border-strong: oklch(0.25 0 0);
 
-    /* Border Colors - Light theme */
-    --color-border-subtle: #f1f3f4;
-    --color-border-default: #e5e7eb;
-    --color-border-strong: #d1d5db;
+  /* Text variations for dark mode */
+  --text-subtle: oklch(0.35 0 0);
+  --text-accent: oklch(0.98 0 0);
+  --text-success: oklch(0.7 0.15 145);
+  --text-warning: oklch(0.8 0.15 70);
+  --text-destructive: oklch(0.62 0.194 25.331);
+  --text-info: oklch(0.7 0.15 252);
 
-    /* Text Colors - Light theme - Mapped to Tailwind semantic names */
-    --color-foreground: #0a0a0a; /* text-foreground */
-    --color-muted-foreground: #6b7280; /* text-muted-foreground */
-    --color-secondary-foreground: #1a1a1a; /* text-secondary-foreground */
-    --color-primary-foreground: #ffffff; /* text-primary-foreground */
+  --interactive-active: oklch(0.15 0.08 252);
+  --interactive-active-border: oklch(0.4 0.12 252);
+  --interactive-active-text: oklch(0.7 0.15 252);
+  --interactive-active-hover: oklch(0.18 0.1 252);
+  --interactive-active-border-hover: oklch(0.45 0.15 252);
 
-    /* Custom text hierarchy */
-    --color-text-subtle: #9ca3af; /* text-text-subtle */
-    --color-text-accent: #000000; /* text-text-accent */
-    --color-text-success: #16a34a; /* text-text-success */
-    --color-text-warning: #d97706; /* text-text-warning */
-    --color-text-destructive: #dc2626; /* text-text-destructive */
-    --color-text-info: #2563eb; /* text-text-info */
-  }
+  --interactive-inactive: oklch(0.2 0 0);
+  --interactive-inactive-border: oklch(0.35 0 0);
+  --interactive-inactive-text: oklch(0.65 0 0);
+  --interactive-inactive-hover: oklch(0.25 0 0);
+  --interactive-inactive-border-hover: oklch(0.4 0 0);
+  --interactive-inactive-text-hover: oklch(0.75 0 0);
 }
 
+/* 4. Map variables to Tailwind classes using @theme inline */
+@theme inline {
+  /* Core color mappings */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Chart color mappings */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Brand color mappings */
+  --color-brand-green: var(--brand-green);
+  --color-brand-blue: var(--brand-blue);
+
+  /* Sidebar color mappings */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-hover: var(--sidebar-hover);
+
+  /* Header color mappings */
+  --color-header: var(--header);
+  --color-header-foreground: var(--header-foreground);
+  --color-header-border: var(--header-border);
+
+  /* Chat interface color mappings */
+  --color-chat: var(--chat);
+  --color-chat-foreground: var(--chat-foreground);
+  --color-message-bubble: var(--message-bubble);
+  --color-message-bubble-foreground: var(--message-bubble-foreground);
+  --color-message-hover: var(--message-hover);
+
+  /* Panel color mappings */
+  --color-panel: var(--panel);
+  --color-panel-foreground: var(--panel-foreground);
+  --color-panel-border: var(--panel-border);
+
+  /* Border variation mappings */
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  /* Text variation mappings */
+  --color-text-subtle: var(--text-subtle);
+  --color-text-accent: var(--text-accent);
+  --color-text-success: var(--text-success);
+  --color-text-warning: var(--text-warning);
+  --color-text-destructive: var(--text-destructive);
+  --color-text-info: var(--text-info);
+
+  --color-interactive-active: var(--interactive-active);
+  --color-interactive-active-border: var(--interactive-active-border);
+  --color-interactive-active-text: var(--interactive-active-text);
+  --color-interactive-active-hover: var(--interactive-active-hover);
+  --color-interactive-active-border-hover: var(
+    --interactive-active-border-hover
+  );
+
+  --color-interactive-inactive: var(--interactive-inactive);
+  --color-interactive-inactive-border: var(--interactive-inactive-border);
+  --color-interactive-inactive-text: var(--interactive-inactive-text);
+  --color-interactive-inactive-hover: var(--interactive-inactive-hover);
+  --color-interactive-inactive-border-hover: var(
+    --interactive-inactive-border-hover
+  );
+  --color-interactive-inactive-text-hover: var(
+    --interactive-inactive-text-hover
+  );
+
+  /* Other properties */
+  --radius: var(--radius);
+  --font-sans: var(--font-sans);
+}
+
+/* 5. Base styles using @layer */
 @layer base {
   * {
-    border-color: var(--color-border);
+    @apply border-border;
   }
 
   body {
+    @apply bg-background text-foreground;
     font-family: var(--font-sans);
-    background-color: var(--color-background);
-    color: var(--color-foreground);
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -181,11 +290,11 @@ body,
 
   /* Improved focus states */
   :focus-visible {
-    outline: 2px solid var(--color-ring);
-    outline-offset: 2px;
+    @apply outline-2 outline-ring outline-offset-2;
   }
 }
 
+/* 6. Utilities layer */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -193,7 +302,7 @@ body,
 
   .messages-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #404040 transparent;
+    scrollbar-color: var(--muted-foreground) transparent;
   }
 
   .messages-scrollbar::-webkit-scrollbar {
@@ -205,26 +314,12 @@ body,
   }
 
   .messages-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #404040;
+    background-color: var(--muted-foreground);
     border-radius: 3px;
   }
 
   .messages-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #525252;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .messages-scrollbar {
-      scrollbar-color: #4b5563 transparent;
-    }
-
-    .messages-scrollbar::-webkit-scrollbar-thumb {
-      background-color: #4b5563;
-    }
-
-    .messages-scrollbar::-webkit-scrollbar-thumb:hover {
-      background-color: #6b7280;
-    }
+    background-color: var(--foreground / 0.6);
   }
 
   /* Subtle hover effects */
@@ -237,59 +332,238 @@ body,
   }
 }
 
+/* 7. Components layer */
 @layer components {
-  /* Quill Editor Styles - Linear Theme */
+  /* Quill Editor Styles */
   .ql-toolbar {
-    border: none !important;
-    background-color: var(--color-input) !important;
-    border-bottom: 1px solid var(--color-border) !important;
-    padding: 8px 12px !important;
-    border-radius: var(--radius) var(--radius) 0 0 !important;
+    @apply !border-none !bg-input !border-b !border-border !p-2 !rounded-t-md;
   }
 
   .ql-toolbar .ql-formats:not(:last-child) {
-    border-right: 1px solid var(--color-border) !important;
-    padding-right: 12px !important;
-    margin-right: 12px !important;
+    @apply !border-r !border-border !pr-3 !mr-3;
   }
 
   .ql-toolbar .ql-stroke {
-    stroke: var(--color-muted-foreground) !important;
+    stroke: var(--muted-foreground) !important;
   }
 
   .ql-toolbar .ql-fill {
-    fill: var(--color-muted-foreground) !important;
+    fill: var(--muted-foreground) !important;
   }
 
   .ql-toolbar button:hover {
-    background-color: var(--color-accent) !important;
+    @apply !bg-accent;
   }
 
   .ql-toolbar button.ql-active {
-    background-color: var(--color-accent) !important;
+    @apply !bg-accent;
   }
 
   .ql-container {
-    font-family: var(--font-sans) !important;
-    border: 1px solid var(--color-border) !important;
-    border-top: none !important;
-    border-radius: 0 0 var(--radius) var(--radius) !important;
-    background-color: var(--color-input) !important;
+    @apply !font-sans !border !border-border !border-t-0 !rounded-b-md !bg-input;
   }
 
   .ql-editor {
-    line-height: 1.5 !important;
-    padding: 12px 16px !important;
-    color: var(--color-foreground) !important;
-    font-weight: 400 !important;
-    font-family: var(--font-sans) !important;
-    font-size: 14px !important;
-    min-height: 80px !important;
+    @apply !leading-6 !p-4 !text-foreground !font-normal !font-sans !text-sm !min-h-20;
   }
 
   .ql-editor.ql-blank::before {
-    color: var(--color-muted-foreground) !important;
-    font-style: normal !important;
-    left: 16px !important;
+    @apply !text-muted-foreground !not-italic !left-4;
+  }
+
+  .message-content {
+    box-sizing: border-box;
+    line-height: 1.42;
+    height: auto;
+    outline: none;
+    overflow-wrap: break-word;
+    tab-size: 4;
+    -moz-tab-size: 4;
+    text-align: left;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  /* Paragraph spacing */
+  .message-content p {
+    margin: 0 0 1em 0;
+    padding: 0;
+  }
+
+  .message-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Headings */
+  .message-content h1,
+  .message-content h2,
+  .message-content h3,
+  .message-content h4,
+  .message-content h5,
+  .message-content h6 {
+    @apply font-bold;
+    margin: 1em 0 0.5em 0;
+    padding: 0;
+  }
+
+  .message-content h1 {
+    font-size: 2em;
+  }
+  .message-content h2 {
+    font-size: 1.5em;
+  }
+  .message-content h3 {
+    font-size: 1.17em;
+  }
+  .message-content h4 {
+    font-size: 1em;
+  }
+  .message-content h5 {
+    font-size: 0.83em;
+  }
+  .message-content h6 {
+    font-size: 0.67em;
+  }
+
+  /* Text formatting */
+  .message-content strong,
+  .message-content b {
+    @apply font-bold;
+  }
+
+  .message-content em,
+  .message-content i {
+    @apply italic;
+  }
+
+  .message-content u {
+    @apply underline;
+  }
+
+  .message-content s,
+  .message-content strike {
+    @apply line-through;
+  }
+
+  /* Links */
+  .message-content a {
+    @apply text-text-info underline;
+  }
+
+  .message-content a:hover {
+    @apply no-underline;
+  }
+
+  /* Lists */
+  .message-content ul,
+  .message-content ol {
+    margin: 1em 0;
+    padding-left: 1.5em;
+  }
+
+  .message-content li {
+    margin: 0.25em 0;
+  }
+
+  /* Blockquotes */
+  .message-content blockquote {
+    @apply border-l-4 border-border-strong text-muted-foreground italic;
+    margin: 1em 0;
+    padding-left: 1em;
+  }
+
+  /* Code blocks */
+  .message-content pre {
+    @apply bg-muted border border-border rounded text-foreground;
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    font-size: 85%;
+    margin: 1em 0;
+    overflow-x: auto;
+    padding: 1em;
+    white-space: pre;
+  }
+
+  .message-content code {
+    @apply bg-muted text-foreground rounded;
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    font-size: 85%;
+    padding: 0.2em 0.4em;
+  }
+
+  .message-content pre code {
+    @apply bg-transparent rounded-none p-0;
+  }
+
+  /* Images */
+  .message-content img {
+    @apply max-w-full h-auto;
+  }
+
+  /* Tables */
+  .message-content table {
+    @apply border-collapse w-full;
+    margin: 1em 0;
+  }
+
+  .message-content th,
+  .message-content td {
+    @apply border border-border p-2 text-left text-foreground;
+  }
+
+  .message-content th {
+    @apply bg-muted font-bold;
+  }
+
+  /* Subscript and superscript */
+  .message-content sub,
+  .message-content sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+
+  .message-content sup {
+    top: -0.5em;
+  }
+
+  .message-content sub {
+    bottom: -0.25em;
+  }
+
+  /* Quill-specific classes */
+  .message-content .ql-align-center {
+    @apply text-center;
+  }
+  .message-content .ql-align-right {
+    @apply text-right;
+  }
+  .message-content .ql-align-justify {
+    @apply text-justify;
+  }
+
+  .message-content .ql-indent-1 {
+    padding-left: 3em;
+  }
+  .message-content .ql-indent-2 {
+    padding-left: 6em;
+  }
+  .message-content .ql-indent-3 {
+    padding-left: 9em;
+  }
+  .message-content .ql-indent-4 {
+    padding-left: 12em;
+  }
+  .message-content .ql-indent-5 {
+    padding-left: 15em;
+  }
+  .message-content .ql-indent-6 {
+    padding-left: 18em;
+  }
+  .message-content .ql-indent-7 {
+    padding-left: 21em;
+  }
+  .message-content .ql-indent-8 {
+    padding-left: 24em;
   }
 }

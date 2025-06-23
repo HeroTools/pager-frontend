@@ -13,14 +13,16 @@ export interface Message {
   timestamp: Date;
   image?: string;
   reactions?: Reaction[];
+  attachments: Attachment[];
   threadCount?: number;
   isEdited?: boolean;
 }
 
 export interface Reaction {
+  id: string;
   emoji: string;
   count: number;
-  users: string[];
+  users: User[];
 }
 
 export interface Channel {
@@ -29,4 +31,11 @@ export interface Channel {
   description?: string;
   isPrivate: boolean;
   memberCount?: number;
+}
+
+export interface Attachment {
+  content_type: string;
+  id: string;
+  size_bytes: number;
+  public_url: string;
 }

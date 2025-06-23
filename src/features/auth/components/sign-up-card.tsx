@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { FcGoogle } from "react-icons/fc";
 import { TriangleAlert, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -20,10 +19,13 @@ import { authApi } from "@/features/auth/api/auth-api";
 import { useSignUp } from "@/features/auth";
 
 interface SignUpCardProps {
+  onSuccess?: (workspaceId?: string) => void;
   setState: (state: SignInFlow) => void;
-}
+  hideSignInLink?: boolean;
+  inviteToken?: string;
+  }
 
-export const SignUpCard = ({ setState }: SignUpCardProps) => {
+export const SignUpCard = ({ onSuccess, hideSignInLink = false, inviteToken }: SignUpCardProps) => {
   const signUp = useSignUp();
   const [signingUp, setSigningUp] = useState(false);
   const [error, setError] = useState("");
@@ -52,53 +54,71 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
       setError("");
 
       try {
-        const response = await signUp.mutateAsync({ email, password, name });
+        const response = await signUp.mutateAsync({
+          email,
+          password,
+          name,
+          inviteToken,
+        });
 
-        console.log("Sign up response:", response);
+        if (response.requires_email_confirmation) {
+          setUserEmail(email);
+          setEmailSent(true);
+          return;
+        }
 
-        if (response.success) {
-          // Check if email confirmation is required
-          if (response.data.session) {
-            // User is immediately signed in (email confirmed)
-            await supabase.auth.setSession({
-              access_token: response.data.session.accessToken,
-              refresh_token: response.data.session.refreshToken,
-            });
+        if (response.session) {
+          await supabase.auth.setSession(response.session);
+        }
 
-            router.push("/");
-            router.refresh();
-          } else {
-            // Email confirmation required
-            setUserEmail(email);
-            setEmailSent(true);
-          }
+        if (onSuccess) {
+          onSuccess(response.workspace?.id);
+        } else if (response.workspace?.id) {
+          router.push(`/${response.workspace.id}`);
+          router.refresh();
         } else {
-          setError(response.error || "Failed to sign up");
+          router.push("/");
+          router.refresh();
         }
       } catch (err: any) {
-        console.error("Sign up error:", err);
-        setError(
-          err.response?.data?.error || "Something went wrong. Please try again."
-        );
+        const error: any = err;
+        if (error instanceof Error) {
+          setError(error.message);
+        } else if (error && typeof error === 'object' && 'response' in error) {
+          const response: any = error.response;
+          if (response && response.data) {
+            const data: any = response.data;
+            if (data.error) {
+              setError(data.error);
+            } else {
+              setError("Something went wrong. Please try again.");
+            }
+          } else {
+            setError("Something went wrong. Please try again.");
+          }
+        } else {
+          setError("Something went wrong. Please try again.");
+        }
       } finally {
         setSigningUp(false);
       }
     }
   );
 
-  const handleProviderSignUp = (provider: "github" | "google") => async () => {
+  const handleProviderSignUp = (provider: "google") => async () => {
+    if (provider !== "google") {
+      setError("Unsupported sign-in method. Please use Google to sign up.");
+      return;
+    }
     setSigningUp(true);
     setError("");
 
     try {
-      const response = await (provider === "google"
-        ? authApi.googleSignIn(`${window.location.origin}/auth/callback`)
-        : authApi.githubSignIn(`${window.location.origin}/auth/callback`));
-
-      const result = response.data;
-
-      // Redirect to OAuth provider
-      window.location.href = result.url;
+      const response = await authApi.googleSignIn(`${window.location.origin}/auth/callback`);
+      // Redirect to OAuth provider if url exists
+      if (response.url) {
+        window.location.href = response.url;
+      }
     } catch (err: any) {
       console.error(`${provider} sign up error:`, err);
       setError(
@@ -167,27 +187,17 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
             >
               {signingUp ? "Sending..." : "Resend email"}
             </Button>
-            <Button
-              onClick={() => {
-                setEmailSent(false);
-                setUserEmail("");
-                setError("");
-              }}
-              variant="ghost"
-              className="w-full"
-            >
-              Back to sign up
-            </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Already have an account?{" "}
-            <span
-              className="text-primary hover:underline cursor-pointer"
-              onClick={() => setState("signIn")}
-            >
-              Sign in
-            </span>
-          </p>
+          {!hideSignInLink && (
+            <p className="text-xs text-muted-foreground">
+              Already have an account?{" "}
+              <span
+                className="text-primary hover:underline cursor-pointer"
+              >
+                Sign in
+              </span>
+            </p>
+          )}
         </CardContent>
       </Card>
     );
@@ -286,20 +296,31 @@ export const SignUpCard = ({ setState }: SignUpCardProps) => {
             size="lg"
             className="w-full relative"
           >
-            <FcGoogle className="size-5 absolute top-3 left-2.5" />
+            <span className="size-5 absolute top-3 left-2.5">G</span>
             Continue with Google
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Already have an account?{" "}
-          <span
-            className="text-primary hover:underline cursor-pointer"
-            onClick={() => setState("signIn")}
-          >
-            Sign in
-          </span>
-        </p>
+        {!hideSignInLink && (
+          <p className="text-xs text-muted-foreground">
+            Already have an account?{" "}
+            <span
+              className="text-primary hover:underline cursor-pointer"
+            >
+              Sign in
+            </span>
+          </p>
+        )}
       </CardContent>
     </Card>
   );
 };
+
+function isApiError(err: unknown): err is { response: { data?: { error?: string } } } {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'response' in err &&
+    typeof (err as any).response === 'object' &&
+    (err as any).response !== null
+  );
+}

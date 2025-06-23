@@ -1,4 +1,4 @@
-import { httpClient } from "@/lib/api/http-client";
+import api from "@/lib/api/axios-client";
 import type {
   MessageEntity,
   MessageWithAllRelations,
@@ -45,9 +45,9 @@ export const messagesApi = {
       params.append("has_attachments", filters.has_attachments.toString());
     if (filters?.user_id) params.append("user_id", filters.user_id);
 
-    const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await httpClient.get<MessagesResponse>(
-      `/workspaces/${workspaceId}/channels/${channelId}/messages${queryString}`
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const { data: response } = await api.get<MessagesResponse>(
+      `/workspaces/${workspaceId}/channels/${channelId}/messages${qs}`
     );
     return response.data as {
       messages: ChannelMessage[];
@@ -81,9 +81,9 @@ export const messagesApi = {
     if (filters?.user_id) params.append("user_id", filters.user_id);
     params.append("include_relations", "true");
 
-    const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await httpClient.get<MessagesWithRelationsResponse>(
-      `/workspaces/${workspaceId}/channels/${channelId}/messages${queryString}`
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const { data: response } = await api.get<MessagesWithRelationsResponse>(
+      `/workspaces/${workspaceId}/channels/${channelId}/messages${qs}`
     );
     return response.data as {
       messages: ChannelMessageWithRelations[];
@@ -99,7 +99,7 @@ export const messagesApi = {
     workspaceId: string,
     messageId: string
   ): Promise<MessageEntity> => {
-    const response = await httpClient.get<MessageResponse>(
+    const { data: response } = await api.get<MessageResponse>(
       `/workspaces/${workspaceId}/messages/${messageId}`
     );
     return response.data;
@@ -112,7 +112,7 @@ export const messagesApi = {
     workspaceId: string,
     messageId: string
   ): Promise<MessageWithAllRelations> => {
-    const response = await httpClient.get<MessageWithRelationsResponse>(
+    const { data: response } = await api.get<MessageWithRelationsResponse>(
       `/workspaces/${workspaceId}/messages/${messageId}?include_relations=true`
     );
     return response.data;
@@ -126,11 +126,10 @@ export const messagesApi = {
     channelId: string,
     data: CreateChannelMessageData
   ): Promise<MessageWithUser> => {
-    const response = await httpClient.post<MessageWithUserResponse>(
+    const { data: response } = await api.post<MessageWithUserResponse>(
       `/workspaces/${workspaceId}/channels/${channelId}/messages`,
       data
     );
-
     return response;
   },
 
@@ -142,7 +141,7 @@ export const messagesApi = {
     conversationId: string,
     data: CreateConversationMessageData
   ): Promise<MessageWithUser> => {
-    const response = await httpClient.post<MessageWithUserResponse>(
+    const { data: response } = await api.post<MessageWithUserResponse>(
       `/workspaces/${workspaceId}/conversations/${conversationId}/messages`,
       data
     );
@@ -156,8 +155,11 @@ export const messagesApi = {
     endpoint: string,
     data: { is_typing: boolean }
   ): Promise<{ message: string; timestamp: string }> => {
-    const response = await httpClient.post(endpoint, data);
-    return response.data;
+    const { data: response } = await api.post<{
+      message: string;
+      timestamp: string;
+    }>(endpoint, data);
+    return response;
   },
 
   /**
@@ -168,7 +170,7 @@ export const messagesApi = {
     messageId: string,
     data: UpdateMessageData
   ): Promise<MessageEntity> => {
-    const response = await httpClient.patch<MessageResponse>(
+    const { data: response } = await api.patch<MessageResponse>(
       `/workspaces/${workspaceId}/messages/${messageId}`,
       data
     );
@@ -182,7 +184,7 @@ export const messagesApi = {
     workspaceId: string,
     messageId: string
   ): Promise<void> => {
-    await httpClient.delete(`/workspaces/${workspaceId}/messages/${messageId}`);
+    await api.delete(`/workspaces/${workspaceId}/messages/${messageId}`);
   },
 
   /**
@@ -192,7 +194,7 @@ export const messagesApi = {
     workspaceId: string,
     messageId: string
   ): Promise<MessageThread> => {
-    const response = await httpClient.get<MessageThreadResponse>(
+    const { data: response } = await api.get<MessageThreadResponse>(
       `/workspaces/${workspaceId}/messages/${messageId}/thread`
     );
     return response.data;
@@ -206,7 +208,7 @@ export const messagesApi = {
     parentMessageId: string,
     data: Omit<CreateChannelMessageData, "parent_message_id">
   ): Promise<MessageEntity> => {
-    const response = await httpClient.post<MessageResponse>(
+    const { data: response } = await api.post<MessageResponse>(
       `/workspaces/${workspaceId}/messages/${parentMessageId}/replies`,
       data
     );
@@ -214,31 +216,17 @@ export const messagesApi = {
   },
 
   /**
-   * Add reaction to message
+   * toggle reaction from message
    */
-  addReaction: async (
-    workspaceId: string,
-    messageId: string,
-    data: AddReactionData
-  ): Promise<void> => {
-    await httpClient.post(
-      `/workspaces/${workspaceId}/messages/${messageId}/reactions`,
-      data
-    );
-  },
-
-  /**
-   * Remove reaction from message
-   */
-  removeReaction: async (
+  toggleReaction: async (
+    action: "add" | "remove",
     workspaceId: string,
     messageId: string,
     reactionValue: string
   ): Promise<void> => {
-    await httpClient.delete(
-      `/workspaces/${workspaceId}/messages/${messageId}/reactions/${encodeURIComponent(
-        reactionValue
-      )}`
+    await api.post(
+      `/workspaces/${workspaceId}/messages/${messageId}/reactions/toggle`,
+      { action, value: reactionValue }
     );
   },
 
@@ -260,9 +248,9 @@ export const messagesApi = {
     if (filters?.user_id) params.append("user_id", filters.user_id);
     if (filters?.limit) params.append("limit", filters.limit.toString());
 
-    const queryString = params.toString();
-    const response = await httpClient.get<MessageSearchResponse>(
-      `/workspaces/${workspaceId}/messages/search?${queryString}`
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const { data: response } = await api.get<MessageSearchResponse>(
+      `/workspaces/${workspaceId}/messages/search${qs}`
     );
     return response.data;
   },
