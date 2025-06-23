@@ -51,13 +51,8 @@ const ChannelChat = () => {
   //   isTyping,
   // } = useTypingIndicator(workspaceId, channelId, undefined);
 
-  const {
-    createMessage,
-    updateMessage,
-    deleteMessage,
-    addReaction,
-    removeReaction,
-  } = useMessageOperations(workspaceId, channelId, undefined);
+  const { createMessage, updateMessage, deleteMessage, toggleReaction } =
+    useMessageOperations(workspaceId, channelId, undefined);
 
   const transformChannel = (channelData: any): Channel => ({
     id: channelData.id,
@@ -85,6 +80,7 @@ const ChannelChat = () => {
         timestamp: new Date(msg.created_at),
         reactions:
           msg.reactions?.map((reaction: any) => ({
+            id: reaction.id,
             emoji: reaction.value,
             count: reaction.count,
             users: reaction.users,
@@ -209,16 +205,11 @@ const ChannelChat = () => {
       const hasReacted = existingReaction?.users.some(
         (user: any) => user.id === currentUser?.id
       );
-
-      if (hasReacted) {
-        // Remove reaction
-        await removeReaction.mutateAsync({ messageId, emoji });
-        console.log("Reaction removed");
-      } else {
-        // Add reaction
-        await addReaction.mutateAsync({ messageId, emoji });
-        console.log("Reaction added");
-      }
+      await toggleReaction.mutateAsync({
+        messageId,
+        emoji,
+        currentlyReacted: hasReacted || false,
+      });
     } catch (error) {
       console.error("Failed to react to message:", error);
     }
