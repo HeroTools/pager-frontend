@@ -1,5 +1,7 @@
 import { FC, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import Picker from "@emoji-mart/react";
+import data from "@emoji-mart/data";
 import {
   MoreHorizontal,
   MessageSquare,
@@ -22,9 +24,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageReactions } from "./message-reactions";
 import { MessageContent } from "./message-content";
+import { useUIStore } from "@/store/ui-store";
 
 interface ChatMessageProps {
   message: Message;
@@ -183,6 +191,7 @@ const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
     </div>
   );
 };
+
 // Generic File Attachment Component
 const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
@@ -275,7 +284,21 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   onReaction,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { openEmojiPickerMessageId, setEmojiPickerOpen } = useUIStore();
   const isOwnMessage = message.authorId === currentUser.id;
+
+  const isEmojiPickerOpen = openEmojiPickerMessageId === message.id;
+
+  const handleEmojiSelect = (emoji: string) => {
+    onReaction?.(message.id, emoji);
+    setEmojiPickerOpen(null);
+  };
+
+  const handleEmojiPickerToggle = (open: boolean) => {
+    setEmojiPickerOpen(open ? message.id : null);
+  };
+
+  const shouldShowActions = isHovered || isEmojiPickerOpen;
 
   return (
     <div
@@ -356,17 +379,44 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       </div>
 
       {/* Message Actions */}
-      {isHovered && (
-        <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+      {shouldShowActions && (
+        <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm">
           <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-              onClick={() => onReaction?.(message.id, "👍")}
+            {/* Emoji Picker Popover */}
+            <Popover
+              open={isEmojiPickerOpen}
+              onOpenChange={handleEmojiPickerToggle}
             >
-              <Smile className="w-4 h-4" />
-            </Button>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                >
+                  <Smile className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="p-0 w-auto border-0 shadow-lg"
+                align="end"
+                side="top"
+                sideOffset={8}
+              >
+                <Picker
+                  data={data}
+                  onEmojiSelect={(emoji: any) =>
+                    handleEmojiSelect(emoji.native)
+                  }
+                  theme="light"
+                  set="native"
+                  previewPosition="none"
+                  skinTonePosition="none"
+                  maxFrequentRows={2}
+                  perLine={8}
+                />
+              </PopoverContent>
+            </Popover>
+
             <Button
               variant="ghost"
               size="sm"
