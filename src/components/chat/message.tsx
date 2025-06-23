@@ -291,6 +291,9 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setIsEmojiPickerOpen(false);
   };
 
+  // Show actions if message is hovered OR if emoji picker is open
+  const shouldShowActions = isHovered || isEmojiPickerOpen;
+
   return (
     <div
       className={cn(
@@ -370,8 +373,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       </div>
 
       {/* Message Actions */}
-      {isHovered && (
-        <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+      {shouldShowActions && (
+        <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm">
           <div className="flex items-center">
             {/* Emoji Picker Popover */}
             <Popover
