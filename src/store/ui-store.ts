@@ -1,4 +1,4 @@
-import { MessageWithUser } from "@/features/messages/types";
+import { Message } from "@/types/chat";
 import { create } from "zustand";
 
 interface UIState {
@@ -6,9 +6,9 @@ interface UIState {
   setEmojiPickerOpen: (messageId: string | null) => void;
   isEmojiPickerOpen: () => boolean;
   openThreadMessageId: string | null;
-  setThreadOpen: (message: MessageWithUser | null) => void;
-  selectedThreadParentMessage: MessageWithUser | null;
-  setSelectedThreadParentMessage: (message: MessageWithUser | null) => void;
+  setThreadOpen: (message: Message | null) => void;
+  selectedThreadParentMessage: Message | null;
+  setSelectedThreadParentMessage: (message: Message | null) => void;
   isThreadOpen: () => boolean;
 }
 

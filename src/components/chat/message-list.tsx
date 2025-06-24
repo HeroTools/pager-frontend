@@ -1,23 +1,25 @@
-import React, { useEffect, useRef } from "react";
-import { Message, User } from "@/types/chat";
-import { ChatMessage } from "./message";
+import { FC, Fragment, RefObject, UIEvent, useRef } from "react";
 import { isSameDay } from "date-fns";
+
+import { Message } from "@/types/chat";
+import { ChatMessage } from "./message";
 import { useUIStore } from "@/store/ui-store";
 import { cn } from "@/lib/utils";
+import { CurrentUser } from "@/features/auth";
 
 interface ChatMessageListProps {
   messages: Message[];
-  currentUser: User;
+  currentUser: CurrentUser;
   isLoading?: boolean;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onReaction?: (messageId: string, emoji: string) => void;
-  containerRef?: React.RefObject<HTMLDivElement>;
-  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
+  containerRef?: RefObject<HTMLDivElement>;
+  onScroll?: (e: UIEvent<HTMLDivElement>) => void;
 }
 
-export const ChatMessageList: React.FC<ChatMessageListProps> = ({
+export const ChatMessageList: FC<ChatMessageListProps> = ({
   messages,
   currentUser,
   isLoading = false,
@@ -69,7 +71,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
             const showDateDivider = shouldShowDateDivider(message, index);
 
             return (
-              <React.Fragment key={message.id}>
+              <Fragment key={message.id}>
                 {showDateDivider && (
                   <div className="flex items-center my-4 px-4">
                     <div className="flex-1 border-t border-border-subtle" />
@@ -89,7 +91,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
                   onReply={onReply}
                   onReaction={onReaction}
                 />
-              </React.Fragment>
+              </Fragment>
             );
           })
         )}

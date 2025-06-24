@@ -1,13 +1,11 @@
-import { Message, User } from "@/types/chat";
+import { Attachment, Author, Message } from "@/types/chat";
+import { CurrentUser } from "../auth";
 
 export const transformMessages = (
   messagesData: any[],
-  currentUser?: User
+  currentUser?: CurrentUser
 ): Message[] => {
   return messagesData.map((msg) => {
-    if (!msg.user?.id) {
-      console.log(msg, "msg");
-    }
     return {
       id: msg.id,
       content: msg.body,
@@ -17,12 +15,12 @@ export const transformMessages = (
         name: msg.user.name,
         avatar: msg.user.image,
         status: "online" as const,
-      },
+      } as Author,
       timestamp: new Date(msg.created_at),
       reactions:
         msg.reactions?.map((reaction: any) => ({
           id: reaction.id,
-          emoji: reaction.value,
+          value: reaction.value,
           count: reaction.count,
           users: reaction.users,
           hasReacted: reaction.users.some(
@@ -34,7 +32,16 @@ export const transformMessages = (
       lastReplyAt: msg.thread_last_reply_at || null,
       isEdited: !!msg.edited_at,
       isOptimistic: msg._isOptimistic || false,
-      attachments: msg?.attachments || [],
+      attachments:
+        msg?.attachments.map(
+          (attachment: any) =>
+            ({
+              id: attachment.id,
+              contentType: attachment.content_type,
+              sizeBytes: attachment.size_bytes,
+              publicUrl: attachment.public_url,
+            } as Attachment)
+        ) || [],
     };
   });
 };

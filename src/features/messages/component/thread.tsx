@@ -9,7 +9,7 @@ import {
   format,
   parseISO,
   differenceInMinutes,
-} from "date-fns"; // Added differenceInMinutes
+} from "date-fns";
 
 import { ChatMessage } from "@/components/chat/message";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,8 @@ import {
 import { useParamIds } from "@/hooks/use-param-ids";
 import { useUIStore } from "@/store/ui-store";
 import { transformMessages } from "../helpers";
-import { User } from "@/types/chat";
+import { useToggleReaction } from "@/features/reactions";
+import { Message } from "@/types/chat";
 
 const Editor = dynamic(() => import("@/components/editor/editor"), {
   ssr: false,
@@ -64,38 +65,6 @@ interface ThreadProps {
   };
 }
 
-interface ThreadMessage {
-  id: string;
-  body: string;
-  attachment_id: string | null;
-  workspace_member_id: string;
-  created_at: string;
-  updated_at: string | null;
-  edited_at: string | null;
-  timestamp: string; // Added timestamp to reflect transformed data
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    image: string | null;
-  };
-  attachment?: {
-    id: string;
-    url: string;
-    content_type: string | null;
-    size_bytes: number | null;
-  };
-  reactions?: Array<{
-    id: string;
-    value: string;
-    count: number;
-    users: Array<{
-      id: string;
-      name: string;
-    }>;
-  }>;
-}
-
 const TIME_THRESHOLD = 5; // minutes
 
 interface ThreadHeaderProps {
@@ -131,7 +100,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
     isThreadOpen,
   } = useUIStore();
   const { workspaceId, id: entityId, type } = useParamIds();
-  const { user: currentUser } = useCurrentUser(); // Destructure currentUser here
+  const { user: currentUser } = useCurrentUser(workspaceId); // Destructure currentUser here
   const {
     data = { replies: [] },
     isLoadingThread,
@@ -143,23 +112,19 @@ export const Thread = ({ onClose }: ThreadProps) => {
   });
 
   // Message operations
-  const {
-    createMessage,
-    updateMessage,
-    deleteMessage,
-    addReaction,
-    removeReaction,
-  } = useMessageOperations(workspaceId, entityId, type);
+  const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
+    workspaceId,
+    entityId,
+    type
+  );
+  const toggleReaction = useToggleReaction(workspaceId);
 
   const editorRef = useRef<Quill | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editorKey, setEditorKey] = useState(0);
   const [isPending, setIsPending] = useState(false);
 
-  const replies = transformMessages(
-    data?.replies || [],
-    currentUser as unknown as User
-  );
+  const replies = transformMessages(data?.replies || [], currentUser);
 
   // Sort replies chronologically (oldest first)
   const sortedReplies = [...replies].sort(
@@ -167,7 +132,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
   );
 
   const groupedMessages = sortedReplies.reduce(
-    (groups: Record<string, ThreadMessage[]>, message: ThreadMessage) => {
+    (groups: Record<string, Message[]>, message: Message) => {
       // FIX: Ensure message.timestamp is a Date object before formatting
       const messageDate =
         typeof message.timestamp === "string"
@@ -181,7 +146,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
       groups[dateKey].push(message);
       return groups;
     },
-    {} as Record<string, ThreadMessage[]>
+    {} as Record<string, Message[]>
   );
 
   const handleSubmit = async ({
@@ -198,7 +163,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
         body,
         attachments: [],
         parent_message_id: parentMessage?.id,
-        thread_id: parentMessage?.thread_id || parentMessage?.id,
+        thread_id: parentMessage?.threadId || parentMessage?.id,
         message_type: "thread",
       });
 
@@ -245,12 +210,11 @@ export const Thread = ({ onClose }: ThreadProps) => {
       const hasReacted = existingReaction?.users.some(
         (user) => user.id === currentUser?.id
       );
-
-      if (hasReacted) {
-        await removeReaction.mutateAsync({ messageId, emoji });
-      } else {
-        await addReaction.mutateAsync({ messageId, emoji });
-      }
+      await toggleReaction.mutateAsync({
+        messageId,
+        emoji,
+        currentlyReacted: hasReacted || false,
+      });
     } catch (error) {
       console.error("Failed to react to message:", error);
       toast.error("Failed to add reaction. Please try again.");
@@ -298,7 +262,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onReaction={handleReaction}
-              // hide replies
+              hideReplies
             />
           </div>
 
@@ -341,6 +305,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onReaction={handleReaction}
+                        hideReplies
                       />
                     );
                   })}

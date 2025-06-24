@@ -9,15 +9,16 @@ import {
 } from "@/features/conversations";
 import { useMessageOperations } from "@/features/messages/hooks/use-messages";
 import { useCurrentUser } from "@/features/auth";
-import { Message, User, Channel } from "@/types/chat";
+import { Channel, Author } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
 import { transformMessages } from "@/features/messages/helpers";
+import { useToggleReaction } from "@/features/reactions";
 
 const ConversationChat = () => {
   const { id: conversationId, workspaceId } = useParamIds();
 
-  const { user: currentUser } = useCurrentUser();
+  const { user: currentUser } = useCurrentUser(workspaceId);
 
   const {
     data: conversationWithMessages,
@@ -37,8 +38,12 @@ const ConversationChat = () => {
   });
 
   // Message operation hooks
-  const { createMessage, updateMessage, deleteMessage, toggleReaction } =
-    useMessageOperations(workspaceId, undefined, conversationId);
+  const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
+    workspaceId,
+    undefined,
+    conversationId
+  );
+  const toggleReaction = useToggleReaction(workspaceId);
 
   const transformConversation = (conversationData: any): Channel => {
     const otherMembers = conversationData.members.filter(
@@ -58,7 +63,7 @@ const ConversationChat = () => {
     };
   };
 
-  const transformCurrentUser = (userData: any): User => ({
+  const transformCurrentUser = (userData: any): Author => ({
     id: userData.id,
     name: userData.name,
     avatar: userData.image,
@@ -75,9 +80,6 @@ const ConversationChat = () => {
       </div>
     );
   }
-
-  console.log("conversationWithMessages", conversationWithMessages);
-  console.log("messagesError", messagesError);
 
   // Handle error states
   if (error || !conversationWithMessages) {

@@ -10,17 +10,16 @@ import {
 } from "@/features/channels";
 import { useMessageOperations } from "@/features/messages";
 import { useCurrentUser } from "@/features/auth";
-import { Message, User, Channel } from "@/types/chat";
+import { Author, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
 import { transformMessages } from "@/features/messages/helpers";
+import { useToggleReaction } from "@/features/reactions";
 
 const ChannelChat = () => {
   const { id: channelId, workspaceId } = useParamIds();
+  const { user: currentUser, isAuthenticated } = useCurrentUser(workspaceId);
 
-  const { user: currentUser, isAuthenticated } = useCurrentUser();
-
-  // Fetch messages and members using infinite query
   const {
     data: channelWithMessages,
     isLoading: isLoadingMessages,
@@ -30,7 +29,6 @@ const ChannelChat = () => {
     isFetchingNextPage,
   } = useGetChannelWithMessagesInfinite(workspaceId, channelId);
 
-  // Fetch channel details (with cache optimization)
   const {
     data: channelDetails,
     isLoading: isLoadingChannel,
@@ -52,8 +50,12 @@ const ChannelChat = () => {
   //   isTyping,
   // } = useTypingIndicator(workspaceId, channelId, undefined);
 
-  const { createMessage, updateMessage, deleteMessage, toggleReaction } =
-    useMessageOperations(workspaceId, channelId, undefined);
+  const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
+    workspaceId,
+    channelId,
+    undefined
+  );
+  const toggleReaction = useToggleReaction(workspaceId);
 
   const transformChannel = (channelData: any): Channel => ({
     id: channelData.id,
@@ -63,7 +65,7 @@ const ChannelChat = () => {
     memberCount: channelData.members?.length || 0,
   });
 
-  const transformCurrentUser = (userData: any): User => ({
+  const transformCurrentUser = (userData: any): Author => ({
     id: userData.id,
     name: userData.name,
     avatar: userData.image,

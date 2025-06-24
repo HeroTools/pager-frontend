@@ -14,7 +14,7 @@ import {
   Archive,
   Image as ImageIcon,
 } from "lucide-react";
-import { Message, User, Attachment } from "@/types/chat";
+import { Message, Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,16 +27,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageReactions } from "./message-reactions";
 import { MessageContent } from "./message-content";
 import { useUIStore } from "@/store/ui-store";
+import { CurrentUser } from "@/features/auth/types";
 
 interface ChatMessageProps {
   message: Message;
-  currentUser: User;
+  currentUser: CurrentUser;
+  hideReplies?: boolean;
   isCompact?: boolean;
   showAvatar?: boolean;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
-  onReaction?: (messageId: string, emoji: string) => void;
+  onReaction: (messageId: string, emoji: string) => void;
 }
 
 const ImageAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
@@ -57,7 +59,7 @@ const ImageAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
         </div>
       ) : (
         <img
-          src={attachment.public_url}
+          src={attachment.publicUrl}
           alt={attachment.filename || "Uploaded image"}
           className={cn(
             "rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity",
@@ -73,7 +75,7 @@ const ImageAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           variant="secondary"
           size="sm"
           className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
-          onClick={() => window.open(attachment.public_url, "_blank")}
+          onClick={() => window.open(attachment.publicUrl, "_blank")}
         >
           <Download className="w-4 h-4 text-white" />
         </Button>
@@ -88,7 +90,7 @@ const VideoAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
     <div className="relative group/video max-w-md">
       <video
-        src={attachment.public_url}
+        src={attachment.publicUrl}
         className="rounded-lg max-w-full h-auto"
         controls
         preload="metadata"
@@ -102,7 +104,7 @@ const VideoAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           variant="secondary"
           size="sm"
           className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
-          onClick={() => window.open(attachment.public_url, "_blank")}
+          onClick={() => window.open(attachment.publicUrl, "_blank")}
         >
           <Download className="w-4 h-4 text-white" />
         </Button>
@@ -120,15 +122,15 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           <p className="text-sm font-medium truncate">
             {attachment.filename || "Audio file"}
           </p>
-          {attachment.size_bytes && (
+          {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.size_bytes)}
+              {formatFileSize(attachment.sizeBytes)}
             </p>
           )}
         </div>
       </div>
       <audio
-        src={attachment.public_url}
+        src={attachment.publicUrl}
         className="w-full"
         controls
         preload="metadata"
@@ -166,7 +168,7 @@ const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
     <div
       className="bg-muted rounded-lg p-3 max-w-sm hover:bg-muted/80 transition-colors cursor-pointer"
-      onClick={() => window.open(attachment.public_url, "_blank")}
+      onClick={() => window.open(attachment.publicUrl, "_blank")}
     >
       <div className="flex items-center gap-3">
         {getFileIcon(attachment.filename || "")}
@@ -174,9 +176,9 @@ const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           <p className="text-sm font-medium truncate">
             {attachment.filename || "Document"}
           </p>
-          {attachment.size_bytes && (
+          {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.size_bytes)}
+              {formatFileSize(attachment.sizeBytes)}
             </p>
           )}
         </div>
@@ -191,7 +193,7 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
     <div
       className="bg-muted rounded-lg p-3 max-w-sm hover:bg-muted/80 transition-colors cursor-pointer"
-      onClick={() => window.open(attachment.public_url, "_blank")}
+      onClick={() => window.open(attachment.publicUrl, "_blank")}
     >
       <div className="flex items-center gap-3">
         <File className="w-5 h-5 text-muted-foreground" />
@@ -199,9 +201,9 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           <p className="text-sm font-medium truncate">
             {attachment.filename || "File"}
           </p>
-          {attachment.size_bytes && (
+          {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.size_bytes)}
+              {formatFileSize(attachment.sizeBytes)}
             </p>
           )}
         </div>
@@ -213,7 +215,7 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
 
 const AttachmentGrid: FC<{ attachments: Attachment[] }> = ({ attachments }) => {
   const renderAttachment = (attachment: Attachment) => {
-    const mimeType = attachment.content_type || "";
+    const mimeType = attachment.contentType || "";
     const filename = attachment.filename || "";
 
     if (mimeType.startsWith("image/")) {
@@ -270,6 +272,7 @@ const formatFileSize = (bytes: number): string => {
 export const ChatMessage: FC<ChatMessageProps> = ({
   message,
   currentUser,
+  hideReplies = false,
   isCompact = false,
   showAvatar = true,
   onEdit,
@@ -359,12 +362,14 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           {message?.reactions && message.reactions?.length > 0 ? (
             <MessageReactions
               reactions={message.reactions}
-              onReaction={(emoji) => onReaction?.(message.id, emoji)}
+              onReaction={(emoji) => onReaction(message.id, emoji)}
               currentUserId={currentUser.id}
             />
           ) : null}
 
-          {message?.threadCount && Number(message.threadCount) > 0 ? (
+          {message?.threadCount &&
+          Number(message.threadCount) > 0 &&
+          !hideReplies ? (
             <button
               onClick={() => setThreadOpen(message)}
               className="mt-2 flex items-center gap-1 text-xs text-text-accent hover:text-text-accent/80 hover:underline transition-colors"
