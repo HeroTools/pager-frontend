@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Download, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  X,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
 // Helper function for consistent filename handling
-const getAttachmentFilename = (attachment: Attachment, fallback = "Untitled") => 
+const getAttachmentFilename = (attachment: Attachment, fallback = "Untitled") =>
   (attachment as any).original_filename || fallback;
 
 interface MediaViewerModalProps {
@@ -121,16 +129,15 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
+      <DialogContent
         className="max-w-none w-[90vw] h-[90vh] p-0 bg-background/95 backdrop-blur-sm border-border rounded-lg"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div 
+        <div
           className="relative w-full h-full flex items-center justify-center overflow-hidden"
           onMouseEnter={() => setShowControls(true)}
           onMouseLeave={() => setShowControls(false)}
         >
-
           {/* Navigation arrows */}
           {attachments.length > 1 && (
             <>
@@ -161,10 +168,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
           {/* Media controls */}
           {isImage && (
-            <div className={cn(
-              "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
-              showControls ? "opacity-100" : "opacity-0"
-            )}>
+            <div
+              className={cn(
+                "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
+                showControls ? "opacity-100" : "opacity-0"
+              )}
+            >
               <Button
                 variant="ghost"
                 size="sm"
@@ -206,10 +215,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           )}
 
           {/* File info */}
-          <div className={cn(
-            "absolute top-4 left-4 z-50 bg-card/80 border border-border rounded-lg p-3 text-foreground transition-opacity duration-200",
-            showControls ? "opacity-100" : "opacity-0"
-          )}>
+          <div
+            className={cn(
+              "absolute top-4 left-4 z-50 bg-card/80 border border-border rounded-lg p-3 text-foreground transition-opacity duration-200",
+              showControls ? "opacity-100" : "opacity-0"
+            )}
+          >
             <p className="text-sm font-medium">
               {getAttachmentFilename(currentAttachment)}
             </p>
@@ -221,7 +232,10 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           </div>
 
           {/* Media content */}
-          <div className="relative flex items-center justify-center" style={{ width: 'calc(100% - 1rem)', height: 'calc(100% - 1rem)' }}>
+          <div
+            className="relative flex items-center justify-center"
+            style={{ width: "calc(100% - 1rem)", height: "calc(100% - 1rem)" }}
+          >
             {isLoading && !hasError && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
@@ -231,7 +245,9 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             {hasError ? (
               <div className="text-foreground text-center">
                 <p className="text-lg font-medium">Failed to load media</p>
-                <p className="text-sm text-muted-foreground mt-1">The file might be corrupted or unavailable</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  The file might be corrupted or unavailable
+                </p>
               </div>
             ) : isImage ? (
               <img
@@ -243,7 +259,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
                 )}
                 style={{
                   transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                  opacity: isLoading ? 0 : 1
+                  opacity: isLoading ? 0 : 1,
                 }}
                 onLoad={() => setIsLoading(false)}
                 onError={() => {
