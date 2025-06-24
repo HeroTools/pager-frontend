@@ -189,17 +189,6 @@ export interface WorkspaceWithMembers extends Workspace {
   owner?: User;
 }
 
-export interface ChannelWithMembers extends Channel {
-  members?: (ChannelMember & {
-    workspace_member: WorkspaceMember & { user: User };
-  })[];
-  workspace?: Workspace;
-  _count?: {
-    members: number;
-    messages: number;
-  };
-}
-
 export interface MessageWithRelations extends Message {
   workspace_member?: WorkspaceMember & { user: User };
   attachment?: Attachment;

@@ -1,17 +1,16 @@
 import api from "@/lib/api/axios-client";
 import type {
   ChannelEntity,
-  ChannelWithMembersList,
   CreateChannelData,
   UpdateChannelData,
   ChannelResponse,
   ChannelsResponse,
-  ChannelWithMembersResponse,
   AddChannelMemberData,
   UpdateChannelMemberData,
   ChannelFilters,
   ChannelWithMessages,
   GetChannelMessagesParams,
+  ChannelMemberResponse,
 } from "@/features/channels/types";
 
 export const channelsApi = {
@@ -85,19 +84,6 @@ export const channelsApi = {
       qs ? `?${qs}` : ""
     }`;
     const { data: response } = await api.get<ChannelWithMessages>(url);
-    return response;
-  },
-
-  /**
-   * Get a channel with its members
-   */
-  getChannelWithMembers: async (
-    workspaceId: string,
-    channelId: string
-  ): Promise<ChannelWithMembersList> => {
-    const { data: response } = await api.get<ChannelWithMembersResponse>(
-      `/workspaces/${workspaceId}/channels/${channelId}/members`
-    );
     return response;
   },
 
@@ -224,5 +210,18 @@ export const channelsApi = {
       `/workspaces/${workspaceId}/channels/${channelId}/notifications`,
       { notifications_enabled: enabled }
     );
+  },
+
+  /**
+   * Get all members of a channel
+   */
+  getChannelMembers: async (
+    workspaceId: string,
+    channelId: string
+  ): Promise<ChannelMemberResponse[]> => {
+    const { data: response } = await api.get<ChannelMemberResponse[]>(
+      `/workspaces/${workspaceId}/channels/${channelId}/members`
+    );
+    return response || [];
   },
 };

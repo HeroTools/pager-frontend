@@ -7,7 +7,6 @@ import {
 import { channelsApi } from "../api/channels-api";
 import type {
   ChannelEntity,
-  ChannelWithMembersList,
   CreateChannelData,
   UpdateChannelData,
   ChannelFilters,
@@ -53,27 +52,12 @@ export function useGetChannel(workspaceId: string, channelId: string) {
       qc
         .getQueryData<ChannelEntity[]>(["channels", workspaceId])
         ?.find((c) => c.id === channelId),
-    // 2. Don’t refetch on every mount/focus
+    // 2. Don't refetch on every mount/focus
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
 }
-
-// Get a channel with its members
-export const useGetChannelWithMembers = (
-  workspaceId: string,
-  channelId: string
-) => {
-  return useQuery({
-    queryKey: ["channel", workspaceId, channelId, "members"],
-    queryFn: () => channelsApi.getChannelWithMembers(workspaceId, channelId),
-    enabled: !!(workspaceId && channelId),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
-};
 
 // Get a channel with its messages
 export const useGetChannelWithMessages = (
@@ -140,45 +124,6 @@ export const useCreateChannel = () => {
       queryClient.invalidateQueries({
         queryKey: ["channels", variables.workspace_id],
       });
-    },
-  });
-};
-
-// Update channel settings
-export const useUpdateChannel = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      workspaceId,
-      channelId,
-      data,
-    }: {
-      workspaceId: string;
-      channelId: string;
-      data: UpdateChannelData;
-    }) => channelsApi.updateChannel(workspaceId, channelId, data),
-    onSuccess: (updatedChannel, variables) => {
-      // Update the specific channel cache
-      queryClient.setQueryData<ChannelEntity>(
-        ["channel", variables.workspaceId, variables.channelId],
-        updatedChannel
-      );
-
-      // Update the channel in the channels list
-      queryClient.setQueryData<ChannelEntity[]>(
-        ["channels", variables.workspaceId],
-        (old) =>
-          old?.map((channel) =>
-            channel.id === variables.channelId ? updatedChannel : channel
-          ) || []
-      );
-
-      // Also update any cached channel with members
-      queryClient.setQueryData<ChannelWithMembersList>(
-        ["channel", variables.workspaceId, variables.channelId, "members"],
-        (old) => (old ? { ...old, ...updatedChannel } : undefined)
-      );
     },
   });
 };
@@ -414,5 +359,20 @@ export const useUpdateNotificationSettings = () => {
         ],
       });
     },
+  });
+};
+
+// Get channel members
+export const useGetChannelMembers = (
+  workspaceId: string,
+  channelId: string
+) => {
+  return useQuery({
+    queryKey: ["channel", workspaceId, channelId, "members"],
+    queryFn: () => channelsApi.getChannelMembers(workspaceId, channelId),
+    enabled: !!(workspaceId && channelId),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 };

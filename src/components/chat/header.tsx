@@ -1,16 +1,17 @@
 import React, { useState } from "react";
-import { Hash, Lock, Users, Star, Info, MoreVertical, Settings, LogOut } from "lucide-react";
+import { Hash, Lock, Users, MoreVertical, Settings, LogOut } from "lucide-react";
 import { Channel } from "@/types/chat";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { ChannelDetailsModal } from "./channel-details-modal";
+import { ChannelMemberData } from "@/features/channels/types";
 
 interface ChatHeaderProps {
   channel: Channel;
   onToggleDetails?: () => void;
-  members?: { id: string; name: string; avatar?: string }[];
+  members?: ChannelMemberData[];
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
