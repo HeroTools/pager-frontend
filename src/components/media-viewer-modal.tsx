@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Download, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut, FileText, ExternalLink } from "lucide-react";
+import {
+  X,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  ZoomIn,
+  ZoomOut,
+  FileText,
+  ExternalLink,
+} from "lucide-react";
 import { Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
@@ -28,11 +38,11 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   const currentAttachment = attachments[currentIndex];
   const isImage = currentAttachment?.content_type?.startsWith("image/");
   const isVideo = currentAttachment?.content_type?.startsWith("video/");
-  
+
   // Document type detection
   const getDocumentType = (attachment: Attachment | undefined) => {
     if (!attachment) return null;
-    
+
     const mimeType = attachment.content_type || "";
     const filename = attachment.original_filename || "";
     const extension = filename.split(".").pop()?.toLowerCase();
@@ -40,13 +50,22 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
     if (mimeType.includes("pdf") || extension === "pdf") {
       return "pdf";
     }
-    if (mimeType.includes("document") || ["doc", "docx"].includes(extension || "")) {
+    if (
+      mimeType.includes("document") ||
+      ["doc", "docx"].includes(extension || "")
+    ) {
       return "word";
     }
-    if (mimeType.includes("spreadsheet") || ["xls", "xlsx"].includes(extension || "")) {
+    if (
+      mimeType.includes("spreadsheet") ||
+      ["xls", "xlsx"].includes(extension || "")
+    ) {
       return "excel";
     }
-    if (mimeType.includes("presentation") || ["ppt", "pptx"].includes(extension || "")) {
+    if (
+      mimeType.includes("presentation") ||
+      ["ppt", "pptx"].includes(extension || "")
+    ) {
       return "powerpoint";
     }
     return null;
@@ -156,7 +175,9 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
         case "excel":
         case "powerpoint":
           // Use Microsoft Office Online viewer for Office documents
-          return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(currentAttachment.public_url)}`;
+          return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
+            currentAttachment.public_url
+          )}`;
         default:
           return null;
       }
@@ -196,16 +217,15 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
+      <DialogContent
         className="max-w-none w-[90vw] h-[90vh] p-0 bg-background/95 backdrop-blur-sm border-border rounded-lg"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div 
+        <div
           className="relative w-full h-full flex items-center justify-center overflow-hidden"
           onMouseEnter={() => setShowControls(true)}
           onMouseLeave={() => setShowControls(false)}
         >
-
           {/* Navigation arrows */}
           {attachments.length > 1 && (
             <>
@@ -236,10 +256,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
           {/* Media controls for images */}
           {isImage && (
-            <div className={cn(
-              "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
-              showControls ? "opacity-100" : "opacity-0"
-            )}>
+            <div
+              className={cn(
+                "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
+                showControls ? "opacity-100" : "opacity-0"
+              )}
+            >
               <Button
                 variant="ghost"
                 size="sm"
@@ -282,10 +304,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
           {/* Document controls */}
           {isDocument && (
-            <div className={cn(
-              "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
-              showControls ? "opacity-100" : "opacity-0"
-            )}>
+            <div
+              className={cn(
+                "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
+                showControls ? "opacity-100" : "opacity-0"
+              )}
+            >
               <Button
                 variant="ghost"
                 size="sm"
@@ -308,10 +332,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           )}
 
           {/* File info */}
-          <div className={cn(
-            "absolute top-4 left-4 z-50 bg-card/80 border border-border rounded-lg p-3 text-foreground transition-opacity duration-200",
-            showControls ? "opacity-100" : "opacity-0"
-          )}>
+          <div
+            className={cn(
+              "absolute top-4 left-4 z-50 bg-card/80 border border-border rounded-lg p-3 text-foreground transition-opacity duration-200",
+              showControls ? "opacity-100" : "opacity-0"
+            )}
+          >
             <p className="text-sm font-medium">
               {currentAttachment.original_filename || "Untitled"}
             </p>
@@ -328,7 +354,10 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           </div>
 
           {/* Media content */}
-          <div className="relative flex items-center justify-center" style={{ width: 'calc(100% - 2rem)', height: 'calc(100% - 2rem)' }}>
+          <div
+            className="relative flex items-center justify-center"
+            style={{ width: "calc(100% - 2rem)", height: "calc(100% - 2rem)" }}
+          >
             {isLoading && !hasError && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
@@ -337,9 +366,13 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
             {hasError ? (
               <div className="text-foreground text-center">
-                <p className="text-lg font-medium">Failed to load {isDocument ? 'document' : 'media'}</p>
+                <p className="text-lg font-medium">
+                  Failed to load {isDocument ? "document" : "media"}
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {isDocument ? 'The document might not be accessible or supported for preview' : 'The file might be corrupted or unavailable'}
+                  {isDocument
+                    ? "The document might not be accessible or supported for preview"
+                    : "The file might be corrupted or unavailable"}
                 </p>
                 <div className="flex gap-2 mt-4 justify-center">
                   <Button
@@ -370,7 +403,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
                 )}
                 style={{
                   transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                  opacity: isLoading ? 0 : 1
+                  opacity: isLoading ? 0 : 1,
                 }}
                 onLoad={() => setIsLoading(false)}
                 onError={() => {
