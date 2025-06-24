@@ -15,6 +15,7 @@ import {
   Archive,
   Image as ImageIcon,
   Play,
+  Eye,
 } from "lucide-react";
 import { Message, User, Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
@@ -98,6 +99,7 @@ const ImageAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => voi
 const VideoAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => void }> = ({ attachment, onOpenMediaViewer }) => {
   const [duration, setDuration] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -113,36 +115,67 @@ const VideoAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => voi
     setIsLoaded(true);
   };
 
+  const handleError = () => {
+    setHasError(true);
+    setIsLoaded(true);
+  };
+
   return (
     <div className="relative group/video max-w-md cursor-pointer" onClick={onOpenMediaViewer}>
-      <video
-        src={attachment.public_url}
-        className="rounded-lg max-w-full h-auto"
-        preload="metadata"
-        onLoadedMetadata={handleLoadedMetadata}
-      >
-        Your browser does not support the video tag.
-      </video>
+      {/* Placeholder while loading to prevent layout shift */}
+      {!isLoaded && !hasError && (
+        <div className="bg-muted rounded-lg flex items-center justify-center min-h-[200px] aspect-video">
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <Play className="w-8 h-8" />
+            <span className="text-sm">Loading video...</span>
+          </div>
+        </div>
+      )}
       
-      {/* Video overlay with play icon and duration */}
-      <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
-        <Play className="w-3 h-3 fill-current" />
-        {duration && <span>{duration}</span>}
-      </div>
-
-      <div className="absolute top-2 right-2 opacity-0 group-hover/video:opacity-100 transition-opacity">
-        <Button
-          variant="secondary"
-          size="sm"
-          className="h-8 w-8 p-0 bg-card/30 hover:bg-card/40 border-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            window.open(attachment.public_url, "_blank");
-          }}
+      {hasError ? (
+        <div className="bg-muted rounded-lg p-4 flex items-center gap-2 text-muted-foreground min-h-[200px] aspect-video justify-center">
+          <Play className="w-5 h-5" />
+          <span className="text-sm">Failed to load video</span>
+        </div>
+      ) : (
+        <video
+          src={attachment.public_url}
+          className={cn(
+            "rounded-lg max-w-full h-auto",
+            !isLoaded && "opacity-0 absolute inset-0"
+          )}
+          preload="metadata"
+          onLoadedMetadata={handleLoadedMetadata}
+          onError={handleError}
         >
-          <Download className="w-4 h-4 text-white" />
-        </Button>
-      </div>
+          Your browser does not support the video tag.
+        </video>
+      )}
+      
+      {/* Video overlay with play icon and duration - only show when loaded */}
+      {isLoaded && !hasError && (
+        <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
+          <Play className="w-3 h-3 fill-current" />
+          {duration && <span>{duration}</span>}
+        </div>
+      )}
+
+      {/* Download button - only show when loaded */}
+      {isLoaded && !hasError && (
+        <div className="absolute top-2 right-2 opacity-0 group-hover/video:opacity-100 transition-opacity">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-8 w-8 p-0 bg-card/30 hover:bg-card/40 border-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(attachment.public_url, "_blank");
+            }}
+          >
+            <Download className="w-4 h-4 text-white" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
@@ -175,51 +208,164 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   );
 };
 
-const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
+const DocumentAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => void }> = ({ attachment, onOpenMediaViewer }) => {
+  const [previewLoaded, setPreviewLoaded] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
+
   const getFileIcon = (filename: string) => {
     const extension = filename.split(".").pop()?.toLowerCase();
     switch (extension) {
       case "pdf":
-        return <FileText className="w-5 h-5 text-red-500" />;
+        return <FileText className="w-4 h-4 text-red-500" />;
       case "doc":
       case "docx":
-        return <FileText className="w-5 h-5 text-blue-500" />;
+        return <FileText className="w-4 h-4 text-blue-500" />;
       case "xls":
       case "xlsx":
-        return <FileText className="w-5 h-5 text-green-500" />;
+        return <FileText className="w-4 h-4 text-green-500" />;
       case "ppt":
       case "pptx":
-        return <FileText className="w-5 h-5 text-orange-500" />;
+        return <FileText className="w-4 h-4 text-orange-500" />;
       case "zip":
       case "rar":
       case "7z":
-        return <Archive className="w-5 h-5 text-purple-500" />;
+        return <Archive className="w-4 h-4 text-purple-500" />;
       default:
-        return <File className="w-5 h-5 text-muted-foreground" />;
+        return <File className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
-  return (
-    <div
-      className="bg-muted rounded-lg p-3 max-w-sm hover:bg-muted/80 transition-colors cursor-pointer"
-      onClick={() => window.open(attachment.public_url, "_blank")}
-    >
-      <div className="flex items-center gap-3">
-        {getFileIcon(attachment.original_filename || "")}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">
-            {attachment.original_filename || "Document"}
-          </p>
-          {attachment.size_bytes && (
-            <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.size_bytes)}
-            </p>
+  const getFileColor = (filename: string) => {
+    const extension = filename.split(".").pop()?.toLowerCase();
+    switch (extension) {
+      case "pdf":
+        return "border-red-200";
+      case "doc":
+      case "docx":
+        return "border-blue-200";
+      case "xls":
+      case "xlsx":
+        return "border-green-200";
+      case "ppt":
+      case "pptx":
+        return "border-orange-200";
+      default:
+        return "border-border";
+    }
+  };
+
+  const isViewableDocument = (filename: string) => {
+    const extension = filename.split(".").pop()?.toLowerCase();
+    return ["pdf", "doc", "docx", "xls", "xlsx"].includes(extension || "");
+  };
+
+  const getPreviewUrl = (attachment: Attachment) => {
+    const extension = attachment.original_filename?.split(".").pop()?.toLowerCase();
+    
+    if (extension === "pdf") {
+      // For PDFs, use simple embedded view
+      return `${attachment.public_url}#toolbar=0`;
+    }
+    
+    if (["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(extension || "")) {
+      // Use Microsoft Office Online viewer for thumbnails
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(attachment.public_url)}`;
+    }
+    
+    return null;
+  };
+
+  const previewUrl = getPreviewUrl(attachment);
+
+      return (
+      <div className="relative group/document max-w-sm">
+        <div
+          className={cn(
+            "rounded-lg border-2 bg-background cursor-pointer hover:shadow-md transition-all overflow-hidden",
+            getFileColor(attachment.original_filename || "")
           )}
+          onClick={isViewableDocument(attachment.original_filename || "") ? onOpenMediaViewer : () => window.open(attachment.public_url, "_blank")}
+        >
+          {/* File info header */}
+          <div className="p-3 pb-2">
+            <div className="flex items-center gap-2 mb-1">
+              {getFileIcon(attachment.original_filename || "")}
+              <p className="text-sm font-medium truncate flex-1">
+                {attachment.original_filename || "Document"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase">
+                {attachment.original_filename?.split(".").pop() || "FILE"}
+              </span>
+              {attachment.size_bytes && (
+                <>
+                  <span className="text-xs text-muted-foreground">•</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatFileSize(attachment.size_bytes)}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Preview thumbnail underneath */}
+          <div className="h-36 bg-muted relative overflow-hidden rounded-b-lg">
+            {previewUrl && isViewableDocument(attachment.original_filename || "") && !previewError ? (
+              <>
+                {!previewLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                    <div className="w-8 h-8 opacity-50">
+                      {getFileIcon(attachment.original_filename || "")}
+                    </div>
+                  </div>
+                )}
+                <iframe
+                  src={previewUrl}
+                  className={cn(
+                    "w-full h-full border-0 pointer-events-none",
+                    !previewLoaded && "opacity-0"
+                  )}
+                  style={
+                                          attachment.original_filename?.toLowerCase().includes('.doc') 
+                        ? { 
+                            width: "200%", 
+                            height: "200%", 
+                            transform: "scale(0.6)", 
+                            transformOrigin: "-30px -40px" 
+                          }
+                      : undefined
+                  }
+                  onLoad={() => setPreviewLoaded(true)}
+                  onError={() => setPreviewError(true)}
+                />
+              </>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                <div className="w-8 h-8 opacity-50">
+                  {getFileIcon(attachment.original_filename || "")}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Download button */}
+          <div className="absolute top-2 right-2 opacity-0 group-hover/document:opacity-100 transition-opacity">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-6 w-6 p-0 bg-background/80 hover:bg-background border-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(attachment.public_url, "_blank");
+              }}
+            >
+              <Download className="w-3 h-3 text-muted-foreground" />
+            </Button>
+          </div>
         </div>
-        <Download className="w-4 h-4 text-muted-foreground" />
       </div>
-    </div>
-  );
+    );
 };
 
 // Generic File Attachment Component
@@ -264,7 +410,7 @@ const AttachmentGrid: FC<{ attachments: Attachment[]; onOpenMediaViewer: (attach
       return <AudioAttachment key={attachment.id} attachment={attachment} />;
     }
 
-    // Document types
+    // Document types that can be viewed in media viewer
     if (
       mimeType.includes("pdf") ||
       mimeType.includes("document") ||
@@ -272,7 +418,7 @@ const AttachmentGrid: FC<{ attachments: Attachment[]; onOpenMediaViewer: (attach
       mimeType.includes("presentation") ||
       filename.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx)$/i)
     ) {
-      return <DocumentAttachment key={attachment.id} attachment={attachment} />;
+      return <DocumentAttachment key={attachment.id} attachment={attachment} onOpenMediaViewer={() => onOpenMediaViewer(attachment, index)} />;
     }
 
     // Fallback to generic file

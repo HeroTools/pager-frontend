@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Download, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import { X, Download, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut, FileText, ExternalLink } from "lucide-react";
 import { Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +28,32 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   const currentAttachment = attachments[currentIndex];
   const isImage = currentAttachment?.content_type?.startsWith("image/");
   const isVideo = currentAttachment?.content_type?.startsWith("video/");
+  
+  // Document type detection
+  const getDocumentType = (attachment: Attachment | undefined) => {
+    if (!attachment) return null;
+    
+    const mimeType = attachment.content_type || "";
+    const filename = attachment.original_filename || "";
+    const extension = filename.split(".").pop()?.toLowerCase();
+
+    if (mimeType.includes("pdf") || extension === "pdf") {
+      return "pdf";
+    }
+    if (mimeType.includes("document") || ["doc", "docx"].includes(extension || "")) {
+      return "word";
+    }
+    if (mimeType.includes("spreadsheet") || ["xls", "xlsx"].includes(extension || "")) {
+      return "excel";
+    }
+    if (mimeType.includes("presentation") || ["ppt", "pptx"].includes(extension || "")) {
+      return "powerpoint";
+    }
+    return null;
+  };
+
+  const documentType = getDocumentType(currentAttachment);
+  const isDocument = documentType !== null;
 
   // Reset state when modal opens/closes or attachment changes
   useEffect(() => {
@@ -57,24 +83,24 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           break;
         case "r":
         case "R":
-          rotate();
+          if (isImage) rotate();
           break;
         case "+":
         case "=":
-          zoomIn();
+          if (isImage) zoomIn();
           break;
         case "-":
-          zoomOut();
+          if (isImage) zoomOut();
           break;
         case "0":
-          resetZoom();
+          if (isImage) resetZoom();
           break;
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentIndex, attachments.length]);
+  }, [isOpen, currentIndex, attachments.length, isImage]);
 
   const goToPrevious = useCallback(() => {
     if (attachments.length > 1) {
@@ -111,6 +137,59 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
       link.click();
       document.body.removeChild(link);
     }
+  };
+
+  const openInNewTab = () => {
+    if (currentAttachment) {
+      window.open(currentAttachment.public_url, "_blank");
+    }
+  };
+
+  const getDocumentViewer = () => {
+    if (!currentAttachment || !isDocument) return null;
+
+    const viewerUrl = (() => {
+      switch (documentType) {
+        case "pdf":
+          return currentAttachment.public_url;
+        case "word":
+        case "excel":
+        case "powerpoint":
+          // Use Microsoft Office Online viewer for Office documents
+          return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(currentAttachment.public_url)}`;
+        default:
+          return null;
+      }
+    })();
+
+    if (!viewerUrl) return null;
+
+    if (documentType === "pdf") {
+      return (
+        <iframe
+          src={viewerUrl}
+          className="w-full h-full border-0 rounded-lg"
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+          }}
+        />
+      );
+    }
+
+    // For Office documents
+    return (
+      <iframe
+        src={viewerUrl}
+        className="w-full h-full border-0 rounded-lg bg-white"
+        onLoad={() => setIsLoading(false)}
+        onError={() => {
+          setIsLoading(false);
+          setHasError(true);
+        }}
+      />
+    );
   };
 
   if (!currentAttachment) return null;
@@ -155,7 +234,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             </>
           )}
 
-          {/* Media controls */}
+          {/* Media controls for images */}
           {isImage && (
             <div className={cn(
               "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
@@ -201,6 +280,33 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             </div>
           )}
 
+          {/* Document controls */}
+          {isDocument && (
+            <div className={cn(
+              "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
+              showControls ? "opacity-100" : "opacity-0"
+            )}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-foreground hover:bg-accent hover:text-accent-foreground"
+                onClick={openInNewTab}
+                title="Open in new tab"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-foreground hover:bg-accent hover:text-accent-foreground"
+                onClick={handleDownload}
+                title="Download"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
           {/* File info */}
           <div className={cn(
             "absolute top-4 left-4 z-50 bg-card/80 border border-border rounded-lg p-3 text-foreground transition-opacity duration-200",
@@ -212,6 +318,11 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             {attachments.length > 1 && (
               <p className="text-xs text-muted-foreground">
                 {currentIndex + 1} of {attachments.length}
+              </p>
+            )}
+            {isDocument && (
+              <p className="text-xs text-muted-foreground capitalize">
+                {documentType} document
               </p>
             )}
           </div>
@@ -226,8 +337,28 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
             {hasError ? (
               <div className="text-foreground text-center">
-                <p className="text-lg font-medium">Failed to load media</p>
-                <p className="text-sm text-muted-foreground mt-1">The file might be corrupted or unavailable</p>
+                <p className="text-lg font-medium">Failed to load {isDocument ? 'document' : 'media'}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isDocument ? 'The document might not be accessible or supported for preview' : 'The file might be corrupted or unavailable'}
+                </p>
+                <div className="flex gap-2 mt-4 justify-center">
+                  <Button
+                    variant="outline"
+                    className="border-border hover:bg-accent hover:text-accent-foreground"
+                    onClick={openInNewTab}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open in new tab
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-border hover:bg-accent hover:text-accent-foreground"
+                    onClick={handleDownload}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
               </div>
             ) : isImage ? (
               <img
@@ -262,6 +393,8 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
               >
                 Your browser does not support the video tag.
               </video>
+            ) : isDocument ? (
+              getDocumentViewer()
             ) : (
               <div className="text-foreground text-center">
                 <p className="text-lg font-medium">Preview not available</p>
