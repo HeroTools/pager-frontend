@@ -73,14 +73,25 @@ export const Chat: FC<ChatProps> = ({
   };
 
   const handleOpenMediaViewer = (message: Message, attachmentIndex: number) => {
-    // Get all media attachments (images and videos) from the message
-    const mediaAttachments = message.attachments.filter(attachment => 
-      attachment.content_type?.startsWith("image/") || 
-      attachment.content_type?.startsWith("video/")
-    );
+    // Get all viewable attachments (images, videos, and documents)
+    const viewableAttachments = message.attachments.filter(attachment => {
+      const mimeType = attachment.content_type || "";
+      const filename = attachment.original_filename || "";
+      const extension = filename.split(".").pop()?.toLowerCase();
+      
+      return (
+        attachment.content_type?.startsWith("image/") || 
+        attachment.content_type?.startsWith("video/") ||
+        mimeType.includes("pdf") ||
+        mimeType.includes("document") ||
+        mimeType.includes("spreadsheet") ||
+        mimeType.includes("presentation") ||
+        ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(extension || "")
+      );
+    });
     
-    if (mediaAttachments.length > 0) {
-      setMediaViewerAttachments(mediaAttachments);
+    if (viewableAttachments.length > 0) {
+      setMediaViewerAttachments(viewableAttachments);
       setMediaViewerInitialIndex(attachmentIndex);
       setIsMediaViewerOpen(true);
     }
