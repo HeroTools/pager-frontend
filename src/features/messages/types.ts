@@ -95,6 +95,7 @@ export interface CreateConversationMessageData {
 }
 
 export interface CreateMessageData {
+  _optimisticId?: string;
   body: string;
   attachments?: UploadedAttachment[];
   parent_message_id?: string;

@@ -1,5 +1,7 @@
 import { Attachment, Author, Message } from "@/types/chat";
-import { CurrentUser } from "../auth";
+import { format, isToday, isYesterday, parseISO } from "date-fns";
+import { CurrentUser } from "@/features/auth";
+import { useUIStore } from "@/store/ui-store";
 
 export const transformMessages = (
   messagesData: any[],
@@ -44,4 +46,27 @@ export const transformMessages = (
         ) || [],
     };
   });
+};
+
+export const updateSelectedMessageIfNeeded = (
+  optimisticId: string,
+  realMessage: Message
+) => {
+  const { selectedThreadParentMessage, setSelectedThreadParentMessage } =
+    useUIStore.getState();
+  if (selectedThreadParentMessage?.id === optimisticId) {
+    setSelectedThreadParentMessage(realMessage);
+  }
+};
+
+export const formatDateLabel = (dateInput: string | Date): string => {
+  const date = typeof dateInput === "string" ? parseISO(dateInput) : dateInput;
+
+  if (isToday(date)) {
+    return "Today";
+  }
+  if (isYesterday(date)) {
+    return "Yesterday";
+  }
+  return format(date, "MMMM d, yyyy");
 };

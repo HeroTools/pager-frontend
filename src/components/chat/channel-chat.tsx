@@ -13,12 +13,17 @@ import { useCurrentUser } from "@/features/auth";
 import { Author, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
-import { transformMessages } from "@/features/messages/helpers";
+import {
+  transformMessages,
+  updateSelectedMessageIfNeeded,
+} from "@/features/messages/helpers";
 import { useToggleReaction } from "@/features/reactions";
+import { useMessagesStore } from "@/features/messages/store/messages-store";
 
 const ChannelChat = () => {
-  const { id: channelId, workspaceId } = useParamIds();
+  const { id: channelId, workspaceId, type } = useParamIds();
   const { user: currentUser, isAuthenticated } = useCurrentUser(workspaceId);
+  const { addPendingMessage, removePendingMessage } = useMessagesStore();
 
   const {
     data: channelWithMessages,
@@ -53,7 +58,7 @@ const ChannelChat = () => {
   const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
     workspaceId,
     channelId,
-    undefined
+    type
   );
   const toggleReaction = useToggleReaction(workspaceId);
 
@@ -123,18 +128,35 @@ const ChannelChat = () => {
     body: string;
     attachments: UploadedAttachment[];
   }) => {
+    const optimisticId = `temp-${Date.now()}-${Math.random()}`;
+
+    // Track that we're creating this message
+    addPendingMessage(optimisticId, {
+      workspaceId,
+      channelId,
+      entityId: channelId,
+      entityType: type,
+    });
     try {
       // Stop typing indicator immediately when sending
       // handleTypingSubmit();
-
-      await createMessage.mutateAsync({
+      const message = await createMessage.mutateAsync({
         body: content.body,
         attachments: content.attachments,
         message_type: "direct",
+        _optimisticId: optimisticId,
       });
+
+      updateSelectedMessageIfNeeded(
+        optimisticId,
+        transformMessages([message], currentUser)[0]
+      );
+
+      removePendingMessage(optimisticId);
 
       console.log("Message sent successfully");
     } catch (error) {
+      removePendingMessage(optimisticId);
       console.error("Failed to send message:", error);
     }
   };

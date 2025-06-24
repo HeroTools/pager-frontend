@@ -1,15 +1,8 @@
 import { AlertTriangle, Loader, XIcon } from "lucide-react";
 import dynamic from "next/dynamic";
-import Quill from "quill";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import {
-  isToday,
-  isYesterday,
-  format,
-  parseISO,
-  differenceInMinutes,
-} from "date-fns";
+import { format, parseISO, differenceInMinutes } from "date-fns";
 
 import { ChatMessage } from "@/components/chat/message";
 import { Button } from "@/components/ui/button";
@@ -20,9 +13,10 @@ import {
 } from "@/features/messages/hooks/use-messages";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { useUIStore } from "@/store/ui-store";
-import { transformMessages } from "../helpers";
+import { formatDateLabel, transformMessages } from "../helpers";
 import { useToggleReaction } from "@/features/reactions";
 import { Message } from "@/types/chat";
+import { useMessagesStore } from "@/features/messages/store/messages-store";
 
 const Editor = dynamic(() => import("@/components/editor/editor"), {
   ssr: false,
@@ -48,48 +42,45 @@ const ThreadHeader = ({ onClose, title }: ThreadHeaderProps) => (
   </div>
 );
 
-const formatDateLabel = (dateInput: string | Date): string => {
-  const date = typeof dateInput === "string" ? parseISO(dateInput) : dateInput;
-
-  if (isToday(date)) {
-    return "Today";
-  }
-  if (isYesterday(date)) {
-    return "Yesterday";
-  }
-  return format(date, "MMMM d, yyyy"); // Date-fns format string for "Month Day, Year"
+// Helper function to check if a message ID is temporary/optimistic
+const isOptimisticId = (id: string): boolean => {
+  return id.startsWith("temp-");
 };
 
 export const Thread = ({ onClose }: ThreadProps) => {
-  const {
-    selectedThreadParentMessage: parentMessage,
-    setThreadOpen,
-    isThreadOpen,
-  } = useUIStore();
+  const { selectedThreadParentMessage: parentMessage } = useUIStore();
+  const { isMessagePending } = useMessagesStore();
   const { workspaceId, id: entityId, type } = useParamIds();
-  const { user: currentUser } = useCurrentUser(workspaceId); // Destructure currentUser here
-  const {
-    data = { replies: [] },
-    isLoadingThread,
-    threadError,
-  } = useMessageReplies(workspaceId, parentMessage?.id, {
-    limit: 50,
-    entity_id: entityId,
-    entity_type: type,
-  });
+  const { user: currentUser } = useCurrentUser(workspaceId);
 
-  // Message operations
   const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
     workspaceId,
     entityId,
     type
   );
+
+  const {
+    data = { replies: [] },
+    isLoadingThread,
+    threadError,
+  } = useMessageReplies(
+    workspaceId,
+    parentMessage?.id,
+    parentMessage?.threadCount || 0,
+    {
+      limit: 50,
+      entity_id: entityId,
+      entity_type: type,
+    }
+  );
   const toggleReaction = useToggleReaction(workspaceId);
 
-  const editorRef = useRef<Quill | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editorKey, setEditorKey] = useState(0);
-  const [isPending, setIsPending] = useState(false);
+
+  const isParentOptimistic = parentMessage && isOptimisticId(parentMessage.id);
+  const isWaitingForPersistence =
+    isParentOptimistic && isMessagePending(parentMessage.id);
 
   const replies = transformMessages(data?.replies || [], currentUser);
 
@@ -100,7 +91,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
 
   const groupedMessages = sortedReplies.reduce(
     (groups: Record<string, Message[]>, message: Message) => {
-      // FIX: Ensure message.timestamp is a Date object before formatting
       const messageDate =
         typeof message.timestamp === "string"
           ? parseISO(message.timestamp)
@@ -123,14 +113,19 @@ export const Thread = ({ onClose }: ThreadProps) => {
     body: string;
     image: File | null;
   }) => {
-    try {
-      setIsPending(true);
+    if (!parentMessage || isWaitingForPersistence) {
+      toast.error(
+        "Please wait for the parent message to save before replying."
+      );
+      return;
+    }
 
+    try {
       await createMessage.mutateAsync({
         body,
         attachments: [],
-        parent_message_id: parentMessage?.id,
-        thread_id: parentMessage?.threadId || parentMessage?.id,
+        parent_message_id: parentMessage.id,
+        thread_id: parentMessage.threadId || parentMessage.id,
         message_type: "thread",
       });
 
@@ -138,8 +133,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
     } catch (error) {
       console.error("Failed to send thread reply:", error);
       toast.error("Failed to send reply. Please try again.");
-    } finally {
-      setIsPending(false);
     }
   };
 
@@ -167,7 +160,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
 
   const handleReaction = async (messageId: string, emoji: string) => {
     try {
-      // Find the message to check current reaction state
       const message = [parentMessage, ...replies].find(
         (m) => m?.id === messageId
       );
@@ -188,24 +180,42 @@ export const Thread = ({ onClose }: ThreadProps) => {
     }
   };
 
-  if (isLoadingThread) {
+  if (isWaitingForPersistence || isLoadingThread) {
     return (
       <div className="h-full flex flex-col">
         <ThreadHeader onClose={onClose} title="Thread" />
         <div className="flex h-full items-center justify-center">
-          <Loader className="size-5 animate-spin text-muted-foreground" />
+          <div className="flex flex-col items-center gap-2">
+            <Loader className="size-5 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading thread...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (threadError) {
+  if (createMessage.isError || threadError || !parentMessage) {
     return (
       <div className="h-full flex flex-col">
         <ThreadHeader onClose={onClose} title="Thread" />
         <div className="flex flex-col gap-y-2 h-full items-center justify-center">
           <AlertTriangle className="size-5 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Failed to load thread</p>
+          <p className="text-sm text-muted-foreground">
+            {createMessage.isError
+              ? "Failed to save message"
+              : threadError
+              ? "Failed to load thread"
+              : "Message not available"}
+          </p>
+          {createMessage.isError && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              Refresh page
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -213,10 +223,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
       <ThreadHeader onClose={onClose} title="Thread" />
 
-      {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto messages-scrollbar">
         <div className="flex flex-col">
           {/* Parent message at the top */}
@@ -246,7 +254,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
                   </div>
                   {messages.map((message, index) => {
                     const prevMessage = messages[index - 1];
-                    // FIX: Ensure timestamp is Date object for differenceInMinutes
                     const messageTime =
                       typeof message.timestamp === "string"
                         ? parseISO(message.timestamp)
@@ -258,8 +265,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
 
                     const isCompact =
                       prevMessage &&
-                      prevMessage.user?.id === message.user?.id &&
-                      prevMessageTime && // Ensure prevMessageTime exists
+                      prevMessage.authorId === message.authorId &&
+                      prevMessageTime &&
                       differenceInMinutes(messageTime, prevMessageTime) <
                         TIME_THRESHOLD;
                     return (
@@ -287,7 +294,11 @@ export const Thread = ({ onClose }: ThreadProps) => {
         <Editor
           workspaceId={workspaceId}
           onSubmit={handleSubmit}
-          placeholder="Reply..."
+          placeholder={
+            isWaitingForPersistence
+              ? "Waiting for message to save..."
+              : "Reply..."
+          }
           key={editorKey}
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}
