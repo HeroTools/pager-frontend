@@ -36,6 +36,22 @@ import { MessageContent } from "./message-content";
 import { useUIStore } from "@/store/ui-store";
 import { MediaViewerModal } from "@/components/media-viewer-modal";
 
+// Constants for consistent sizing
+const ATTACHMENT_SIZES = {
+  SINGLE: { maxHeight: 300, maxWidth: 400 },
+  MULTI: { maxHeight: 250, maxWidth: 250, fixedHeight: 250 }
+} as const;
+
+// Helper function for consistent filename handling
+const getAttachmentFilename = (attachment: Attachment, fallback = "Untitled") => 
+  (attachment as any).original_filename || fallback;
+
+// Helper to check if attachment is media
+const isMediaAttachment = (attachment: Attachment) => {
+  const mimeType = attachment.content_type || "";
+  return mimeType.startsWith("image/") || mimeType.startsWith("video/");
+};
+
 interface ChatMessageProps {
   message: Message;
   currentUser: User;
@@ -47,30 +63,45 @@ interface ChatMessageProps {
   onReaction?: (messageId: string, emoji: string) => void;
 }
 
-const ImageAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => void }> = ({ attachment, onOpenMediaViewer }) => {
+const ImageAttachment: FC<{
+  attachment: Attachment;
+  onOpenMediaViewer: () => void;
+  isSingle?: boolean;
+  fixedHeight?: number;
+}> = ({ attachment, onOpenMediaViewer, isSingle = false, fixedHeight }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
+  const { maxHeight, maxWidth } = isSingle ? ATTACHMENT_SIZES.SINGLE : ATTACHMENT_SIZES.MULTI;
+  const filename = getAttachmentFilename(attachment, "Uploaded image");
+
   return (
-    <div className="relative group/image max-w-sm">
+    <div className="relative group/image flex-shrink-0">
       {!isLoaded && !hasError && (
-        <div className="absolute inset-0 bg-muted animate-pulse rounded-lg flex items-center justify-center">
+        <div className="absolute inset-0 bg-muted animate-pulse rounded-lg flex items-center justify-center min-h-[120px]">
           <ImageIcon className="w-8 h-8 text-muted-foreground" />
         </div>
       )}
       {hasError ? (
-        <div className="bg-muted rounded-lg p-4 flex items-center gap-2 text-muted-foreground">
+        <div className="bg-muted rounded-lg p-4 flex items-center gap-2 text-muted-foreground min-h-[120px]">
           <ImageIcon className="w-5 h-5" />
           <span className="text-sm">Failed to load image</span>
         </div>
       ) : (
         <img
           src={attachment.public_url}
-          alt={attachment.original_filename || "Uploaded image"}
+          alt={filename}
           className={cn(
-            "rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity",
+            "rounded-lg cursor-pointer hover:opacity-90 transition-opacity border",
+            fixedHeight ? "object-cover" : "object-contain",
             !isLoaded && "opacity-0"
           )}
+          style={{
+            height: fixedHeight ? `${fixedHeight}px` : 'auto',
+            maxHeight: fixedHeight ? 'none' : `${maxHeight}px`,
+            maxWidth: `${maxWidth}px`,
+            minWidth: fixedHeight ? "120px" : 'auto'
+          }}
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
           onClick={onOpenMediaViewer}
@@ -94,29 +125,52 @@ const ImageAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => voi
   );
 };
 
-const VideoAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => void }> = ({ attachment, onOpenMediaViewer }) => {
+const VideoAttachment: FC<{
+  attachment: Attachment;
+  onOpenMediaViewer: () => void;
+  isSingle?: boolean;
+  fixedHeight?: number;
+}> = ({ attachment, onOpenMediaViewer, isSingle = false, fixedHeight }) => {
   const [duration, setDuration] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const { maxHeight, maxWidth } = isSingle ? ATTACHMENT_SIZES.SINGLE : ATTACHMENT_SIZES.MULTI;
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
-    if (video.duration && !isNaN(video.duration) && video.duration !== Infinity) {
+    if (
+      video.duration &&
+      !isNaN(video.duration) &&
+      video.duration !== Infinity
+    ) {
       setDuration(formatDuration(video.duration));
     }
     setIsLoaded(true);
   };
 
   return (
-    <div className="relative group/video max-w-md cursor-pointer" onClick={onOpenMediaViewer}>
+    <div
+      className="relative group/video flex-shrink-0 cursor-pointer"
+      onClick={onOpenMediaViewer}
+    >
       <video
         src={attachment.public_url}
-        className="rounded-lg max-w-full h-auto"
+        className={cn(
+          "rounded-lg cursor-pointer border",
+          fixedHeight ? "object-cover" : "object-contain"
+        )}
+        style={{
+          height: fixedHeight ? `${fixedHeight}px` : 'auto',
+          maxHeight: fixedHeight ? 'none' : `${maxHeight}px`,
+          maxWidth: `${maxWidth}px`,
+          minWidth: fixedHeight ? "120px" : 'auto'
+        }}
         preload="metadata"
         onLoadedMetadata={handleLoadedMetadata}
       >
@@ -153,7 +207,7 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
         <Music className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {attachment.original_filename || "Audio file"}
+            {getAttachmentFilename(attachment, "Audio file")}
           </p>
           {attachment.size_bytes && (
             <p className="text-xs text-muted-foreground">
@@ -204,10 +258,10 @@ const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
       onClick={() => window.open(attachment.public_url, "_blank")}
     >
       <div className="flex items-center gap-3">
-        {getFileIcon(attachment.original_filename || "")}
+        {getFileIcon(getAttachmentFilename(attachment, ""))}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {attachment.original_filename || "Document"}
+            {getAttachmentFilename(attachment, "Document")}
           </p>
           {attachment.size_bytes && (
             <p className="text-xs text-muted-foreground">
@@ -232,7 +286,7 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
         <File className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {attachment.original_filename || "File"}
+            {getAttachmentFilename(attachment, "File")}
           </p>
           {attachment.size_bytes && (
             <p className="text-xs text-muted-foreground">
@@ -246,17 +300,41 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   );
 };
 
-const AttachmentGrid: FC<{ attachments: Attachment[]; onOpenMediaViewer: (attachments: Attachment[], initialIndex: number) => void }> = ({ attachments, onOpenMediaViewer }) => {
-  const renderAttachment = (attachment: Attachment, index: number) => {
+const AttachmentGrid: FC<{
+  attachments: Attachment[];
+  onOpenMediaViewer: (attachments: Attachment[], initialIndex: number) => void;
+}> = ({ attachments, onOpenMediaViewer }) => {
+  const renderAttachment = (
+    attachment: Attachment,
+    index: number,
+    isSingle = false,
+    fixedHeight?: number
+  ) => {
     const mimeType = attachment.content_type || "";
-    const filename = attachment.original_filename || "";
+    const filename = getAttachmentFilename(attachment);
 
     if (mimeType.startsWith("image/")) {
-      return <ImageAttachment key={attachment.id} attachment={attachment} onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)} />;
+      return (
+        <ImageAttachment
+          key={attachment.id}
+          attachment={attachment}
+          onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
+          isSingle={isSingle}
+          fixedHeight={fixedHeight}
+        />
+      );
     }
 
     if (mimeType.startsWith("video/")) {
-      return <VideoAttachment key={attachment.id} attachment={attachment} onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)} />;
+      return (
+        <VideoAttachment
+          key={attachment.id}
+          attachment={attachment}
+          onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
+          isSingle={isSingle}
+          fixedHeight={fixedHeight}
+        />
+      );
     }
 
     if (mimeType.startsWith("audio/")) {
@@ -274,19 +352,27 @@ const AttachmentGrid: FC<{ attachments: Attachment[]; onOpenMediaViewer: (attach
       return <DocumentAttachment key={attachment.id} attachment={attachment} />;
     }
 
-    // Fallback to generic file
     return <GenericAttachment key={attachment.id} attachment={attachment} />;
   };
 
   if (attachments.length === 0) return null;
 
+  const isSingleAttachment = attachments.length === 1;
+  
+  // Use fixed height for multi-attachment layout to align all media
+  const fixedHeight = isSingleAttachment ? undefined : ATTACHMENT_SIZES.MULTI.fixedHeight;
+
   return (
     <div className="mt-2">
-      {attachments.length === 1 ? (
-        renderAttachment(attachments[0], 0)
+      {isSingleAttachment ? (
+        <div className="flex justify-start">
+          {renderAttachment(attachments[0], 0, true)}
+        </div>
       ) : (
-        <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 max-w-2xl">
-          {attachments.map((attachment, index) => renderAttachment(attachment, index))}
+        <div className="flex flex-wrap items-start gap-1.5 max-w-5xl">
+          {attachments.map((attachment, index) =>
+            renderAttachment(attachment, index, false, fixedHeight)
+          )}
         </div>
       )}
     </div>
@@ -314,7 +400,9 @@ export const ChatMessage: FC<ChatMessageProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
-  const [mediaViewerAttachments, setMediaViewerAttachments] = useState<Attachment[]>([]);
+  const [mediaViewerAttachments, setMediaViewerAttachments] = useState<
+    Attachment[]
+  >([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
   const { openEmojiPickerMessageId, setEmojiPickerOpen } = useUIStore();
   const isOwnMessage = message.authorId === currentUser.id;
@@ -330,7 +418,10 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setEmojiPickerOpen(open ? message.id : null);
   };
 
-  const handleOpenMediaViewer = (attachments: Attachment[], initialIndex: number) => {
+  const handleOpenMediaViewer = (
+    attachments: Attachment[],
+    initialIndex: number
+  ) => {
     setMediaViewerAttachments(attachments);
     setMediaViewerInitialIndex(initialIndex);
     setIsMediaViewerOpen(true);
@@ -393,7 +484,10 @@ export const ChatMessage: FC<ChatMessageProps> = ({
             </div>
 
             {message.attachments && message.attachments.length > 0 && (
-              <AttachmentGrid attachments={message.attachments} onOpenMediaViewer={handleOpenMediaViewer} />
+              <AttachmentGrid
+                attachments={message.attachments}
+                onOpenMediaViewer={handleOpenMediaViewer}
+              />
             )}
 
             {message?.reactions && message.reactions?.length > 0 ? (
