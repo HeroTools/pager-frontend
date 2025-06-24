@@ -44,7 +44,7 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
       setActiveTab(initialTab);
     }
   }, [isOpen, initialTab]);
-  const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<ChannelMemberData[]>([]);
   const [members, setMembers] = useState<ChannelMemberData[]>(initialMembers);
   const [availableMembers] = useState<ChannelMemberData[]>([
     { id: '4', name: 'Alex Johnson', email: 'alex@example.com', workspace_member_id: '4' },
