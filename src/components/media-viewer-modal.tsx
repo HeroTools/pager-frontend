@@ -5,6 +5,10 @@ import { X, Download, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut } fr
 import { Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
+// Helper function for consistent filename handling
+const getAttachmentFilename = (attachment: Attachment, fallback = "Untitled") => 
+  (attachment as any).original_filename || fallback;
+
 interface MediaViewerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -105,7 +109,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
     if (currentAttachment) {
       const link = document.createElement("a");
       link.href = currentAttachment.public_url;
-      link.download = currentAttachment.original_filename || "download";
+      link.download = getAttachmentFilename(currentAttachment, "download");
       link.target = "_blank";
       document.body.appendChild(link);
       link.click();
@@ -207,7 +211,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             showControls ? "opacity-100" : "opacity-0"
           )}>
             <p className="text-sm font-medium">
-              {currentAttachment.original_filename || "Untitled"}
+              {getAttachmentFilename(currentAttachment)}
             </p>
             {attachments.length > 1 && (
               <p className="text-xs text-muted-foreground">
@@ -217,7 +221,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           </div>
 
           {/* Media content */}
-          <div className="relative flex items-center justify-center" style={{ width: 'calc(100% - 2rem)', height: 'calc(100% - 2rem)' }}>
+          <div className="relative flex items-center justify-center" style={{ width: 'calc(100% - 1rem)', height: 'calc(100% - 1rem)' }}>
             {isLoading && !hasError && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
@@ -232,7 +236,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             ) : isImage ? (
               <img
                 src={currentAttachment.public_url}
-                alt={currentAttachment.original_filename || "Image"}
+                alt={getAttachmentFilename(currentAttachment, "Image")}
                 className={cn(
                   "max-w-full max-h-full object-contain transition-all duration-200",
                   !isLoading && "cursor-grab active:cursor-grabbing"
