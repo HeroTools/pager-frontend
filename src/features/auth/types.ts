@@ -7,6 +7,14 @@ export type SignInFlow = "signIn" | "signUp";
 // Use the database User type directly
 export type AuthUser = User;
 
+// Core Entities
+export interface CurrentUser extends User {
+  role: string;
+  workspace_member_id: string;
+  last_workspace_id?: string;
+  email_confirmed_at?: string;
+}
+
 // Auth-specific request types (these include fields not in the database)
 export interface SignUpData {
   email: string;
