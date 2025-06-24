@@ -10,16 +10,21 @@ import {
 } from "@/features/channels";
 import { useMessageOperations } from "@/features/messages";
 import { useCurrentUser } from "@/features/auth";
-import { Message, User, Channel } from "@/types/chat";
+import { Author, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
+import {
+  transformMessages,
+  updateSelectedMessageIfNeeded,
+} from "@/features/messages/helpers";
+import { useToggleReaction } from "@/features/reactions";
+import { useMessagesStore } from "@/features/messages/store/messages-store";
 
 const ChannelChat = () => {
-  const { id: channelId, workspaceId } = useParamIds();
+  const { id: channelId, workspaceId, type } = useParamIds();
+  const { user: currentUser, isAuthenticated } = useCurrentUser(workspaceId);
+  const { addPendingMessage, removePendingMessage } = useMessagesStore();
 
-  const { user: currentUser, isAuthenticated } = useCurrentUser();
-
-  // Fetch messages and members using infinite query
   const {
     data: channelWithMessages,
     isLoading: isLoadingMessages,
@@ -29,7 +34,6 @@ const ChannelChat = () => {
     isFetchingNextPage,
   } = useGetChannelWithMessagesInfinite(workspaceId, channelId);
 
-  // Fetch channel details (with cache optimization)
   const {
     data: channelDetails,
     isLoading: isLoadingChannel,
@@ -51,8 +55,12 @@ const ChannelChat = () => {
   //   isTyping,
   // } = useTypingIndicator(workspaceId, channelId, undefined);
 
-  const { createMessage, updateMessage, deleteMessage, toggleReaction } =
-    useMessageOperations(workspaceId, channelId, undefined);
+  const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
+    workspaceId,
+    channelId,
+    type
+  );
+  const toggleReaction = useToggleReaction(workspaceId);
 
   const transformChannel = (channelData: any): Channel => ({
     id: channelData.id,
@@ -62,41 +70,7 @@ const ChannelChat = () => {
     memberCount: channelData.members?.length || 0,
   });
 
-  const transformMessages = (messagesData: any[]): Message[] => {
-    return messagesData.map((msg) => {
-      if (!msg.user?.id) {
-        console.log(msg, "msg");
-      }
-      return {
-        id: msg.id,
-        content: msg.body,
-        authorId: msg.user.id,
-        author: {
-          id: msg.user.id,
-          name: msg.user.name,
-          avatar: msg.user.image,
-          status: "online" as const,
-        },
-        timestamp: new Date(msg.created_at),
-        reactions:
-          msg.reactions?.map((reaction: any) => ({
-            id: reaction.id,
-            emoji: reaction.value,
-            count: reaction.count,
-            users: reaction.users,
-            hasReacted: reaction.users.some(
-              (user: any) => user.id === currentUser?.id
-            ),
-          })) || [],
-        threadCount: 0,
-        isEdited: !!msg.edited_at,
-        isOptimistic: msg._isOptimistic || false,
-        attachments: msg?.attachments || [],
-      };
-    });
-  };
-
-  const transformCurrentUser = (userData: any): User => ({
+  const transformCurrentUser = (userData: any): Author => ({
     id: userData.id,
     name: userData.name,
     avatar: userData.image,
@@ -146,7 +120,7 @@ const ChannelChat = () => {
 
   // Transform data for chat component
   const channel = transformChannel(channelDetails);
-  const messages = transformMessages(sortedMessages);
+  const messages = transformMessages(sortedMessages, currentUser);
   const user = transformCurrentUser(currentUser);
 
   // Handle message sending with real-time integration
@@ -154,18 +128,35 @@ const ChannelChat = () => {
     body: string;
     attachments: UploadedAttachment[];
   }) => {
+    const optimisticId = `temp-${Date.now()}-${Math.random()}`;
+
+    // Track that we're creating this message
+    addPendingMessage(optimisticId, {
+      workspaceId,
+      channelId,
+      entityId: channelId,
+      entityType: type,
+    });
     try {
       // Stop typing indicator immediately when sending
       // handleTypingSubmit();
-
-      await createMessage.mutateAsync({
+      const message = await createMessage.mutateAsync({
         body: content.body,
         attachments: content.attachments,
         message_type: "direct",
+        _optimisticId: optimisticId,
       });
+
+      updateSelectedMessageIfNeeded(
+        optimisticId,
+        transformMessages([message], currentUser)[0]
+      );
+
+      removePendingMessage(optimisticId);
 
       console.log("Message sent successfully");
     } catch (error) {
+      removePendingMessage(optimisticId);
       console.error("Failed to send message:", error);
     }
   };

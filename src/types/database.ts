@@ -202,7 +202,7 @@ export interface ChannelWithMembers extends Channel {
 
 export interface MessageWithRelations extends Message {
   workspace_member?: WorkspaceMember & { user: User };
-  attachment?: Attachment;
+  attachments?: Attachment[];
   channel?: Channel;
   conversation?: Conversation;
   parent_message?: Message;

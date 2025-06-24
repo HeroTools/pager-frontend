@@ -1,7 +1,6 @@
-import { FC, useState } from "react";
+import { FC, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import Picker from "@emoji-mart/react";
-import data from "@emoji-mart/data";
+import EmojiPicker from "@/components/emoji-picker";
 import {
   MoreHorizontal,
   MessageSquare,
@@ -16,7 +15,7 @@ import {
   Image as ImageIcon,
   Play,
 } from "lucide-react";
-import { Message, User, Attachment } from "@/types/chat";
+import { Message, Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,15 +24,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageReactions } from "./message-reactions";
 import { MessageContent } from "./message-content";
 import { useUIStore } from "@/store/ui-store";
+import { CurrentUser } from "@/features/auth/types";
+import { useGetMembers } from "@/features/members";
+import { useParamIds } from "@/hooks/use-param-ids";
+import ThreadButton from "./thread-button";
 import { MediaViewerModal } from "@/components/media-viewer-modal";
 
 // Constants for consistent sizing
@@ -54,13 +52,14 @@ const isMediaAttachment = (attachment: Attachment) => {
 
 interface ChatMessageProps {
   message: Message;
-  currentUser: User;
+  currentUser: CurrentUser;
+  hideReplies?: boolean;
   isCompact?: boolean;
   showAvatar?: boolean;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
-  onReaction?: (messageId: string, emoji: string) => void;
+  onReaction: (messageId: string, emoji: string) => void;
 }
 
 const ImageAttachment: FC<{
@@ -112,11 +111,8 @@ const ImageAttachment: FC<{
         <Button
           variant="secondary"
           size="sm"
-          className="h-8 w-8 p-0 bg-card/30 hover:bg-card/40 border-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            window.open(attachment.public_url, "_blank");
-          }}
+          className="h-8 w-8 p-0 bg-black/30 hover:bg-black/40 border-0"
+          onClick={() => window.open(attachment.publicUrl, "_blank")}
         >
           <Download className="w-4 h-4 text-white" />
         </Button>
@@ -187,11 +183,8 @@ const VideoAttachment: FC<{
         <Button
           variant="secondary"
           size="sm"
-          className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            window.open(attachment.public_url, "_blank");
-          }}
+          className="h-8 w-8 p-0 bg-black/30 hover:bg-black/40 border-0"
+          onClick={() => window.open(attachment.publicUrl, "_blank")}
         >
           <Download className="w-4 h-4 text-white" />
         </Button>
@@ -209,15 +202,15 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           <p className="text-sm font-medium truncate">
             {getAttachmentFilename(attachment, "Audio file")}
           </p>
-          {attachment.size_bytes && (
+          {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.size_bytes)}
+              {formatFileSize(attachment.sizeBytes)}
             </p>
           )}
         </div>
       </div>
       <audio
-        src={attachment.public_url}
+        src={attachment.publicUrl}
         className="w-full"
         controls
         preload="metadata"
@@ -255,7 +248,7 @@ const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
     <div
       className="bg-muted rounded-lg p-3 max-w-sm hover:bg-muted/80 transition-colors cursor-pointer"
-      onClick={() => window.open(attachment.public_url, "_blank")}
+      onClick={() => window.open(attachment.publicUrl, "_blank")}
     >
       <div className="flex items-center gap-3">
         {getFileIcon(getAttachmentFilename(attachment, ""))}
@@ -263,9 +256,9 @@ const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           <p className="text-sm font-medium truncate">
             {getAttachmentFilename(attachment, "Document")}
           </p>
-          {attachment.size_bytes && (
+          {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.size_bytes)}
+              {formatFileSize(attachment.sizeBytes)}
             </p>
           )}
         </div>
@@ -280,7 +273,7 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
     <div
       className="bg-muted rounded-lg p-3 max-w-sm hover:bg-muted/80 transition-colors cursor-pointer"
-      onClick={() => window.open(attachment.public_url, "_blank")}
+      onClick={() => window.open(attachment.publicUrl, "_blank")}
     >
       <div className="flex items-center gap-3">
         <File className="w-5 h-5 text-muted-foreground" />
@@ -288,9 +281,9 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           <p className="text-sm font-medium truncate">
             {getAttachmentFilename(attachment, "File")}
           </p>
-          {attachment.size_bytes && (
+          {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.size_bytes)}
+              {formatFileSize(attachment.sizeBytes)}
             </p>
           )}
         </div>
@@ -391,6 +384,7 @@ const formatFileSize = (bytes: number): string => {
 export const ChatMessage: FC<ChatMessageProps> = ({
   message,
   currentUser,
+  hideReplies = false,
   isCompact = false,
   showAvatar = true,
   onEdit,
@@ -398,13 +392,21 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   onReply,
   onReaction,
 }) => {
+  const { workspaceId } = useParamIds();
   const [isHovered, setIsHovered] = useState(false);
   const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
   const [mediaViewerAttachments, setMediaViewerAttachments] = useState<
     Attachment[]
   >([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
-  const { openEmojiPickerMessageId, setEmojiPickerOpen } = useUIStore();
+  const {
+    openEmojiPickerMessageId,
+    setEmojiPickerOpen,
+    openThreadMessageId,
+    setThreadOpen,
+  } = useUIStore();
+  const getMembers = useGetMembers(workspaceId);
+
   const isOwnMessage = message.authorId === currentUser.id;
 
   const isEmojiPickerOpen = openEmojiPickerMessageId === message.id;
@@ -430,11 +432,32 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   const shouldShowActions = isHovered || isEmojiPickerOpen;
 
   return (
-    <>
-      <div
-        className={cn(
-          "group relative px-4 hover:bg-message-hover transition-colors",
-          isCompact ? "py-0.5" : "py-2"
+    <div
+      className={cn(
+        "group relative px-4 hover:bg-message-hover transition-colors py-2"
+      )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="flex gap-3">
+        {showAvatar && !isCompact ? (
+          <Avatar className="w-9 h-9 flex-shrink-0">
+            <AvatarImage src={message.author.avatar} />
+            <AvatarFallback className="text-sm">
+              {message.author.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <div className="w-9 flex-shrink-0 flex justify-center items-start pt-0.5">
+            {isCompact && (
+              <span className="text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors opacity-0 group-hover:opacity-100">
+                {new Date(message.timestamp).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            )}
+          </div>
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -490,50 +513,54 @@ export const ChatMessage: FC<ChatMessageProps> = ({
               />
             )}
 
-            {message?.reactions && message.reactions?.length > 0 ? (
-              <MessageReactions
-                reactions={message.reactions}
-                onReaction={(emoji) => onReaction?.(message.id, emoji)}
-                currentUserId={currentUser.id}
-              />
-            ) : null}
+          {message?.reactions && message.reactions?.length > 0 ? (
+            <MessageReactions
+              reactions={message.reactions}
+              onReaction={(emoji) => onReaction(message.id, emoji)}
+              currentUserId={currentUser.id}
+            />
+          ) : null}
 
-            {message?.threadCount && Number(message.threadCount) > 0 ? (
-              <button
-                onClick={() => onReply?.(message.id)}
-                className="mt-2 flex items-center gap-1 text-xs text-text-accent hover:text-text-accent/80 hover:underline transition-colors"
-              >
-                <MessageSquare className="w-3 h-3" />
-                {message.threadCount}{" "}
-                {message.threadCount === 1 ? "reply" : "replies"}
-              </button>
-            ) : null}
-          </div>
+          {message?.threadCount &&
+          Number(message.threadCount) > 0 &&
+          !hideReplies ? (
+            <ThreadButton message={message} members={getMembers.data!} />
+          ) : null}
         </div>
 
-        {/* Message Actions */}
-        {shouldShowActions && (
-          <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm">
-            <div className="flex items-center">
-              {/* Emoji Picker Popover */}
-              <Popover
-                open={isEmojiPickerOpen}
-                onOpenChange={handleEmojiPickerToggle}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                  >
-                    <Smile className="w-4 h-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="p-0 w-auto border-0 shadow-lg"
-                  align="end"
-                  side="top"
-                  sideOffset={8}
+      {/* Message Actions */}
+      {shouldShowActions && (
+        <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm">
+          <div className="flex items-center">
+            <EmojiPicker
+              open={isEmojiPickerOpen}
+              onOpenChange={handleEmojiPickerToggle}
+              onSelect={handleEmojiSelect}
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                >
+                  <Smile className="w-4 h-4" />
+                </Button>
+              }
+            />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+              onClick={() => setThreadOpen(message)}
+            >
+              <MessageSquare className="w-4 h-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
                 >
                   <Picker
                     data={data}
