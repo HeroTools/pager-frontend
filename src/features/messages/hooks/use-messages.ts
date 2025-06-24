@@ -1,8 +1,9 @@
 import { useRef, useCallback } from "react";
+import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { messagesApi } from "../api/messages-api";
 import type { MessageWithUser, CreateMessageData } from "../types";
-import { toast } from "sonner";
 import { UploadedAttachment } from "@/features/file-upload/types";
 import { Message } from "@/types/chat";
 
@@ -72,7 +73,7 @@ export const useCreateChannelMessage = (
       const currentUser = queryClient.getQueryData(["current-user"]) as any;
 
       const optimisticMessage: MessageWithUser = {
-        id: `temp-${Date.now()}-${Math.random()}`,
+        id: data._optimisticId || `temp-${Date.now()}-${Math.random()}`,
         body: data.body,
         channel_id: channelId,
         workspace_id: workspaceId,
@@ -219,8 +220,6 @@ export const useCreateChannelMessage = (
 
     // Always refetch after error or success
     onSettled: (data, error, variables, context) => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ["channels", workspaceId] });
       queryClient.invalidateQueries({ queryKey: getInfiniteQueryKey() });
 
       if (context?.isThreadMessage && context?.threadParentId) {
@@ -289,7 +288,7 @@ export const useCreateConversationMessage = (
 
       // Optimistically update with temporary message
       const tempMessage: MessageWithUser = {
-        id: `temp-${Date.now()}-${Math.random()}`, // Temporary ID
+        id: data._optimisticId || `temp-${Date.now()}-${Math.random()}`,
         body: data.body,
         conversation_id: conversationId,
         workspace_id: workspaceId,
@@ -442,10 +441,6 @@ export const useCreateConversationMessage = (
 
     // Always refetch after error or success
     onSettled: (data, error, variables, context) => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({
-        queryKey: ["conversations", workspaceId],
-      });
       queryClient.invalidateQueries({
         queryKey: getInfiniteQueryKey(),
       });
@@ -766,6 +761,7 @@ export const useTypingIndicator = (
 export const useMessageReplies = (
   workspaceId: string,
   messageId: string | undefined,
+  threadCount?: number,
   params?: {
     limit?: number;
     cursor?: string;
@@ -795,6 +791,7 @@ export const useMessageReplies = (
     enabled:
       !!workspaceId &&
       !!messageId &&
+      threadCount !== 0 &&
       !messageId.includes("temp") &&
       !!params?.entity_type &&
       !!params?.entity_id,
@@ -808,19 +805,22 @@ export const useMessageReplies = (
  */
 export const useMessageOperations = (
   workspaceId: string,
-  channelId?: string,
-  conversationId?: string
+  entityId?: string,
+  type?: string
 ) => {
-  const createChannelMessage = useCreateChannelMessage(workspaceId, channelId!);
+  const createChannelMessage = useCreateChannelMessage(workspaceId, entityId!);
   const createConversationMessage = useCreateConversationMessage(
     workspaceId,
-    conversationId!
+    entityId!
   );
   const updateMessage = useUpdateMessage(workspaceId);
   const deleteMessage = useDeleteMessage(workspaceId);
 
   return {
-    createMessage: channelId ? createChannelMessage : createConversationMessage,
+    createMessage:
+      entityId && type === "channel"
+        ? createChannelMessage
+        : createConversationMessage,
     updateMessage,
     deleteMessage,
     createChannelMessage,

@@ -19,7 +19,6 @@ export const useUIStore = create<UIState>((set, get) => ({
   isEmojiPickerOpen: () => get().openEmojiPickerMessageId !== null,
   openThreadMessageId: null,
   setThreadOpen: (message) => {
-    console.log(message);
     set({ openThreadMessageId: message?.id });
     set({ selectedThreadParentMessage: message });
   },
