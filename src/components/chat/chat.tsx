@@ -52,12 +52,12 @@ export const Chat: FC<ChatProps> = ({
 }) => {
   const { workspaceId } = useParamIds();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
   const [mediaViewerAttachments, setMediaViewerAttachments] = useState<Attachment[]>([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
 
   const handleSendMessage = (content: {
     body: string;
@@ -146,7 +146,6 @@ export const Chat: FC<ChatProps> = ({
         onDelete={onDeleteMessage}
         onReply={onReplyToMessage}
         onReaction={onReactToMessage}
-        onOpenMediaViewer={handleOpenMediaViewer}
       />
 
       <div className="p-4 border-t border-border-subtle">
