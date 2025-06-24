@@ -14,6 +14,7 @@ import {
   Music,
   Archive,
   Image as ImageIcon,
+  Play,
 } from "lucide-react";
 import { Message, User, Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,7 @@ const ImageAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => voi
         <Button
           variant="secondary"
           size="sm"
-          className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
+          className="h-8 w-8 p-0 bg-card/30 hover:bg-card/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
             window.open(attachment.public_url, "_blank");
@@ -95,22 +96,45 @@ const ImageAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => voi
 };
 
 const VideoAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => void }> = ({ attachment, onOpenMediaViewer }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState<string>("");
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = e.currentTarget;
+    if (video.duration && !isNaN(video.duration) && video.duration !== Infinity) {
+      setDuration(formatDuration(video.duration));
+    }
+    setIsLoaded(true);
+  };
 
   return (
     <div className="relative group/video max-w-md cursor-pointer" onClick={onOpenMediaViewer}>
       <video
         src={attachment.public_url}
-        className="rounded-lg max-w-full h-auto pointer-events-none"
+        className="rounded-lg max-w-full h-auto"
         preload="metadata"
+        onLoadedMetadata={handleLoadedMetadata}
       >
         Your browser does not support the video tag.
       </video>
+      
+      {/* Video overlay with play icon and duration */}
+      <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
+        <Play className="w-3 h-3 fill-current" />
+        {duration && <span>{duration}</span>}
+      </div>
+
       <div className="absolute top-2 right-2 opacity-0 group-hover/video:opacity-100 transition-opacity">
         <Button
           variant="secondary"
           size="sm"
-          className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
+          className="h-8 w-8 p-0 bg-card/30 hover:bg-card/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
             window.open(attachment.public_url, "_blank");

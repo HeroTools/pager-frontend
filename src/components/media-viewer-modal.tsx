@@ -118,26 +118,14 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="max-w-none w-screen h-screen p-0 bg-black/95 border-0"
+        className="max-w-none w-[90vw] h-[90vh] p-0 bg-background/95 backdrop-blur-sm border-border rounded-lg"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div 
-          className="relative w-full h-full flex items-center justify-center"
+          className="relative w-full h-full flex items-center justify-center overflow-hidden"
           onMouseEnter={() => setShowControls(true)}
           onMouseLeave={() => setShowControls(false)}
         >
-          {/* Close button */}
-          {/* <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "absolute top-4 right-4 z-50 h-10 w-10 bg-black/50 hover:bg-black/70 text-white border-0 transition-opacity duration-200",
-              showControls ? "opacity-100" : "opacity-0"
-            )}
-            onClick={onClose}
-          >
-            <X className="h-5 w-5" />
-          </Button> */}
 
           {/* Navigation arrows */}
           {attachments.length > 1 && (
@@ -146,7 +134,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-black/50 hover:bg-black/70 text-white border-0 transition-opacity duration-200",
+                  "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border-border text-foreground transition-opacity duration-200",
                   showControls ? "opacity-100" : "opacity-0"
                 )}
                 onClick={goToPrevious}
@@ -157,7 +145,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-black/50 hover:bg-black/70 text-white border-0 transition-opacity duration-200",
+                  "absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border-border text-foreground transition-opacity duration-200",
                   showControls ? "opacity-100" : "opacity-0"
                 )}
                 onClick={goToNext}
@@ -170,25 +158,25 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           {/* Media controls */}
           {isImage && (
             <div className={cn(
-              "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-black/50 rounded-lg p-2 transition-opacity duration-200",
+              "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
               showControls ? "opacity-100" : "opacity-0"
             )}>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-white hover:bg-white/20 border-0"
+                className="h-8 w-8 p-0 text-foreground hover:bg-accent hover:text-accent-foreground"
                 onClick={zoomOut}
                 disabled={zoom <= 0.25}
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <span className="text-white text-sm px-2 min-w-[60px] text-center">
+              <span className="text-foreground text-sm px-2 min-w-[60px] text-center">
                 {Math.round(zoom * 100)}%
               </span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-white hover:bg-white/20 border-0"
+                className="h-8 w-8 p-0 text-foreground hover:bg-accent hover:text-accent-foreground"
                 onClick={zoomIn}
                 disabled={zoom >= 3}
               >
@@ -197,7 +185,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-white hover:bg-white/20 border-0"
+                className="h-8 w-8 p-0 text-foreground hover:bg-accent hover:text-accent-foreground"
                 onClick={rotate}
               >
                 <RotateCcw className="h-4 w-4" />
@@ -205,7 +193,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-white hover:bg-white/20 border-0"
+                className="h-8 w-8 p-0 text-foreground hover:bg-accent hover:text-accent-foreground"
                 onClick={handleDownload}
               >
                 <Download className="h-4 w-4" />
@@ -215,31 +203,31 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
           {/* File info */}
           <div className={cn(
-            "absolute top-4 left-4 z-50 bg-black/50 rounded-lg p-3 text-white transition-opacity duration-200",
+            "absolute top-4 left-4 z-50 bg-card/80 border border-border rounded-lg p-3 text-foreground transition-opacity duration-200",
             showControls ? "opacity-100" : "opacity-0"
           )}>
             <p className="text-sm font-medium">
               {currentAttachment.original_filename || "Untitled"}
             </p>
             {attachments.length > 1 && (
-              <p className="text-xs text-white/70">
+              <p className="text-xs text-muted-foreground">
                 {currentIndex + 1} of {attachments.length}
               </p>
             )}
           </div>
 
           {/* Media content */}
-          <div className="relative max-w-full max-h-full flex items-center justify-center">
+          <div className="relative flex items-center justify-center" style={{ width: 'calc(100% - 2rem)', height: 'calc(100% - 2rem)' }}>
             {isLoading && !hasError && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
               </div>
             )}
 
             {hasError ? (
-              <div className="text-white text-center">
+              <div className="text-foreground text-center">
                 <p className="text-lg font-medium">Failed to load media</p>
-                <p className="text-sm text-white/70 mt-1">The file might be corrupted or unavailable</p>
+                <p className="text-sm text-muted-foreground mt-1">The file might be corrupted or unavailable</p>
               </div>
             ) : isImage ? (
               <img
@@ -263,7 +251,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             ) : isVideo ? (
               <video
                 src={currentAttachment.public_url}
-                className="max-w-full max-h-full"
+                className="max-w-full max-h-full object-contain"
                 controls
                 autoPlay
                 onLoadedData={() => setIsLoading(false)}
@@ -275,14 +263,14 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
                 Your browser does not support the video tag.
               </video>
             ) : (
-              <div className="text-white text-center">
+              <div className="text-foreground text-center">
                 <p className="text-lg font-medium">Preview not available</p>
-                <p className="text-sm text-white/70 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {currentAttachment.original_filename || "Unknown file"}
                 </p>
                 <Button
                   variant="outline"
-                  className="mt-4 bg-white/10 text-white hover:bg-white/20 border-white/20"
+                  className="mt-4 border-border hover:bg-accent hover:text-accent-foreground"
                   onClick={handleDownload}
                 >
                   <Download className="h-4 w-4 mr-2" />
