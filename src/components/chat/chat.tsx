@@ -1,10 +1,11 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react";
-import { Message, User, Channel } from "@/types/chat";
+import { Message, User, Channel, Attachment } from "@/types/chat";
 import { ChatHeader } from "./header";
 import { ChatMessageList } from "./message-list";
 import Editor from "@/components/editor/editor";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
+import { MediaViewerModal } from "@/components/media-viewer-modal";
 
 interface ChatProps {
   channel: Channel;
@@ -54,6 +55,9 @@ export const Chat: FC<ChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+  const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
+  const [mediaViewerAttachments, setMediaViewerAttachments] = useState<Attachment[]>([]);
+  const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
 
   const handleSendMessage = (content: {
     body: string;
@@ -66,6 +70,20 @@ export const Chat: FC<ChatProps> = ({
   const handleEditMessage = (messageId: string) => {
     setEditingMessageId(messageId);
     onEditMessage?.(messageId);
+  };
+
+  const handleOpenMediaViewer = (message: Message, attachmentIndex: number) => {
+    // Get all media attachments (images and videos) from the message
+    const mediaAttachments = message.attachments.filter(attachment => 
+      attachment.content_type?.startsWith("image/") || 
+      attachment.content_type?.startsWith("video/")
+    );
+    
+    if (mediaAttachments.length > 0) {
+      setMediaViewerAttachments(mediaAttachments);
+      setMediaViewerInitialIndex(attachmentIndex);
+      setIsMediaViewerOpen(true);
+    }
   };
 
   console.log(channel);
@@ -117,6 +135,7 @@ export const Chat: FC<ChatProps> = ({
         onDelete={onDeleteMessage}
         onReply={onReplyToMessage}
         onReaction={onReactToMessage}
+        onOpenMediaViewer={handleOpenMediaViewer}
       />
 
       <div className="p-4 border-t border-border-subtle">
@@ -131,6 +150,13 @@ export const Chat: FC<ChatProps> = ({
           maxFileSizeBytes={20 * 1024 * 1024}
         />
       </div>
+
+      <MediaViewerModal
+        isOpen={isMediaViewerOpen}
+        onClose={() => setIsMediaViewerOpen(false)}
+        attachments={mediaViewerAttachments}
+        initialIndex={mediaViewerInitialIndex}
+      />
     </div>
   );
 };
