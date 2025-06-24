@@ -13,8 +13,9 @@ import {
 } from "react";
 
 import { cn } from "@/lib/utils";
-import { Hint } from "@/components/hint";
-import { Button } from "@/components/ui/button";
+import { EmojiPopover } from "../emoji-popover";
+import { Hint } from "../hint";
+import { Button } from "../ui/button";
 import { toast } from "sonner";
 import {
   ManagedAttachment,
@@ -23,7 +24,6 @@ import {
 import { useDeleteAttachment, useFileUpload } from "@/features/file-upload";
 import AttachmentPreview from "./attachment-preview";
 import validateFile from "@/lib/helpers/validate-file";
-import EmojiPicker from "@/components/emoji-picker";
 
 type EditorValue = {
   image: File | null;
@@ -224,6 +224,31 @@ const Editor = ({
     },
     [attachments.length, maxFiles, uploadMultipleFiles]
   );
+
+  const removeAttachment = async (attachmentId: string) => {
+    const attachment = attachments.find((att) => att.id === attachmentId);
+    if (!attachment) return;
+
+    if (
+      attachment.status === "completed" &&
+      !attachmentId.startsWith("upload-") &&
+      deleteAttachment
+    ) {
+      try {
+        await deleteAttachment.mutateAsync({
+          attachmentId,
+          workspaceId,
+        });
+      } catch (error) {
+        console.error("Failed to delete attachment:", error);
+      }
+    }
+
+    setAttachments((prev) => {
+      const newState = prev.filter((att) => att.id !== attachmentId);
+      return newState;
+    });
+  };
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -478,14 +503,11 @@ const Editor = ({
               <CaseSensitive className="size-4" />
             </Button>
           </Hint>
-          <EmojiPicker
-            onSelect={handleEmojiSelect}
-            trigger={
-              <Button disabled={disabled} size="sm" variant="ghost">
-                <Smile className="size-4" />
-              </Button>
-            }
-          />
+          <EmojiPopover onEmojiSelect={handleEmojiSelect}>
+            <Button disabled={disabled} size="sm" variant="ghost">
+              <Smile className="size-4" />
+            </Button>
+          </EmojiPopover>
 
           <Hint label="Attach files">
             <Button

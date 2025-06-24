@@ -11,8 +11,8 @@ import { useCurrentUser } from "../hooks/use-current-user";
 import { Loader, LogOutIcon } from "lucide-react";
 import { useSignOut } from "../hooks/use-auth-mutations";
 
-export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
-  const { user, isLoading } = useCurrentUser(workspaceId);
+export const UserButton = () => {
+  const { user, isLoading } = useCurrentUser();
   const signOut = useSignOut();
 
   if (isLoading) {

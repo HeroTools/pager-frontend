@@ -9,21 +9,14 @@ import {
 } from "@/features/conversations";
 import { useMessageOperations } from "@/features/messages/hooks/use-messages";
 import { useCurrentUser } from "@/features/auth";
-import { Channel, Author } from "@/types/chat";
+import { Message, User, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
-import {
-  transformMessages,
-  updateSelectedMessageIfNeeded,
-} from "@/features/messages/helpers";
-import { useToggleReaction } from "@/features/reactions";
-import { useMessagesStore } from "@/features/messages/store/messages-store";
 
 const ConversationChat = () => {
-  const { id: conversationId, workspaceId, type } = useParamIds();
+  const { id: conversationId, workspaceId } = useParamIds();
 
-  const { user: currentUser } = useCurrentUser(workspaceId);
-  const { addPendingMessage, removePendingMessage } = useMessagesStore();
+  const { user: currentUser } = useCurrentUser();
 
   const {
     data: conversationWithMessages,
@@ -43,12 +36,8 @@ const ConversationChat = () => {
   });
 
   // Message operation hooks
-  const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
-    workspaceId,
-    conversationId,
-    type
-  );
-  const toggleReaction = useToggleReaction(workspaceId);
+  const { createMessage, updateMessage, deleteMessage, toggleReaction } =
+    useMessageOperations(workspaceId, undefined, conversationId);
 
   const transformConversation = (conversationData: any): Channel => {
     const otherMembers = conversationData.members.filter(
@@ -68,7 +57,36 @@ const ConversationChat = () => {
     };
   };
 
-  const transformCurrentUser = (userData: any): Author => ({
+  const transformMessages = (messagesData: any[]): Message[] => {
+    return messagesData.map((msg) => ({
+      id: msg.id,
+      content: msg.body,
+      authorId: msg.user.id,
+      author: {
+        id: msg.user.id,
+        name: msg.user.name,
+        avatar: msg.user.image,
+        status: "online" as const,
+      },
+      timestamp: new Date(msg.created_at),
+      reactions:
+        msg.reactions?.map((reaction: any) => ({
+          id: reaction.id,
+          emoji: reaction.value,
+          count: reaction.count,
+          users: reaction.users,
+          hasReacted: reaction.users.some(
+            (user: any) => user.id === currentUser?.id
+          ),
+        })) || [],
+      threadCount: 0,
+      isEdited: !!msg.edited_at,
+      attachments: msg?.attachments || [],
+      isOptimistic: msg._isOptimistic || false,
+    }));
+  };
+
+  const transformCurrentUser = (userData: any): User => ({
     id: userData.id,
     name: userData.name,
     avatar: userData.image,
@@ -85,6 +103,9 @@ const ConversationChat = () => {
       </div>
     );
   }
+
+  console.log("conversationWithMessages", conversationWithMessages);
+  console.log("messagesError", messagesError);
 
   // Handle error states
   if (error || !conversationWithMessages) {
@@ -111,7 +132,7 @@ const ConversationChat = () => {
   const conversationChannel = transformConversation(
     conversationWithMessages?.pages?.[0]
   );
-  const messages = transformMessages(sortedMessages || [], currentUser);
+  const messages = transformMessages(sortedMessages || []);
   const user = transformCurrentUser(currentUser);
 
   // Handle message sending with real-time integration
@@ -119,32 +140,15 @@ const ConversationChat = () => {
     body: string;
     attachments: UploadedAttachment[];
   }) => {
-    const optimisticId = `temp-${Date.now()}-${Math.random()}`;
-
-    // Track that we're creating this message
-    addPendingMessage(optimisticId, {
-      workspaceId,
-      conversationId,
-      entityId: conversationId,
-      entityType: type,
-    });
     try {
-      const message = await createMessage.mutateAsync({
+      await createMessage.mutateAsync({
         body: content.body,
         attachments: content.attachments,
         message_type: "direct",
-        _optimisticId: optimisticId,
       });
 
-      updateSelectedMessageIfNeeded(
-        optimisticId,
-        transformMessages([message], currentUser)[0]
-      );
-
-      removePendingMessage(optimisticId);
       console.log("Message sent successfully");
     } catch (error) {
-      removePendingMessage(optimisticId);
       console.error("Failed to send message:", error);
     }
   };

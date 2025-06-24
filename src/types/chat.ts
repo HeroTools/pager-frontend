@@ -1,25 +1,28 @@
-import { Reaction } from "@/features/reactions/types";
+export interface User {
+  id: string;
+  name: string;
+  avatar?: string;
+  status?: "online" | "away" | "offline";
+}
 
 export interface Message {
   id: string;
   content: string;
   authorId: string;
-  author: Author;
+  author: User;
   timestamp: Date;
+  image?: string;
   reactions?: Reaction[];
   attachments: Attachment[];
   threadCount?: number;
-  threadParticipants?: string[];
-  threadId?: string;
-  threadLastReplyAt?: string;
   isEdited?: boolean;
 }
 
-export interface Author {
+export interface Reaction {
   id: string;
-  name: string;
-  avatar?: string;
-  status: "online" | "away" | "offline";
+  emoji: string;
+  count: number;
+  users: User[];
 }
 
 export interface Channel {
@@ -31,7 +34,7 @@ export interface Channel {
 }
 
 export interface Attachment {
-  contentType: string;
+  content_type: string;
   id: string;
   size_bytes: number;
   public_url: string;

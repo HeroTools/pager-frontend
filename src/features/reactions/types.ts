@@ -1,8 +1,9 @@
 export interface Reaction {
   id: string;
-  value: string;
-  count: number;
-  users: { id: string; name: string }[];
+  emoji: string;
+  messageId: string;
+  userId: string;
+  createdAt: string;
 }
 
 export interface AddReactionData {

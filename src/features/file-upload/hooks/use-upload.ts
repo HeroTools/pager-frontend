@@ -155,7 +155,7 @@ export const useFileUpload = (workspaceId: string) => {
 
         const { signed_url, file_id } = presignedUrlResponse;
 
-        // 2. Upload the file to the storage provider
+        // 2. Upload the file to the storage provider (e.g., S3, Supabase Storage)
         await manualUploadMutation.mutateAsync({
           signedUrl: signed_url,
           file,

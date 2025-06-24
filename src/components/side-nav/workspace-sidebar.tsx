@@ -36,7 +36,7 @@ export const WorkspaceSidebar = () => {
   // TODO optimise this to get the channels and conversations from the get workspace query just add include_details=true but update BE first
   const getUserChannels = useGetUserChannels(workspaceId);
   const { conversations } = useConversations(workspaceId);
-  const { user: currentUser } = useCurrentUser(workspaceId);
+  const { user: currentUser } = useCurrentUser();
 
   const { startConversationCreation } = useConversationCreateStore();
 

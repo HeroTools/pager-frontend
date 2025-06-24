@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader } from "lucide-react";
 import { ReactNode } from "react";
 
 import {
@@ -7,18 +8,22 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { Profile } from "@/features/members/components/profile";
 import { Thread } from "@/features/messages/component/thread";
+import { usePanel } from "@/hooks/use-panel";
 import { Sidebar } from "@/components/side-nav/sidebar";
 import { Toolbar } from "./toolbar";
 import { WorkspaceSidebar } from "@/components/side-nav/workspace-sidebar";
-import { useUIStore } from "@/store/ui-store";
+import { Id } from "@/types";
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;
 }
 
 const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
-  const { setThreadOpen, isThreadOpen, openThreadMessageId } = useUIStore();
+  const { parentMessageId, profileMemberId, close } = usePanel();
+
+  const showPanel = !!parentMessageId || !!profileMemberId;
 
   return (
     <div className="h-full">
@@ -36,11 +41,25 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
           <ResizablePanel defaultSize={74} minSize={20}>
             {children}
           </ResizablePanel>
-          {isThreadOpen() && openThreadMessageId && (
+          {showPanel && (
             <>
               <ResizableHandle />
               <ResizablePanel minSize={20} defaultSize={29}>
-                <Thread onClose={() => setThreadOpen(null)} />
+                {parentMessageId ? (
+                  <Thread
+                    messageId={parentMessageId as Id<"messages">}
+                    onClose={close}
+                  />
+                ) : profileMemberId ? (
+                  <Profile
+                    memberId={profileMemberId as Id<"members">}
+                    onClose={close}
+                  />
+                ) : (
+                  <div className="flex h-ful items-center justify-center">
+                    <Loader className="size-5 animate-spin text-foreground" />
+                  </div>
+                )}
               </ResizablePanel>
             </>
           )}

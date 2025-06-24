@@ -52,7 +52,8 @@ export type MessagesWithRelationsResponse = ApiResponse<{
 
 // Message thread types
 export interface MessageThread {
-  replies: MessageWithUser[];
+  parent_message: MessageWithAllRelations;
+  replies: MessageWithAllRelations[];
   reply_count: number;
   last_reply_at?: string;
 }
@@ -95,7 +96,6 @@ export interface CreateConversationMessageData {
 }
 
 export interface CreateMessageData {
-  _optimisticId?: string;
   body: string;
   attachments?: UploadedAttachment[];
   parent_message_id?: string;

@@ -9,7 +9,6 @@ import type {
   EnhancedAuthResponse,
   UserPreferences,
   InviteLinkResponse,
-  CurrentUser,
 } from "@/features/auth/types";
 import { User } from "@supabase/supabase-js";
 
@@ -158,11 +157,10 @@ export const authApi = {
   /**
    * Get current user from Lambda/database
    */
-  getCurrentUser: async (workspaceId: string): Promise<CurrentUser> => {
-    const { data: response } = await api.get<CurrentUser>(
-      `/auth/user?workspaceId=${workspaceId}`
-    );
-    return response;
+  getCurrentUser: async (): Promise<User> => {
+    const { data: response } = await api.get<{ profile: User }>("/auth/user");
+    console.log(response);
+    return response.profile;
   },
 
   /**

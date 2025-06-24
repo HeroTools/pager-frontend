@@ -28,7 +28,6 @@ export const useGetMembers = (
     queryKey: ["members", workspaceId, filters],
     queryFn: () => membersApi.getMembers(workspaceId, filters),
     enabled: !!workspaceId,
-    staleTime: 8 * 60 * 60 * 1000,
   });
 };
 

@@ -1,16 +1,15 @@
-import { FC, useCallback, useEffect, useRef, useState, UIEvent } from "react";
-import { Message, Channel } from "@/types/chat";
+import { FC, useCallback, useEffect, useRef, useState } from "react";
+import { Message, User, Channel } from "@/types/chat";
 import { ChatHeader } from "./header";
 import { ChatMessageList } from "./message-list";
 import Editor from "@/components/editor/editor";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
-import { CurrentUser } from "@/features/auth";
 
 interface ChatProps {
   channel: Channel;
   messages: Message[];
-  currentUser: CurrentUser;
+  currentUser: User;
   chatType?: "conversation" | "channel";
   onLoadMore: () => void;
   hasMoreMessages: boolean;
@@ -52,6 +51,7 @@ export const Chat: FC<ChatProps> = ({
 }) => {
   const { workspaceId } = useParamIds();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
 
@@ -68,66 +68,42 @@ export const Chat: FC<ChatProps> = ({
     onEditMessage?.(messageId);
   };
 
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const c = messagesContainerRef.current;
-    if (c) c.scrollTo({ top: c.scrollHeight, behavior });
-  }, []);
+  console.log(channel);
 
   useEffect(() => {
-    if (shouldScrollToBottom) scrollToBottom();
-  }, [messages, shouldScrollToBottom, scrollToBottom]);
-
-  useEffect(() => {
-    if (!shouldScrollToBottom) return;
-    const c = messagesContainerRef.current;
-    if (!c || typeof ResizeObserver === "undefined") return;
-
-    const ro = new ResizeObserver(() => {
-      scrollToBottom("auto");
-    });
-    ro.observe(c);
-    return () => ro.disconnect();
-  }, [messages, shouldScrollToBottom, scrollToBottom]);
-
-  useEffect(() => {
-    if (!shouldScrollToBottom) return;
-    const c = messagesContainerRef.current;
-    if (!c) return;
-
-    const imgs = Array.from(c.querySelectorAll("img"));
-
-    const onImgLoad = () => {
-      c.scrollTo({ top: c.scrollHeight, behavior: "auto" });
-    };
-
-    imgs.forEach((img) => {
-      if (!img.complete) img.addEventListener("load", onImgLoad);
-    });
-
-    return () => {
-      imgs.forEach((img) => img.removeEventListener("load", onImgLoad));
-    };
+    if (shouldScrollToBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, shouldScrollToBottom]);
 
-  const handleScroll = useCallback(
-    (e: UIEvent<HTMLDivElement>) => {
-      if (!messagesContainerRef.current) return;
-      const c = messagesContainerRef.current!;
+  // Handle scroll for infinite loading
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) return;
 
-      if (c.scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
-        const prevH = c.scrollHeight;
-        setShouldScrollToBottom(false);
-        onLoadMore();
-        setTimeout(() => {
-          c.scrollTop = c.scrollHeight - prevH;
-        }, 100);
-      }
-      setShouldScrollToBottom(
-        c.scrollTop + c.clientHeight >= c.scrollHeight - 100
-      );
-    },
-    [hasMoreMessages, isLoadingMore, onLoadMore]
-  );
+    const { scrollTop, scrollHeight, clientHeight } =
+      messagesContainerRef.current;
+
+    // Check if scrolled to top (for loading older messages)
+    if (scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
+      const previousScrollHeight = scrollHeight;
+      setShouldScrollToBottom(false);
+
+      onLoadMore();
+
+      // Maintain scroll position after loading
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          const newScrollHeight = messagesContainerRef.current.scrollHeight;
+          messagesContainerRef.current.scrollTop =
+            newScrollHeight - previousScrollHeight;
+        }
+      }, 100);
+    }
+
+    // Check if user is near bottom (to enable auto-scroll for new messages)
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+    setShouldScrollToBottom(isNearBottom);
+  }, [hasMoreMessages, isLoadingMore, onLoadMore]);
 
   return (
     <div className="flex flex-col h-full">
@@ -141,8 +117,6 @@ export const Chat: FC<ChatProps> = ({
         onDelete={onDeleteMessage}
         onReply={onReplyToMessage}
         onReaction={onReactToMessage}
-        containerRef={messagesContainerRef}
-        onScroll={handleScroll}
       />
 
       <div className="p-4 border-t border-border-subtle">

@@ -14,7 +14,6 @@ import type {
   AddChannelMemberData,
   UpdateChannelMemberData,
   GetChannelMessagesParams,
-  MutateCreateChannelContext,
 } from "../types";
 
 // Get all public and joined channels for a workspace for the user
@@ -26,7 +25,6 @@ export const useGetAllAvailableChannels = (
     queryKey: ["channels", workspaceId, filters],
     queryFn: () => channelsApi.getAllAvailableChannels(workspaceId, filters),
     enabled: !!workspaceId,
-    staleTime: 10 * 60 * 60 * 1000,
   });
 };
 
@@ -39,7 +37,7 @@ export const useGetUserChannels = (
     queryKey: ["user-channels", workspaceId, filters],
     queryFn: () => channelsApi.getUserChannels(workspaceId, filters),
     enabled: !!workspaceId,
-    staleTime: 10 * 60 * 60 * 1000,
+    staleTime: 2 * 60 * 60 * 1000,
   });
 };
 
@@ -126,58 +124,19 @@ export const useGetChannelWithMessagesInfinite = (
 export const useCreateChannel = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    ChannelEntity,
-    Error,
-    CreateChannelData,
-    MutateCreateChannelContext
-  >({
+  return useMutation({
     mutationFn: (data: CreateChannelData) => channelsApi.createChannel(data),
-
-    onMutate: async (variables) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({
-        queryKey: ["user-channels", variables.workspaceId, null],
-      });
-
-      // Snapshot previous value
-      const previousChannels = queryClient.getQueryData<ChannelEntity[]>([
-        "user-channels",
-        variables.workspaceId,
-        null,
-      ]);
-
-      return {
-        workspaceId: variables.workspaceId,
-        previousChannels,
-      };
-    },
-
-    onSuccess: (newChannel, variables, context) => {
-      // Update cache with the new channel
+    onSuccess: (newChannel, variables) => {
+      // Update the channels list cache
       queryClient.setQueryData<ChannelEntity[]>(
-        ["user-channels", variables.workspaceId, null],
+        ["channels", variables.workspace_id],
         (old) => (old ? [...old, newChannel] : [newChannel])
       );
-    },
 
-    onError: (error, variables, context) => {
-      // Rollback on error
-      if (context?.previousChannels) {
-        queryClient.setQueryData<ChannelEntity[]>(
-          ["user-channels", variables.workspaceId, null],
-          context.previousChannels
-        );
-      }
-    },
-
-    onSettled: (data, error, variables, context) => {
-      // Always refetch to ensure consistency
-      if (context?.workspaceId) {
-        queryClient.invalidateQueries({
-          queryKey: ["user-channels", context.workspaceId, null],
-        });
-      }
+      // Invalidate to ensure fresh data
+      queryClient.invalidateQueries({
+        queryKey: ["channels", variables.workspace_id],
+      });
     },
   });
 };

@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Reaction } from "@/features/reactions/types";
+import { Reaction } from "@/types/chat";
 
 interface MessageReactionsProps {
   reactions: Reaction[];
@@ -27,6 +27,7 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
     currentUserId: string;
   }> = ({ reaction, currentUserId }) => {
     const sortedUsers = [...reaction.users].sort((a, b) => {
+      // Put current user first
       if (a.id === currentUserId) return -1;
       if (b.id === currentUserId) return 1;
       return a.name.localeCompare(b.name);
@@ -36,6 +37,7 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
     const visibleUsers = sortedUsers.slice(0, maxVisible);
     const remainingCount = reaction.count - maxVisible;
 
+    // Format the user list text
     const formatUserList = (): string => {
       if (visibleUsers.length === 1) {
         return visibleUsers[0].id === currentUserId
@@ -50,6 +52,7 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
         return `${names[0]} and ${names[1]}`;
       }
 
+      // More than 2 users
       const names = visibleUsers.map((user) =>
         user.id === currentUserId ? "You (click to remove)" : user.name
       );
@@ -65,13 +68,13 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
 
     return (
       <div className="flex flex-col items-center gap-2 p-3 min-w-0 max-w-48">
-        <div className="text-4xl leading-none mb-1">{reaction.value}</div>
+        <div className="text-4xl leading-none mb-1">{reaction.emoji}</div>
 
         <div className="text-center">
           <div className="text-xs font-medium text-foreground mb-1">
             {formatUserList()}{" "}
             <span className="text-xs text-muted-foreground">
-              reacted with {reaction.value}
+              reacted with {reaction.emoji}
             </span>
           </div>
         </div>
@@ -105,9 +108,9 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
                           "hover:bg-interactive-inactive-hover hover:border-interactive-inactive-border-hover hover:text-interactive-inactive-text-hover",
                         ]
                   )}
-                  onClick={() => onReaction(reaction.value)}
+                  onClick={() => onReaction(reaction.emoji)}
                 >
-                  <span className="mr-1">{reaction.value}</span>
+                  <span className="mr-1">{reaction.emoji}</span>
                   <span className="font-medium">{reaction.count}</span>
                 </Button>
               </TooltipTrigger>

@@ -106,7 +106,7 @@ export const channelsApi = {
    */
   createChannel: async (data: CreateChannelData): Promise<ChannelEntity> => {
     const { data: response } = await api.post<ChannelEntity>(
-      `/workspaces/${data.workspaceId}/channels`,
+      `/workspaces/${data.workspace_id}/channels`,
       data
     );
     return response;
