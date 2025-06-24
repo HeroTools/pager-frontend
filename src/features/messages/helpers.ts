@@ -31,7 +31,7 @@ export const transformMessages = (
         })) || [],
       threadCount: msg.thread_reply_count || 0,
       threadParticipants: msg.thread_participants || [],
-      lastReplyAt: msg.thread_last_reply_at || null,
+      threadLastReplyAt: msg.thread_last_reply_at || null,
       isEdited: !!msg.edited_at,
       isOptimistic: msg._isOptimistic || false,
       attachments:

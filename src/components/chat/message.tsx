@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import EmojiPicker from "@/components/emoji-picker";
 import {
@@ -28,6 +28,9 @@ import { MessageReactions } from "./message-reactions";
 import { MessageContent } from "./message-content";
 import { useUIStore } from "@/store/ui-store";
 import { CurrentUser } from "@/features/auth/types";
+import { useGetMembers } from "@/features/members";
+import { useParamIds } from "@/hooks/use-param-ids";
+import ThreadButton from "./thread-button";
 
 interface ChatMessageProps {
   message: Message;
@@ -280,6 +283,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   onReply,
   onReaction,
 }) => {
+  const { workspaceId } = useParamIds();
   const [isHovered, setIsHovered] = useState(false);
   const {
     openEmojiPickerMessageId,
@@ -287,6 +291,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     openThreadMessageId,
     setThreadOpen,
   } = useUIStore();
+  const getMembers = useGetMembers(workspaceId);
+
   const isOwnMessage = message.authorId === currentUser.id;
 
   const isEmojiPickerOpen = openEmojiPickerMessageId === message.id;
@@ -370,14 +376,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           {message?.threadCount &&
           Number(message.threadCount) > 0 &&
           !hideReplies ? (
-            <button
-              onClick={() => setThreadOpen(message)}
-              className="mt-2 flex items-center gap-1 text-xs text-text-accent hover:text-text-accent/80 hover:underline transition-colors"
-            >
-              <MessageSquare className="w-3 h-3" />
-              {message.threadCount}{" "}
-              {message.threadCount === 1 ? "reply" : "replies"}
-            </button>
+            <ThreadButton message={message} members={getMembers.data!} />
           ) : null}
         </div>
       </div>
