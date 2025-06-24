@@ -237,7 +237,6 @@ export const useCreateConversationMessage = (
 ) => {
   const queryClient = useQueryClient();
 
-  // Use the same query key pattern as your infinite query
   const getInfiniteQueryKey = () => [
     "conversation",
     workspaceId,
@@ -264,12 +263,10 @@ export const useCreateConversationMessage = (
         message_type: data.message_type,
       }),
 
-    // Optimistic update - add message immediately to infinite query
     onMutate: async (data) => {
       const threadParentId = data.parent_message_id || data.thread_id;
       const isThreadMessage = Boolean(threadParentId);
 
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({
         queryKey: getInfiniteQueryKey(),
       });
@@ -279,14 +276,12 @@ export const useCreateConversationMessage = (
         });
       }
 
-      // Snapshot previous values
       const previousMessages = queryClient.getQueryData(getInfiniteQueryKey());
       const previousThreadMessages = isThreadMessage
         ? queryClient.getQueryData(getThreadQueryKey(threadParentId))
         : null;
       const currentUser = queryClient.getQueryData(["current-user"]) as any;
 
-      // Optimistically update with temporary message
       const tempMessage: MessageWithUser = {
         id: data._optimisticId || `temp-${Date.now()}-${Math.random()}`,
         body: data.body,
@@ -322,16 +317,13 @@ export const useCreateConversationMessage = (
         _isOptimistic: true,
       };
 
-      // Optimistically update the cache
       if (isThreadMessage) {
-        // Update thread messages
         queryClient.setQueryData(
           getThreadQueryKey(threadParentId),
           (old: any) => {
             if (!old) {
               return {
                 replies: [tempMessage],
-                members: [],
                 pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
               };
             }
@@ -346,7 +338,6 @@ export const useCreateConversationMessage = (
           }
         );
 
-        // Update thread reply count in conversation
         queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
           if (!old?.pages) return old;
           const updatedPages = old.pages.map((page: any) => ({
@@ -363,10 +354,8 @@ export const useCreateConversationMessage = (
           return { ...old, pages: updatedPages };
         });
       } else {
-        // Update conversation messages
         queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
           if (!old || !old.pages || old.pages.length === 0) {
-            // Create initial structure if no data exists
             return {
               pages: [
                 {
@@ -383,7 +372,6 @@ export const useCreateConversationMessage = (
             };
           }
 
-          // Add to the first page (most recent messages)
           const newPages = [...old.pages];
           const firstPage = newPages[0];
 
@@ -414,9 +402,7 @@ export const useCreateConversationMessage = (
       };
     },
 
-    // If the mutation fails, rollback
     onError: (error, variables, context) => {
-      // Rollback optimistic update
       if (context?.previousMessages) {
         queryClient.setQueryData(
           getInfiniteQueryKey(),
@@ -436,10 +422,8 @@ export const useCreateConversationMessage = (
       }
 
       console.error("Failed to send conversation message:", error);
-      // toast.error("Failed to send message. Please try again.");
     },
 
-    // Always refetch after error or success
     onSettled: (data, error, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: getInfiniteQueryKey(),

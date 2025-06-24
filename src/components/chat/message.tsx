@@ -311,8 +311,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   return (
     <div
       className={cn(
-        "group relative px-4 hover:bg-message-hover transition-colors",
-        isCompact ? "py-0.5" : "py-2"
+        "group relative px-4 hover:bg-message-hover transition-colors py-2"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
