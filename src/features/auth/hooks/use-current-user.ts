@@ -11,6 +11,10 @@ export const useCurrentUser = (workspaceId: string) => {
     queryKey: ["current-user"],
     queryFn: () => authApi.getCurrentUser(workspaceId),
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    staleTime: 8 * 60 * 60 * 1000,
   });
 
   return {
