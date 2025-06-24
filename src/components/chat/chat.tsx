@@ -5,6 +5,8 @@ import { ChatMessageList } from "./message-list";
 import Editor from "@/components/editor/editor";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
+import { ChannelMemberData } from "@/types/channel";
+
 
 interface ChatProps {
   channel: Channel;
@@ -28,7 +30,7 @@ interface ChatProps {
   typingUsers?: { id: string; name: string; avatar?: string }[];
   onInputChange?: (value: string) => void;
   onTypingSubmit?: () => void;
-  members?: { id: string; name: string; avatar?: string }[];
+  members?: ChannelMemberData[];
 }
 
 export const Chat: FC<ChatProps> = ({
@@ -69,8 +71,6 @@ export const Chat: FC<ChatProps> = ({
     setEditingMessageId(messageId);
     onEditMessage?.(messageId);
   };
-
-  console.log(channel);
 
   useEffect(() => {
     if (shouldScrollToBottom) {

@@ -3,33 +3,25 @@ import { Channel } from "@/types/chat";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Users, Info, Settings, Lock, Hash, Search, Plus, X, Check, XCircle, MoreVertical } from "lucide-react";
+import { Users, Settings, Lock, Hash, Search, Plus, X, XCircle, MoreVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
   DropdownMenuContent, 
   DropdownMenuItem 
 } from "@/components/ui/dropdown-menu";
-
-interface Member {
-  id: string;
-  name: string;
-  email?: string;
-  avatar?: string;
-  role?: 'admin' | 'member';
-  status?: 'online' | 'offline' | 'away';
-}
-
+import { useRemoveChannelMember } from "@/features/channels";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { toast } from "sonner";
+import { ChannelMemberData } from "@/features/channels/types";
 interface ChannelDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   channel: Channel;
-  members?: Member[];
+  members?: ChannelMemberData[];
   initialTab?: "members" | "settings";
 }
 
@@ -38,12 +30,10 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
   onClose,
   channel,
   members: initialMembers = [],
-<<<<<<< HEAD
   initialTab = "members",
-=======
-  initialTab = "members"
->>>>>>> 6fffb8d (cleaned up settings modal)
 }) => {
+  const workspaceId = useWorkspaceId() as string;
+  const removeChannelMember = useRemoveChannelMember();
   const [activeTab, setActiveTab] = useState<"members" | "settings">(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddingMembers, setIsAddingMembers] = useState(false);
@@ -55,11 +45,11 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
     }
   }, [isOpen, initialTab]);
   const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
-  const [members, setMembers] = useState<Member[]>(initialMembers);
-  const [availableMembers] = useState<Member[]>([
-    { id: '4', name: 'Alex Johnson', email: 'alex@example.com', status: 'online' },
-    { id: '5', name: 'Sam Wilson', email: 'sam@example.com', status: 'away' },
-    { id: '6', name: 'Taylor Swift', email: 'taylor@example.com', status: 'offline' },
+  const [members, setMembers] = useState<ChannelMemberData[]>(initialMembers);
+  const [availableMembers] = useState<ChannelMemberData[]>([
+    { id: '4', name: 'Alex Johnson', email: 'alex@example.com', workspace_member_id: '4' },
+    { id: '5', name: 'Sam Wilson', email: 'sam@example.com', workspace_member_id: '5' },
+    { id: '6', name: 'Taylor Swift', email: 'taylor@example.com', workspace_member_id: '6' },
   ]);
 
   // Update active tab when initialTab prop changes
@@ -79,8 +69,8 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
 
   // Get members not in the channel
   const nonChannelMembers = useMemo(() => {
-    const memberIds = new Set(members.map(m => m.id));
-    return availableMembers.filter(member => !memberIds.has(member.id));
+    const memberIds = new Set(members.map(m => m.workspace_member_id));
+    return availableMembers.filter(member => !memberIds.has(member.workspace_member_id));
   }, [members, availableMembers]);
 
   const handleAddMembers = () => {
@@ -89,8 +79,20 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
     setIsAddingMembers(false);
   };
 
-  const handleRemoveMember = (memberId: string) => {
-    setMembers(prev => prev.filter(m => m.id !== memberId));
+  const handleRemoveMember = async (channelMemberId: string) => {
+    try {
+      await removeChannelMember.mutateAsync({
+        workspaceId,
+        channelId: channel.id,
+        memberId: channelMemberId
+      });
+      
+      setMembers(prev => prev.filter(m => m.id !== channelMemberId));
+      toast.success("Member removed from channel");
+    } catch (error) {
+      console.error("Failed to remove member:", error);
+      toast.error("Failed to remove member from channel");
+    }
   };
 
   return (
@@ -257,13 +259,6 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                                 </AvatarFallback>
                               )}
                             </Avatar>
-                            {member.status && (
-                              <div className={cn(
-                                "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
-                                member.status === 'online' ? 'bg-green-500' : 
-                                member.status === 'away' ? 'bg-yellow-500' : 'bg-gray-400'
-                              )} />
-                            )}
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
@@ -286,7 +281,10 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleRemoveMember(member.id)}
+                            >
                               Remove from channel
                             </DropdownMenuItem>
                           </DropdownMenuContent>

@@ -1,6 +1,5 @@
 import {
   Channel,
-  ChannelWithMembers,
   CreateEntityInput,
   UpdateEntityInput,
   ApiResponse,
@@ -11,8 +10,21 @@ import {
 // Use the database Channel type directly
 export type ChannelEntity = Channel;
 
-// Extended channel type with members (useful for channel lists)
-export type ChannelWithMembersList = ChannelWithMembers;
+// Channel member response from API
+export interface ChannelMemberResponse {
+  channel_member_id: string;
+  channel_role: string;
+  workspace_member_id: string;
+}
+
+export interface ChannelMemberData {
+  id: string;
+  name: string;
+  avatar?: string;
+  role?: "admin" | "member";
+  workspace_member_id: string;
+  email: string;
+}
 
 // Create channel data - based on database fields plus UI-specific fields
 export interface CreateChannelData extends CreateEntityInput<Channel> {
@@ -27,7 +39,6 @@ export type UpdateChannelData = UpdateEntityInput<Channel> & {
 // Channel-specific API response types using the generic ApiResponse
 export type ChannelResponse = ApiResponse<ChannelEntity>;
 export type ChannelsResponse = ApiResponse<ChannelEntity[]>;
-export type ChannelWithMembersResponse = ApiResponse<ChannelWithMembersList>;
 
 // Channel member management types
 export interface AddChannelMemberData {

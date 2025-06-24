@@ -1,23 +1,25 @@
 "use client";
 
 import { AlertTriangle, Loader } from "lucide-react";
-
+import { useMemo } from "react";
 import { Chat } from "@/components/chat/chat";
 import {
   useGetChannel,
   useGetChannelWithMessagesInfinite,
   useRealtimeChannel,
-  useGetChannelWithMembers,
+  useGetChannelMembers,
 } from "@/features/channels";
+import { useGetMembers } from "@/features/members";
 import { useMessageOperations } from "@/features/messages";
 import { useCurrentUser } from "@/features/auth";
 import { Message, User, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
+import { WorkspaceMember } from "@/types/database";
+import { ChannelMemberData } from "@/features/channels/types";
 
 const ChannelChat = () => {
   const { id: channelId, workspaceId } = useParamIds();
-
   const { user: currentUser, isAuthenticated } = useCurrentUser();
 
   // Fetch messages and members using infinite query
@@ -39,10 +41,13 @@ const ChannelChat = () => {
 
   // Fetch channel members for header
   const {
-    data: channelMembersData,
+    data: channelMembersResponse,
     isLoading: isLoadingMembers,
     error: membersError,
-  } = useGetChannelWithMembers(workspaceId, channelId);
+  } = useGetChannelMembers(workspaceId, channelId);
+
+  // Fetch workspace members to get full user data
+  const { data: workspaceMembers } = useGetMembers(workspaceId);
 
   // Real-time subscription for incoming messages and typing indicators
   const { isConnected, connectionStatus } = useRealtimeChannel({
@@ -111,19 +116,28 @@ const ChannelChat = () => {
     status: "online" as const,
   });
 
-  // Transform typing users for display
-  // const transformedTypingUsers = typingUsers.map((tu) => ({
-  //   id: tu.user.id,
-  //   name: tu.user.name,
-  //   avatar: tu.user.image,
-  // }));
 
-  // Transform members for header
-  const members = (channelMembersData || []).map((member: any) => ({
-    id: member.user.id,
-    name: member.user.name,
-    avatar: member.user.image,
-  }));
+  // Transform members for header by combining channel member roles with workspace member data
+  const members = useMemo(() => {
+    if (!channelMembersResponse || !workspaceMembers) return [];
+    
+    return channelMembersResponse.map(channelMember => {
+      const workspaceMember = workspaceMembers.find(
+        (wm: WorkspaceMember) => wm.id === channelMember.workspace_member_id
+      );
+      
+      if (!workspaceMember?.user) return null;
+
+      return {
+        id: channelMember.channel_member_id,
+        name: workspaceMember.user.name,
+        avatar: workspaceMember.user.image || undefined,
+        role: channelMember.channel_role,
+        workspace_member_id: channelMember.workspace_member_id,
+        email: workspaceMember.user.email,
+      } as ChannelMemberData;
+    }).filter((member): member is ChannelMemberData => member !== null);
+  }, [channelMembersResponse, workspaceMembers]);
 
   // Combined loading state
   const isLoading = isLoadingMessages || isLoadingChannel || isLoadingMembers || !currentUser;
