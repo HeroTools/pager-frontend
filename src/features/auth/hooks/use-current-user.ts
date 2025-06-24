@@ -1,16 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { authApi } from "@/features/auth/api/auth-api";
-import type { AuthUser } from "@/features/auth/types";
+import type { CurrentUser } from "@/features/auth/types";
 
-export const useCurrentUser = () => {
+export const useCurrentUser = (workspaceId: string) => {
   const {
     data: user,
     isLoading,
     error,
-  } = useQuery<AuthUser>({
+  } = useQuery<CurrentUser>({
     queryKey: ["current-user"],
-    queryFn: authApi.getCurrentUser,
+    queryFn: () => authApi.getCurrentUser(workspaceId),
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    staleTime: 8 * 60 * 60 * 1000,
   });
 
   return {
@@ -19,12 +23,4 @@ export const useCurrentUser = () => {
     error,
     isAuthenticated: !!user,
   };
-};
-
-// If you need the other hook too, you can keep it
-export const useGetCurrentUser = () => {
-  return useQuery<AuthUser>({
-    queryKey: ["currentUser"],
-    queryFn: authApi.getCurrentUser,
-  });
 };
