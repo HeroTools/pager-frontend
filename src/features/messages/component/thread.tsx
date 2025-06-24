@@ -29,40 +29,7 @@ const Editor = dynamic(() => import("@/components/editor/editor"), {
 });
 
 interface ThreadProps {
-  messageId: string;
   onClose: () => void;
-  // Add the parent message data since we already have it
-  parentMessage: {
-    id: string;
-    body: string;
-    attachment_id: string | null;
-    workspace_member_id: string;
-    created_at: string;
-    updated_at: string | null;
-    edited_at: string | null;
-    thread_id?: string | null;
-    user: {
-      id: string;
-      name: string;
-      email: string;
-      image: string | null;
-    };
-    attachment?: {
-      id: string;
-      url: string;
-      content_type: string | null;
-      size_bytes: number | null;
-    };
-    reactions?: Array<{
-      id: string;
-      value: string;
-      count: number;
-      users: Array<{
-        id: string;
-        name: string;
-      }>;
-    }>;
-  };
 }
 
 const TIME_THRESHOLD = 5; // minutes

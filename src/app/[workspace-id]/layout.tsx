@@ -1,6 +1,5 @@
 "use client";
 
-import { Loader } from "lucide-react";
 import { ReactNode } from "react";
 
 import {
@@ -8,13 +7,10 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { Profile } from "@/features/members/components/profile";
 import { Thread } from "@/features/messages/component/thread";
-import { usePanel } from "@/hooks/use-panel";
 import { Sidebar } from "@/components/side-nav/sidebar";
 import { Toolbar } from "./toolbar";
 import { WorkspaceSidebar } from "@/components/side-nav/workspace-sidebar";
-import { Id } from "@/types";
 import { useUIStore } from "@/store/ui-store";
 
 interface WorkspaceIdLayoutProps {
@@ -44,10 +40,7 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
             <>
               <ResizableHandle />
               <ResizablePanel minSize={20} defaultSize={29}>
-                <Thread
-                  messageId={openThreadMessageId}
-                  onClose={() => setThreadOpen(null)}
-                />
+                <Thread onClose={() => setThreadOpen(null)} />
               </ResizablePanel>
             </>
           )}

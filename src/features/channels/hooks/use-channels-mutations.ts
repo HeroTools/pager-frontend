@@ -14,6 +14,7 @@ import type {
   AddChannelMemberData,
   UpdateChannelMemberData,
   GetChannelMessagesParams,
+  MutateCreateChannelContext,
 } from "../types";
 
 // Get all public and joined channels for a workspace for the user
@@ -125,19 +126,58 @@ export const useGetChannelWithMessagesInfinite = (
 export const useCreateChannel = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<
+    ChannelEntity,
+    Error,
+    CreateChannelData,
+    MutateCreateChannelContext
+  >({
     mutationFn: (data: CreateChannelData) => channelsApi.createChannel(data),
-    onSuccess: (newChannel, variables) => {
-      // Update the channels list cache
+
+    onMutate: async (variables) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: ["user-channels", variables.workspaceId, null],
+      });
+
+      // Snapshot previous value
+      const previousChannels = queryClient.getQueryData<ChannelEntity[]>([
+        "user-channels",
+        variables.workspaceId,
+        null,
+      ]);
+
+      return {
+        workspaceId: variables.workspaceId,
+        previousChannels,
+      };
+    },
+
+    onSuccess: (newChannel, variables, context) => {
+      // Update cache with the new channel
       queryClient.setQueryData<ChannelEntity[]>(
-        ["channels", variables.workspace_id],
+        ["user-channels", variables.workspaceId, null],
         (old) => (old ? [...old, newChannel] : [newChannel])
       );
+    },
 
-      // Invalidate to ensure fresh data
-      queryClient.invalidateQueries({
-        queryKey: ["channels", variables.workspace_id],
-      });
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousChannels) {
+        queryClient.setQueryData<ChannelEntity[]>(
+          ["user-channels", variables.workspaceId, null],
+          context.previousChannels
+        );
+      }
+    },
+
+    onSettled: (data, error, variables, context) => {
+      // Always refetch to ensure consistency
+      if (context?.workspaceId) {
+        queryClient.invalidateQueries({
+          queryKey: ["user-channels", context.workspaceId, null],
+        });
+      }
     },
   });
 };
