@@ -80,12 +80,8 @@ export const Chat: FC<ChatProps> = ({
     );
     
     if (mediaAttachments.length > 0) {
-      // Find the index of the clicked attachment within the filtered media attachments
-      const clickedAttachment = message.attachments[attachmentIndex];
-      const mediaIndex = mediaAttachments.findIndex(attachment => attachment.id === clickedAttachment.id);
-      
       setMediaViewerAttachments(mediaAttachments);
-      setMediaViewerInitialIndex(mediaIndex >= 0 ? mediaIndex : 0);
+      setMediaViewerInitialIndex(attachmentIndex);
       setIsMediaViewerOpen(true);
     }
   };
