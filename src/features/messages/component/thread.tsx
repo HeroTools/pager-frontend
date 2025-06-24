@@ -17,6 +17,7 @@ import { formatDateLabel, transformMessages } from "../helpers";
 import { useToggleReaction } from "@/features/reactions";
 import { Message } from "@/types/chat";
 import { useMessagesStore } from "@/features/messages/store/messages-store";
+import { UploadedAttachment } from "@/features/file-upload/types";
 
 const Editor = dynamic(() => import("@/components/editor/editor"), {
   ssr: false,
@@ -106,12 +107,9 @@ export const Thread = ({ onClose }: ThreadProps) => {
     {} as Record<string, Message[]>
   );
 
-  const handleSubmit = async ({
-    body,
-    image,
-  }: {
+  const handleSubmit = async (content: {
     body: string;
-    image: File | null;
+    attachments: UploadedAttachment[];
   }) => {
     if (!parentMessage || isWaitingForPersistence) {
       toast.error(
@@ -122,8 +120,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
 
     try {
       await createMessage.mutateAsync({
-        body,
-        attachments: [],
+        body: content.body,
+        attachments: content.attachments,
         parent_message_id: parentMessage.id,
         thread_id: parentMessage.threadId || parentMessage.id,
         message_type: "thread",

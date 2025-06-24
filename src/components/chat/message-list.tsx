@@ -1,5 +1,5 @@
 import { FC, Fragment, RefObject, UIEvent, useRef } from "react";
-import { isSameDay } from "date-fns";
+import { differenceInMinutes, isSameDay, parseISO } from "date-fns";
 
 import { Message } from "@/types/chat";
 import { ChatMessage } from "./message";
@@ -19,6 +19,8 @@ interface ChatMessageListProps {
   onScroll?: (e: UIEvent<HTMLDivElement>) => void;
 }
 
+const TIME_THRESHOLD = 5;
+
 export const ChatMessageList: FC<ChatMessageListProps> = ({
   messages,
   currentUser,
@@ -33,12 +35,20 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { isEmojiPickerOpen } = useUIStore();
 
-  const shouldShowAvatar = (message: Message, index: number) => {
-    if (index === 0) return true;
-    const prevMessage = messages[index - 1];
+  const checkCompact = (message: Message, prev: Message) => {
+    const currTime =
+      typeof message.timestamp === "string"
+        ? parseISO(message.timestamp)
+        : message.timestamp;
+    const prevTime =
+      typeof prev.timestamp === "string"
+        ? parseISO(prev.timestamp)
+        : prev.timestamp;
+
     return (
-      prevMessage.authorId !== message.authorId ||
-      !isSameDay(new Date(prevMessage.timestamp), new Date(message.timestamp))
+      prev.authorId === message.authorId &&
+      isSameDay(prevTime, currTime) &&
+      differenceInMinutes(currTime, prevTime) < TIME_THRESHOLD
     );
   };
 
@@ -67,7 +77,14 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
           </div>
         ) : (
           messages.map((message, index) => {
-            const showAvatar = shouldShowAvatar(message, index);
+            const prev = messages[index - 1];
+            let isCompact = false;
+
+            if (prev) {
+              isCompact = checkCompact(message, prev);
+            }
+
+            const showAvatar = !isCompact;
             const showDateDivider = shouldShowDateDivider(message, index);
 
             return (
@@ -85,7 +102,7 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
                   message={message}
                   currentUser={currentUser}
                   showAvatar={showAvatar}
-                  isCompact={!showAvatar}
+                  isCompact={isCompact}
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onReply={onReply}
