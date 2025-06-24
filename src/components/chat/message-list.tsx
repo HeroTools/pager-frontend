@@ -13,6 +13,7 @@ interface ChatMessageListProps {
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onReaction?: (messageId: string, emoji: string) => void;
+  onOpenMediaViewer?: (message: Message, attachmentIndex: number) => void;
 }
 
 export const ChatMessageList: React.FC<ChatMessageListProps> = ({
@@ -23,6 +24,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   onDelete,
   onReply,
   onReaction,
+  onOpenMediaViewer,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { isEmojiPickerOpen } = useUIStore();
@@ -89,6 +91,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
                 onDelete={onDelete}
                 onReply={onReply}
                 onReaction={onReaction}
+                onOpenMediaViewer={onOpenMediaViewer}
               />
             </React.Fragment>
           );

@@ -38,4 +38,5 @@ export interface Attachment {
   id: string;
   size_bytes: number;
   public_url: string;
+  original_filename?: string;
 }

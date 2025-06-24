@@ -33,6 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageReactions } from "./message-reactions";
 import { MessageContent } from "./message-content";
 import { useUIStore } from "@/store/ui-store";
+import { MediaViewerModal } from "@/components/media-viewer-modal";
 
 interface ChatMessageProps {
   message: Message;
@@ -43,9 +44,10 @@ interface ChatMessageProps {
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onReaction?: (messageId: string, emoji: string) => void;
+  onOpenMediaViewer?: (message: Message, attachmentIndex: number) => void;
 }
 
-const ImageAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
+const ImageAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => void }> = ({ attachment, onOpenMediaViewer }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
@@ -64,7 +66,7 @@ const ImageAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
       ) : (
         <img
           src={attachment.public_url}
-          alt={attachment.filename || "Uploaded image"}
+          alt={attachment.original_filename || "Uploaded image"}
           className={cn(
             "rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity",
             !isLoaded && "opacity-0"
@@ -72,6 +74,7 @@ const ImageAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
           loading="lazy"
+          onClick={onOpenMediaViewer}
         />
       )}
       <div className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
@@ -79,7 +82,10 @@ const ImageAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           variant="secondary"
           size="sm"
           className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
-          onClick={() => window.open(attachment.public_url, "_blank")}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(attachment.public_url, "_blank");
+          }}
         >
           <Download className="w-4 h-4 text-white" />
         </Button>
@@ -88,18 +94,15 @@ const ImageAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   );
 };
 
-const VideoAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
+const VideoAttachment: FC<{ attachment: Attachment; onOpenMediaViewer: () => void }> = ({ attachment, onOpenMediaViewer }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
   return (
-    <div className="relative group/video max-w-md">
+    <div className="relative group/video max-w-md cursor-pointer" onClick={onOpenMediaViewer}>
       <video
         src={attachment.public_url}
-        className="rounded-lg max-w-full h-auto"
-        controls
+        className="rounded-lg max-w-full h-auto pointer-events-none"
         preload="metadata"
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
       >
         Your browser does not support the video tag.
       </video>
@@ -108,7 +111,10 @@ const VideoAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           variant="secondary"
           size="sm"
           className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
-          onClick={() => window.open(attachment.public_url, "_blank")}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(attachment.public_url, "_blank");
+          }}
         >
           <Download className="w-4 h-4 text-white" />
         </Button>
@@ -124,7 +130,7 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
         <Music className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {attachment.filename || "Audio file"}
+            {attachment.original_filename || "Audio file"}
           </p>
           {attachment.size_bytes && (
             <p className="text-xs text-muted-foreground">
@@ -175,10 +181,10 @@ const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
       onClick={() => window.open(attachment.public_url, "_blank")}
     >
       <div className="flex items-center gap-3">
-        {getFileIcon(attachment.filename || "")}
+        {getFileIcon(attachment.original_filename || "")}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {attachment.filename || "Document"}
+            {attachment.original_filename || "Document"}
           </p>
           {attachment.size_bytes && (
             <p className="text-xs text-muted-foreground">
@@ -203,7 +209,7 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
         <File className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {attachment.filename || "File"}
+            {attachment.original_filename || "File"}
           </p>
           {attachment.size_bytes && (
             <p className="text-xs text-muted-foreground">
@@ -217,17 +223,17 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   );
 };
 
-const AttachmentGrid: FC<{ attachments: Attachment[] }> = ({ attachments }) => {
-  const renderAttachment = (attachment: Attachment) => {
+const AttachmentGrid: FC<{ attachments: Attachment[]; onOpenMediaViewer: (attachment: Attachment, index: number) => void }> = ({ attachments, onOpenMediaViewer }) => {
+  const renderAttachment = (attachment: Attachment, index: number) => {
     const mimeType = attachment.content_type || "";
-    const filename = attachment.filename || "";
+    const filename = attachment.original_filename || "";
 
     if (mimeType.startsWith("image/")) {
-      return <ImageAttachment key={attachment.id} attachment={attachment} />;
+      return <ImageAttachment key={attachment.id} attachment={attachment} onOpenMediaViewer={() => onOpenMediaViewer(attachment, index)} />;
     }
 
     if (mimeType.startsWith("video/")) {
-      return <VideoAttachment key={attachment.id} attachment={attachment} />;
+      return <VideoAttachment key={attachment.id} attachment={attachment} onOpenMediaViewer={() => onOpenMediaViewer(attachment, index)} />;
     }
 
     if (mimeType.startsWith("audio/")) {
@@ -254,10 +260,10 @@ const AttachmentGrid: FC<{ attachments: Attachment[] }> = ({ attachments }) => {
   return (
     <div className="mt-2">
       {attachments.length === 1 ? (
-        renderAttachment(attachments[0])
+        renderAttachment(attachments[0], 0)
       ) : (
         <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 max-w-2xl">
-          {attachments.map(renderAttachment)}
+          {attachments.map((attachment, index) => renderAttachment(attachment, index))}
         </div>
       )}
     </div>
@@ -282,6 +288,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   onDelete,
   onReply,
   onReaction,
+  onOpenMediaViewer,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const { openEmojiPickerMessageId, setEmojiPickerOpen } = useUIStore();
@@ -296,6 +303,10 @@ export const ChatMessage: FC<ChatMessageProps> = ({
 
   const handleEmojiPickerToggle = (open: boolean) => {
     setEmojiPickerOpen(open ? message.id : null);
+  };
+
+  const handleOpenMediaViewer = (attachment: Attachment, index: number) => {
+    onOpenMediaViewer?.(message, index);
   };
 
   const shouldShowActions = isHovered || isEmojiPickerOpen;
@@ -354,7 +365,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           </div>
 
           {message.attachments && message.attachments.length > 0 && (
-            <AttachmentGrid attachments={message.attachments} />
+            <AttachmentGrid attachments={message.attachments} onOpenMediaViewer={handleOpenMediaViewer} />
           )}
 
           {message?.reactions && message.reactions?.length > 0 ? (
