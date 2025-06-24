@@ -41,19 +41,15 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <h2 className="font-semibold text-lg text-foreground">
           {channel.name}
         </h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 text-muted-foreground"
-        >
-          <Star className="w-4 h-4" />
-        </Button>
       </div>
 
       <div className="flex items-center gap-3">
         {/* Member Avatars - click to open channel details */}
         <Button 
-          onClick={() => openModal("members")}
+          onClick={() => {
+            setModalInitialTab("members");
+            setDetailsModalOpen(true);
+          }}
           variant="ghost"
           className="flex items-center -space-x-2 focus:outline-none group relative px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
           title="Channel details"
@@ -89,10 +85,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem onClick={() => {
-              openModal("settings");
+              setModalInitialTab("settings");
+              setDetailsModalOpen(true);
             }}>
               <Settings className="w-4 h-4 mr-2" />
-               Settings
+              Settings
             </DropdownMenuItem>
             <DropdownMenuItem className="text-destructive focus:text-destructive">
               <LogOut className="w-4 h-4 mr-2" />
@@ -100,15 +97,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        {/* Member count and info button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onToggleDetails}
-          className="h-8 w-8 p-0"
-        >
-          <Info className="w-4 h-4 text-muted-foreground" />
-        </Button>
       </div>
       
       <ChannelDetailsModal 

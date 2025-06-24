@@ -38,7 +38,11 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
   onClose,
   channel,
   members: initialMembers = [],
+<<<<<<< HEAD
   initialTab = "members",
+=======
+  initialTab = "members"
+>>>>>>> 6fffb8d (cleaned up settings modal)
 }) => {
   const [activeTab, setActiveTab] = useState<"members" | "settings">(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,6 +61,11 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
     { id: '5', name: 'Sam Wilson', email: 'sam@example.com', status: 'away' },
     { id: '6', name: 'Taylor Swift', email: 'taylor@example.com', status: 'offline' },
   ]);
+
+  // Update active tab when initialTab prop changes
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   // Filter members based on search query
   const filteredMembers = useMemo(() => {
