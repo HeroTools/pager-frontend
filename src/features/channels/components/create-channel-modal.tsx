@@ -28,13 +28,14 @@ export const CreateChannelModal = () => {
   const [channelType, setChannelType] = useState<ChannelType>("public");
   const [invites, setInvites] = useState<string[]>([]);
   const [inviteInput, setInviteInput] = useState("");
-  const [inviteMode, setInviteMode] = useState<'all' | 'specific'>('specific');
+  const [inviteMode, setInviteMode] = useState<"all" | "specific">("specific");
 
   const { open, setOpen } = useCreateChannelModal();
 
   const { mutateAsync, isPending } = useCreateChannel();
 
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleClose = () => {
     setName("");
@@ -42,7 +43,7 @@ export const CreateChannelModal = () => {
     setChannelType("public");
     setInvites([]);
     setInviteInput("");
-    setInviteMode('specific');
+    setInviteMode("specific");
     setOpen(false);
   };
 
@@ -58,7 +59,11 @@ export const CreateChannelModal = () => {
 
   const handleInviteAdd = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (inviteInput && isValidEmail(inviteInput) && !invites.includes(inviteInput)) {
+    if (
+      inviteInput &&
+      isValidEmail(inviteInput) &&
+      !invites.includes(inviteInput)
+    ) {
       setInvites([...invites, inviteInput]);
       setInviteInput("");
     }
@@ -75,13 +80,13 @@ export const CreateChannelModal = () => {
     }
     mutateAsync({
       name,
-      workspace_id: workspaceId,
-      channel_type: channelType,
+      workspaceId,
+      channelType,
     })
       .then(async (channel) => {
         // Invite teammates after channel creation
         let emailsToInvite = invites;
-        if (inviteMode === 'all') {
+        if (inviteMode === "all") {
           // TODO: Fetch all workspace member emails and invite them here
           // For now, just skip inviting specific emails
           emailsToInvite = [];
@@ -89,15 +94,17 @@ export const CreateChannelModal = () => {
         await Promise.all(
           emailsToInvite.map(async (email) => {
             try {
-              await channelsApi.addChannelMember(workspaceId, channel.channelId, { workspace_member_id: email });
+              await channelsApi.addChannelMember(workspaceId, channel.id, {
+                workspace_member_id: email,
+              });
             } catch (err) {
               // Optionally handle errors for individual invites
               console.error(`Failed to invite ${email}:`, err);
             }
           })
         );
-      
-        router.push(`/${workspaceId}/c-${channel.channelId}`);
+
+        router.push(`/${workspaceId}/c-${channel.id}`);
         handleClose();
         toast.success("Channel created");
       })
@@ -130,7 +137,12 @@ export const CreateChannelModal = () => {
         {step === 1 && (
           <form className="space-y-4" onSubmit={handleNext}>
             <div>
-              <label htmlFor="channel-name" className="mb-2 block text-sm font-medium">Channel name</label>
+              <label
+                htmlFor="channel-name"
+                className="mb-2 block text-sm font-medium"
+              >
+                Channel name
+              </label>
               <div className="relative">
                 {channelType === "public" ? (
                   <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
@@ -155,8 +167,14 @@ export const CreateChannelModal = () => {
               <div className="mb-2 text-sm font-medium">Channel type</div>
               <RadioGroup
                 options={[
-                  { label: "Public - Anyone in the workspace can join", value: "public" },
-                  { label: "Private - Only invited people can join", value: "private" },
+                  {
+                    label: "Public - Anyone in the workspace can join",
+                    value: "public",
+                  },
+                  {
+                    label: "Private - Only invited people can join",
+                    value: "private",
+                  },
                 ]}
                 value={channelType}
                 onChange={(val) => setChannelType(val as ChannelType)}
@@ -170,7 +188,7 @@ export const CreateChannelModal = () => {
         )}
         {step === 2 && (
           <>
-            {channelType === 'private' ? (
+            {channelType === "private" ? (
               <form className="space-y-4" onSubmit={handleInviteAdd}>
                 <div className="mb-2 text-sm font-medium">Invite teammates</div>
                 <div className="flex gap-2">
@@ -180,13 +198,23 @@ export const CreateChannelModal = () => {
                     placeholder="Enter email address"
                     disabled={isPending}
                   />
-                  <Button type="submit" disabled={isPending || !isValidEmail(inviteInput) || invites.includes(inviteInput)}>
+                  <Button
+                    type="submit"
+                    disabled={
+                      isPending ||
+                      !isValidEmail(inviteInput) ||
+                      invites.includes(inviteInput)
+                    }
+                  >
                     Add
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {invites.map((email) => (
-                    <span key={email} className="flex items-center cursor-pointer bg-muted px-2 py-1 rounded text-xs">
+                    <span
+                      key={email}
+                      className="flex items-center cursor-pointer bg-muted px-2 py-1 rounded text-xs"
+                    >
                       {email}
                       <Button
                         type="button"
@@ -207,17 +235,22 @@ export const CreateChannelModal = () => {
                 <div className="mb-4">
                   <RadioGroup
                     options={[
-                      { label: "Add all members of the workspace", value: "all" },
+                      {
+                        label: "Add all members of the workspace",
+                        value: "all",
+                      },
                       { label: "Add specific people", value: "specific" },
                     ]}
                     value={inviteMode}
-                    onChange={(val) => setInviteMode(val as 'all' | 'specific')}
+                    onChange={(val) => setInviteMode(val as "all" | "specific")}
                     name="invite-mode"
                   />
                 </div>
-                {inviteMode === 'specific' && (
+                {inviteMode === "specific" && (
                   <form className="space-y-4" onSubmit={handleInviteAdd}>
-                    <div className="mb-2 text-sm font-medium">Invite teammates</div>
+                    <div className="mb-2 text-sm font-medium">
+                      Invite teammates
+                    </div>
                     <div className="flex gap-2">
                       <Input
                         value={inviteInput}
@@ -225,13 +258,23 @@ export const CreateChannelModal = () => {
                         placeholder="Enter email address"
                         disabled={isPending}
                       />
-                      <Button type="submit" disabled={isPending || !isValidEmail(inviteInput) || invites.includes(inviteInput)}>
+                      <Button
+                        type="submit"
+                        disabled={
+                          isPending ||
+                          !isValidEmail(inviteInput) ||
+                          invites.includes(inviteInput)
+                        }
+                      >
                         Add
                       </Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {invites.map((email) => (
-                        <span key={email} className="flex items-center cursor-pointer bg-muted px-2 py-1 rounded text-xs">
+                        <span
+                          key={email}
+                          className="flex items-center cursor-pointer bg-muted px-2 py-1 rounded text-xs"
+                        >
                           {email}
                           <Button
                             type="button"
@@ -251,10 +294,24 @@ export const CreateChannelModal = () => {
               </>
             )}
             <div className="flex justify-between mt-4">
-              <Button variant="outline" onClick={() => setStep(1)} disabled={isPending}>Back</Button>
+              <Button
+                variant="outline"
+                onClick={() => setStep(1)}
+                disabled={isPending}
+              >
+                Back
+              </Button>
               <div className="flex gap-2">
-                <Button variant="ghost" onClick={handleFinish} disabled={isPending}>Skip for now</Button>
-                <Button onClick={handleFinish} disabled={isPending}>Finish</Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleFinish}
+                  disabled={isPending}
+                >
+                  Skip for now
+                </Button>
+                <Button onClick={handleFinish} disabled={isPending}>
+                  Finish
+                </Button>
               </div>
             </div>
           </>
