@@ -118,26 +118,14 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="max-w-none w-screen h-screen p-0 bg-black/95 border-0"
+        className="max-w-none w-[90vw] h-[90vh] p-0 bg-black/95 border-0 rounded-lg"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div 
-          className="relative w-full h-full flex items-center justify-center"
+          className="relative w-full h-full flex items-center justify-center overflow-hidden"
           onMouseEnter={() => setShowControls(true)}
           onMouseLeave={() => setShowControls(false)}
         >
-          {/* Close button */}
-          {/* <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "absolute top-4 right-4 z-50 h-10 w-10 bg-black/50 hover:bg-black/70 text-white border-0 transition-opacity duration-200",
-              showControls ? "opacity-100" : "opacity-0"
-            )}
-            onClick={onClose}
-          >
-            <X className="h-5 w-5" />
-          </Button> */}
 
           {/* Navigation arrows */}
           {attachments.length > 1 && (
@@ -229,7 +217,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           </div>
 
           {/* Media content */}
-          <div className="relative max-w-full max-h-full flex items-center justify-center">
+          <div className="relative flex items-center justify-center" style={{ width: 'calc(100% - 2rem)', height: 'calc(100% - 2rem)' }}>
             {isLoading && !hasError && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -263,7 +251,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             ) : isVideo ? (
               <video
                 src={currentAttachment.public_url}
-                className="max-w-full max-h-full"
+                className="max-w-full max-h-full object-contain"
                 controls
                 autoPlay
                 onLoadedData={() => setIsLoading(false)}
