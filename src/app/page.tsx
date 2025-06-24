@@ -26,7 +26,7 @@ export default function Home() {
 
   return (
     <div>
-      <UserButton />
+      <UserButton workspaceId={workspaceId!} />
     </div>
   );
 }

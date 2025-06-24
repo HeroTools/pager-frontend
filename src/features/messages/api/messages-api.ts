@@ -240,21 +240,6 @@ export const messagesApi = {
   },
 
   /**
-   * toggle reaction from message
-   */
-  toggleReaction: async (
-    action: "add" | "remove",
-    workspaceId: string,
-    messageId: string,
-    reactionValue: string
-  ): Promise<void> => {
-    await api.post(
-      `/workspaces/${workspaceId}/messages/${messageId}/reactions/toggle`,
-      { action, value: reactionValue }
-    );
-  },
-
-  /**
    * Search messages across workspace
    */
   searchMessages: async (

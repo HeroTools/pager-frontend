@@ -1,15 +1,16 @@
 import { FC, useCallback, useEffect, useRef, useState, UIEvent } from "react";
-import { Message, User, Channel } from "@/types/chat";
+import { Message, Channel } from "@/types/chat";
 import { ChatHeader } from "./header";
 import { ChatMessageList } from "./message-list";
 import Editor from "@/components/editor/editor";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
+import { CurrentUser } from "@/features/auth";
 
 interface ChatProps {
   channel: Channel;
   messages: Message[];
-  currentUser: User;
+  currentUser: CurrentUser;
   chatType?: "conversation" | "channel";
   onLoadMore: () => void;
   hasMoreMessages: boolean;
