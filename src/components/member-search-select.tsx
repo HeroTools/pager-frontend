@@ -83,7 +83,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
         {selectedMembers.map((member) => (
           <div
             key={member.id}
-            className="flex items-center gap-1.5 px-2 py-1 bg-accent text-primary-foreground rounded text-sm"
+            className="flex items-center gap-1.5 px-2 py-1 bg-accent text-accent-foreground rounded text-sm"
           >
             <span className="text-lg">
               {member.user?.image ? (
