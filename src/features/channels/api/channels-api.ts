@@ -134,16 +134,6 @@ export const channelsApi = {
   },
 
   /**
-   * Leave a channel
-   */
-  leaveChannel: async (
-    workspaceId: string,
-    channelId: string
-  ): Promise<void> => {
-    await api.post(`/workspaces/${workspaceId}/channels/${channelId}/leave`);
-  },
-
-  /**
    * Add a member to a channel
    */
   addChannelMembers: async (
