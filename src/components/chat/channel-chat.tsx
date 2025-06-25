@@ -82,13 +82,6 @@ const ChannelChat = () => {
     memberCount: channelData.members?.length || 0,
   });
 
-  const transformCurrentUser = (userData: any): Author => ({
-    id: userData.id,
-    name: userData.name,
-    avatar: userData.image,
-    status: "online" as const,
-  });
-
   const members = useMemo(() => {
     if (!channelMembersResponse || !workspaceMembers) return [];
 
@@ -136,7 +129,7 @@ const ChannelChat = () => {
   }
 
   const allMessages =
-    channelWithMessages.pages?.flatMap((page, pageIndex) => {
+    channelWithMessages.pages?.flatMap((page) => {
       return page?.messages || [];
     }) || [];
 

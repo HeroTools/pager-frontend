@@ -1,16 +1,33 @@
 import React, { useState } from "react";
-import { Hash, Lock, Users, MoreVertical, Settings, LogOut } from "lucide-react";
+import {
+  Hash,
+  Lock,
+  Users,
+  MoreVertical,
+  Settings,
+  LogOut,
+} from "lucide-react";
 import { Channel } from "@/types/chat";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { ChannelDetailsModal } from "./channel-details-modal";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { ChannelDetailsModal } from "../channel-details-modal";
 import { ChannelMemberData } from "@/features/channels/types";
 import { useRemoveChannelMembers } from "@/features/channels";
 import { useCurrentUser } from "@/features/auth";
 import { useGetMembers } from "@/features/members";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useParamIds } from "@/hooks/use-param-ids";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -26,13 +43,15 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   members = [],
 }) => {
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
-  const [modalInitialTab, setModalInitialTab] = useState<"members" | "settings">("members");
+  const [modalInitialTab, setModalInitialTab] = useState<
+    "members" | "settings"
+  >("members");
+  const { workspaceId } = useParamIds();
   const removeChannelMembers = useRemoveChannelMembers();
-  const { user } = useCurrentUser();
-  const workspaceId = useWorkspaceId() as string;
+  const { user } = useCurrentUser(workspaceId);
   const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
   const router = useRouter();
-  
+
   // Show up to 4 avatars, then a +N indicator
   const maxAvatars = 4;
   const visibleMembers = members.slice(0, maxAvatars);
@@ -50,8 +69,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     }
 
     // First find the workspace member for the current user
-    const currentWorkspaceMember = workspaceMembers.find(wm => 
-      wm.user.id === user.id
+    const currentWorkspaceMember = workspaceMembers.find(
+      (wm) => wm.id === user.workspace_member_id
     );
 
     if (!currentWorkspaceMember) {
@@ -60,8 +79,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     }
 
     // Then find the channel member using the workspace member ID
-    const currentChannelMember = members.find(member => 
-      member.workspace_member_id === currentWorkspaceMember.id
+    const currentChannelMember = members.find(
+      (member) => member.workspace_member_id === currentWorkspaceMember.id
     );
 
     if (!currentChannelMember) {
@@ -75,7 +94,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         channelId: channel.id,
         channelMemberIds: [currentChannelMember.id],
       });
-      
+
       toast.success("Left channel successfully");
       // Navigate away from the channel
       router.push(`/${workspaceId}`);
@@ -100,7 +119,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
       <div className="flex items-center gap-3">
         {/* Member Avatars - click to open channel details */}
-        <Button 
+        <Button
           onClick={() => {
             setModalInitialTab("members");
             setDetailsModalOpen(true);
@@ -117,7 +136,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     {member.avatar ? (
                       <AvatarImage src={member.avatar} alt={member.name} />
                     ) : (
-                      <AvatarFallback>{member.name?.[0] || <Users className="w-4 h-4" />}</AvatarFallback>
+                      <AvatarFallback>
+                        {member.name?.[0] || <Users className="w-4 h-4" />}
+                      </AvatarFallback>
                     )}
                   </Avatar>
                 </TooltipTrigger>
@@ -139,14 +160,16 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => {
-              setModalInitialTab("settings");
-              setDetailsModalOpen(true);
-            }}>
+            <DropdownMenuItem
+              onClick={() => {
+                setModalInitialTab("settings");
+                setDetailsModalOpen(true);
+              }}
+            >
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={handleLeaveChannel}
               disabled={removeChannelMembers.isPending}
@@ -157,8 +180,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      
-      <ChannelDetailsModal 
+
+      <ChannelDetailsModal
         isOpen={isDetailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
         channel={channel}
