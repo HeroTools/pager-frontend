@@ -73,8 +73,8 @@ export const useGetChannelWithMessages = (
     queryFn: () =>
       channelsApi.getChannelWithMessages(workspaceId, channelId, params),
     enabled: !!(workspaceId && channelId),
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    gcTime: 300000, // Keep in cache for 5 minutes
+    staleTime: 2 * 60 * 60 * 1000, // Consider data fresh for 2 hours
+    gcTime: 2 * 60 * 60 * 1000, // Keep in cache for 2 hours
   });
 };
 
@@ -100,8 +100,8 @@ export const useGetChannelWithMessagesInfinite = (
 
       return pagination.hasMore ? pagination.nextCursor : undefined;
     },
-    staleTime: 30000,
-    gcTime: 300000,
+    staleTime: 2 * 60 * 60 * 1000,
+    gcTime: 2 * 60 * 60 * 1000,
     initialPageParam: undefined as string | undefined,
     select: (data) => ({
       pages: data.pages,
