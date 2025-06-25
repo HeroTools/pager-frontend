@@ -91,7 +91,7 @@ const ImageAttachment: FC<{
       ) : (
         <img
           src={attachment.publicUrl}
-          alt={attachment.originalFilename || "Uploaded image"}
+          alt={filename || "Uploaded image"}
           className={cn(
             "rounded-lg cursor-pointer hover:opacity-90 transition-opacity border",
             fixedHeight ? "object-cover" : "object-contain",
@@ -174,7 +174,6 @@ const VideoAttachment: FC<{
           maxWidth: `${maxWidth}px`,
           minWidth: fixedHeight ? "120px" : "auto",
         }}
-        controls
         preload="metadata"
         onLoadedMetadata={handleLoadedMetadata}
       >
@@ -308,6 +307,7 @@ const AttachmentGrid: FC<{
   attachments: Attachment[];
   onOpenMediaViewer: (attachments: Attachment[], initialIndex: number) => void;
 }> = ({ attachments, onOpenMediaViewer }) => {
+
   const renderAttachment = (
     attachment: Attachment,
     index: number,

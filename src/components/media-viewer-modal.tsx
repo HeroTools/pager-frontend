@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, Download, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 import { Attachment } from "@/types/chat";
@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 // Helper function for consistent filename handling
 const getAttachmentFilename = (attachment: Attachment, fallback = "Untitled") => 
-  (attachment as any).original_filename || fallback;
+  attachment.originalFilename || fallback;
 
 interface MediaViewerModalProps {
   isOpen: boolean;
@@ -30,8 +30,8 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   const [showControls, setShowControls] = useState(false);
 
   const currentAttachment = attachments[currentIndex];
-  const isImage = currentAttachment?.content_type?.startsWith("image/");
-  const isVideo = currentAttachment?.content_type?.startsWith("video/");
+  const isImage = currentAttachment?.contentType?.startsWith("image/");
+  const isVideo = currentAttachment?.contentType?.startsWith("video/");
 
   // Reset state when modal opens/closes or attachment changes
   useEffect(() => {
@@ -108,7 +108,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   const handleDownload = () => {
     if (currentAttachment) {
       const link = document.createElement("a");
-      link.href = currentAttachment.public_url;
+      link.href = currentAttachment.publicUrl;
       link.download = getAttachmentFilename(currentAttachment, "download");
       link.target = "_blank";
       document.body.appendChild(link);
@@ -125,6 +125,9 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
         className="max-w-none w-[90vw] h-[90vh] p-0 bg-background/95 backdrop-blur-sm border-border rounded-lg"
         onPointerDown={(e) => e.stopPropagation()}
       >
+        <DialogTitle className="sr-only">
+          Media Viewer - {getAttachmentFilename(currentAttachment)}
+        </DialogTitle>
         <div 
           className="relative w-full h-full flex items-center justify-center overflow-hidden"
           onMouseEnter={() => setShowControls(true)}
@@ -235,7 +238,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
               </div>
             ) : isImage ? (
               <img
-                src={currentAttachment.public_url}
+                src={currentAttachment.publicUrl}
                 alt={getAttachmentFilename(currentAttachment, "Image")}
                 className={cn(
                   "max-w-full max-h-full object-contain transition-all duration-200",
@@ -254,10 +257,10 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
               />
             ) : isVideo ? (
               <video
-                src={currentAttachment.public_url}
+                src={currentAttachment.publicUrl}
                 className="max-w-full max-h-full object-contain"
-                controls
                 autoPlay
+                controls
                 onLoadedData={() => setIsLoading(false)}
                 onError={() => {
                   setIsLoading(false);
@@ -270,7 +273,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
               <div className="text-foreground text-center">
                 <p className="text-lg font-medium">Preview not available</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {currentAttachment.original_filename || "Unknown file"}
+                  {currentAttachment.originalFilename || "Unknown file"}
                 </p>
                 <Button
                   variant="outline"
