@@ -7,6 +7,12 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { ChannelDetailsModal } from "./channel-details-modal";
 import { ChannelMemberData } from "@/features/channels/types";
+import { useRemoveChannelMembers } from "@/features/channels";
+import { useCurrentUser } from "@/features/auth";
+import { useGetMembers } from "@/features/members";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface ChatHeaderProps {
   channel: Channel;
@@ -21,6 +27,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<"members" | "settings">("members");
+  const removeChannelMembers = useRemoveChannelMembers();
+  const { user } = useCurrentUser();
+  const workspaceId = useWorkspaceId() as string;
+  const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
+  const router = useRouter();
+  
   // Show up to 4 avatars, then a +N indicator
   const maxAvatars = 4;
   const visibleMembers = members.slice(0, maxAvatars);
@@ -29,6 +41,48 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const openModal = (tab: "members" | "settings" = "members") => {
     setModalInitialTab(tab);
     setDetailsModalOpen(true);
+  };
+
+  const handleLeaveChannel = async () => {
+    if (!user) {
+      toast.error("User not found");
+      return;
+    }
+
+    // First find the workspace member for the current user
+    const currentWorkspaceMember = workspaceMembers.find(wm => 
+      wm.user.id === user.id
+    );
+
+    if (!currentWorkspaceMember) {
+      toast.error("Unable to leave channel - workspace membership not found");
+      return;
+    }
+
+    // Then find the channel member using the workspace member ID
+    const currentChannelMember = members.find(member => 
+      member.workspace_member_id === currentWorkspaceMember.id
+    );
+
+    if (!currentChannelMember) {
+      toast.error("Unable to leave channel - channel membership not found");
+      return;
+    }
+
+    try {
+      await removeChannelMembers.mutateAsync({
+        workspaceId,
+        channelId: channel.id,
+        channelMemberIds: [currentChannelMember.id],
+      });
+      
+      toast.success("Left channel successfully");
+      // Navigate away from the channel
+      router.push(`/${workspaceId}`);
+    } catch (error) {
+      console.error("Failed to leave channel:", error);
+      toast.error("Failed to leave channel");
+    }
   };
 
   return (
@@ -92,9 +146,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
+            <DropdownMenuItem 
+              className="text-destructive focus:text-destructive"
+              onClick={handleLeaveChannel}
+              disabled={removeChannelMembers.isPending}
+            >
               <LogOut className="w-4 h-4 mr-2" />
-              Leave channel
+              {removeChannelMembers.isPending ? "Leaving..." : "Leave channel"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

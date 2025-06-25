@@ -16,10 +16,12 @@ import {
 import { useRemoveChannelMembers, useAddChannelMembers } from "@/features/channels";
 import { useGetMembers } from "@/features/members";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useCurrentUser } from "@/features/auth";
 import { toast } from "sonner";
 import { ChannelMemberData } from "@/features/channels/types";
 import MemberSearchSelect from "@/components/member-search-select";
 import { MemberWithUser } from "@/features/members/types";
+import { useRouter } from "next/navigation";
 
 interface RemoveConfirmationProps {
   isOpen: boolean;
@@ -141,7 +143,9 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
   const workspaceId = useWorkspaceId() as string;
   const removeChannelMembers = useRemoveChannelMembers();
   const addChannelMembers = useAddChannelMembers();
+  const { user } = useCurrentUser();
   const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
+  const router = useRouter();
   
   const [activeTab, setActiveTab] = useState<"members" | "settings">(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
@@ -207,9 +211,48 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
     return channelMembers.map(m => m.workspace_member_id);
   }, [channelMembers]);
 
-  console.log(channelMembers, 'channelMembers');
-  console.log(filteredMembers, 'filteredMembers');
-  // console.log(, 'filteredMembers');
+  const handleLeaveChannel = async () => {
+    if (!user) {
+      toast.error("User not found");
+      return;
+    }
+
+    // First find the workspace member for the current user
+    const currentWorkspaceMember = workspaceMembers.find(wm => 
+      wm.user.id === user.id
+    );
+
+    if (!currentWorkspaceMember) {
+      toast.error("Unable to leave channel - workspace membership not found");
+      return;
+    }
+
+    // Then find the channel member using the workspace member ID
+    const currentChannelMember = channelMembers.find(member => 
+      member.workspace_member_id === currentWorkspaceMember.id
+    );
+
+    if (!currentChannelMember) {
+      toast.error("Unable to leave channel - channel membership not found");
+      return;
+    }
+
+    try {
+      await removeChannelMembers.mutateAsync({
+        workspaceId,
+        channelId: channel.id,
+        channelMemberIds: [currentChannelMember.id],
+      });
+      
+      toast.success("Left channel successfully");
+      onClose(); // Close the modal
+      // Navigate away from the channel
+      router.push(`/${workspaceId}`);
+    } catch (error) {
+      console.error("Failed to leave channel:", error);
+      toast.error("Failed to leave channel");
+    }
+  };
 
   return (
     <>
@@ -362,9 +405,14 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                 </div>
                 
                 <div className="pt-4 border-t">
-                  <Button variant="destructive" className="gap-2">
+                  <Button 
+                    variant="destructive" 
+                    className="gap-2"
+                    onClick={handleLeaveChannel}
+                    disabled={removeChannelMembers.isPending}
+                  >
                     <XCircle className="h-4 w-4" />
-                    Leave Channel
+                    {removeChannelMembers.isPending ? "Leaving..." : "Leave Channel"}
                   </Button>
                 </div>
               </div>

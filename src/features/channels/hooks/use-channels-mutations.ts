@@ -13,6 +13,7 @@ import type {
   AddChannelMembersData,
   UpdateChannelMemberData,
   GetChannelMessagesParams,
+  ChannelMemberData,
 } from "../types";
 
 // Get all public and joined channels for a workspace for the user
@@ -168,37 +169,6 @@ export const useJoinChannel = () => {
       workspaceId: string;
       channelId: string;
     }) => channelsApi.joinChannel(workspaceId, channelId),
-    onSuccess: (_, variables) => {
-      // Invalidate channels list to refresh membership status
-      queryClient.invalidateQueries({
-        queryKey: ["channels", variables.workspaceId],
-      });
-
-      // Invalidate channel with members to refresh member list
-      queryClient.invalidateQueries({
-        queryKey: [
-          "channel",
-          variables.workspaceId,
-          variables.channelId,
-          "members",
-        ],
-      });
-    },
-  });
-};
-
-// Leave a channel
-export const useLeaveChannel = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      workspaceId,
-      channelId,
-    }: {
-      workspaceId: string;
-      channelId: string;
-    }) => channelsApi.leaveChannel(workspaceId, channelId),
     onSuccess: (_, variables) => {
       // Invalidate channels list to refresh membership status
       queryClient.invalidateQueries({
