@@ -13,10 +13,14 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem 
 } from "@/components/ui/dropdown-menu";
-import { useRemoveChannelMember } from "@/features/channels";
+import { useRemoveChannelMember, useAddChannelMembers } from "@/features/channels";
+import { useGetMembers } from "@/features/members";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { toast } from "sonner";
-import { ChannelMemberData } from "@/features/channels/types";
+import { ChannelMemberResponse, ChannelMemberData } from "@/features/channels/types";
+import { MemberWithUser } from "@/features/members/types";
+import MemberSearchSelect from "@/components/member-search-select";
+
 interface ChannelDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,14 +33,18 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
   isOpen,
   onClose,
   channel,
-  members: initialMembers = [],
+  members: channelMembers = [],
   initialTab = "members",
 }) => {
   const workspaceId = useWorkspaceId() as string;
   const removeChannelMember = useRemoveChannelMember();
+  const addChannelMembers = useAddChannelMembers();
+  const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
+  
   const [activeTab, setActiveTab] = useState<"members" | "settings">(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddingMembers, setIsAddingMembers] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<ChannelMemberData[]>([]);
 
   // Update active tab when initialTab changes
   useEffect(() => {
@@ -44,39 +52,35 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
       setActiveTab(initialTab);
     }
   }, [isOpen, initialTab]);
-  const [selectedMembers, setSelectedMembers] = useState<ChannelMemberData[]>([]);
-  const [members, setMembers] = useState<ChannelMemberData[]>(initialMembers);
-  const [availableMembers] = useState<ChannelMemberData[]>([
-    { id: '4', name: 'Alex Johnson', email: 'alex@example.com', workspace_member_id: '4' },
-    { id: '5', name: 'Sam Wilson', email: 'sam@example.com', workspace_member_id: '5' },
-    { id: '6', name: 'Taylor Swift', email: 'taylor@example.com', workspace_member_id: '6' },
-  ]);
-
-  // Update active tab when initialTab prop changes
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
 
   // Filter members based on search query
   const filteredMembers = useMemo(() => {
-    if (!searchQuery) return members;
+    if (!searchQuery) return channelMembers;
     const query = searchQuery.toLowerCase();
-    return members.filter(member => 
-      member.name.toLowerCase().includes(query) || 
-      member.email?.toLowerCase().includes(query)
-    );
-  }, [members, searchQuery]);
+    return channelMembers.filter(member => {
+      const workspaceMember = workspaceMembers.find(wm => wm.id === member.workspace_member_id);
+      return workspaceMember?.user.name.toLowerCase().includes(query) || 
+             workspaceMember?.user.email?.toLowerCase().includes(query);
+    });
+  }, [channelMembers, searchQuery, workspaceMembers]);
 
-  // Get members not in the channel
-  const nonChannelMembers = useMemo(() => {
-    const memberIds = new Set(members.map(m => m.workspace_member_id));
-    return availableMembers.filter(member => !memberIds.has(member.workspace_member_id));
-  }, [members, availableMembers]);
-
-  const handleAddMembers = () => {
-    setMembers(prev => [...prev, ...selectedMembers]);
-    setSelectedMembers([]);
-    setIsAddingMembers(false);
+  const handleAddMembers = async () => {
+    try {
+      await addChannelMembers.mutateAsync({
+        workspaceId,
+        channelId: channel.id,
+        data: {
+          workspace_member_ids: selectedMembers.map(member => member.workspace_member_id)
+        }
+      });
+      
+      setSelectedMembers([]);
+      setIsAddingMembers(false);
+      toast.success("Members added to channel");
+    } catch (error) {
+      console.error("Failed to add members:", error);
+      toast.error("Failed to add members to channel");
+    }
   };
 
   const handleRemoveMember = async (channelMemberId: string) => {
@@ -87,13 +91,22 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
         memberId: channelMemberId
       });
       
-      setMembers(prev => prev.filter(m => m.id !== channelMemberId));
       toast.success("Member removed from channel");
     } catch (error) {
       console.error("Failed to remove member:", error);
       toast.error("Failed to remove member from channel");
     }
   };
+
+  // Get the list of workspace members that can be added
+  const availableMembers = useMemo(() => {
+    return workspaceMembers;
+  }, [workspaceMembers]);
+
+  // Get the list of existing member IDs
+  const existingMemberIds = useMemo(() => {
+    return channelMembers.map(m => m.workspace_member_id);
+  }, [channelMembers]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -113,7 +126,7 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
           <div className="px-6">
             <TabsList className="w-full grid grid-cols-2">
               <TabsTrigger value="members" className="flex items-center gap-2">
-                <Users className="w-4 h-4" /> Members {members.length > 0 && `(${members.length})`}
+                <Users className="w-4 h-4" /> Members {channelMembers.length > 0 && `(${channelMembers.length})`}
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="w-4 h-4" /> Settings
@@ -160,63 +173,15 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  
-                  {selectedMembers.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedMembers.map(member => (
-                        <div key={member.id} className="flex items-center gap-1 bg-muted px-2 py-1 rounded-full text-sm">
-                          <span>{member.name}</span>
-                          <button 
-                            onClick={() => setSelectedMembers(prev => prev.filter(m => m.id !== member.id))}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <ScrollArea className="h-32 border rounded-md">
-                    <div className="p-2 space-y-1">
-                      {nonChannelMembers.length > 0 ? (
-                        nonChannelMembers.map(member => (
-                          <div 
-                            key={member.id} 
-                            className="flex items-center justify-between p-2 rounded hover:bg-muted/50"
-                          >
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback>
-                                  {member.name?.[0]?.toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="text-sm font-medium">{member.name}</p>
-                                <p className="text-xs text-muted-foreground">{member.email}</p>
-                              </div>
-                            </div>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                if (!selectedMembers.some(m => m.id === member.id)) {
-                                  setSelectedMembers(prev => [...prev, member]);
-                                }
-                              }}
-                              disabled={selectedMembers.some(m => m.id === member.id)}
-                            >
-                              {selectedMembers.some(m => m.id === member.id) ? 'Added' : 'Add'}
-                            </Button>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-4 text-sm text-muted-foreground">
-                          No members available to add
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
+
+                  <MemberSearchSelect
+                    selectedMembers={selectedMembers}
+                    onMemberSelect={(member) => setSelectedMembers(prev => [...prev, member])}
+                    onMemberRemove={(memberId) => setSelectedMembers(prev => prev.filter(m => m.id !== memberId))}
+                    availableMembers={availableMembers}
+                    existingMemberIds={existingMemberIds}
+                    placeholder="Search for members to add..."
+                  />
                   
                   <div className="flex justify-end gap-2">
                     <Button 
@@ -243,54 +208,59 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
               <ScrollArea className="h-[300px] pr-4">
                 <div className="space-y-1">
                   {filteredMembers.length > 0 ? (
-                    filteredMembers.map((member) => (
-                      <div 
-                        key={member.id} 
-                        className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <Avatar className="h-10 w-10">
-                              {member.avatar ? (
-                                <AvatarImage src={member.avatar} alt={member.name} />
-                              ) : (
-                                <AvatarFallback>
-                                  {member.name?.[0]?.toUpperCase() || 'U'}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{member.name}</p>
-                              {member.role === 'admin' && (
-                                <span className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
-                                  Admin
-                                </span>
-                              )}
+                    filteredMembers.map((member) => {
+                      const workspaceMember = workspaceMembers.find(wm => wm.id === member.workspace_member_id);
+                      if (!workspaceMember) return null;
+
+                      return (
+                        <div 
+                          key={member.channel_member_id} 
+                          className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <Avatar className="h-10 w-10">
+                                {workspaceMember.user.image ? (
+                                  <AvatarImage src={workspaceMember.user.image} alt={workspaceMember.user.name} />
+                                ) : (
+                                  <AvatarFallback>
+                                    {workspaceMember.user.name?.[0]?.toUpperCase() || 'U'}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              {member.email || 'Member'}
-                            </p>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{workspaceMember.user.name}</p>
+                                {member.channel_role === 'admin' && (
+                                  <span className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
+                                    Admin
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {workspaceMember.user.email || 'Member'}
+                              </p>
+                            </div>
                           </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => handleRemoveMember(member.channel_member_id)}
+                              >
+                                Remove from channel
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleRemoveMember(member.id)}
-                            >
-                              Remove from channel
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       No members found

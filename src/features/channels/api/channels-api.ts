@@ -5,7 +5,7 @@ import type {
   UpdateChannelData,
   ChannelResponse,
   ChannelsResponse,
-  AddChannelMemberData,
+  AddChannelMembersData,
   UpdateChannelMemberData,
   ChannelFilters,
   ChannelWithMessages,
@@ -146,10 +146,10 @@ export const channelsApi = {
   /**
    * Add a member to a channel
    */
-  addChannelMember: async (
+  addChannelMembers: async (
     workspaceId: string,
     channelId: string,
-    data: AddChannelMemberData
+    data: AddChannelMembersData
   ): Promise<void> => {
     await api.post(
       `/workspaces/${workspaceId}/channels/${channelId}/members`,

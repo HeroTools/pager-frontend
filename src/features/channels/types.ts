@@ -41,9 +41,8 @@ export type ChannelResponse = ApiResponse<ChannelEntity>;
 export type ChannelsResponse = ApiResponse<ChannelEntity[]>;
 
 // Channel member management types
-export interface AddChannelMemberData {
-  workspace_member_id: string;
-  role?: "admin" | "member";
+export interface AddChannelMembersData {
+  workspace_member_ids: string[];
 }
 
 export interface UpdateChannelMemberData {
