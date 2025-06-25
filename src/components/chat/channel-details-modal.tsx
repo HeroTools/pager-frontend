@@ -9,6 +9,7 @@ import {
   X,
   XCircle,
   MoreVertical,
+  UserSearch,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -31,116 +32,11 @@ import {
   useAddChannelMembers,
   type ChannelMemberData,
 } from "@/features/channels";
-import { useGetMembers, type MemberWithUser } from "@/features/members";
+import { useGetMembers } from "@/features/members";
 import { useCurrentUser } from "@/features/auth";
-import MemberSearchSelect from "@/components/member-search-select";
 import { useParamIds } from "@/hooks/use-param-ids";
-
-interface RemoveConfirmationProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  channelName: string;
-  memberName: string;
-  isPrivate: boolean;
-}
-
-const RemoveConfirmation: FC<RemoveConfirmationProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  channelName,
-  memberName,
-  isPrivate,
-}) => (
-  <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-    <DialogContent className="sm:max-w-md">
-      <DialogTitle>
-        Remove {memberName} from #{channelName}?
-      </DialogTitle>
-      <p className="text-sm text-muted-foreground mt-2">
-        {!isPrivate
-          ? "They'll still be able to rejoin, or be added to the conversation."
-          : "They won't be able to rejoin unless they are invited by someone in this channel."}
-      </p>
-      <div className="flex justify-end gap-3 mt-4">
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button variant="destructive" onClick={onConfirm}>
-          Remove
-        </Button>
-      </div>
-    </DialogContent>
-  </Dialog>
-);
-
-interface AddMembersDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  channel: Channel;
-  onAddMembers: (memberIds: string[]) => void;
-  existingMemberIds: string[];
-}
-
-const AddMembersDialog: FC<AddMembersDialogProps> = ({
-  isOpen,
-  onClose,
-  channel,
-  onAddMembers,
-  existingMemberIds,
-}) => {
-  const { workspaceId } = useParamIds();
-  const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
-  const [selectedMembers, setSelectedMembers] = useState<MemberWithUser[]>([]);
-
-  const handleSubmit = () => {
-    onAddMembers(selectedMembers.map((member) => member.id));
-    setSelectedMembers([]);
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <DialogTitle className="text-xl">
-            Add people to #{channel.name}
-          </DialogTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <MemberSearchSelect
-          selectedMembers={selectedMembers}
-          onMemberSelect={(member) =>
-            setSelectedMembers((prev) => [...prev, member])
-          }
-          onMemberRemove={(memberId) =>
-            setSelectedMembers((prev) => prev.filter((m) => m.id !== memberId))
-          }
-          availableMembers={workspaceMembers}
-          existingMemberIds={existingMemberIds}
-          placeholder="ex. Nathalie, or james@acme.com"
-        />
-
-        <div className="flex justify-end mt-4">
-          <Button
-            onClick={handleSubmit}
-            disabled={selectedMembers.length === 0}
-          >
-            Add
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
+import AddMembersDialog from "../add-people-to-channel-modal";
+import RemoveConfirmation from "../remove-member-from-channel-modal";
 
 interface ChannelDetailsModalProps {
   isOpen: boolean;
@@ -316,9 +212,9 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
               className="flex-1 overflow-hidden flex flex-col mt-0"
             >
               <div className="p-6 pt-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <div className="flex items-center justify-between gap-7">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       type="text"
                       placeholder="Search members..."
@@ -326,14 +222,25 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
+                    {searchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-1 top-1/2 -translate-y-1/2"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-2"
+                    className="gap-1"
                     onClick={() => setIsAddingMembers(true)}
                   >
-                    <Plus className="h-4 w-4" /> Add people
+                    <Plus className="h-4 w-4" />
+                    Add people
                   </Button>
                 </div>
 
@@ -412,8 +319,17 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                         );
                       })
                     ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No members found
+                      <div className="text-center py-12">
+                        <UserSearch className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground font-medium mb-4">
+                          No members found
+                        </p>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsAddingMembers(true)}
+                        >
+                          Invite member
+                        </Button>
                       </div>
                     )}
                   </div>
