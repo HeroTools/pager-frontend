@@ -1,6 +1,9 @@
-import { ManagedAttachment } from "@/features/file-upload/types";
 import { X, Loader2, PlayIcon, FileIcon } from "lucide-react";
-import { useDeleteAttachment } from "@/features/file-upload/hooks/use-upload";
+
+import {
+  useDeleteAttachment,
+  type ManagedAttachment,
+} from "@/features/file-upload";
 
 const AttachmentPreview = ({
   attachment,

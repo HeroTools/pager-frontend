@@ -8,6 +8,7 @@ interface MemberSearchSelectProps {
   onMemberRemove: (memberId: string) => void;
   availableMembers: MemberWithUser[];
   placeholder?: string;
+  existingMemberIds?: string[];
 }
 
 const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
@@ -16,6 +17,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
   onMemberRemove,
   availableMembers,
   placeholder = "Search for people...",
+  existingMemberIds = [],
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -81,7 +83,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
         {selectedMembers.map((member) => (
           <div
             key={member.id}
-            className="flex items-center gap-1.5 px-2 py-1 bg-accent text-primary-foreground rounded text-sm"
+            className="flex items-center gap-1.5 px-2 py-1 bg-accent text-accent-foreground rounded text-sm"
           >
             <span className="text-lg">
               {member.user?.image ? (
@@ -127,42 +129,49 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
 
       {isOpen && filteredMembers.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border-subtle rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-          {filteredMembers.map((member) => (
-            <button
-              key={member.id}
-              onClick={() => handleMemberSelect(member)}
-              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left cursor-pointer"
-            >
-              <div className="relative">
-                <span className="text-lg">
-                  {member.user?.image ? (
-                    <img
-                      src={member.user.image}
-                      alt={member.user.name || "User"}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-medium text-secondary-foreground">
-                      {member.user?.name?.charAt(0).toUpperCase() || "U"}
-                    </div>
-                  )}
-                </span>
-                <div
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-popover ${getStatusColor(
-                    member.user?.status
-                  )}`}
-                />
-              </div>
-              <div className="flex-1">
-                <div className="font-medium text-sm text-popover-foreground">
-                  {member.user?.name}
+          {filteredMembers.map((member) => {
+            const isExistingMember = existingMemberIds.includes(member.id);
+            
+            return (
+              <button
+                key={member.id}
+                onClick={() => !isExistingMember && handleMemberSelect(member)}
+                className={`w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left cursor-pointer ${
+                  isExistingMember ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={isExistingMember}
+              >
+                <div className="relative">
+                  <span className="text-lg">
+                    {member.user?.image ? (
+                      <img
+                        src={member.user.image}
+                        alt={member.user.name || "User"}
+                        className="w-8 h-8 rounded-full"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-medium text-secondary-foreground">
+                        {member.user?.name?.charAt(0).toUpperCase() || "U"}
+                      </div>
+                    )}
+                  </span>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {member.user?.email}
+                <div className="flex-1">
+                  <div className="font-medium text-sm text-popover-foreground">
+                    {member.user?.name}
+                    {isExistingMember && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (Already in channel)
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {member.user?.email}
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

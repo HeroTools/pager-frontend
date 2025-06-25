@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { workspacesApi } from "../api/workspaces-api";
 import type {
   WorkspaceEntity,
@@ -7,6 +8,7 @@ import type {
   UpdateWorkspaceData,
   WorkspaceInviteInfoResponse,
 } from "../types";
+import type { CurrentUser } from "@/features/auth";
 
 // Get all workspaces
 export const useGetWorkspaces = () => {
@@ -59,18 +61,33 @@ export const useCreateWorkspace = () => {
     mutationFn: (data: CreateWorkspaceData) =>
       workspacesApi.createWorkspace(data),
     onSuccess: (newWorkspace) => {
-      // Add the new workspace to the cache
-      queryClient.setQueryData<WorkspaceEntity[]>(["workspaces"], (old) =>
-        old ? [...old, newWorkspace] : [newWorkspace]
-      );
+      const userId = queryClient.getQueryData<CurrentUser>([
+        "current-user",
+      ])?.id;
+      if (!userId) return;
+      const workspaceEntity: WorkspaceEntity = {
+        id: newWorkspace.id,
+        name: newWorkspace.name,
+        user_role: newWorkspace.role,
+        user_id: userId,
+        is_owner: true,
+        member_count: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      queryClient.setQueryData<WorkspaceEntity[]>(["workspaces"], (old) => {
+        return old ? [...old, workspaceEntity] : [workspaceEntity];
+      });
 
-      // Cache the individual workspace
       queryClient.setQueryData<WorkspaceEntity>(
         ["workspace", newWorkspace.id],
-        newWorkspace
+        {
+          ...workspaceEntity,
+          _isPartial: true,
+        }
       );
-
-      // Invalidate to ensure fresh data
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: ["workspaces"],
       });

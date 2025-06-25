@@ -39,6 +39,7 @@ export interface User extends BaseEntity {
 export interface Workspace extends BaseEntity {
   name: string;
   user_id: string;
+  role?: WorkspaceMemberRole;
 }
 
 export interface WorkspaceMember extends BaseEntity {
@@ -188,17 +189,6 @@ export interface WorkspaceWithMembers extends Workspace {
   members?: (WorkspaceMember & { user: User })[];
   channels?: Channel[];
   owner?: User;
-}
-
-export interface ChannelWithMembers extends Channel {
-  members?: (ChannelMember & {
-    workspace_member: WorkspaceMember & { user: User };
-  })[];
-  workspace?: Workspace;
-  _count?: {
-    members: number;
-    messages: number;
-  };
 }
 
 export interface MessageWithRelations extends Message {
