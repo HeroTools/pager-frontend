@@ -32,9 +32,9 @@ export const CreateWorkspaceModal = () => {
   };
 
   const handleCreateWorkspace = form.handleSubmit(async ({ name }) => {
-    const workspaceId = await mutateAsync({ name });
+    const workspace = await mutateAsync({ name });
     toast.success("Workspace created");
-    router.push(`/${workspaceId}`);
+    router.push(`/${workspace.id}`);
     handleClose();
   });
 
