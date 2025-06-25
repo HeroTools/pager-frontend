@@ -23,9 +23,14 @@ interface SignUpCardProps {
   setState: (state: SignInFlow) => void;
   hideSignInLink?: boolean;
   inviteToken?: string;
-  }
+}
 
-export const SignUpCard = ({ onSuccess, hideSignInLink = false, inviteToken }: SignUpCardProps) => {
+export const SignUpCard = ({
+  onSuccess,
+  setState,
+  hideSignInLink = false,
+  inviteToken,
+}: SignUpCardProps) => {
   const signUp = useSignUp();
   const [signingUp, setSigningUp] = useState(false);
   const [error, setError] = useState("");
@@ -84,7 +89,7 @@ export const SignUpCard = ({ onSuccess, hideSignInLink = false, inviteToken }: S
         const error: any = err;
         if (error instanceof Error) {
           setError(error.message);
-        } else if (error && typeof error === 'object' && 'response' in error) {
+        } else if (error && typeof error === "object" && "response" in error) {
           const response: any = error.response;
           if (response && response.data) {
             const data: any = response.data;
@@ -114,7 +119,9 @@ export const SignUpCard = ({ onSuccess, hideSignInLink = false, inviteToken }: S
     setError("");
 
     try {
-      const response = await authApi.googleSignIn(`${window.location.origin}/auth/callback`);
+      const response = await authApi.googleSignIn(
+        `${window.location.origin}/auth/callback`
+      );
       // Redirect to OAuth provider if url exists
       if (response.url) {
         window.location.href = response.url;
@@ -191,9 +198,7 @@ export const SignUpCard = ({ onSuccess, hideSignInLink = false, inviteToken }: S
           {!hideSignInLink && (
             <p className="text-xs text-muted-foreground">
               Already have an account?{" "}
-              <span
-                className="text-primary hover:underline cursor-pointer"
-              >
+              <span className="text-primary hover:underline cursor-pointer">
                 Sign in
               </span>
             </p>
@@ -304,6 +309,7 @@ export const SignUpCard = ({ onSuccess, hideSignInLink = false, inviteToken }: S
           <p className="text-xs text-muted-foreground">
             Already have an account?{" "}
             <span
+              onClick={() => setState("signIn")}
               className="text-primary hover:underline cursor-pointer"
             >
               Sign in
@@ -314,13 +320,3 @@ export const SignUpCard = ({ onSuccess, hideSignInLink = false, inviteToken }: S
     </Card>
   );
 };
-
-function isApiError(err: unknown): err is { response: { data?: { error?: string } } } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'response' in err &&
-    typeof (err as any).response === 'object' &&
-    (err as any).response !== null
-  );
-}
