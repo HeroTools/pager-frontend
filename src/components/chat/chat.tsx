@@ -1,11 +1,12 @@
 import { FC, useCallback, useEffect, useRef, useState, UIEvent } from "react";
-import { Message, Channel } from "@/types/chat";
+import type { Message, Channel, Attachment } from "@/types/chat";
 import { ChatHeader } from "./header";
 import { ChatMessageList } from "./message-list";
 import Editor from "@/components/editor/editor";
 import { useParamIds } from "@/hooks/use-param-ids";
-import { UploadedAttachment } from "@/features/file-upload/types";
-import { CurrentUser } from "@/features/auth";
+import type { UploadedAttachment } from "@/features/file-upload";
+import { MediaViewerModal } from "@/components/media-viewer-modal";
+import type { CurrentUser } from "@/features/auth";
 
 interface ChatProps {
   channel: Channel;
@@ -52,6 +53,11 @@ export const Chat: FC<ChatProps> = ({
 }) => {
   const { workspaceId } = useParamIds();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
+  const [mediaViewerAttachments, setMediaViewerAttachments] = useState<
+    Attachment[]
+  >([]);
+  const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
 
@@ -66,6 +72,33 @@ export const Chat: FC<ChatProps> = ({
   const handleEditMessage = (messageId: string) => {
     setEditingMessageId(messageId);
     onEditMessage?.(messageId);
+  };
+
+  const handleOpenMediaViewer = (message: Message, attachmentIndex: number) => {
+    // Get all viewable attachments (images, videos, and documents)
+    const viewableAttachments = message.attachments.filter((attachment) => {
+      const mimeType = attachment.contentType || "";
+      const filename = attachment.originalFilename || "";
+      const extension = filename.split(".").pop()?.toLowerCase();
+
+      return (
+        attachment.contentType?.startsWith("image/") ||
+        attachment.contentType?.startsWith("video/") ||
+        mimeType.includes("pdf") ||
+        mimeType.includes("document") ||
+        mimeType.includes("spreadsheet") ||
+        mimeType.includes("presentation") ||
+        ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(
+          extension || ""
+        )
+      );
+    });
+
+    if (viewableAttachments.length > 0) {
+      setMediaViewerAttachments(viewableAttachments);
+      setMediaViewerInitialIndex(attachmentIndex);
+      setIsMediaViewerOpen(true);
+    }
   };
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
@@ -157,6 +190,13 @@ export const Chat: FC<ChatProps> = ({
           maxFileSizeBytes={20 * 1024 * 1024}
         />
       </div>
+
+      <MediaViewerModal
+        isOpen={isMediaViewerOpen}
+        onClose={() => setIsMediaViewerOpen(false)}
+        attachments={mediaViewerAttachments}
+        initialIndex={mediaViewerInitialIndex}
+      />
     </div>
   );
 };
