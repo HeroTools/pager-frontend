@@ -80,14 +80,6 @@ export const Toolbar = () => {
           </CommandList>
         </CommandDialog>
       </div>
-      <div className="ml-auto flex-1 flex items-center justify-end">
-        {/* TODO: Implement info button */}
-        <InDevelopmentHint>
-          <Button variant="transparent" size="iconSm" disabled>
-            <Info className="size-5 text-muted-foreground" />
-          </Button>
-        </InDevelopmentHint>
-      </div>
     </div>
   );
 };
