@@ -10,10 +10,17 @@ import {
 import { useCurrentUser } from "../hooks/use-current-user";
 import { Loader, LogOutIcon } from "lucide-react";
 import { useSignOut } from "../hooks/use-auth-mutations";
+import { subscriptionManager } from "@/lib/realtime/subscription-manager";
 
 export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
   const { user, isLoading } = useCurrentUser(workspaceId);
+
   const signOut = useSignOut();
+
+  const handleSignOut = () => {
+    subscriptionManager.cleanup();
+    signOut.mutate();
+  };
 
   if (isLoading) {
     return <Loader className="size-4 animate-spin text-muted-foreground" />;
@@ -25,7 +32,7 @@ export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger className="outline-none relative">
+      <DropdownMenuTrigger className="outline-none relative cursor-pointer">
         <Avatar className="rounded-md size-10 hover:opacity-75 transition">
           <AvatarImage
             className="rounded-md"
@@ -38,7 +45,7 @@ export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" side="right" className="w-60">
-        <DropdownMenuItem onClick={() => signOut.mutate()} className="h-10">
+        <DropdownMenuItem onClick={handleSignOut} className="h-10">
           <LogOutIcon className="size-4 mr-2" />
           Log out
         </DropdownMenuItem>
