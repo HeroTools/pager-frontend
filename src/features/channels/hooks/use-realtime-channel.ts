@@ -1,8 +1,7 @@
-// src/hooks/useRealtimeChannel.ts
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/client";
-import { MessageWithUser, ChannelWithMessages } from "../types";
+import { subscriptionManager } from "@/lib/realtime/subscription-manager";
+import type { MessageWithUser, ChannelWithMessages } from "../types";
 
 interface UseRealtimeChannelProps {
   workspaceId: string;
@@ -16,6 +15,9 @@ interface InfiniteQueryData {
   pageParams: (string | undefined)[];
 }
 
+/**
+ * Hook to manage real-time message events via SubscriptionManager.
+ */
 export const useRealtimeChannel = ({
   workspaceId,
   channelId,
@@ -23,81 +25,130 @@ export const useRealtimeChannel = ({
   enabled = true,
 }: UseRealtimeChannelProps) => {
   const queryClient = useQueryClient();
+  const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<
-    "CONNECTING" | "SUBSCRIBED" | "CHANNEL_ERROR" | "CLOSED"
+    "CONNECTING" | "SUBSCRIBED" | "CHANNEL_ERROR" | "CLOSED" | "TIMED_OUT"
   >("CONNECTING");
-  const channelRef = useRef<any>(null);
 
-  // Stable query-key generator
-  const getQueryKey = useMemo(
-    () => () => ["channel", workspaceId, channelId, "messages", "infinite"],
-    [workspaceId, channelId]
-  );
+  // Use refs to track cleanup functions
+  const cleanupFnsRef = useRef<(() => void)[]>([]);
+
+  // Generate a stable key for React Query
+  const getQueryKey = () => [
+    "channel",
+    workspaceId,
+    channelId,
+    "messages",
+    "infinite",
+  ];
+  const topic = `channel:${channelId}`;
 
   useEffect(() => {
     if (!enabled || !channelId || !workspaceId || !currentUserId) return;
 
-    // Tear down any existing subscription
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    setConnectionStatus("CONNECTING");
+    const cleanupFns: (() => void)[] = [];
 
-    // Create a new realtime “channel”
-    const channel = supabase
-      .channel(`channel:${channelId}`, {
-        config: { broadcast: { self: false } },
-      })
-      .on(
-        "broadcast",
-        { event: "new_message" },
-        ({ payload }: { payload: any }) => {
-          const message = payload.message as MessageWithUser;
-          // ignore our own messages
-          if (message.user?.id === currentUserId) return;
+    // Handler: New messages
+    const handleNewMessage = (payload: any) => {
+      const message = payload.message as MessageWithUser;
+      if (message.user?.id === currentUserId) return;
 
-          queryClient.setQueryData<InfiniteQueryData>(getQueryKey(), (old) => {
-            if (!old) return old;
-            // skip duplicates
-            const exists = old.pages.some((page) =>
-              page.messages.some((m) => m.id === message.id)
-            );
-            if (exists) return old;
-            // prepend to first page
-            const newPages = [...old.pages];
-            if (newPages[0]) {
-              newPages[0] = {
-                ...newPages[0],
-                messages: [message, ...newPages[0].messages],
-              };
-            }
-            return { ...old, pages: newPages };
-          });
+      queryClient.setQueryData<InfiniteQueryData>(getQueryKey(), (old) => {
+        if (!old?.pages?.length) {
+          return {
+            pages: [
+              {
+                messages: [message],
+                members: [],
+                pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
+              },
+            ],
+            pageParams: [undefined],
+          };
         }
-      );
 
-    console.log("subscribing to channel:", channelId);
-    channel.subscribe((status, error) => {
-      console.log(`Realtime status for channel ${channelId}:`, status);
-      setConnectionStatus(status as any);
-      if (status === "CHANNEL_ERROR") {
-        console.error("Realtime error:", error);
-      }
-    });
+        const exists = old.pages.some((page) =>
+          page.messages.some((m) => m.id === message.id)
+        );
+        if (exists) return old;
 
-    channelRef.current = channel;
-
-    return () => {
-      console.log("cleaning up channel subscription:", channelId);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+        const newPages = [...old.pages];
+        newPages[0] = {
+          ...newPages[0],
+          messages: [message, ...newPages[0].messages],
+          pagination: {
+            ...newPages[0].pagination,
+            totalCount: newPages[0].pagination.totalCount + 1,
+          },
+        };
+        return { ...old, pages: newPages };
+      });
     };
-  }, [channelId, workspaceId, currentUserId, enabled, queryClient]);
 
-  return {
-    isConnected: connectionStatus === "SUBSCRIBED",
-    connectionStatus,
-  };
+    // Handler: Message updates
+    const handleMessageUpdated = (payload: any) => {
+      const updated = payload.message as MessageWithUser;
+      queryClient.setQueryData<InfiniteQueryData>(getQueryKey(), (old) => {
+        if (!old?.pages?.length) return old;
+        const newPages = old.pages.map((page) => ({
+          ...page,
+          messages: page.messages.map((msg) =>
+            msg.id === updated.id ? updated : msg
+          ),
+        }));
+        return { ...old, pages: newPages };
+      });
+    };
+
+    // Handler: Message deletions
+    const handleMessageDeleted = (payload: any) => {
+      const deletedId = payload.messageId as string;
+      queryClient.setQueryData<InfiniteQueryData>(getQueryKey(), (old) => {
+        if (!old?.pages?.length) return old;
+        const newPages = old.pages.map((page) => ({
+          ...page,
+          messages: page.messages.filter((m) => m.id !== deletedId),
+        }));
+        return { ...old, pages: newPages };
+      });
+    };
+
+    // Subscribe to broadcast events and store cleanup functions
+    subscriptionManager.subscribeBroadcast(
+      topic,
+      "new_message",
+      handleNewMessage
+    );
+
+    subscriptionManager.subscribeBroadcast(
+      topic,
+      "message_updated",
+      handleMessageUpdated
+    );
+
+    subscriptionManager.subscribeBroadcast(
+      topic,
+      "message_deleted",
+      handleMessageDeleted
+    );
+
+    // Listen to connection status updates
+    const handleStatusChange = (status: string) => {
+      setConnectionStatus(status as any);
+      setIsConnected(status === "SUBSCRIBED");
+    };
+
+    subscriptionManager.onStatusChange(topic, handleStatusChange);
+
+    // Cleanup on unmount or dependency change
+    return () => {
+      subscriptionManager.unsubscribe(topic);
+
+      // Remove status listener
+      subscriptionManager.offStatusChange(topic, handleStatusChange);
+    };
+  }, [topic, workspaceId, channelId, currentUserId, enabled, queryClient]);
+
+  return { isConnected, connectionStatus };
 };

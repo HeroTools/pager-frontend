@@ -4,7 +4,7 @@ import { TriangleAlert, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, supabase } from "@/lib/supabase/client";
 import {
   Card,
   CardContent,
@@ -37,7 +37,6 @@ export const SignUpCard = ({
   const [emailSent, setEmailSent] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const router = useRouter();
-  const supabase = createClient();
 
   const form = useForm({
     defaultValues: {
