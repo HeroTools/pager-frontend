@@ -1,4 +1,4 @@
-import { FC, useMemo, useState } from "react";
+import { FC, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import EmojiPicker from "@/components/emoji-picker";
 import {
@@ -9,14 +9,13 @@ import {
   Trash2,
   Download,
   File,
-  FileText,
   Music,
-  Archive,
   Image as ImageIcon,
   Play,
 } from "lucide-react";
 import { Message, Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
+import { getFileIcon } from "@/lib/helpers";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageReactions } from "./message-reactions";
@@ -32,23 +31,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 
-// Constants for consistent sizing
 const ATTACHMENT_SIZES = {
   SINGLE: { maxHeight: 300, maxWidth: 400 },
   MULTI: { maxHeight: 250, maxWidth: 250, fixedHeight: 250 },
 } as const;
-
-// Helper function for consistent filename handling
-const getAttachmentFilename = (attachment: Attachment, fallback = "Untitled") =>
-  attachment.originalFilename || fallback;
-
-// Helper to check if attachment is media
-const isMediaAttachment = (attachment: Attachment) => {
-  const mimeType = attachment.contentType || "";
-  return mimeType.startsWith("image/") || mimeType.startsWith("video/");
-};
 
 interface ChatMessageProps {
   message: Message;
@@ -74,7 +62,7 @@ const ImageAttachment: FC<{
   const { maxHeight, maxWidth } = isSingle
     ? ATTACHMENT_SIZES.SINGLE
     : ATTACHMENT_SIZES.MULTI;
-  const filename = getAttachmentFilename(attachment, "Uploaded image");
+  const filename = attachment.originalFilename || "Uploaded image";
 
   return (
     <div className="relative group/image flex-shrink-0">
@@ -180,7 +168,6 @@ const VideoAttachment: FC<{
         Your browser does not support the video tag.
       </video>
 
-      {/* Video overlay with play icon and duration */}
       <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
         <Play className="w-3 h-3 fill-current" />
         {duration && <span>{duration}</span>}
@@ -210,7 +197,7 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
         <Music className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {getAttachmentFilename(attachment, "Audio file")}
+            {attachment.originalFilename || "Audio file"}
           </p>
           {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
@@ -232,39 +219,16 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
 };
 
 const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
-  const getFileIcon = (filename: string) => {
-    const extension = filename.split(".").pop()?.toLowerCase();
-    switch (extension) {
-      case "pdf":
-        return <FileText className="w-5 h-5 text-red-500" />;
-      case "doc":
-      case "docx":
-        return <FileText className="w-5 h-5 text-blue-500" />;
-      case "xls":
-      case "xlsx":
-        return <FileText className="w-5 h-5 text-green-500" />;
-      case "ppt":
-      case "pptx":
-        return <FileText className="w-5 h-5 text-orange-500" />;
-      case "zip":
-      case "rar":
-      case "7z":
-        return <Archive className="w-5 h-5 text-purple-500" />;
-      default:
-        return <File className="w-5 h-5 text-muted-foreground" />;
-    }
-  };
-
   return (
     <div
       className="bg-muted rounded-lg p-3 max-w-sm hover:bg-muted/80 transition-colors cursor-pointer"
       onClick={() => window.open(attachment.publicUrl, "_blank")}
     >
       <div className="flex items-center gap-3">
-        {getFileIcon(getAttachmentFilename(attachment, ""))}
+        {getFileIcon(attachment.originalFilename || "")}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {getAttachmentFilename(attachment, "Document")}
+            {attachment.originalFilename || "Document"}
           </p>
           {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
@@ -278,7 +242,6 @@ const DocumentAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   );
 };
 
-// Generic File Attachment Component
 const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
     <div
@@ -289,7 +252,7 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
         <File className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {getAttachmentFilename(attachment, "File")}
+            {attachment.originalFilename || "File"}
           </p>
           {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
@@ -307,7 +270,6 @@ const AttachmentGrid: FC<{
   attachments: Attachment[];
   onOpenMediaViewer: (attachments: Attachment[], initialIndex: number) => void;
 }> = ({ attachments, onOpenMediaViewer }) => {
-
   const renderAttachment = (
     attachment: Attachment,
     index: number,
@@ -315,7 +277,7 @@ const AttachmentGrid: FC<{
     fixedHeight?: number
   ) => {
     const mimeType = attachment.contentType || "";
-    const filename = getAttachmentFilename(attachment);
+    const filename = attachment.originalFilename || "Untitled";
 
     if (mimeType.startsWith("image/")) {
       return (
@@ -383,7 +345,6 @@ const AttachmentGrid: FC<{
   );
 };
 
-// Helper function to format file sizes
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -518,7 +479,6 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           </div>
         </div>
 
-        {/* Message Actions */}
         {shouldShowActions && (
           <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm">
             <div className="flex items-center">
