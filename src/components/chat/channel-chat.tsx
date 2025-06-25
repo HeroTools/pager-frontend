@@ -9,15 +9,15 @@ import {
   useGetChannelWithMessagesInfinite,
   useRealtimeChannel,
   useGetChannelMembers,
+  type ChannelMemberData,
 } from "@/features/channels";
 import { useGetMembers } from "@/features/members";
 import { useMessageOperations } from "@/features/messages";
 import { useCurrentUser } from "@/features/auth";
-import { Author, Channel } from "@/types/chat";
+import type { Author, Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
-import { UploadedAttachment } from "@/features/file-upload/types";
-import { WorkspaceMember } from "@/types/database";
-import { ChannelMemberData } from "@/features/channels/types";
+import type { UploadedAttachment } from "@/features/file-upload";
+import type { WorkspaceMember } from "@/types/database";
 import {
   transformMessages,
   updateSelectedMessageIfNeeded,

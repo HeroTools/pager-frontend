@@ -25,15 +25,14 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useCreateWorkspace } from "@/features/workspaces";
-import {
-  useUploadFile,
-  // useGetUploadUrl,
-} from "@/features/file-upload/hooks/use-upload";
+import { useFileUpload } from "@/features/file-upload";
+import { useParamIds } from "@/hooks/use-param-ids";
 
 const steps = ["Workspace Name", "Your Profile", "Invite Teammates"];
 
 export default function CreateWorkspacePage() {
   const router = useRouter();
+  const { workspaceId } = useParamIds();
   const [step, setStep] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -54,8 +53,8 @@ export default function CreateWorkspacePage() {
 
   const { mutateAsync: createWorkspace, isPending: isCreating } =
     useCreateWorkspace();
-  // const uploadUrlMutation = useGetUploadUrl();
-  const uploadFileMutation = useUploadFile();
+
+  const uploadFileMutation = useFileUpload(workspaceId);
 
   // Stepper UI
   function Stepper() {
@@ -408,10 +407,9 @@ export default function CreateWorkspacePage() {
       const avatar = profileForm.getValues("avatar");
       // TODO: send emails to backend if needed
       const workspace = await createWorkspace({ name });
+      console.log(workspace);
       toast.success("Workspace created");
-      // Optionally, update user profile with displayName/avatar here
-      // Optionally, send invites here
-      router.push(`/${workspace.workspace_id}`);
+      router.push(`/${workspace.id}`);
     } catch (err) {
       toast.error("Failed to create workspace");
     }

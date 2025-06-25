@@ -39,6 +39,7 @@ export interface User extends BaseEntity {
 export interface Workspace extends BaseEntity {
   name: string;
   user_id: string;
+  role?: WorkspaceMemberRole;
 }
 
 export interface WorkspaceMember extends BaseEntity {
