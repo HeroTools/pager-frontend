@@ -89,7 +89,7 @@ export const CreateChannelModal = () => {
         await Promise.all(
           emailsToInvite.map(async (email) => {
             try {
-              await channelsApi.addChannelMember(workspaceId, channel.channelId, { workspace_member_id: email });
+              await channelsApi.addChannelMembers(workspaceId, channel.channelId, { workspace_member_id: email });
             } catch (err) {
               // Optionally handle errors for individual invites
               console.error(`Failed to invite ${email}:`, err);

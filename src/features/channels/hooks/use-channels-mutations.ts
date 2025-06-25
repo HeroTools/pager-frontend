@@ -10,7 +10,7 @@ import type {
   CreateChannelData,
   UpdateChannelData,
   ChannelFilters,
-  AddChannelMemberData,
+  AddChannelMembersData,
   UpdateChannelMemberData,
   GetChannelMessagesParams,
 } from "../types";
@@ -219,7 +219,7 @@ export const useLeaveChannel = () => {
 };
 
 // Add channel member
-export const useAddChannelMember = () => {
+export const useAddChannelMembers = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -230,8 +230,8 @@ export const useAddChannelMember = () => {
     }: {
       workspaceId: string;
       channelId: string;
-      data: AddChannelMemberData;
-    }) => channelsApi.addChannelMember(workspaceId, channelId, data),
+      data: AddChannelMembersData;
+    }) => channelsApi.addChannelMembers(workspaceId, channelId, data),
     onSuccess: (_, variables) => {
       // Invalidate channel with members to refresh member list
       queryClient.invalidateQueries({
