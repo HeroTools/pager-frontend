@@ -2,9 +2,10 @@ import { Attachment, Author, Message } from "@/types/chat";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { CurrentUser } from "@/features/auth";
 import { useUIStore } from "@/store/ui-store";
+import type { MessageWithUser } from "./types";
 
 export const transformMessages = (
-  messagesData: any[],
+  messagesData: MessageWithUser[],
   currentUser?: CurrentUser
 ): Message[] => {
   return messagesData.map((msg) => {
@@ -31,7 +32,7 @@ export const transformMessages = (
         })) || [],
       threadCount: msg.thread_reply_count || 0,
       threadParticipants: msg.thread_participants || [],
-      threadLastReplyAt: msg.thread_last_reply_at || null,
+      threadLastReplyAt: msg.thread_last_reply_at || undefined,
       isEdited: !!msg.edited_at,
       isOptimistic: msg._isOptimistic || false,
       attachments:
