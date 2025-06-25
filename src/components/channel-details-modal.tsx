@@ -35,8 +35,8 @@ import {
 import { useGetMembers } from "@/features/members";
 import { useCurrentUser } from "@/features/auth";
 import { useParamIds } from "@/hooks/use-param-ids";
-import AddMembersDialog from "../add-people-to-channel-modal";
-import RemoveConfirmation from "../remove-member-from-channel-modal";
+import AddMembersDialog from "./add-people-to-channel-modal";
+import RemoveConfirmation from "./remove-member-from-channel-modal";
 
 interface ChannelDetailsModalProps {
   isOpen: boolean;

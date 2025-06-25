@@ -236,7 +236,7 @@ const ConversationChat = () => {
       <Chat
         channel={conversationChannel}
         messages={messages}
-        currentUser={user}
+        currentUser={currentUser}
         chatType="conversation"
         // typingUsers={transformedTypingUsers} // Pass typing users to Chat component
         isLoading={
