@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertTriangle, Loader, RefreshCw } from "lucide-react";
-import { useMemo, useCallback, useEffect } from "react";
+import { AlertTriangle, Loader } from "lucide-react";
+import { useMemo, useCallback } from "react";
 
 import { Chat } from "@/components/chat/chat";
 import {
@@ -39,7 +39,6 @@ const ChannelChat = () => {
     hasNextPage,
     isFetchingNextPage,
     refetch: refetchMessages,
-    isRefetching,
   } = useGetChannelWithMessagesInfinite(workspaceId, channelId);
 
   const {

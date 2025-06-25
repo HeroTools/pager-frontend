@@ -9,7 +9,7 @@ import {
 } from "@/features/conversations";
 import { useMessageOperations } from "@/features/messages/hooks/use-messages";
 import { useCurrentUser } from "@/features/auth";
-import { Channel, Author } from "@/types/chat";
+import { Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import { UploadedAttachment } from "@/features/file-upload/types";
 import {
@@ -18,11 +18,12 @@ import {
 } from "@/features/messages/helpers";
 import { useToggleReaction } from "@/features/reactions";
 import { useMessagesStore } from "@/features/messages/store/messages-store";
+import { useCallback } from "react";
 
 const ConversationChat = () => {
   const { id: conversationId, workspaceId, type } = useParamIds();
 
-  const { user: currentUser } = useCurrentUser(workspaceId);
+  const { user: currentUser, isAuthenticated } = useCurrentUser(workspaceId);
   const { addPendingMessage, removePendingMessage } = useMessagesStore();
 
   const {
@@ -32,6 +33,7 @@ const ConversationChat = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    refetch: refetchMessages,
   } = useGetConversationWithMessagesInfinite(workspaceId, conversationId);
 
   // Real-time subscription for incoming messages and typing indicators
@@ -39,7 +41,11 @@ const ConversationChat = () => {
     workspaceId,
     conversationId,
     currentUserId: currentUser?.id,
-    enabled: !!currentUser?.id && !!conversationId && !!workspaceId,
+    enabled:
+      isAuthenticated &&
+      Boolean(currentUser?.id) &&
+      Boolean(conversationId) &&
+      Boolean(workspaceId),
   });
 
   // Message operation hooks
@@ -68,12 +74,13 @@ const ConversationChat = () => {
     };
   };
 
-  const transformCurrentUser = (userData: any): Author => ({
-    id: userData.id,
-    name: userData.name,
-    avatar: userData.image,
-    status: "online" as const,
-  });
+  const handleRefreshData = useCallback(async () => {
+    try {
+      await refetchMessages();
+    } catch (error) {
+      console.error("Failed to refresh channel data:", error);
+    }
+  }, [refetchMessages]);
 
   const isLoading = isLoadingMessages || !currentUser;
   const error = messagesError;
@@ -112,7 +119,6 @@ const ConversationChat = () => {
     conversationWithMessages?.pages?.[0]
   );
   const messages = transformMessages(sortedMessages || [], currentUser);
-  const user = transformCurrentUser(currentUser);
 
   // Handle message sending with real-time integration
   const handleSendMessage = async (content: {
@@ -238,13 +244,7 @@ const ConversationChat = () => {
         messages={messages}
         currentUser={currentUser}
         chatType="conversation"
-        // typingUsers={transformedTypingUsers} // Pass typing users to Chat component
-        isLoading={
-          false
-          // createMessage.isPending ||
-          // updateMessage.isPending ||
-          // deleteMessage.isPending
-        }
+        isLoading={false}
         workspaceId={workspaceId}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
@@ -252,10 +252,6 @@ const ConversationChat = () => {
         onReplyToMessage={handleReplyToMessage}
         onReactToMessage={handleReactToMessage}
         onToggleChannelDetails={handleToggleConversationDetails}
-        // Pass typing handlers to your message input component
-        // onInputChange={handleInputChange}
-        // onTypingSubmit={handleTypingSubmit}
-        // Handle infinite scroll
         onLoadMore={handleLoadMore}
         hasMoreMessages={hasNextPage}
         isLoadingMore={isFetchingNextPage}
