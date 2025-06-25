@@ -13,12 +13,11 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem 
 } from "@/components/ui/dropdown-menu";
-import { useRemoveChannelMember, useAddChannelMembers } from "@/features/channels";
+import { useRemoveChannelMembers, useAddChannelMembers } from "@/features/channels";
 import { useGetMembers } from "@/features/members";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { toast } from "sonner";
-import { ChannelMemberResponse, ChannelMemberData } from "@/features/channels/types";
-import { MemberWithUser } from "@/features/members/types";
+import { ChannelMemberData } from "@/features/channels/types";
 import MemberSearchSelect from "@/components/member-search-select";
 
 interface ChannelDetailsModalProps {
@@ -37,7 +36,7 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
   initialTab = "members",
 }) => {
   const workspaceId = useWorkspaceId() as string;
-  const removeChannelMember = useRemoveChannelMember();
+  const removeChannelMembers = useRemoveChannelMembers();
   const addChannelMembers = useAddChannelMembers();
   const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
   
@@ -85,10 +84,11 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
 
   const handleRemoveMember = async (channelMemberId: string) => {
     try {
-      await removeChannelMember.mutateAsync({
+      console.log(channelMemberId, 'channelMemberId');
+      await removeChannelMembers.mutateAsync({
         workspaceId,
         channelId: channel.id,
-        memberId: channelMemberId
+        channelMemberIds: [channelMemberId]
       });
       
       toast.success("Member removed from channel");
@@ -107,6 +107,10 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
   const existingMemberIds = useMemo(() => {
     return channelMembers.map(m => m.workspace_member_id);
   }, [channelMembers]);
+
+  console.log(channelMembers, 'channelMembers');
+  console.log(filteredMembers, 'filteredMembers');
+  // console.log(, 'filteredMembers');
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -214,7 +218,7 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
 
                       return (
                         <div 
-                          key={member.channel_member_id} 
+                          key={member.id} 
                           className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 group"
                         >
                           <div className="flex items-center gap-3">
@@ -232,7 +236,7 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                             <div>
                               <div className="flex items-center gap-2">
                                 <p className="font-medium">{workspaceMember.user.name}</p>
-                                {member.channel_role === 'admin' && (
+                                {member.role === 'admin' && (
                                   <span className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
                                     Admin
                                   </span>
@@ -252,7 +256,7 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem 
                                 className="text-destructive"
-                                onClick={() => handleRemoveMember(member.channel_member_id)}
+                                onClick={() => handleRemoveMember(member.id)}
                               >
                                 Remove from channel
                               </DropdownMenuItem>

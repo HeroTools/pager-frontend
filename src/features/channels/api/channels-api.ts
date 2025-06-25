@@ -173,15 +173,17 @@ export const channelsApi = {
   },
 
   /**
-   * Remove a member from a channel
+   * Remove members from a channel
+   * @returns void - Returns nothing on success, throws error on failure
    */
-  removeChannelMember: async (
+  removeChannelMembers: async (
     workspaceId: string,
     channelId: string,
-    memberId: string
+    channelMemberIds: string[]
   ): Promise<void> => {
     await api.delete(
-      `/workspaces/${workspaceId}/channels/${channelId}/members/${memberId}`
+      `/workspaces/${workspaceId}/channels/${channelId}/members`,
+      { data: { channelMemberIds } }
     );
   },
 
