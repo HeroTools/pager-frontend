@@ -1,7 +1,7 @@
 import api from "@/lib/api/axios-client";
 import type {
   ConversationEntity,
-  ConversationWithMembersList,
+  ConversationWithMessagesAndMembers,
   ConversationMessage,
   ConversationMessageWithRelations,
   CreateConversationData,
@@ -61,7 +61,7 @@ export const conversationsApi = {
     workspaceId: string,
     conversationId: string,
     params?: GetConversationMessagesParams
-  ): Promise<ConversationWithMessagesResponse> => {
+  ): Promise<ConversationWithMessagesAndMembers> => {
     const searchParams = new URLSearchParams();
 
     if (params?.limit) searchParams.append("limit", params.limit.toString());
@@ -73,9 +73,8 @@ export const conversationsApi = {
       queryString ? `?${queryString}` : ""
     }`;
 
-    const { data: response } = await api.get<ConversationWithMessagesResponse>(
-      url
-    );
+    const { data: response } =
+      await api.get<ConversationWithMessagesAndMembers>(url);
     return response;
   },
 
