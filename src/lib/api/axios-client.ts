@@ -5,14 +5,11 @@ import axios, {
   AxiosHeaders,
   InternalAxiosRequestConfig,
 } from "axios";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 
 // ——————— CONFIG ———————
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
 const REQUEST_TIMEOUT = 10_000; // ms
-
-// Supabase client factory
-const getSupabase = () => createClient();
 
 // ——————— REFRESH QUEUE ———————
 let isRefreshing = false;
@@ -30,7 +27,6 @@ function onRefreshed(token: string | null) {
 
 // ——————— TOKEN REFRESHER ———————
 async function refreshAccessToken(): Promise<string | null> {
-  const supabase = getSupabase();
   const {
     data: { session },
     error: sessionError,
