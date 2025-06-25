@@ -113,7 +113,7 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
         workspaceId,
         channelId: channel.id,
         data: {
-          workspace_member_ids: selectedMembers.map(member => member.workspace_member_id)
+          memberIds: selectedMembers.map(member => member.id)
         }
       });
       
