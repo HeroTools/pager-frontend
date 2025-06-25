@@ -1,4 +1,9 @@
-import { Workspace, WorkspaceWithMembers, ApiResponse } from "@/types/database";
+import type {
+  Workspace,
+  WorkspaceWithMembers,
+  ApiResponse,
+  WorkspaceMemberRole,
+} from "@/types/database";
 import { MemberWithUser } from "@/features/members";
 
 // Use the database Workspace type directly
@@ -24,7 +29,14 @@ export type JoinWorkspaceData =
 export interface WorkspaceResponseData extends WorkspaceEntity {
   is_member: boolean;
   members: MemberWithUser[];
-  user_role: string;
+  user_role: WorkspaceMemberRole;
+}
+
+export interface CreateWorkspaceResponse {
+  workspace_id: string;
+  channel_id: string;
+  member_id: string;
+  message: string;
 }
 
 // API Response types using the generic ApiResponse
@@ -45,7 +57,7 @@ export interface WorkspaceStats {
 export interface WorkspaceListItem extends WorkspaceEntity {
   member_count?: number;
   unread_count?: number;
-  user_role?: "owner" | "admin" | "member";
+  user_role?: WorkspaceMemberRole;
   last_activity_at?: string;
 }
 

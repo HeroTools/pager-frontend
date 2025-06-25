@@ -49,7 +49,7 @@ export const workspacesApi = {
   createWorkspace: async (
     data: CreateWorkspaceData
   ): Promise<WorkspaceEntity> => {
-    const { data: response } = await api.post<WorkspaceResponse>(
+    const { data: response } = await api.post<WorkspaceEntity>(
       "/workspaces",
       data
     );

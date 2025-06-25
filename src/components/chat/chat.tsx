@@ -1,12 +1,14 @@
 import { FC, useCallback, useEffect, useRef, useState, UIEvent } from "react";
+
 import type { Message, Channel, Attachment } from "@/types/chat";
 import { ChatHeader } from "./header";
 import { ChatMessageList } from "./message-list";
 import Editor from "@/components/editor/editor";
 import { useParamIds } from "@/hooks/use-param-ids";
+import type { ChannelMemberData } from "@/features/channels";
 import type { UploadedAttachment } from "@/features/file-upload";
-import { MediaViewerModal } from "@/components/media-viewer-modal";
 import type { CurrentUser } from "@/features/auth";
+import { MediaViewerModal } from "@/components/media-viewer-modal";
 
 interface ChatProps {
   channel: Channel;
@@ -30,6 +32,7 @@ interface ChatProps {
   typingUsers?: { id: string; name: string; avatar?: string }[];
   onInputChange?: (value: string) => void;
   onTypingSubmit?: () => void;
+  members?: ChannelMemberData[];
 }
 
 export const Chat: FC<ChatProps> = ({
@@ -50,6 +53,7 @@ export const Chat: FC<ChatProps> = ({
   typingUsers,
   onInputChange,
   onTypingSubmit,
+  members,
 }) => {
   const { workspaceId } = useParamIds();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -164,7 +168,11 @@ export const Chat: FC<ChatProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <ChatHeader channel={channel} onToggleDetails={onToggleChannelDetails} />
+      <ChatHeader
+        channel={channel}
+        onToggleDetails={onToggleChannelDetails}
+        members={members}
+      />
 
       <ChatMessageList
         messages={messages}

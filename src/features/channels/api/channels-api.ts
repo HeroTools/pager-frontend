@@ -1,17 +1,16 @@
 import api from "@/lib/api/axios-client";
 import type {
   ChannelEntity,
-  ChannelWithMembersList,
   CreateChannelData,
   UpdateChannelData,
   ChannelResponse,
   ChannelsResponse,
-  ChannelWithMembersResponse,
-  AddChannelMemberData,
+  AddChannelMembersData,
   UpdateChannelMemberData,
   ChannelFilters,
   ChannelWithMessages,
   GetChannelMessagesParams,
+  ChannelMemberResponse,
 } from "@/features/channels/types";
 
 export const channelsApi = {
@@ -89,19 +88,6 @@ export const channelsApi = {
   },
 
   /**
-   * Get a channel with its members
-   */
-  getChannelWithMembers: async (
-    workspaceId: string,
-    channelId: string
-  ): Promise<ChannelWithMembersList> => {
-    const { data: response } = await api.get<ChannelWithMembersResponse>(
-      `/workspaces/${workspaceId}/channels/${channelId}/members`
-    );
-    return response;
-  },
-
-  /**
    * Create a new channel
    */
   createChannel: async (data: CreateChannelData): Promise<ChannelEntity> => {
@@ -148,22 +134,12 @@ export const channelsApi = {
   },
 
   /**
-   * Leave a channel
-   */
-  leaveChannel: async (
-    workspaceId: string,
-    channelId: string
-  ): Promise<void> => {
-    await api.post(`/workspaces/${workspaceId}/channels/${channelId}/leave`);
-  },
-
-  /**
    * Add a member to a channel
    */
-  addChannelMember: async (
+  addChannelMembers: async (
     workspaceId: string,
     channelId: string,
-    data: AddChannelMemberData
+    data: AddChannelMembersData
   ): Promise<void> => {
     await api.post(
       `/workspaces/${workspaceId}/channels/${channelId}/members`,
@@ -187,15 +163,17 @@ export const channelsApi = {
   },
 
   /**
-   * Remove a member from a channel
+   * Remove members from a channel
+   * @returns void - Returns nothing on success, throws error on failure
    */
-  removeChannelMember: async (
+  removeChannelMembers: async (
     workspaceId: string,
     channelId: string,
-    memberId: string
+    channelMemberIds: string[]
   ): Promise<void> => {
     await api.delete(
-      `/workspaces/${workspaceId}/channels/${channelId}/members/${memberId}`
+      `/workspaces/${workspaceId}/channels/${channelId}/members`,
+      { data: { channelMemberIds } }
     );
   },
 
@@ -224,5 +202,18 @@ export const channelsApi = {
       `/workspaces/${workspaceId}/channels/${channelId}/notifications`,
       { notifications_enabled: enabled }
     );
+  },
+
+  /**
+   * Get all members of a channel
+   */
+  getChannelMembers: async (
+    workspaceId: string,
+    channelId: string
+  ): Promise<ChannelMemberResponse[]> => {
+    const { data: response } = await api.get<ChannelMemberResponse[]>(
+      `/workspaces/${workspaceId}/channels/${channelId}/members`
+    );
+    return response || [];
   },
 };

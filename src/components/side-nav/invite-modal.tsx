@@ -30,11 +30,7 @@ const EXPIRY_OPTIONS = [
   { label: "Never", value: "never" },
 ];
 
-export const InviteModal = ({
-  open,
-  name,
-  setOpen,
-}: InviteModalProps) => {
+export const InviteModal = ({ open, name, setOpen }: InviteModalProps) => {
   const { workspaceId } = useParamIds();
   const [inviteInput, setInviteInput] = useState("");
   const [invites, setInvites] = useState<string[]>([]);
@@ -44,7 +40,8 @@ export const InviteModal = ({
   const [expiry, setExpiry] = useState("30d");
   const [notify, setNotify] = useState(true);
 
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   useEffect(() => {
     if (open && workspaceId) {
@@ -55,7 +52,11 @@ export const InviteModal = ({
 
   const handleInviteAdd = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (inviteInput && isValidEmail(inviteInput) && !invites.includes(inviteInput)) {
+    if (
+      inviteInput &&
+      isValidEmail(inviteInput) &&
+      !invites.includes(inviteInput)
+    ) {
       setInvites([...invites, inviteInput]);
       setInviteInput("");
     }
@@ -86,7 +87,9 @@ export const InviteModal = ({
   const handleCopy = () => {
     const url = inviteLinkMutation.data?.url;
     if (!url) return;
-    navigator.clipboard.writeText(url).then(() => toast.success("Invite link copied to clipboard"));
+    navigator.clipboard
+      .writeText(url)
+      .then(() => toast.success("Invite link copied to clipboard"));
   };
 
   // Placeholder for deactivating link
@@ -107,7 +110,8 @@ export const InviteModal = ({
           <DialogHeader>
             <DialogTitle>Invite people to {name}</DialogTitle>
             <DialogDescription>
-              Enter email addresses to send invites, or copy the invite link below.
+              Enter email addresses to send invites, or copy the invite link
+              below.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-y-4 items-center justify-center py-4 w-full">
@@ -119,18 +123,28 @@ export const InviteModal = ({
                   type="email"
                   placeholder="name@company.com"
                   value={inviteInput}
-                  onChange={e => setInviteInput(e.target.value)}
+                  onChange={(e) => setInviteInput(e.target.value)}
                   className="flex-1"
                   autoFocus
                   disabled={isPending}
                 />
-                <Button type="submit" disabled={!isValidEmail(inviteInput) || invites.includes(inviteInput) || isPending}>
+                <Button
+                  type="submit"
+                  disabled={
+                    !isValidEmail(inviteInput) ||
+                    invites.includes(inviteInput) ||
+                    isPending
+                  }
+                >
                   Add
                 </Button>
               </form>
               <div className="flex flex-wrap gap-2 mt-2">
                 {invites.map((email) => (
-                  <span key={email} className="flex items-center cursor-pointer bg-muted px-2 py-1 rounded text-xs">
+                  <span
+                    key={email}
+                    className="flex items-center cursor-pointer bg-muted px-2 py-1 rounded text-xs"
+                  >
                     {email}
                     <Button
                       type="button"
@@ -159,9 +173,11 @@ export const InviteModal = ({
                 variant="outline"
                 className="w-full"
                 onClick={handleCopy}
-                disabled={inviteLinkMutation.status === 'pending'}
+                disabled={inviteLinkMutation.isPending}
               >
-                {inviteLinkMutation.status === 'pending' ? "Loading..." : "Copy Invite Link"}
+                {inviteLinkMutation.isPending
+                  ? "Loading..."
+                  : "Copy Invite Link"}
               </Button>
             </div>
           </div>
@@ -178,7 +194,8 @@ export const InviteModal = ({
           <DialogHeader>
             <DialogTitle>Invitation link settings</DialogTitle>
             <DialogDescription>
-              To safeguard the privacy of your workspace, only share this link with people who are part of your organization.
+              To safeguard the privacy of your workspace, only share this link
+              with people who are part of your organization.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4 mt-2">
@@ -195,7 +212,7 @@ export const InviteModal = ({
               <input
                 type="checkbox"
                 checked={notify}
-                onChange={e => setNotify(e.target.checked)}
+                onChange={(e) => setNotify(e.target.checked)}
                 className="accent-primary size-4 rounded border border-border-subtle"
               />
               Notify me whenever someone joins using this link
@@ -208,9 +225,7 @@ export const InviteModal = ({
             <Button variant="outline" onClick={() => setSettingsOpen(false)}>
               Back
             </Button>
-            <Button onClick={handleSaveSettings}>
-              Save
-            </Button>
+            <Button onClick={handleSaveSettings}>Save</Button>
           </div>
         </DialogContent>
       </Dialog>
