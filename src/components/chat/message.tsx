@@ -1,7 +1,6 @@
 import { FC, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import Picker from "@emoji-mart/react";
-import data from "@emoji-mart/data";
+import EmojiPicker from "@/components/emoji-picker";
 import {
   MoreHorizontal,
   MessageSquare,
@@ -10,71 +9,89 @@ import {
   Trash2,
   Download,
   File,
-  FileText,
   Music,
-  Archive,
   Image as ImageIcon,
   Play,
   Eye,
 } from "lucide-react";
-import { Message, User, Attachment } from "@/types/chat";
+import { Message, Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
+import { getFileIcon } from "@/lib/helpers";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MessageReactions } from "./message-reactions";
+import { MessageContent } from "./message-content";
+import { useUIStore } from "@/store/ui-store";
+import { MediaViewerModal } from "@/components/media-viewer-modal";
+import { CurrentUser } from "@/features/auth/types";
+import { useGetMembers } from "@/features/members";
+import { useParamIds } from "@/hooks/use-param-ids";
+import ThreadButton from "./thread-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageReactions } from "./message-reactions";
-import { MessageContent } from "./message-content";
-import { useUIStore } from "@/store/ui-store";
-import { MediaViewerModal } from "@/components/media-viewer-modal";
+
+const ATTACHMENT_SIZES = {
+  SINGLE: { maxHeight: 300, maxWidth: 400 },
+  MULTI: { maxHeight: 250, maxWidth: 250, fixedHeight: 250 },
+} as const;
 
 interface ChatMessageProps {
   message: Message;
-  currentUser: User;
+  currentUser: CurrentUser;
+  hideReplies?: boolean;
   isCompact?: boolean;
   showAvatar?: boolean;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
-  onReaction?: (messageId: string, emoji: string) => void;
+  onReaction: (messageId: string, emoji: string) => void;
 }
 
 const ImageAttachment: FC<{
   attachment: Attachment;
   onOpenMediaViewer: () => void;
-}> = ({ attachment, onOpenMediaViewer }) => {
+  isSingle?: boolean;
+  fixedHeight?: number;
+}> = ({ attachment, onOpenMediaViewer, isSingle = false, fixedHeight }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
+  const { maxHeight, maxWidth } = isSingle
+    ? ATTACHMENT_SIZES.SINGLE
+    : ATTACHMENT_SIZES.MULTI;
+  const filename = attachment.originalFilename || "Uploaded image";
+
   return (
-    <div className="relative group/image max-w-sm">
+    <div className="relative group/image flex-shrink-0">
       {!isLoaded && !hasError && (
-        <div className="absolute inset-0 bg-muted animate-pulse rounded-lg flex items-center justify-center">
+        <div className="absolute inset-0 bg-muted animate-pulse rounded-lg flex items-center justify-center min-h-[120px]">
           <ImageIcon className="w-8 h-8 text-muted-foreground" />
         </div>
       )}
       {hasError ? (
-        <div className="bg-muted rounded-lg p-4 flex items-center gap-2 text-muted-foreground">
+        <div className="bg-muted rounded-lg p-4 flex items-center gap-2 text-muted-foreground min-h-[120px]">
           <ImageIcon className="w-5 h-5" />
           <span className="text-sm">Failed to load image</span>
         </div>
       ) : (
         <img
-          src={attachment.public_url}
-          alt={attachment.original_filename || "Uploaded image"}
+          src={attachment.publicUrl}
+          alt={filename || "Uploaded image"}
           className={cn(
-            "rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity",
+            "rounded-lg cursor-pointer hover:opacity-90 transition-opacity border",
+            fixedHeight ? "object-cover" : "object-contain",
             !isLoaded && "opacity-0"
           )}
+          style={{
+            height: fixedHeight ? `${fixedHeight}px` : "auto",
+            maxHeight: fixedHeight ? "none" : `${maxHeight}px`,
+            maxWidth: `${maxWidth}px`,
+            minWidth: fixedHeight ? "120px" : "auto",
+          }}
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
           onClick={onOpenMediaViewer}
@@ -88,7 +105,7 @@ const ImageAttachment: FC<{
           className="h-8 w-8 p-0 bg-card/30 hover:bg-card/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
-            window.open(attachment.public_url, "_blank");
+            window.open(attachment.publicUrl, "_blank");
           }}
         >
           <Download className="w-4 h-4 text-white" />
@@ -151,7 +168,7 @@ const VideoAttachment: FC<{
         </div>
       ) : (
         <video
-          src={attachment.public_url}
+          src={attachment.publicUrl}
           className={cn(
             "rounded-lg max-w-full h-auto",
             !isLoaded && "opacity-0 absolute inset-0"
@@ -179,7 +196,7 @@ const VideoAttachment: FC<{
           className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
-            window.open(attachment.public_url, "_blank");
+            window.open(attachment.publicUrl, "_blank");
           }}
         >
           <Download className="w-4 h-4 text-white" />
@@ -196,17 +213,17 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
         <Music className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {attachment.original_filename || "Audio file"}
+            {attachment.originalFilename || "Audio file"}
           </p>
-          {attachment.size_bytes && (
+          {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.size_bytes)}
+              {formatFileSize(attachment.sizeBytes)}
             </p>
           )}
         </div>
       </div>
       <audio
-        src={attachment.public_url}
+        src={attachment.publicUrl}
         className="w-full"
         controls
         preload="metadata"
@@ -223,29 +240,6 @@ const DocumentAttachment: FC<{
 }> = ({ attachment, onOpenMediaViewer }) => {
   const [previewLoaded, setPreviewLoaded] = useState(false);
   const [previewError, setPreviewError] = useState(false);
-
-  const getFileIcon = (filename: string) => {
-    const extension = filename.split(".").pop()?.toLowerCase();
-    switch (extension) {
-      case "pdf":
-        return <FileText className="w-4 h-4 text-red-500" />;
-      case "doc":
-      case "docx":
-        return <FileText className="w-4 h-4 text-blue-500" />;
-      case "xls":
-      case "xlsx":
-        return <FileText className="w-4 h-4 text-green-500" />;
-      case "ppt":
-      case "pptx":
-        return <FileText className="w-4 h-4 text-orange-500" />;
-      case "zip":
-      case "rar":
-      case "7z":
-        return <Archive className="w-4 h-4 text-purple-500" />;
-      default:
-        return <File className="w-4 h-4 text-muted-foreground" />;
-    }
-  };
 
   const getFileColor = (filename: string) => {
     const extension = filename.split(".").pop()?.toLowerCase();
@@ -272,14 +266,14 @@ const DocumentAttachment: FC<{
   };
 
   const getPreviewUrl = (attachment: Attachment) => {
-    const extension = attachment.original_filename
+    const extension = attachment.originalFilename
       ?.split(".")
       .pop()
       ?.toLowerCase();
 
     if (extension === "pdf") {
       // For PDFs, use simple embedded view
-      return `${attachment.public_url}#toolbar=0`;
+      return `${attachment.publicUrl}#toolbar=0`;
     }
 
     if (
@@ -287,7 +281,7 @@ const DocumentAttachment: FC<{
     ) {
       // Use Microsoft Office Online viewer for thumbnails
       return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-        attachment.public_url
+        attachment.publicUrl
       )}`;
     }
 
@@ -301,31 +295,31 @@ const DocumentAttachment: FC<{
       <div
         className={cn(
           "rounded-lg border-2 bg-background cursor-pointer hover:shadow-md transition-all overflow-hidden",
-          getFileColor(attachment.original_filename || "")
+          getFileColor(attachment.originalFilename || "")
         )}
         onClick={
-          isViewableDocument(attachment.original_filename || "")
+          isViewableDocument(attachment.originalFilename || "")
             ? onOpenMediaViewer
-            : () => window.open(attachment.public_url, "_blank")
+            : () => window.open(attachment.publicUrl, "_blank")
         }
       >
         {/* File info header */}
         <div className="p-3 pb-2">
           <div className="flex items-center gap-2 mb-1">
-            {getFileIcon(attachment.original_filename || "")}
+            {getFileIcon(attachment.originalFilename || "")}
             <p className="text-sm font-medium truncate flex-1">
-              {attachment.original_filename || "Document"}
+              {attachment.originalFilename || "Document"}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground uppercase">
-              {attachment.original_filename?.split(".").pop() || "FILE"}
+              {attachment.originalFilename?.split(".").pop() || "FILE"}
             </span>
-            {attachment.size_bytes && (
+            {attachment.sizeBytes && (
               <>
                 <span className="text-xs text-muted-foreground">•</span>
                 <span className="text-xs text-muted-foreground">
-                  {formatFileSize(attachment.size_bytes)}
+                  {formatFileSize(attachment.sizeBytes)}
                 </span>
               </>
             )}
@@ -335,13 +329,13 @@ const DocumentAttachment: FC<{
         {/* Preview thumbnail underneath */}
         <div className="h-36 bg-muted relative overflow-hidden rounded-b-lg">
           {previewUrl &&
-          isViewableDocument(attachment.original_filename || "") &&
+          isViewableDocument(attachment.originalFilename || "") &&
           !previewError ? (
             <>
               {!previewLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center bg-muted">
                   <div className="w-8 h-8 opacity-50">
-                    {getFileIcon(attachment.original_filename || "")}
+                    {getFileIcon(attachment.originalFilename || "")}
                   </div>
                 </div>
               )}
@@ -352,7 +346,7 @@ const DocumentAttachment: FC<{
                   !previewLoaded && "opacity-0"
                 )}
                 style={
-                  attachment.original_filename?.toLowerCase().includes(".doc")
+                  attachment.originalFilename?.toLowerCase().includes(".doc")
                     ? {
                         width: "200%",
                         height: "200%",
@@ -368,7 +362,7 @@ const DocumentAttachment: FC<{
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-muted">
               <div className="w-8 h-8 opacity-50">
-                {getFileIcon(attachment.original_filename || "")}
+                {getFileIcon(attachment.originalFilename || "")}
               </div>
             </div>
           )}
@@ -382,7 +376,7 @@ const DocumentAttachment: FC<{
             className="h-6 w-6 p-0 bg-background/80 hover:bg-background border-0"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(attachment.public_url, "_blank");
+              window.open(attachment.publicUrl, "_blank");
             }}
           >
             <Download className="w-3 h-3 text-muted-foreground" />
@@ -393,22 +387,21 @@ const DocumentAttachment: FC<{
   );
 };
 
-// Generic File Attachment Component
 const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
     <div
       className="bg-muted rounded-lg p-3 max-w-sm hover:bg-muted/80 transition-colors cursor-pointer"
-      onClick={() => window.open(attachment.public_url, "_blank")}
+      onClick={() => window.open(attachment.publicUrl, "_blank")}
     >
       <div className="flex items-center gap-3">
         <File className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {attachment.original_filename || "File"}
+            {attachment.originalFilename || "File"}
           </p>
-          {attachment.size_bytes && (
+          {attachment.sizeBytes && (
             <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.size_bytes)}
+              {formatFileSize(attachment.sizeBytes)}
             </p>
           )}
         </div>
@@ -423,8 +416,8 @@ const AttachmentGrid: FC<{
   onOpenMediaViewer: (attachments: Attachment[], initialIndex: number) => void;
 }> = ({ attachments, onOpenMediaViewer }) => {
   const renderAttachment = (attachment: Attachment, index: number) => {
-    const mimeType = attachment.content_type || "";
-    const filename = attachment.original_filename || "";
+    const mimeType = attachment.contentType || "";
+    const filename = attachment.originalFilename || "";
 
     if (mimeType.startsWith("image/")) {
       return (
@@ -450,7 +443,6 @@ const AttachmentGrid: FC<{
       return <AudioAttachment key={attachment.id} attachment={attachment} />;
     }
 
-    // Document types that can be viewed in media viewer
     if (
       mimeType.includes("pdf") ||
       mimeType.includes("document") ||
@@ -462,12 +454,11 @@ const AttachmentGrid: FC<{
         <DocumentAttachment
           key={attachment.id}
           attachment={attachment}
-          onOpenMediaViewer={() => onOpenMediaViewer(attachment, index)}
+          onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
         />
       );
     }
 
-    // Fallback to generic file
     return <GenericAttachment key={attachment.id} attachment={attachment} />;
   };
 
@@ -488,7 +479,6 @@ const AttachmentGrid: FC<{
   );
 };
 
-// Helper function to format file sizes
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -500,6 +490,7 @@ const formatFileSize = (bytes: number): string => {
 export const ChatMessage: FC<ChatMessageProps> = ({
   message,
   currentUser,
+  hideReplies = false,
   isCompact = false,
   showAvatar = true,
   onEdit,
@@ -507,13 +498,21 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   onReply,
   onReaction,
 }) => {
+  const { workspaceId } = useParamIds();
   const [isHovered, setIsHovered] = useState(false);
   const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
   const [mediaViewerAttachments, setMediaViewerAttachments] = useState<
     Attachment[]
   >([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
-  const { openEmojiPickerMessageId, setEmojiPickerOpen } = useUIStore();
+  const {
+    openEmojiPickerMessageId,
+    setEmojiPickerOpen,
+    openThreadMessageId,
+    setThreadOpen,
+  } = useUIStore();
+  const getMembers = useGetMembers(workspaceId);
+
   const isOwnMessage = message.authorId === currentUser.id;
 
   const isEmojiPickerOpen = openEmojiPickerMessageId === message.id;
@@ -542,8 +541,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     <>
       <div
         className={cn(
-          "group relative px-4 hover:bg-message-hover transition-colors",
-          isCompact ? "py-0.5" : "py-2"
+          "group relative px-4 hover:bg-message-hover transition-colors py-2"
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -607,29 +605,22 @@ export const ChatMessage: FC<ChatMessageProps> = ({
               />
             ) : null}
 
-            {message?.threadCount && Number(message.threadCount) > 0 ? (
-              <button
-                onClick={() => onReply?.(message.id)}
-                className="mt-2 flex items-center gap-1 text-xs text-text-accent hover:text-text-accent/80 hover:underline transition-colors"
-              >
-                <MessageSquare className="w-3 h-3" />
-                {message.threadCount}{" "}
-                {message.threadCount === 1 ? "reply" : "replies"}
-              </button>
+            {message?.threadCount &&
+            Number(message.threadCount) > 0 &&
+            !hideReplies ? (
+              <ThreadButton message={message} members={getMembers.data!} />
             ) : null}
           </div>
         </div>
 
-        {/* Message Actions */}
         {shouldShowActions && (
           <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm">
             <div className="flex items-center">
-              {/* Emoji Picker Popover */}
-              <Popover
+              <EmojiPicker
                 open={isEmojiPickerOpen}
                 onOpenChange={handleEmojiPickerToggle}
-              >
-                <PopoverTrigger asChild>
+                onSelect={handleEmojiSelect}
+                trigger={
                   <Button
                     variant="ghost"
                     size="sm"
@@ -637,36 +628,18 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                   >
                     <Smile className="w-4 h-4" />
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="p-0 w-auto border-0 shadow-lg"
-                  align="end"
-                  side="top"
-                  sideOffset={8}
-                >
-                  <Picker
-                    data={data}
-                    onEmojiSelect={(emoji: any) =>
-                      handleEmojiSelect(emoji.native)
-                    }
-                    theme="light"
-                    set="native"
-                    previewPosition="none"
-                    skinTonePosition="none"
-                    maxFrequentRows={2}
-                    perLine={8}
-                  />
-                </PopoverContent>
-              </Popover>
+                }
+              />
 
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                onClick={() => onReply?.(message.id)}
+                onClick={() => setThreadOpen(message)}
               >
                 <MessageSquare className="w-4 h-4" />
               </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -700,7 +673,6 @@ export const ChatMessage: FC<ChatMessageProps> = ({
         )}
       </div>
 
-      {/* Media Viewer Modal */}
       <MediaViewerModal
         isOpen={isMediaViewerOpen}
         onClose={() => setIsMediaViewerOpen(false)}

@@ -5,12 +5,8 @@ import {
   DeleteAttachmentRequest,
   PresignedUrlRequest,
   PresignedUrlResponse,
+  DeleteAttachmentResponse,
 } from "../types";
-
-export interface DeleteAttachmentResponse {
-  success: boolean;
-  error?: string;
-}
 
 export const uploadApi = {
   /**

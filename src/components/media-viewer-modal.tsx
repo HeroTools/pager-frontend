@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { FC, useState, useEffect, useCallback } from "react";
 import {
-  X,
   Download,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
   ZoomIn,
   ZoomOut,
-  FileText,
   ExternalLink,
 } from "lucide-react";
+
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Attachment } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +21,7 @@ interface MediaViewerModalProps {
   initialIndex?: number;
 }
 
-export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
+export const MediaViewerModal: FC<MediaViewerModalProps> = ({
   isOpen,
   onClose,
   attachments,
@@ -36,15 +35,15 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   const [showControls, setShowControls] = useState(false);
 
   const currentAttachment = attachments[currentIndex];
-  const isImage = currentAttachment?.content_type?.startsWith("image/");
-  const isVideo = currentAttachment?.content_type?.startsWith("video/");
+  const isImage = currentAttachment?.contentType?.startsWith("image/");
+  const isVideo = currentAttachment?.contentType?.startsWith("video/");
 
   // Document type detection
   const getDocumentType = (attachment: Attachment | undefined) => {
     if (!attachment) return null;
 
-    const mimeType = attachment.content_type || "";
-    const filename = attachment.original_filename || "";
+    const mimeType = attachment.contentType || "";
+    const filename = attachment.originalFilename || "";
     const extension = filename.split(".").pop()?.toLowerCase();
 
     if (mimeType.includes("pdf") || extension === "pdf") {
@@ -85,7 +84,6 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
     }
   }, [isOpen, initialIndex]);
 
-  // Keyboard navigation
   useEffect(() => {
     if (!isOpen) return;
 
@@ -149,8 +147,8 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   const handleDownload = () => {
     if (currentAttachment) {
       const link = document.createElement("a");
-      link.href = currentAttachment.public_url;
-      link.download = currentAttachment.original_filename || "download";
+      link.href = currentAttachment.publicUrl;
+      link.download = currentAttachment.originalFilename || "download";
       link.target = "_blank";
       document.body.appendChild(link);
       link.click();
@@ -160,7 +158,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
   const openInNewTab = () => {
     if (currentAttachment) {
-      window.open(currentAttachment.public_url, "_blank");
+      window.open(currentAttachment.publicUrl, "_blank");
     }
   };
 
@@ -170,13 +168,13 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
     const viewerUrl = (() => {
       switch (documentType) {
         case "pdf":
-          return currentAttachment.public_url;
+          return currentAttachment.publicUrl;
         case "word":
         case "excel":
         case "powerpoint":
           // Use Microsoft Office Online viewer for Office documents
           return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-            currentAttachment.public_url
+            currentAttachment.publicUrl
           )}`;
         default:
           return null;
@@ -221,6 +219,10 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
         className="max-w-none w-[90vw] h-[90vh] p-0 bg-background/95 backdrop-blur-sm border-border rounded-lg"
         onPointerDown={(e) => e.stopPropagation()}
       >
+        <DialogTitle className="sr-only">
+          Media Viewer -{" "}
+          {currentAttachment.originalFilename || "Unknown Filename"}
+        </DialogTitle>
         <div
           className="relative w-full h-full flex items-center justify-center overflow-hidden"
           onMouseEnter={() => setShowControls(true)}
@@ -339,7 +341,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             )}
           >
             <p className="text-sm font-medium">
-              {currentAttachment.original_filename || "Untitled"}
+              {currentAttachment.originalFilename}
             </p>
             {attachments.length > 1 && (
               <p className="text-xs text-muted-foreground">
@@ -356,7 +358,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           {/* Media content */}
           <div
             className="relative flex items-center justify-center"
-            style={{ width: "calc(100% - 2rem)", height: "calc(100% - 2rem)" }}
+            style={{ width: "calc(100% - 1rem)", height: "calc(100% - 1rem)" }}
           >
             {isLoading && !hasError && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -395,8 +397,8 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
               </div>
             ) : isImage ? (
               <img
-                src={currentAttachment.public_url}
-                alt={currentAttachment.original_filename || "Image"}
+                src={currentAttachment.publicUrl}
+                alt={currentAttachment.originalFilename || "Unknown Filename"}
                 className={cn(
                   "max-w-full max-h-full object-contain transition-all duration-200",
                   !isLoading && "cursor-grab active:cursor-grabbing"
@@ -414,10 +416,10 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
               />
             ) : isVideo ? (
               <video
-                src={currentAttachment.public_url}
+                src={currentAttachment.publicUrl}
                 className="max-w-full max-h-full object-contain"
-                controls
                 autoPlay
+                controls
                 onLoadedData={() => setIsLoading(false)}
                 onError={() => {
                   setIsLoading(false);
@@ -432,7 +434,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
               <div className="text-foreground text-center">
                 <p className="text-lg font-medium">Preview not available</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {currentAttachment.original_filename || "Unknown file"}
+                  {currentAttachment.originalFilename || "Unknown file"}
                 </p>
                 <Button
                   variant="outline"
