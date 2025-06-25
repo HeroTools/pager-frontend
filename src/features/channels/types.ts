@@ -42,7 +42,7 @@ export type ChannelsResponse = ApiResponse<ChannelEntity[]>;
 
 // Channel member management types
 export interface AddChannelMembersData {
-  workspace_member_ids: string[];
+  memberIds: string[];
 }
 
 export interface UpdateChannelMemberData {
