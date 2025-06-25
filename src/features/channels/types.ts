@@ -6,6 +6,7 @@ import {
   ChannelType,
   Attachment,
 } from "@/types/database";
+import { MessageWithUser } from "../messages/types";
 
 // Use the database Channel type directly
 export type ChannelEntity = Channel;
@@ -80,39 +81,6 @@ export interface ChannelFormData {
 export interface ChannelInviteData {
   email: string;
   role?: "admin" | "member";
-}
-
-export interface MessageWithUser {
-  id: string;
-  body: string;
-  attachment_id: string | null;
-  workspace_member_id: string;
-  workspace_id: string;
-  channel_id: string;
-  conversation_id: string | null;
-  parent_message_id: string | null;
-  thread_id: string | null;
-  message_type: string;
-  created_at: string;
-  updated_at: string | null;
-  edited_at: string | null;
-  deleted_at: string | null;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    image: string | null;
-  };
-  attachments?: Attachment[];
-  reactions?: Array<{
-    id: string;
-    value: string;
-    count: number;
-    users: Array<{
-      id: string;
-      name: string;
-    }>;
-  }>;
 }
 
 export interface ChannelMemberWithUser {

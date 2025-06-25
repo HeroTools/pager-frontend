@@ -8,6 +8,7 @@ import {
   ApiResponse,
   SendMessageRequest,
 } from "@/types/database";
+import { MessageWithUser } from "../messages/types";
 
 // Use the database Conversation type directly
 export type ConversationEntity = Conversation;
@@ -63,54 +64,12 @@ export interface GetConversationMessagesParams {
   before?: string;
 }
 
-// User data from the combined endpoint
-export interface ConversationUser {
-  id: string;
-  name: string;
-  email: string;
-  image: string | null;
-}
-
 // User status information
 export interface ConversationUserStatus {
   status: string;
   custom_status: string | null;
   status_emoji: string | null;
   last_seen_at: string | null;
-}
-
-// Message with user data from combined endpoint
-export interface ConversationMessageWithUser {
-  id: string;
-  body: string;
-  attachment_id: string | null;
-  workspace_member_id: string;
-  workspace_id: string;
-  channel_id: string | null;
-  conversation_id: string;
-  parent_message_id: string | null;
-  thread_id: string | null;
-  message_type: string;
-  created_at: string;
-  updated_at: string | null;
-  edited_at: string | null;
-  deleted_at: string | null;
-  user: ConversationUser;
-  attachment?: {
-    id: string;
-    url: string;
-    content_type: string | null;
-    size_bytes: number | null;
-  };
-  reactions?: Array<{
-    id: string;
-    value: string;
-    count: number;
-    users: Array<{
-      id: string;
-      name: string;
-    }>;
-  }>;
 }
 
 // Conversation member with user data from combined endpoint
@@ -121,14 +80,19 @@ export interface ConversationMemberWithUser {
   joined_at: string;
   left_at: string | null;
   last_read_message_id: string | null;
-  user: ConversationUser;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image: string | null;
+  };
   status?: ConversationUserStatus;
 }
 
 // Combined conversation data structure
 export interface ConversationWithMessagesAndMembers {
   conversation: ConversationEntity;
-  messages: ConversationMessageWithUser[];
+  messages: MessageWithUser[];
   members: ConversationMemberWithUser[];
   pagination: {
     hasMore: boolean;

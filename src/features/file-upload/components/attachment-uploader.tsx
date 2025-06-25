@@ -4,7 +4,6 @@ import {
   useDeleteAttachment,
   UploadProgress,
 } from "@/features/file-upload/hooks/use-upload";
-import { createClient } from "@/lib/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { X } from "lucide-react";
 import { UploadedAttachment } from "../types";
@@ -25,11 +24,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
   const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  const supabase = createClient();
-  const { uploadMultipleFiles, isUploading } = useFileUpload(
-    workspaceId,
-    supabase
-  );
+  const { uploadMultipleFiles, isUploading } = useFileUpload(workspaceId);
   const deleteAttachmentMutation = useDeleteAttachment();
 
   const validateFile = (file: File): string | null => {
@@ -108,8 +103,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
               })
             );
           },
-          3, // Max 3 concurrent uploads
-          true
+          3
         );
 
         setAttachments((prev) => {

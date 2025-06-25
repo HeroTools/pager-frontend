@@ -23,7 +23,7 @@
  */
 
 import axios from "axios";
-import { createClient } from "./supabase/client";
+import { supabase } from "./supabase/client";
 
 // Helper function to get cookie value
 const getCookie = (name: string): string | null => {
@@ -84,7 +84,6 @@ export const axiosInstance = axios.create({
 // Add request interceptor to add auth token
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const supabase = createClient();
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -112,7 +111,6 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const supabase = createClient();
         const {
           data: { session },
           error: refreshError,
