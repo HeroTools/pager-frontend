@@ -81,6 +81,7 @@ export interface Attachment extends BaseEntity {
   size_bytes?: number;
   uploaded_by: string;
   url?: string;
+  original_filename?: string;
 }
 
 export interface Message extends Omit<BaseEntity, "updated_at"> {
@@ -191,7 +192,7 @@ export interface WorkspaceWithMembers extends Workspace {
 
 export interface MessageWithRelations extends Message {
   workspace_member?: WorkspaceMember & { user: User };
-  attachment?: Attachment;
+  attachments?: Attachment[];
   channel?: Channel;
   conversation?: Conversation;
   parent_message?: Message;

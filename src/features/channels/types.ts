@@ -27,7 +27,10 @@ export interface ChannelMemberData {
 }
 
 // Create channel data - based on database fields plus UI-specific fields
-export interface CreateChannelData extends CreateEntityInput<Channel> {
+export interface CreateChannelData {
+  workspaceId: string;
+  name: string;
+  channelType: ChannelType;
   description?: string;
 }
 
@@ -150,4 +153,10 @@ export interface GetChannelMessagesParams {
   limit?: number;
   cursor?: string;
   before?: string;
+}
+
+export interface MutateCreateChannelContext {
+  workspaceId: string;
+  channelId?: string;
+  previousChannels?: ChannelEntity[];
 }
