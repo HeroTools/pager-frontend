@@ -22,7 +22,7 @@ import {
 } from "@/features/file-upload/types";
 import { useDeleteAttachment, useFileUpload } from "@/features/file-upload";
 import AttachmentPreview from "./attachment-preview";
-import validateFile from "@/lib/helpers/validate-file";
+import { validateFile } from "@/lib/helpers";
 import EmojiPicker from "@/components/emoji-picker";
 
 type EditorValue = {

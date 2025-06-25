@@ -81,6 +81,7 @@ export interface Attachment extends BaseEntity {
   size_bytes?: number;
   uploaded_by: string;
   url?: string;
+  original_filename?: string;
 }
 
 export interface Message extends Omit<BaseEntity, "updated_at"> {

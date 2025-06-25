@@ -42,6 +42,7 @@ export const transformMessages = (
               contentType: attachment.content_type,
               sizeBytes: attachment.size_bytes,
               publicUrl: attachment.public_url,
+              originalFilename: attachment.original_filename,
             } as Attachment)
         ) || [],
     };
