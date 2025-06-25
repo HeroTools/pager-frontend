@@ -278,28 +278,59 @@ export const useUpdateChannelMember = () => {
 };
 
 // Remove channel member
-export const useRemoveChannelMember = () => {
+export const useRemoveChannelMembers = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({
       workspaceId,
       channelId,
-      memberId,
+      channelMemberIds,
     }: {
       workspaceId: string;
       channelId: string;
-      memberId: string;
-    }) => channelsApi.removeChannelMember(workspaceId, channelId, memberId),
-    onSuccess: (_, variables) => {
-      // Invalidate channel with members to refresh member list
+      channelMemberIds: string[];
+    }) =>
+      channelsApi.removeChannelMembers(
+        workspaceId,
+        channelId,
+        channelMemberIds
+      ),
+    onMutate: async ({ workspaceId, channelId, channelMemberIds }) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({
+        queryKey: ["channel", workspaceId, channelId, "members"],
+      });
+
+      // Snapshot the previous value
+      const previousMembers = queryClient.getQueryData([
+        "channel",
+        workspaceId,
+        channelId,
+        "members",
+      ]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(
+        ["channel", workspaceId, channelId, "members"],
+        (old: any) =>
+          old?.filter((member: any) => !channelMemberIds.includes(member.id))
+      );
+
+      // Return a context object with the snapshotted value
+      return { previousMembers };
+    },
+    onError: (err, { workspaceId, channelId }, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.setQueryData(
+        ["channel", workspaceId, channelId, "members"],
+        context?.previousMembers
+      );
+    },
+    onSettled: (_, __, { workspaceId, channelId }) => {
+      // Always refetch after error or success to ensure cache is in sync with server
       queryClient.invalidateQueries({
-        queryKey: [
-          "channel",
-          variables.workspaceId,
-          variables.channelId,
-          "members",
-        ],
+        queryKey: ["channel", workspaceId, channelId, "members"],
       });
     },
   });
