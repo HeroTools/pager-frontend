@@ -59,8 +59,6 @@ export const createClient = () => {
         // Reconnect settings
 
         timeout: 20_000, // wait up to 20 s for a pong
-
-        reconnectAfterMs: (tries) => Math.min(tries * 1000, 30000), // Exponential backoff up to 30s
       },
       global: {
         headers: {

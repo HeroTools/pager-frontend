@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, Loader } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 
 import { Chat } from "@/components/chat/chat";
 import {
@@ -14,7 +14,7 @@ import {
 import { useGetMembers } from "@/features/members";
 import { useMessageOperations } from "@/features/messages";
 import { useCurrentUser } from "@/features/auth";
-import type { Author, Channel } from "@/types/chat";
+import type { Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import type { UploadedAttachment } from "@/features/file-upload";
 import type { WorkspaceMember } from "@/types/database";
@@ -30,6 +30,7 @@ const ChannelChat = () => {
   const { addPendingMessage, removePendingMessage } = useMessagesStore();
 
   const { user: currentUser, isAuthenticated } = useCurrentUser(workspaceId);
+
   const {
     data: channelWithMessages,
     isLoading: isLoadingMessages,
@@ -37,18 +38,21 @@ const ChannelChat = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    refetch: refetchMessages,
   } = useGetChannelWithMessagesInfinite(workspaceId, channelId);
 
   const {
     data: channelDetails,
     isLoading: isLoadingChannel,
     error: channelError,
+    refetch: refetchChannel,
   } = useGetChannel(workspaceId, channelId);
 
   const {
     data: channelMembersResponse,
     isLoading: isLoadingMembers,
     error: membersError,
+    refetch: refetchMembers,
   } = useGetChannelMembers(workspaceId, channelId);
 
   const { data: workspaceMembers } = useGetMembers(workspaceId);
@@ -57,15 +61,12 @@ const ChannelChat = () => {
     workspaceId,
     channelId,
     currentUserId: currentUser?.id,
-    enabled: isAuthenticated && !!channelId && !!workspaceId,
+    enabled:
+      isAuthenticated &&
+      Boolean(channelId) &&
+      Boolean(workspaceId) &&
+      Boolean(currentUser?.id),
   });
-
-  // Typing indicator for current user
-  // const {
-  //   handleInputChange,
-  //   handleSubmit: handleTypingSubmit,
-  //   isTyping,
-  // } = useTypingIndicator(workspaceId, channelId, undefined);
 
   const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
     workspaceId,
@@ -74,13 +75,16 @@ const ChannelChat = () => {
   );
   const toggleReaction = useToggleReaction(workspaceId);
 
-  const transformChannel = (channelData: any): Channel => ({
-    id: channelData.id,
-    name: channelData.name,
-    description: channelData.description,
-    isPrivate: channelData.channel_type === "private",
-    memberCount: channelData.members?.length || 0,
-  });
+  const transformChannel = useCallback(
+    (channelData: any): Channel => ({
+      id: channelData.id,
+      name: channelData.name,
+      description: channelData.description,
+      isPrivate: channelData.channel_type === "private",
+      memberCount: channelData.members?.length || 0,
+    }),
+    []
+  );
 
   const members = useMemo(() => {
     if (!channelMembersResponse || !workspaceMembers) return [];
@@ -105,6 +109,18 @@ const ChannelChat = () => {
       .filter((member): member is ChannelMemberData => member !== null);
   }, [channelMembersResponse, workspaceMembers]);
 
+  const handleRefreshData = useCallback(async () => {
+    try {
+      await Promise.all([
+        refetchMessages(),
+        refetchChannel(),
+        refetchMembers(),
+      ]);
+    } catch (error) {
+      console.error("Failed to refresh channel data:", error);
+    }
+  }, [refetchMessages, refetchChannel, refetchMembers]);
+
   const isLoading =
     isLoadingMessages || isLoadingChannel || isLoadingMembers || !currentUser;
   const error = messagesError || channelError || membersError;
@@ -124,6 +140,12 @@ const ChannelChat = () => {
         <span className="text-muted-foreground text-sm">
           {error ? "Failed to load channel" : "Channel not found"}
         </span>
+        <button
+          onClick={handleRefreshData}
+          className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -140,6 +162,7 @@ const ChannelChat = () => {
 
   const channel = transformChannel(channelDetails);
   const messages = transformMessages(sortedMessages, currentUser);
+
   const handleSendMessage = async (content: {
     body: string;
     attachments: UploadedAttachment[];
@@ -153,9 +176,8 @@ const ChannelChat = () => {
       entityId: channelId,
       entityType: type,
     });
+
     try {
-      // Stop typing indicator immediately when sending
-      // handleTypingSubmit();
       const message = await createMessage.mutateAsync({
         body: content.body,
         attachments: content.attachments,
@@ -169,7 +191,6 @@ const ChannelChat = () => {
       );
 
       removePendingMessage(optimisticId);
-
       console.log("Message sent successfully");
     } catch (error) {
       removePendingMessage(optimisticId);
@@ -183,7 +204,6 @@ const ChannelChat = () => {
         messageId,
         data: { body: newContent },
       });
-
       console.log("Message edited successfully");
     } catch (error) {
       console.error("Failed to edit message:", error);
@@ -209,6 +229,7 @@ const ChannelChat = () => {
       const hasReacted = existingReaction?.users.some(
         (user: any) => user.id === currentUser?.id
       );
+
       await toggleReaction.mutateAsync({
         messageId,
         emoji,
@@ -229,15 +250,10 @@ const ChannelChat = () => {
         parent_message_id: messageId,
         message_type: "thread",
       });
-
       console.log("Reply sent successfully");
     } catch (error) {
       console.error("Failed to reply to message:", error);
     }
-  };
-
-  const handleToggleChannelDetails = () => {
-    console.log("Toggle channel details");
   };
 
   const handleLoadMore = () => {
@@ -248,13 +264,22 @@ const ChannelChat = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Connection status indicator (optional) */}
+      {/* Enhanced connection status indicator */}
+      <h2>{connectionStatus}</h2>{" "}
       {!isConnected && (
-        <div className="bg-warning/50 border-b border-warning px-4 py-2 text-sm text-warning">
-          Reconnecting to real-time updates... (Status: {connectionStatus})
+        <div className="bg-warning/10 border-b border-warning/20 px-4 py-2 text-sm text-warning-foreground">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="size-2 bg-warning rounded-full animate-pulse" />
+              <span>
+                {connectionStatus === "CONNECTING"
+                  ? "Connecting to real-time updates..."
+                  : `Connection issue (${connectionStatus})`}
+              </span>
+            </div>
+          </div>
         </div>
       )}
-
       <Chat
         channel={channel}
         messages={messages}
@@ -267,7 +292,6 @@ const ChannelChat = () => {
         onDeleteMessage={handleDeleteMessage}
         onReplyToMessage={handleReplyToMessage}
         onReactToMessage={handleReactToMessage}
-        onToggleChannelDetails={handleToggleChannelDetails}
         onLoadMore={handleLoadMore}
         hasMoreMessages={hasNextPage}
         isLoadingMore={isFetchingNextPage}

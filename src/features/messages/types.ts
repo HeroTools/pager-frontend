@@ -110,7 +110,6 @@ export interface UpdateMessageData {
 export interface MessageWithUser {
   id: string;
   body: string;
-  attachment_id: string | null;
   workspace_member_id: string;
   workspace_id: string;
   channel_id: string;
@@ -122,18 +121,15 @@ export interface MessageWithUser {
   updated_at: string | null;
   edited_at: string | null;
   deleted_at: string | null;
+  thread_reply_count: number;
+  thread_last_reply_at: string | null;
+  thread_participants: string[];
   attachments: Attachment[];
   user: {
     id: string;
     name: string;
     email: string;
     image: string | null;
-  };
-  attachment?: {
-    id: string;
-    url: string;
-    content_type: string | null;
-    size_bytes: number | null;
   };
   reactions?: Array<{
     id: string;
@@ -144,6 +140,7 @@ export interface MessageWithUser {
       name: string;
     }>;
   }>;
+  _isOptimistic?: boolean;
 }
 
 export type MessageWithUserResponse = ApiResponse<MessageWithUser>;

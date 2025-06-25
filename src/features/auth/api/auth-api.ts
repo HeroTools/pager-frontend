@@ -1,5 +1,5 @@
 import api from "@/lib/api/axios-client";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import type {
   SignUpData,
   SignInData,
@@ -27,7 +27,6 @@ export const authApi = {
 
     // Store session from Lambda response if provided
     if (response.session) {
-      const supabase = createClient();
       await supabase.auth.setSession(response.session);
     }
 
@@ -47,7 +46,6 @@ export const authApi = {
 
     // Store session from Lambda response
     if (response.data.session) {
-      const supabase = createClient();
       await supabase.auth.setSession(response.data.session);
     }
 
@@ -66,8 +64,6 @@ export const authApi = {
       console.warn("Lambda signout failed:", error);
     }
 
-    // Always clear local session
-    const supabase = createClient();
     await supabase.auth.signOut();
   },
 
@@ -82,7 +78,6 @@ export const authApi = {
 
     // Update local session
     if (response.session) {
-      const supabase = createClient();
       await supabase.auth.setSession(response.session);
     }
 
@@ -169,7 +164,6 @@ export const authApi = {
    * Get current auth session (from Supabase client)
    */
   getSession: async () => {
-    const supabase = createClient();
     const {
       data: { session },
       error,
@@ -204,8 +198,6 @@ export const authApi = {
   deleteAccount: async () => {
     const { data: response } = await api.delete("/auth/account");
 
-    // Clear local session after successful deletion
-    const supabase = createClient();
     await supabase.auth.signOut();
 
     return response;
@@ -222,7 +214,6 @@ export const authApi = {
 
     // Store session from OAuth callback
     if (response.session) {
-      const supabase = createClient();
       await supabase.auth.setSession(response.session);
     }
 

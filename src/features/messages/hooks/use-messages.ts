@@ -24,58 +24,78 @@ export const useCreateChannelMessage = (
 ) => {
   const queryClient = useQueryClient();
 
-  const getInfiniteQueryKey = () => [
-    "channel",
-    workspaceId,
-    channelId,
-    "messages",
-    "infinite",
-  ];
+  const getInfiniteQueryKey = useCallback(
+    () => ["channel", workspaceId, channelId, "messages", "infinite"],
+    [workspaceId, channelId]
+  );
 
-  const getThreadQueryKey = (threadParentId: string) => [
-    "thread",
-    workspaceId,
-    threadParentId,
-  ];
+  const getThreadQueryKey = useCallback(
+    (threadParentId: string) => ["thread", workspaceId, threadParentId],
+    [workspaceId]
+  );
 
   return useMutation({
     mutationKey: ["createChannelMessage", workspaceId, channelId],
 
-    mutationFn: (data: CreateMessageData) =>
-      messagesApi.createChannelMessage(workspaceId, channelId, {
-        body: data.body,
-        attachment_ids: data.attachments?.map((att) => att.id),
-        parent_message_id: data.parent_message_id,
-        thread_id: data.thread_id,
-        message_type: data.message_type,
-      }),
+    mutationFn: async (data: CreateMessageData) => {
+      console.log("Creating message:", data);
+
+      const result = await messagesApi.createChannelMessage(
+        workspaceId,
+        channelId,
+        {
+          body: data.body,
+          attachment_ids: data.attachments?.map((att) => att.id),
+          parent_message_id: data.parent_message_id,
+          thread_id: data.thread_id,
+          message_type: data.message_type,
+        }
+      );
+
+      console.log("Message created successfully:", result);
+      return result;
+    },
 
     onMutate: async (data) => {
+      console.log("onMutate called with:", data);
+
       const threadParentId = data.parent_message_id || data.thread_id;
       const isThreadMessage = Boolean(threadParentId);
+      const queryKey = getInfiniteQueryKey();
+      const threadQueryKey = isThreadMessage
+        ? getThreadQueryKey(threadParentId)
+        : null;
 
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: getInfiniteQueryKey() });
-      if (isThreadMessage) {
-        await queryClient.cancelQueries({
-          queryKey: getThreadQueryKey(threadParentId),
-        });
+      await queryClient.cancelQueries({ queryKey });
+      if (isThreadMessage && threadQueryKey) {
+        await queryClient.cancelQueries({ queryKey: threadQueryKey });
       }
 
       // Snapshot the previous values
-      const previousChannelMessages = queryClient.getQueryData(
-        getInfiniteQueryKey()
-      );
-      const previousThreadMessages = isThreadMessage
-        ? queryClient.getQueryData(getThreadQueryKey(threadParentId))
-        : null;
+      const previousChannelMessages = queryClient.getQueryData(queryKey);
+      const previousThreadMessages =
+        isThreadMessage && threadQueryKey
+          ? queryClient.getQueryData(threadQueryKey)
+          : null;
 
       const currentUser = queryClient.getQueryData(["current-user"]) as any;
+
+      if (!currentUser) {
+        console.error("No current user found for optimistic update");
+        return {
+          previousChannelMessages,
+          previousThreadMessages,
+          isThreadMessage,
+          threadParentId,
+        };
+      }
 
       const optimisticMessage: MessageWithUser = {
         id: data._optimisticId || `temp-${Date.now()}-${Math.random()}`,
         body: data.body,
         channel_id: channelId,
+        conversation_id: null,
         workspace_id: workspaceId,
         message_type: data.message_type || "channel",
         created_at: new Date().toISOString(),
@@ -84,7 +104,6 @@ export const useCreateChannelMessage = (
         deleted_at: null,
         parent_message_id: data.parent_message_id || null,
         thread_id: data.thread_id || null,
-        attachment_id: null,
         workspace_member_id: currentUser?.workspace_member_id || "",
         user: {
           id: currentUser?.id || "",
@@ -105,15 +124,42 @@ export const useCreateChannelMessage = (
             updated_at: new Date().toISOString(),
           })) || [],
         reactions: [],
+        thread_reply_count: 0,
+        thread_last_reply_at: null,
+        thread_participants: [],
         _isOptimistic: true,
       };
 
       // Optimistically update the cache
-      if (isThreadMessage) {
-        // Update thread messages
-        queryClient.setQueryData(
-          getThreadQueryKey(threadParentId),
-          (old: any) => {
+      if (isThreadMessage && threadQueryKey) {
+        // Check if this is the first thread message by looking at parent's thread_reply_count
+        let isFirstThreadMessage = false;
+        const channelData: any = queryClient.getQueryData(queryKey);
+        if (channelData?.pages) {
+          for (const page of channelData.pages) {
+            const parentMessage = page.messages.find(
+              (msg: any) => msg.id === threadParentId
+            );
+            if (parentMessage) {
+              isFirstThreadMessage =
+                (parentMessage.thread_reply_count || 0) === 0;
+              console.log(
+                "🧵 Parent message thread_reply_count:",
+                parentMessage.thread_reply_count,
+                "isFirst:",
+                isFirstThreadMessage
+              );
+              break;
+            }
+          }
+        }
+
+        // Check if thread cache exists
+        const existingThreadData = queryClient.getQueryData(threadQueryKey);
+
+        // Update thread cache if it's the first message OR cache already exists
+        if (isFirstThreadMessage || existingThreadData) {
+          queryClient.setQueryData(threadQueryKey, (old: any) => {
             if (!old) {
               return {
                 replies: [optimisticMessage],
@@ -121,6 +167,7 @@ export const useCreateChannelMessage = (
                 pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
               };
             }
+
             return {
               ...old,
               replies: [...(old.replies || []), optimisticMessage],
@@ -129,28 +176,45 @@ export const useCreateChannelMessage = (
                 totalCount: (old.pagination?.totalCount || 0) + 1,
               },
             };
-          }
-        );
+          });
+        }
 
-        // Update thread reply count in channel
-        queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
-          if (!old?.pages) return old;
+        // Update parent message's thread metadata in channel
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old?.pages?.length) return old;
+
           const updatedPages = old.pages.map((page: any) => ({
             ...page,
-            messages: page.messages.map((msg: any) =>
-              msg.id === threadParentId
-                ? {
-                    ...msg,
-                    thread_reply_count: (msg.thread_reply_count || 0) + 1,
-                  }
-                : msg
-            ),
+            messages: page.messages.map((msg: MessageWithUser) => {
+              if (msg.id === threadParentId) {
+                // Update thread metadata
+                const currentParticipants = msg.thread_participants || [];
+                const messageUser = optimisticMessage.user;
+
+                // Add current user to participants if not already there
+                const updatedParticipants =
+                  messageUser &&
+                  !currentParticipants.some(
+                    (id: string) => id === messageUser.id
+                  )
+                    ? [...currentParticipants, messageUser.id]
+                    : currentParticipants;
+
+                return {
+                  ...msg,
+                  thread_reply_count: (msg.thread_reply_count || 0) + 1,
+                  thread_last_reply_at: optimisticMessage.created_at,
+                  thread_participants: updatedParticipants,
+                };
+              }
+              return msg;
+            }),
           }));
           return { ...old, pages: updatedPages };
         });
       } else {
         // Update channel messages
-        queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
+        queryClient.setQueryData(queryKey, (old: any) => {
           if (!old?.pages?.length) {
             return {
               pages: [
@@ -171,13 +235,22 @@ export const useCreateChannelMessage = (
           const newPages = [...old.pages];
           const firstPage = newPages[0];
 
-          // Add to the beginning of the first page
+          // Check if message already exists (prevent duplicates)
+          const messageExists = firstPage.messages.some(
+            (msg: any) => msg.id === optimisticMessage.id
+          );
+
+          if (messageExists) {
+            return old;
+          }
+
+          // Add to the end of the first page (newest messages)
           newPages[0] = {
             ...firstPage,
-            messages: [optimisticMessage, ...firstPage.messages],
+            messages: [...firstPage.messages, optimisticMessage],
             pagination: {
               ...firstPage.pagination,
-              totalCount: (firstPage.pagination.totalCount || 0) + 1,
+              totalCount: (firstPage.pagination?.totalCount || 0) + 1,
             },
           };
 
@@ -191,42 +264,133 @@ export const useCreateChannelMessage = (
         previousThreadMessages,
         isThreadMessage,
         threadParentId,
+        optimisticId: optimisticMessage.id,
       };
+    },
+
+    onSuccess: (realMessage, variables, context) => {
+      const queryKey = getInfiniteQueryKey();
+      const isThreadMessage = context?.isThreadMessage;
+      const threadParentId = context?.threadParentId;
+
+      if (context?.optimisticId && realMessage) {
+        // Replace the optimistic message with the real one in channel messages
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old?.pages?.length) return old;
+
+          const newPages = old.pages.map((page: any) => ({
+            ...page,
+            messages: page.messages.map((msg: any) =>
+              msg.id === context.optimisticId
+                ? { ...realMessage, _isOptimistic: false }
+                : msg
+            ),
+          }));
+
+          return { ...old, pages: newPages };
+        });
+
+        // If it's a thread message, also update the thread cache
+        if (isThreadMessage && threadParentId) {
+          const threadQueryKey = getThreadQueryKey(threadParentId);
+          queryClient.setQueryData(threadQueryKey, (old: any) => {
+            if (!old?.replies) return old;
+
+            return {
+              ...old,
+              replies: old.replies.map((reply: any) =>
+                reply.id === context.optimisticId
+                  ? { ...realMessage, _isOptimistic: false }
+                  : reply
+              ),
+            };
+          });
+
+          // Update parent message with real thread metadata from server
+          if (realMessage.parent_message_id) {
+            queryClient.setQueryData(queryKey, (old: any) => {
+              if (!old?.pages?.length) return old;
+
+              const updatedPages = old.pages.map((page: any) => ({
+                ...page,
+                messages: page.messages.map((msg: any) => {
+                  if (msg.id === realMessage.parent_message_id) {
+                    // Use server data for thread metadata if available
+                    return {
+                      ...msg,
+                      thread_reply_count:
+                        realMessage.thread_reply_count ||
+                        msg.thread_reply_count,
+                      thread_last_reply_at: realMessage.created_at,
+                      // Keep participants as is for now, server should handle this
+                    };
+                  }
+                  return msg;
+                }),
+              }));
+              return { ...old, pages: updatedPages };
+            });
+          }
+        }
+      }
     },
 
     // If the mutation fails, rollback
     onError: (error, variables, context) => {
+      console.error("Failed to send channel message:", error);
+
+      const queryKey = getInfiniteQueryKey();
+
+      // Rollback channel messages
       if (context?.previousChannelMessages) {
-        queryClient.setQueryData(
-          getInfiniteQueryKey(),
-          context.previousChannelMessages
-        );
+        queryClient.setQueryData(queryKey, context.previousChannelMessages);
       }
 
+      // Rollback thread messages if applicable
       if (
         context?.isThreadMessage &&
         context?.threadParentId &&
         context?.previousThreadMessages
       ) {
+        const threadQueryKey = getThreadQueryKey(context.threadParentId);
         queryClient.setQueryData(
-          getThreadQueryKey(context.threadParentId),
+          threadQueryKey,
           context.previousThreadMessages
         );
       }
 
-      console.error("Failed to send channel message:", error);
       toast.error("Failed to send message. Please try again.");
     },
 
-    // Always refetch after error or success
+    // Always refetch after error or success to ensure consistency
     onSettled: (data, error, variables, context) => {
-      queryClient.invalidateQueries({ queryKey: getInfiniteQueryKey() });
+      const queryKey = getInfiniteQueryKey();
 
+      // Invalidate channel messages
+      queryClient.invalidateQueries({
+        queryKey,
+        exact: true,
+        refetchType: "none", // Don't refetch immediately to avoid disrupting UX
+      });
+
+      // Invalidate thread messages if applicable
       if (context?.isThreadMessage && context?.threadParentId) {
+        const threadQueryKey = getThreadQueryKey(context.threadParentId);
         queryClient.invalidateQueries({
-          queryKey: getThreadQueryKey(context.threadParentId),
+          queryKey: threadQueryKey,
+          exact: true,
+          refetchType: "none",
         });
       }
+
+      // Mark queries as stale for eventual refetch
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey });
+        if (context?.isThreadMessage && context?.threadParentId) {
+          const threadQueryKey = getThreadQueryKey(context.threadParentId);
+          queryClient.invalidateQueries({ queryKey: threadQueryKey });
+        }
+      }, 1000);
     },
   });
 };
@@ -237,54 +401,77 @@ export const useCreateConversationMessage = (
 ) => {
   const queryClient = useQueryClient();
 
-  const getInfiniteQueryKey = () => [
-    "conversation",
-    workspaceId,
-    conversationId,
-    "messages",
-    "infinite",
-  ];
+  const getInfiniteQueryKey = useCallback(
+    () => ["conversation", workspaceId, conversationId, "messages", "infinite"],
+    [workspaceId, conversationId]
+  );
 
-  const getThreadQueryKey = (threadParentId: string) => [
-    "thread",
-    workspaceId,
-    threadParentId,
-  ];
+  const getThreadQueryKey = useCallback(
+    (threadParentId: string) => ["thread", workspaceId, threadParentId],
+    [workspaceId]
+  );
 
   return useMutation({
     mutationKey: ["createConversationMessage", workspaceId, conversationId],
 
-    mutationFn: (data: CreateMessageData) =>
-      messagesApi.createConversationMessage(workspaceId, conversationId, {
-        body: data.body,
-        attachment_ids: data.attachments?.map((attachment) => attachment.id),
-        parent_message_id: data.parent_message_id,
-        thread_id: data.thread_id,
-        message_type: data.message_type,
-      }),
+    mutationFn: async (data: CreateMessageData) => {
+      console.log("Creating conversation message:", data);
+
+      const result = await messagesApi.createConversationMessage(
+        workspaceId,
+        conversationId,
+        {
+          body: data.body,
+          attachment_ids: data.attachments?.map((att) => att.id),
+          parent_message_id: data.parent_message_id,
+          thread_id: data.thread_id,
+          message_type: data.message_type,
+        }
+      );
+
+      console.log("Conversation message created successfully:", result);
+      return result;
+    },
 
     onMutate: async (data) => {
+      console.log("onMutate called with:", data);
+
       const threadParentId = data.parent_message_id || data.thread_id;
       const isThreadMessage = Boolean(threadParentId);
+      const queryKey = getInfiniteQueryKey();
+      const threadQueryKey = isThreadMessage
+        ? getThreadQueryKey(threadParentId)
+        : null;
 
-      await queryClient.cancelQueries({
-        queryKey: getInfiniteQueryKey(),
-      });
-      if (isThreadMessage) {
-        await queryClient.cancelQueries({
-          queryKey: getThreadQueryKey(threadParentId),
-        });
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey });
+      if (isThreadMessage && threadQueryKey) {
+        await queryClient.cancelQueries({ queryKey: threadQueryKey });
       }
 
-      const previousMessages = queryClient.getQueryData(getInfiniteQueryKey());
-      const previousThreadMessages = isThreadMessage
-        ? queryClient.getQueryData(getThreadQueryKey(threadParentId))
-        : null;
+      // Snapshot the previous values
+      const previousConversationMessages = queryClient.getQueryData(queryKey);
+      const previousThreadMessages =
+        isThreadMessage && threadQueryKey
+          ? queryClient.getQueryData(threadQueryKey)
+          : null;
+
       const currentUser = queryClient.getQueryData(["current-user"]) as any;
 
-      const tempMessage: MessageWithUser = {
+      if (!currentUser) {
+        console.error("No current user found for optimistic update");
+        return {
+          previousConversationMessages,
+          previousThreadMessages,
+          isThreadMessage,
+          threadParentId,
+        };
+      }
+
+      const optimisticMessage: MessageWithUser = {
         id: data._optimisticId || `temp-${Date.now()}-${Math.random()}`,
         body: data.body,
+        channel_id: null,
         conversation_id: conversationId,
         workspace_id: workspaceId,
         message_type: data.message_type || "direct",
@@ -314,52 +501,102 @@ export const useCreateConversationMessage = (
             updated_at: new Date().toISOString(),
           })) || [],
         reactions: [],
+        thread_reply_count: 0,
+        thread_last_reply_at: null,
+        thread_participants: [],
         _isOptimistic: true,
       };
 
-      if (isThreadMessage) {
-        queryClient.setQueryData(
-          getThreadQueryKey(threadParentId),
-          (old: any) => {
+      // Optimistically update the cache
+      if (isThreadMessage && threadQueryKey) {
+        // Check if this is the first thread message by looking at parent's thread_reply_count
+        let isFirstThreadMessage = false;
+        const conversationData: any = queryClient.getQueryData(queryKey);
+        if (conversationData?.pages) {
+          for (const page of conversationData.pages) {
+            const parentMessage = page.messages.find(
+              (msg: any) => msg.id === threadParentId
+            );
+            if (parentMessage) {
+              isFirstThreadMessage =
+                (parentMessage.thread_reply_count || 0) === 0;
+              console.log(
+                "🧵 Parent message thread_reply_count:",
+                parentMessage.thread_reply_count,
+                "isFirst:",
+                isFirstThreadMessage
+              );
+              break;
+            }
+          }
+        }
+
+        // Check if thread cache exists
+        const existingThreadData = queryClient.getQueryData(threadQueryKey);
+
+        // Update thread cache if it's the first message OR cache already exists
+        if (isFirstThreadMessage || existingThreadData) {
+          queryClient.setQueryData(threadQueryKey, (old: any) => {
             if (!old) {
               return {
-                replies: [tempMessage],
+                replies: [optimisticMessage],
+                members: [],
                 pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
               };
             }
+
             return {
               ...old,
-              replies: [...(old.replies || []), tempMessage],
+              replies: [...(old.replies || []), optimisticMessage],
               pagination: {
                 ...old.pagination,
                 totalCount: (old.pagination?.totalCount || 0) + 1,
               },
             };
-          }
-        );
+          });
+        }
 
-        queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
-          if (!old?.pages) return old;
+        // Update parent message's thread metadata in conversation
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old?.pages?.length) return old;
+
           const updatedPages = old.pages.map((page: any) => ({
             ...page,
-            messages: page.messages.map((msg: any) =>
-              msg.id === threadParentId
-                ? {
-                    ...msg,
-                    thread_reply_count: (msg.thread_reply_count || 0) + 1,
-                  }
-                : msg
-            ),
+            messages: page.messages.map((msg: MessageWithUser) => {
+              if (msg.id === threadParentId) {
+                // Update thread metadata
+                const currentParticipants = msg.thread_participants || [];
+                const messageUser = optimisticMessage.user;
+
+                // Add current user to participants if not already there
+                const updatedParticipants =
+                  messageUser &&
+                  !currentParticipants.some(
+                    (id: string) => id === messageUser.id
+                  )
+                    ? [...currentParticipants, messageUser.id]
+                    : currentParticipants;
+
+                return {
+                  ...msg,
+                  thread_reply_count: (msg.thread_reply_count || 0) + 1,
+                  thread_last_reply_at: optimisticMessage.created_at,
+                  thread_participants: updatedParticipants,
+                };
+              }
+              return msg;
+            }),
           }));
           return { ...old, pages: updatedPages };
         });
       } else {
-        queryClient.setQueryData(getInfiniteQueryKey(), (old: any) => {
-          if (!old || !old.pages || old.pages.length === 0) {
+        // Update conversation messages
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old?.pages?.length) {
             return {
               pages: [
                 {
-                  messages: [tempMessage],
+                  messages: [optimisticMessage],
                   members: [],
                   pagination: {
                     hasMore: false,
@@ -375,65 +612,165 @@ export const useCreateConversationMessage = (
           const newPages = [...old.pages];
           const firstPage = newPages[0];
 
-          if (firstPage) {
-            newPages[0] = {
-              ...firstPage,
-              messages: [tempMessage, ...firstPage.messages],
-              pagination: {
-                ...firstPage.pagination,
-                totalCount: (firstPage.pagination?.totalCount || 0) + 1,
-              },
-            };
+          // Check if message already exists (prevent duplicates)
+          const messageExists = firstPage.messages.some(
+            (msg: any) => msg.id === optimisticMessage.id
+          );
+
+          if (messageExists) {
+            return old;
           }
 
-          return {
-            ...old,
-            pages: newPages,
+          // Add to the end of the first page (newest messages)
+          newPages[0] = {
+            ...firstPage,
+            messages: [...firstPage.messages, optimisticMessage],
+            pagination: {
+              ...firstPage.pagination,
+              totalCount: (firstPage.pagination?.totalCount || 0) + 1,
+            },
           };
+
+          return { ...old, pages: newPages };
         });
       }
 
+      // Return context for rollback
       return {
-        previousMessages,
+        previousConversationMessages,
         previousThreadMessages,
-        tempMessage,
         isThreadMessage,
         threadParentId,
+        optimisticId: optimisticMessage.id,
       };
     },
 
+    onSuccess: (realMessage, variables, context) => {
+      const queryKey = getInfiniteQueryKey();
+      const isThreadMessage = context?.isThreadMessage;
+      const threadParentId = context?.threadParentId;
+
+      if (context?.optimisticId && realMessage) {
+        // Replace the optimistic message with the real one in conversation messages
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old?.pages?.length) return old;
+
+          const newPages = old.pages.map((page: any) => ({
+            ...page,
+            messages: page.messages.map((msg: any) =>
+              msg.id === context.optimisticId
+                ? { ...realMessage, _isOptimistic: false }
+                : msg
+            ),
+          }));
+
+          return { ...old, pages: newPages };
+        });
+
+        // If it's a thread message, also update the thread cache
+        if (isThreadMessage && threadParentId) {
+          const threadQueryKey = getThreadQueryKey(threadParentId);
+          queryClient.setQueryData(threadQueryKey, (old: any) => {
+            if (!old?.replies) return old;
+
+            return {
+              ...old,
+              replies: old.replies.map((reply: any) =>
+                reply.id === context.optimisticId
+                  ? { ...realMessage, _isOptimistic: false }
+                  : reply
+              ),
+            };
+          });
+
+          // Update parent message with real thread metadata from server
+          if (realMessage.parent_message_id) {
+            queryClient.setQueryData(queryKey, (old: any) => {
+              if (!old?.pages?.length) return old;
+
+              const updatedPages = old.pages.map((page: any) => ({
+                ...page,
+                messages: page.messages.map((msg: any) => {
+                  if (msg.id === realMessage.parent_message_id) {
+                    // Use server data for thread metadata if available
+                    return {
+                      ...msg,
+                      thread_reply_count:
+                        realMessage.thread_reply_count ||
+                        msg.thread_reply_count,
+                      thread_last_reply_at: realMessage.created_at,
+                      // Keep participants as is for now, server should handle this
+                    };
+                  }
+                  return msg;
+                }),
+              }));
+              return { ...old, pages: updatedPages };
+            });
+          }
+        }
+      }
+    },
+
+    // If the mutation fails, rollback
     onError: (error, variables, context) => {
-      if (context?.previousMessages) {
+      console.error("Failed to send conversation message:", error);
+
+      const queryKey = getInfiniteQueryKey();
+
+      // Rollback conversation messages
+      if (context?.previousConversationMessages) {
         queryClient.setQueryData(
-          getInfiniteQueryKey(),
-          context.previousMessages
+          queryKey,
+          context.previousConversationMessages
         );
       }
 
+      // Rollback thread messages if applicable
       if (
         context?.isThreadMessage &&
         context?.threadParentId &&
         context?.previousThreadMessages
       ) {
+        const threadQueryKey = getThreadQueryKey(context.threadParentId);
         queryClient.setQueryData(
-          getThreadQueryKey(context.threadParentId),
+          threadQueryKey,
           context.previousThreadMessages
         );
       }
 
-      console.error("Failed to send conversation message:", error);
+      toast.error("Failed to send message. Please try again.");
     },
 
+    // Always refetch after error or success to ensure consistency
     onSettled: (data, error, variables, context) => {
+      const queryKey = getInfiniteQueryKey();
+
+      // Invalidate conversation messages
       queryClient.invalidateQueries({
-        queryKey: getInfiniteQueryKey(),
+        queryKey,
+        exact: true,
+        refetchType: "none", // Don't refetch immediately to avoid disrupting UX
       });
 
+      // Invalidate thread messages if applicable
       if (context?.isThreadMessage && context?.threadParentId) {
+        const threadQueryKey = getThreadQueryKey(context.threadParentId);
         queryClient.invalidateQueries({
-          queryKey: getThreadQueryKey(context.threadParentId),
+          queryKey: threadQueryKey,
+          exact: true,
+          refetchType: "none",
         });
       }
+
+      // Mark queries as stale for eventual refetch
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey });
+        if (context?.isThreadMessage && context?.threadParentId) {
+          const threadQueryKey = getThreadQueryKey(context.threadParentId);
+          queryClient.invalidateQueries({ queryKey: threadQueryKey });
+        }
+      }, 1000);
     },
   });
 };
