@@ -19,6 +19,7 @@ import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { toast } from "sonner";
 import { ChannelMemberData } from "@/features/channels/types";
 import MemberSearchSelect from "@/components/member-search-select";
+import { MemberWithUser } from "@/features/members/types";
 
 interface RemoveConfirmationProps {
   isOpen: boolean;
@@ -59,6 +60,69 @@ const RemoveConfirmation: React.FC<RemoveConfirmationProps> = ({
   </Dialog>
 );
 
+interface AddMembersDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  channel: Channel;
+  onAddMembers: (memberIds: string[]) => void;
+  existingMemberIds: string[];
+}
+
+const AddMembersDialog: React.FC<AddMembersDialogProps> = ({
+  isOpen,
+  onClose,
+  channel,
+  onAddMembers,
+  existingMemberIds
+}) => {
+  const workspaceId = useWorkspaceId() as string;
+  const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
+  const [selectedMembers, setSelectedMembers] = useState<MemberWithUser[]>([]);
+
+  const handleSubmit = () => {
+    onAddMembers(selectedMembers.map(member => member.id));
+    setSelectedMembers([]);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <DialogTitle className="text-xl">
+            Add people to #{channel.name}
+          </DialogTitle>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <MemberSearchSelect
+          selectedMembers={selectedMembers}
+          onMemberSelect={(member) => setSelectedMembers(prev => [...prev, member])}
+          onMemberRemove={(memberId) => setSelectedMembers(prev => prev.filter(m => m.id !== memberId))}
+          availableMembers={workspaceMembers}
+          existingMemberIds={existingMemberIds}
+          placeholder="ex. Nathalie, or james@acme.com"
+        />
+
+        <div className="flex justify-end mt-4">
+          <Button 
+            onClick={handleSubmit}
+            disabled={selectedMembers.length === 0}
+          >
+            Add
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 interface ChannelDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -82,7 +146,6 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
   const [activeTab, setActiveTab] = useState<"members" | "settings">(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddingMembers, setIsAddingMembers] = useState(false);
-  const [selectedMembers, setSelectedMembers] = useState<ChannelMemberData[]>([]);
   const [removeConfirmation, setRemoveConfirmation] = useState<{
     isOpen: boolean;
     memberId?: string;
@@ -107,17 +170,14 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
     });
   }, [channelMembers, searchQuery, workspaceMembers]);
 
-  const handleAddMembers = async () => {
+  const handleAddMembers = async (memberIds: string[]) => {
     try {
       await addChannelMembers.mutateAsync({
         workspaceId,
         channelId: channel.id,
-        data: {
-          memberIds: selectedMembers.map(member => member.id)
-        }
+        data: { memberIds }
       });
       
-      setSelectedMembers([]);
       setIsAddingMembers(false);
       toast.success("Members added to channel");
     } catch (error) {
@@ -141,11 +201,6 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
       toast.error("Failed to remove member from channel");
     }
   };
-
-  // Get the list of workspace members that can be added
-  const availableMembers = useMemo(() => {
-    return workspaceMembers;
-  }, [workspaceMembers]);
 
   // Get the list of existing member IDs
   const existingMemberIds = useMemo(() => {
@@ -202,57 +257,9 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                     className="gap-2"
                     onClick={() => setIsAddingMembers(true)}
                   >
-                    <Plus className="h-4 w-4" /> Add members
+                    <Plus className="h-4 w-4" /> Add people
                   </Button>
                 </div>
-
-                {isAddingMembers && (
-                  <div className="border rounded-md p-4 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium">Add members</h4>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
-                        onClick={() => {
-                          setIsAddingMembers(false);
-                          setSelectedMembers([]);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <MemberSearchSelect
-                      selectedMembers={selectedMembers}
-                      onMemberSelect={(member) => setSelectedMembers(prev => [...prev, member])}
-                      onMemberRemove={(memberId) => setSelectedMembers(prev => prev.filter(m => m.id !== memberId))}
-                      availableMembers={availableMembers}
-                      existingMemberIds={existingMemberIds}
-                      placeholder="Search for members to add..."
-                    />
-                    
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          setIsAddingMembers(false);
-                          setSelectedMembers([]);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        size="sm"
-                        onClick={handleAddMembers}
-                        disabled={selectedMembers.length === 0}
-                      >
-                        Add {selectedMembers.length > 0 ? `(${selectedMembers.length})` : ''} members
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 <ScrollArea className="h-[300px] pr-4">
                   <div className="space-y-1">
@@ -339,23 +346,6 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <h3 className="font-medium">Channel Description</h3>
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 max-w-md">
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Let people know what this channel is for.
-                      </p>
-                      <Input 
-                        value={channel.description || ""}
-                        placeholder="What's this channel about?"
-                        readOnly
-                      />
-                    </div>
-                    <Button variant="outline" className="mt-6">Edit</Button>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
                   <h3 className="font-medium">Channel Privacy</h3>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 max-w-md">
@@ -382,6 +372,14 @@ export const ChannelDetailsModal: React.FC<ChannelDetailsModalProps> = ({
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      <AddMembersDialog
+        isOpen={isAddingMembers}
+        onClose={() => setIsAddingMembers(false)}
+        channel={channel}
+        onAddMembers={handleAddMembers}
+        existingMemberIds={existingMemberIds}
+      />
 
       <RemoveConfirmation
         isOpen={removeConfirmation.isOpen}
