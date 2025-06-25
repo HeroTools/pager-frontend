@@ -1,17 +1,19 @@
-import { FC, useCallback, useEffect, useRef, useState } from "react";
-import { Message, User, Channel } from "@/types/chat";
+import { FC, useCallback, useEffect, useRef, useState, UIEvent } from "react";
+
+import type { Message, Channel, Attachment } from "@/types/chat";
 import { ChatHeader } from "./header";
 import { ChatMessageList } from "./message-list";
 import Editor from "@/components/editor/editor";
 import { useParamIds } from "@/hooks/use-param-ids";
-import { UploadedAttachment } from "@/features/file-upload/types";
-import { ChannelMemberData } from "@/types/channel";
-
+import type { ChannelMemberData } from "@/features/channels";
+import type { UploadedAttachment } from "@/features/file-upload";
+import type { CurrentUser } from "@/features/auth";
+import { MediaViewerModal } from "@/components/media-viewer-modal";
 
 interface ChatProps {
   channel: Channel;
   messages: Message[];
-  currentUser: User;
+  currentUser: CurrentUser;
   chatType?: "conversation" | "channel";
   onLoadMore: () => void;
   hasMoreMessages: boolean;
@@ -55,7 +57,11 @@ export const Chat: FC<ChatProps> = ({
 }) => {
   const { workspaceId } = useParamIds();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
+  const [mediaViewerAttachments, setMediaViewerAttachments] = useState<
+    Attachment[]
+  >([]);
+  const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
 
@@ -72,44 +78,101 @@ export const Chat: FC<ChatProps> = ({
     onEditMessage?.(messageId);
   };
 
-  useEffect(() => {
-    if (shouldScrollToBottom) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const handleOpenMediaViewer = (message: Message, attachmentIndex: number) => {
+    // Get all viewable attachments (images, videos, and documents)
+    const viewableAttachments = message.attachments.filter((attachment) => {
+      const mimeType = attachment.contentType || "";
+      const filename = attachment.originalFilename || "";
+      const extension = filename.split(".").pop()?.toLowerCase();
+
+      return (
+        attachment.contentType?.startsWith("image/") ||
+        attachment.contentType?.startsWith("video/") ||
+        mimeType.includes("pdf") ||
+        mimeType.includes("document") ||
+        mimeType.includes("spreadsheet") ||
+        mimeType.includes("presentation") ||
+        ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(
+          extension || ""
+        )
+      );
+    });
+
+    if (viewableAttachments.length > 0) {
+      setMediaViewerAttachments(viewableAttachments);
+      setMediaViewerInitialIndex(attachmentIndex);
+      setIsMediaViewerOpen(true);
     }
+  };
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    const c = messagesContainerRef.current;
+    if (c) c.scrollTo({ top: c.scrollHeight, behavior });
+  }, []);
+
+  useEffect(() => {
+    if (shouldScrollToBottom) scrollToBottom();
+  }, [messages, shouldScrollToBottom, scrollToBottom]);
+
+  useEffect(() => {
+    if (!shouldScrollToBottom) return;
+    const c = messagesContainerRef.current;
+    if (!c || typeof ResizeObserver === "undefined") return;
+
+    const ro = new ResizeObserver(() => {
+      scrollToBottom("auto");
+    });
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, [messages, shouldScrollToBottom, scrollToBottom]);
+
+  useEffect(() => {
+    if (!shouldScrollToBottom) return;
+    const c = messagesContainerRef.current;
+    if (!c) return;
+
+    const imgs = Array.from(c.querySelectorAll("img"));
+
+    const onImgLoad = () => {
+      c.scrollTo({ top: c.scrollHeight, behavior: "auto" });
+    };
+
+    imgs.forEach((img) => {
+      if (!img.complete) img.addEventListener("load", onImgLoad);
+    });
+
+    return () => {
+      imgs.forEach((img) => img.removeEventListener("load", onImgLoad));
+    };
   }, [messages, shouldScrollToBottom]);
 
-  // Handle scroll for infinite loading
-  const handleScroll = useCallback(() => {
-    if (!messagesContainerRef.current) return;
+  const handleScroll = useCallback(
+    (e: UIEvent<HTMLDivElement>) => {
+      if (!messagesContainerRef.current) return;
+      const c = messagesContainerRef.current!;
 
-    const { scrollTop, scrollHeight, clientHeight } =
-      messagesContainerRef.current;
-
-    // Check if scrolled to top (for loading older messages)
-    if (scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
-      const previousScrollHeight = scrollHeight;
-      setShouldScrollToBottom(false);
-
-      onLoadMore();
-
-      // Maintain scroll position after loading
-      setTimeout(() => {
-        if (messagesContainerRef.current) {
-          const newScrollHeight = messagesContainerRef.current.scrollHeight;
-          messagesContainerRef.current.scrollTop =
-            newScrollHeight - previousScrollHeight;
-        }
-      }, 100);
-    }
-
-    // Check if user is near bottom (to enable auto-scroll for new messages)
-    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
-    setShouldScrollToBottom(isNearBottom);
-  }, [hasMoreMessages, isLoadingMore, onLoadMore]);
+      if (c.scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
+        const prevH = c.scrollHeight;
+        setShouldScrollToBottom(false);
+        onLoadMore();
+        setTimeout(() => {
+          c.scrollTop = c.scrollHeight - prevH;
+        }, 100);
+      }
+      setShouldScrollToBottom(
+        c.scrollTop + c.clientHeight >= c.scrollHeight - 100
+      );
+    },
+    [hasMoreMessages, isLoadingMore, onLoadMore]
+  );
 
   return (
     <div className="flex flex-col h-full">
-      <ChatHeader channel={channel} onToggleDetails={onToggleChannelDetails} members={members} />
+      <ChatHeader
+        channel={channel}
+        onToggleDetails={onToggleChannelDetails}
+        members={members}
+      />
 
       <ChatMessageList
         messages={messages}
@@ -119,6 +182,8 @@ export const Chat: FC<ChatProps> = ({
         onDelete={onDeleteMessage}
         onReply={onReplyToMessage}
         onReaction={onReactToMessage}
+        containerRef={messagesContainerRef}
+        onScroll={handleScroll}
       />
 
       <div className="p-4 border-t border-border-subtle">
@@ -133,6 +198,13 @@ export const Chat: FC<ChatProps> = ({
           maxFileSizeBytes={20 * 1024 * 1024}
         />
       </div>
+
+      <MediaViewerModal
+        isOpen={isMediaViewerOpen}
+        onClose={() => setIsMediaViewerOpen(false)}
+        attachments={mediaViewerAttachments}
+        initialIndex={mediaViewerInitialIndex}
+      />
     </div>
   );
 };

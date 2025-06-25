@@ -1,4 +1,3 @@
-// No changes needed for PresignedUrlRequest
 export interface PresignedUrlRequest {
   workspaceId: string;
   fileId: string;
@@ -14,23 +13,20 @@ export interface PresignedUrlRequest {
     | "video_messages";
 }
 
-// Updated PresignedUrlResponse based on successResponse directly returning the data object
 export interface PresignedUrlResponse {
   signed_url: string;
   token: string;
-  path: string; // This is the S3 key
+  path: string;
   public_url: string;
   file_id: string;
   expires_in: number;
 }
 
-// No changes needed for ConfirmUploadRequest
 export interface ConfirmUploadRequest {
   workspaceId: string;
   attachmentId: string;
 }
 
-// Updated ConfirmUploadResponse based on successResponse directly returning the data object
 export interface ConfirmUploadResponse {
   message: string;
   file: {
@@ -56,24 +52,18 @@ export interface ConfirmUploadResponse {
   };
 }
 
-// No changes needed for DeleteAttachmentRequest
 export interface DeleteAttachmentRequest {
   workspaceId: string;
   attachmentId: string;
 }
 
-// Updated DeleteAttachmentResponse based on successResponse directly returning the body,
-// which is { success: true } for a successful delete.
 export interface DeleteAttachmentResponse {
-  success: boolean; // This will be `true` on success as per backend.
+  success: boolean;
+  error?: string;
 }
 
-// --- Common Error Response Type ---
-// This interface represents the structure of the body returned by errorResponse.
 export interface ErrorResponse {
   error: string;
-  // If you pass errorDetails, they would also be here, e.g.:
-  // details?: Record<string, any>;
 }
 
 export interface UploadedAttachment {
