@@ -88,7 +88,7 @@ export const membersApi = {
    */
   getCurrentMember: async (workspaceId: string): Promise<MemberWithUser> => {
     const { data: response } = await api.get<MemberResponse>(
-      `/workspaces/${workspaceId}/members/current`
+      `/workspaces/${workspaceId}/members/me/current`
     );
     return response as MemberWithUser;
   },

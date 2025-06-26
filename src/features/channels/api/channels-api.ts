@@ -30,7 +30,7 @@ export const channelsApi = {
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
     const { data: response } = await api.get<ChannelsResponse>(
-      `/workspaces/${workspaceId}/channels/all-available${queryString}`
+      `/workspaces/${workspaceId}/channels/discover/available${queryString}`
     );
     return response || [];
   },
@@ -48,7 +48,7 @@ export const channelsApi = {
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
     const { data: response } = await api.get<ChannelsResponse>(
-      `/workspaces/${workspaceId}/user/channels${queryString}`
+      `/workspaces/${workspaceId}/members/me/channels${queryString}`
     );
     return response || [];
   },

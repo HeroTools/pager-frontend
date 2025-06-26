@@ -16,7 +16,7 @@ export const uploadApi = {
     request: PresignedUrlRequest
   ): Promise<PresignedUrlResponse> => {
     const { data } = await api.post<PresignedUrlResponse>(
-      `/workspaces/${request.workspaceId}/attachments/generate-presigned-url`,
+      `/workspaces/${request.workspaceId}/attachments/generate/presigned-url`,
       request
     );
     return data;
@@ -29,7 +29,7 @@ export const uploadApi = {
     request: ConfirmUploadRequest
   ): Promise<ConfirmUploadResponse> => {
     const { data } = await api.post<ConfirmUploadResponse>(
-      `/workspaces/${request.workspaceId}/attachments/${request.attachmentId}/confirm-upload`,
+      `/workspaces/${request.workspaceId}/attachments/${request.attachmentId}/confirm`,
       request
     );
     return data;
