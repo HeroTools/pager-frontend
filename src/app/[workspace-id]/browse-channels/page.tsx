@@ -3,10 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Hash, Lock, Loader } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   useGetAllAvailableChannels,
+  useGetUserChannels,
   useCreateChannelModal,
   useAddChannelMembers,
 } from "@/features/channels";
@@ -30,12 +31,48 @@ export default function BrowseChannels() {
   const addChannelMembers = useAddChannelMembers();
   const { data: currentMember } = useCurrentMember(workspaceId);
 
-  // Fetch channels (public + ones the user has joined)
-  const { data: channels = [], isLoading } =
+  // Fetch all available channels (public + private user is member of)
+  const { data: allAvailableChannels = [], isLoading: isLoadingAvailable } =
     useGetAllAvailableChannels(workspaceId);
+  
+  // Fetch user's channels to ensure we get all private channels they're in
+  const { data: userChannels = [], isLoading: isLoadingUser } =
+    useGetUserChannels(workspaceId);
 
-  // Filter by name (case-insensitive) and cast to our extended type
-  const displayedChannels = (channels as BrowseChannelItem[]).filter((c) =>
+  // Combine and deduplicate channels
+  const combinedChannels = useMemo(() => {
+    const channelMap = new Map<string, BrowseChannelItem>();
+    
+    // Add all available channels first
+    allAvailableChannels.forEach(channel => {
+      channelMap.set(channel.id, channel as BrowseChannelItem);
+    });
+    
+    // Add user channels, marking them as member if not already marked
+    userChannels.forEach(channel => {
+      const existingChannel = channelMap.get(channel.id);
+      if (existingChannel) {
+        // Update existing channel to ensure is_member is true
+        channelMap.set(channel.id, {
+          ...existingChannel,
+          is_member: true,
+        });
+      } else {
+        // Add new channel (this covers private channels not in allAvailable)
+        channelMap.set(channel.id, {
+          ...channel as BrowseChannelItem,
+          is_member: true,
+        });
+      }
+    });
+    
+    return Array.from(channelMap.values());
+  }, [allAvailableChannels, userChannels]);
+
+  const isLoading = isLoadingAvailable || isLoadingUser;
+
+  // Filter by name (case-insensitive)
+  const displayedChannels = combinedChannels.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
