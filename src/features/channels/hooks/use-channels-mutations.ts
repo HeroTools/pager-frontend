@@ -190,9 +190,24 @@ export const useDeleteChannel = () => {
           old?.filter((channel) => channel.id !== variables.channelId) || []
       );
 
+      // Remove from user channels cache
+      queryClient.setQueryData<ChannelEntity[]>(
+        ["user-channels", variables.workspaceId, null],
+        (old) =>
+          old?.filter((channel) => channel.id !== variables.channelId) || []
+      );
+
       // Remove all related channel caches
       queryClient.removeQueries({
         queryKey: ["channel", variables.workspaceId, variables.channelId],
+      });
+
+      // Invalidate all channel-related queries for this workspace
+      queryClient.invalidateQueries({
+        queryKey: ["channels", variables.workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["user-channels", variables.workspaceId],
       });
     },
   });

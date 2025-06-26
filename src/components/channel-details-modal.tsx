@@ -10,6 +10,7 @@ import {
   XCircle,
   MoreVertical,
   UserSearch,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -30,11 +31,13 @@ import {
 import {
   useRemoveChannelMembers,
   useAddChannelMembers,
+  useDeleteChannel,
   type ChannelMemberData,
 } from "@/features/channels";
 import { useGetMembers } from "@/features/members";
 import { useCurrentUser } from "@/features/auth";
 import { useParamIds } from "@/hooks/use-param-ids";
+import { useConfirm } from "@/hooks/use-confirm";
 import AddMembersDialog from "./add-people-to-channel-modal";
 import RemoveConfirmation from "./remove-member-from-channel-modal";
 
@@ -56,9 +59,15 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   const { workspaceId } = useParamIds();
   const removeChannelMembers = useRemoveChannelMembers();
   const addChannelMembers = useAddChannelMembers();
+  const deleteChannel = useDeleteChannel();
   const { user } = useCurrentUser(workspaceId);
   const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
   const router = useRouter();
+
+  const [ConfirmDeleteDialog, confirmDelete] = useConfirm(
+    "Delete Channel",
+    `Are you sure you want to delete #${channel.name}? This action cannot be undone and will permanently delete all messages in this channel.`
+  );
 
   const [activeTab, setActiveTab] = useState<"members" | "settings">(
     initialTab
@@ -126,6 +135,42 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   const existingMemberIds = useMemo(() => {
     return channelMembers.map((m) => m.workspace_member_id);
   }, [channelMembers]);
+
+  // Check if current user is a channel admin
+  const isChannelAdmin = useMemo(() => {
+    if (!user) return false;
+    
+    const currentWorkspaceMember = workspaceMembers.find(
+      (wm) => wm.user.id === user.id
+    );
+    
+    if (!currentWorkspaceMember) return false;
+    
+    const currentChannelMember = channelMembers.find(
+      (member) => member.workspace_member_id === currentWorkspaceMember.id
+    );
+    
+    return currentChannelMember?.role === "admin";
+  }, [user, workspaceMembers, channelMembers]);
+
+  const handleDeleteChannel = async () => {
+    const confirmed = await confirmDelete();
+    if (!confirmed) return;
+
+    try {
+      await deleteChannel.mutateAsync({
+        workspaceId,
+        channelId: channel.id,
+      });
+
+      toast.success("Channel deleted successfully");
+      onClose();
+      router.push(`/${workspaceId}`);
+    } catch (error) {
+      console.error("Failed to delete channel:", error);
+      toast.error("Failed to delete channel. You must be a channel admin to delete this channel.");
+    }
+  };
 
   const handleLeaveChannel = async () => {
     if (!user) {
@@ -366,7 +411,29 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                   </div>
                 </div>
 
-                <div className="pt-4 border-t">
+                <div className="pt-4 border-t space-y-3">
+                  {isChannelAdmin && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium text-destructive">Danger Zone</h3>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 max-w-md">
+                          <p className="text-sm text-muted-foreground">
+                            Permanently delete this channel and all its messages. This action cannot be undone.
+                          </p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          className="gap-2"
+                          onClick={handleDeleteChannel}
+                          disabled={deleteChannel.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {deleteChannel.isPending ? "Deleting..." : "Delete Channel"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
                   <Button
                     variant="destructive"
                     className="gap-2"
@@ -404,6 +471,8 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
         memberName={removeConfirmation.memberName || ""}
         isPrivate={channel.isPrivate}
       />
+
+      <ConfirmDeleteDialog />
     </>
   );
 };
