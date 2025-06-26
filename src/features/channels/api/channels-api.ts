@@ -123,15 +123,7 @@ export const channelsApi = {
     await api.delete(`/workspaces/${workspaceId}/channels/${channelId}`);
   },
 
-  /**
-   * Join a channel
-   */
-  joinChannel: async (
-    workspaceId: string,
-    channelId: string
-  ): Promise<void> => {
-    await api.post(`/workspaces/${workspaceId}/channels/${channelId}/join`);
-  },
+
 
   /**
    * Add a member to a channel
