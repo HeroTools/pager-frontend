@@ -1,6 +1,5 @@
 import React, { useState, ReactNode } from "react";
-import Picker from "@emoji-mart/react";
-import data from "@emoji-mart/data";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import {
   Popover,
   PopoverTrigger,
@@ -16,7 +15,7 @@ interface EmojiPickerProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const EmojiPicker: React.FC<EmojiPickerProps> = ({
+const EmojiPickerComponent: React.FC<EmojiPickerProps> = ({
   onSelect,
   trigger,
   open,
@@ -53,22 +52,24 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
         side="top"
         sideOffset={8}
       >
-        <Picker
-          data={data}
-          onEmojiSelect={(emoji: any) => {
-            onSelect(emoji.native);
+        <EmojiPicker
+          onEmojiClick={(emojiData: EmojiClickData) => {
+            onSelect(emojiData.emoji);
             setOpen(false);
           }}
-          theme="light"
-          set="native"
-          previewPosition="none"
-          skinTonePosition="none"
-          maxFrequentRows={2}
-          perLine={8}
+          autoFocusSearch={false}
+          lazyLoadEmojis={true}
+          previewConfig={{
+            showPreview: false,
+          }}
+          searchDisabled={false}
+          skinTonesDisabled={true}
+          width={320}
+          height={400}
         />
       </PopoverContent>
     </Popover>
   );
 };
 
-export default EmojiPicker;
+export default EmojiPickerComponent;
