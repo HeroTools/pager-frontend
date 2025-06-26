@@ -10,6 +10,8 @@ out/
 # Build output
 build/
 dist/
+
+# TypeScript
 *.tsbuildinfo
 
 # Environment variables
