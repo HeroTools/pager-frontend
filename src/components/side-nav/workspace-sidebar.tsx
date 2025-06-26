@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   HashIcon,
+  Lock,
   Loader,
   MessageSquareText,
   SendHorizonal,
@@ -96,7 +97,7 @@ export const WorkspaceSidebar = () => {
           <SidebarItem
             key={item.id}
             label={item.name}
-            icon={HashIcon}
+            icon={item.channel_type === "private" ? Lock : HashIcon}
             id={item.id}
             variant={entityId === item.id ? "active" : "default"}
           />

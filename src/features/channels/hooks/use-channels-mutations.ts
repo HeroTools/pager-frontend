@@ -214,35 +214,7 @@ export const useDeleteChannel = () => {
 };
 
 // Join a channel
-export const useJoinChannel = () => {
-  const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({
-      workspaceId,
-      channelId,
-    }: {
-      workspaceId: string;
-      channelId: string;
-    }) => channelsApi.joinChannel(workspaceId, channelId),
-    onSuccess: (_, variables) => {
-      // Invalidate channels list to refresh membership status
-      queryClient.invalidateQueries({
-        queryKey: ["channels", variables.workspaceId],
-      });
-
-      // Invalidate channel with members to refresh member list
-      queryClient.invalidateQueries({
-        queryKey: [
-          "channel",
-          variables.workspaceId,
-          variables.channelId,
-          "members",
-        ],
-      });
-    },
-  });
-};
 
 // Add channel member
 export const useAddChannelMembers = () => {
@@ -267,6 +239,16 @@ export const useAddChannelMembers = () => {
           variables.channelId,
           "members",
         ],
+      });
+      
+      // Invalidate all channels queries to refresh membership status
+      queryClient.invalidateQueries({
+        queryKey: ["channels", variables.workspaceId],
+      });
+      
+      // Invalidate user channels to refresh sidebar
+      queryClient.invalidateQueries({
+        queryKey: ["user-channels", variables.workspaceId],
       });
     },
   });
