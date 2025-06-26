@@ -12,6 +12,11 @@ import { Sidebar } from "@/components/side-nav/sidebar";
 import { Toolbar } from "./toolbar";
 import { WorkspaceSidebar } from "@/components/side-nav/workspace-sidebar";
 import { useUIStore } from "@/store/ui-store";
+import { useRealtimeNotifications } from "@/features/notifications/hooks/use-realtime-notifications";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useCurrentUser } from "@/features/auth";
+import { NotificationSettings } from "@/features/notifications/components/notification-settings";
+import { useNotificationPermissions } from "@/features/notifications/hooks/use-notification-permissions";
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;
@@ -19,10 +24,33 @@ interface WorkspaceIdLayoutProps {
 
 const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
   const { setThreadOpen, isThreadOpen, openThreadMessageId } = useUIStore();
+  const workspaceId = useWorkspaceId();
+  const { user } = useCurrentUser(workspaceId);
+
+  // Enable real-time notifications for this workspace
+  useRealtimeNotifications({
+    userId: user?.id || "",
+    workspaceId: workspaceId || "",
+    enabled: !!user?.id && !!workspaceId,
+  });
+
+  const { permission, requestPermission } = useNotificationPermissions();
+
+  const handleEnableNotifications = async () => {
+    if (permission === "default") {
+      await requestPermission();
+    }
+  };
 
   return (
     <div className="h-full">
       <Toolbar />
+      {/* <NotificationSettings /> */}
+      {permission === "default" && (
+        <button onClick={handleEnableNotifications}>
+          Enable notifications for the best experience
+        </button>
+      )}
       <div className="flex h-[calc(100vh-40px)]">
         <Sidebar />
         <ResizablePanelGroup

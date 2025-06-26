@@ -1,18 +1,19 @@
 import { useRouter } from "next/navigation";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { toast } from "sonner";
+import { Users } from "lucide-react";
+import { FormEvent } from "react";
+
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FormEvent } from "react";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { useGetMembers } from "@/features/members";
 import { useConversationCreateStore } from "../store/conversation-create-store";
 import MemberSearchSelect from "@/components/member-search-select";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Users } from "lucide-react";
 import { useConversations } from "../hooks/use-conversations";
 
 export const CreateConversationModal = () => {
@@ -27,8 +28,7 @@ export const CreateConversationModal = () => {
     isCreatingConversation,
   } = useConversationCreateStore();
 
-  const { data: availableMembers = [], isLoading: membersLoading } =
-    useGetMembers(workspaceId);
+  const { data: availableMembers = [] } = useGetMembers(workspaceId);
   const { createConversation } = useConversations(workspaceId);
 
   const handleClose = () => {
