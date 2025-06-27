@@ -10,6 +10,9 @@ interface UIState {
   selectedThreadParentMessage: Message | null;
   setSelectedThreadParentMessage: (message: Message | null) => void;
   isThreadOpen: () => boolean;
+  isNotificationsPanelOpen: boolean;
+  setNotificationsPanelOpen: (open: boolean) => void;
+  toggleNotificationsPanel: () => void;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -26,4 +29,10 @@ export const useUIStore = create<UIState>((set, get) => ({
   setSelectedThreadParentMessage: (message) =>
     set({ selectedThreadParentMessage: message }),
   isThreadOpen: () => get().openThreadMessageId !== null,
+  isNotificationsPanelOpen: false,
+  setNotificationsPanelOpen: (open) => set({ isNotificationsPanelOpen: open }),
+  toggleNotificationsPanel: () =>
+    set((state) => ({
+      isNotificationsPanelOpen: !state.isNotificationsPanelOpen,
+    })),
 }));

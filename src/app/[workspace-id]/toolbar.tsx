@@ -18,7 +18,6 @@ import { useGetAllAvailableChannels } from "@/features/channels/hooks/use-channe
 import { useGetMembers } from "@/features/members/hooks/use-members";
 import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
-import NotificationBell from "@/features/notifications/components/notification-bell";
 
 export const Toolbar = () => {
   const router = useRouter();
@@ -81,7 +80,6 @@ export const Toolbar = () => {
           </CommandList>
         </CommandDialog>
       </div>
-      <NotificationBell />
     </div>
   );
 };
