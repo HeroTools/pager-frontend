@@ -169,6 +169,50 @@ export const useCreateChannel = () => {
   });
 };
 
+// Update a channel
+export const useUpdateChannel = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { channelId: string },
+    Error,
+    {
+      workspaceId: string;
+      channelId: string;
+      data: UpdateChannelData;
+    }
+  >({
+    mutationFn: ({ workspaceId, channelId, data }) =>
+      channelsApi.updateChannel(workspaceId, channelId, data),
+
+    onSuccess: (response, variables) => {
+      // Invalidate related queries to refetch fresh data
+      queryClient.invalidateQueries({
+        queryKey: ["channel", variables.workspaceId, variables.channelId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["channels", variables.workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["user-channels", variables.workspaceId],
+      });
+    },
+
+    onError: (error, variables) => {
+      // Invalidate related queries on error to ensure consistency
+      queryClient.invalidateQueries({
+        queryKey: ["channel", variables.workspaceId, variables.channelId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["channels", variables.workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["user-channels", variables.workspaceId],
+      });
+    },
+  });
+};
+
 // Delete a channel
 export const useDeleteChannel = () => {
   const queryClient = useQueryClient();
