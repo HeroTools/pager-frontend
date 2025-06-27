@@ -93,6 +93,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         workspaceId,
         channelId: channel.id,
         channelMemberIds: [currentChannelMember.id],
+        isCurrentUserLeaving: true,
       });
 
       toast.success("Left channel successfully");

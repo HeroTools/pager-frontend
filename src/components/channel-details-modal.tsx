@@ -122,6 +122,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
         workspaceId,
         channelId: channel.id,
         channelMemberIds: [memberId],
+        isCurrentUserLeaving: false,
       });
 
       setRemoveConfirmation({ isOpen: false });
@@ -201,6 +202,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
         workspaceId,
         channelId: channel.id,
         channelMemberIds: [currentChannelMember.id],
+        isCurrentUserLeaving: true,
       });
 
       toast.success("Left channel successfully");

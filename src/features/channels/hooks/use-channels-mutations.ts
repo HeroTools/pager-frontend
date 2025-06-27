@@ -13,7 +13,6 @@ import type {
   AddChannelMembersData,
   UpdateChannelMemberData,
   GetChannelMessagesParams,
-  ChannelMemberData,
   MutateCreateChannelContext,
 } from "../types";
 
@@ -294,10 +293,12 @@ export const useRemoveChannelMembers = () => {
       workspaceId,
       channelId,
       channelMemberIds,
+      isCurrentUserLeaving,
     }: {
       workspaceId: string;
       channelId: string;
       channelMemberIds: string[];
+      isCurrentUserLeaving?: boolean;
     }) =>
       channelsApi.removeChannelMembers(
         workspaceId,
@@ -325,20 +326,35 @@ export const useRemoveChannelMembers = () => {
           old?.filter((member: any) => !channelMemberIds.includes(member.id))
       );
 
-      // Return a context object with the snapshotted value
+      // Return context for rollback
       return { previousMembers };
     },
     onError: (err, { workspaceId, channelId }, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
+      // Rollback optimistic update on error
       queryClient.setQueryData(
         ["channel", workspaceId, channelId, "members"],
         context?.previousMembers
       );
     },
+    onSuccess: (_, { workspaceId, channelId, isCurrentUserLeaving }) => {
+      // Only remove channel from user's cache if current user is leaving
+      if (isCurrentUserLeaving) {
+        queryClient.setQueryData<ChannelEntity[]>(
+          ["user-channels", workspaceId, null],
+          (old: ChannelEntity[] | undefined) => old?.filter((channel) => channel.id !== channelId) || []
+        );
+      }
+    },
     onSettled: (_, __, { workspaceId, channelId }) => {
-      // Always refetch after error or success to ensure cache is in sync with server
+      // Invalidate related queries to ensure consistency
       queryClient.invalidateQueries({
         queryKey: ["channel", workspaceId, channelId, "members"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["user-channels", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["channels", workspaceId],
       });
     },
   });
