@@ -1,17 +1,18 @@
-import { Button } from "@/components/ui/button";
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { IconType } from "react-icons/lib";
+
+import { Button } from "@/components/ui/button";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 interface SidebarItemProps {
   label: string;
   id: string;
-  icon: LucideIcon | IconType;
+  icon: LucideIcon;
   disabled?: boolean;
   variant?: VariantProps<typeof sidebarItemVariants>["variant"];
+  hasUnread?: boolean;
 }
 
 const sidebarItemVariants = cva(
@@ -35,6 +36,7 @@ export const SidebarItem = ({
   label,
   disabled,
   variant,
+  hasUnread = false,
 }: SidebarItemProps) => {
   const workspaceId = useWorkspaceId();
 
@@ -46,7 +48,9 @@ export const SidebarItem = ({
         disabled={disabled}
       >
         <Icon className="size-3.5 mr-1 shrink-0" />
-        <span className="text-sm truncate">{label}</span>
+        <span className={cn("text-sm truncate", hasUnread && "font-bold")}>
+          {label}
+        </span>
       </Button>
     );
   }
@@ -57,10 +61,11 @@ export const SidebarItem = ({
       asChild
       className={cn(sidebarItemVariants({ variant }))}
     >
-      {/* // come back to this */}
       <Link href={`/${workspaceId}/c-${id}`}>
         <Icon className="size-3.5 mr-1 shrink-0" />
-        <span className="text-sm truncate">{label}</span>
+        <span className={cn("text-sm truncate", hasUnread && "font-extrabold")}>
+          {label}
+        </span>
       </Link>
     </Button>
   );

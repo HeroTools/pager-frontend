@@ -1,158 +1,355 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { InfiniteData } from "@tanstack/react-query";
 
 import { subscriptionManager } from "@/lib/realtime/subscription-manager";
-import { useNotificationStore } from "@/features/notifications/store/notifications";
+import { notificationKeys } from "@/features/notifications/constants/query-keys";
+import type {
+  NotificationEntity,
+  NotificationsResponse,
+} from "@/features/notifications/types";
 
 interface UseRealtimeNotificationsProps {
-  userId: string;
+  workspaceMemberId: string;
   workspaceId: string;
   enabled?: boolean;
 }
 
-interface NotificationData {
-  id: string;
-  type: "mention" | "direct_message" | "channel_message" | "thread_reply";
-  title: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-  workspace_id: string;
-  related_message_id?: string;
-  related_channel_id?: string;
-  related_conversation_id?: string;
+type NotificationsInfiniteData = InfiniteData<
+  NotificationsResponse,
+  string | undefined
+>;
+type ConnectionStatus =
+  | "CONNECTING"
+  | "SUBSCRIBED"
+  | "CHANNEL_ERROR"
+  | "CLOSED"
+  | "TIMED_OUT";
+
+interface NewNotificationPayload {
+  notification: NotificationEntity;
 }
 
-/**
- * Hook to manage real-time notification events via SubscriptionManager.
- * Follows the same pattern as useRealtimeChannel but for user notifications.
- */
+interface NotificationReadPayload {
+  notificationId: string;
+  isRead: boolean;
+}
+
 export const useRealtimeNotifications = ({
-  userId,
+  workspaceMemberId,
   workspaceId,
   enabled = true,
 }: UseRealtimeNotificationsProps) => {
   const queryClient = useQueryClient();
-  const { addNotification, markAsRead } = useNotificationStore();
-
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<
-    "CONNECTING" | "SUBSCRIBED" | "CHANNEL_ERROR" | "CLOSED" | "TIMED_OUT"
-  >("CONNECTING");
+  const [connectionStatus, setConnectionStatus] =
+    useState<ConnectionStatus>("CONNECTING");
 
-  // Generate stable keys for React Query
-  const getNotificationsQueryKey = () => ["notifications", workspaceId, userId];
+  const topic = `workspace_member:${workspaceMemberId}`;
 
-  const topic = `user:${userId}`;
+  const getNotificationsQueryKey = () =>
+    notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false });
+
+  const getUnreadNotificationsQueryKey = () =>
+    notificationKeys.unread(workspaceId);
 
   useEffect(() => {
-    if (!enabled || !userId || !workspaceId) return;
+    if (!enabled || !workspaceMemberId || !workspaceId) return;
 
     setConnectionStatus("CONNECTING");
 
-    // Handler: New notifications
-    const handleNewNotification = (payload: any) => {
-      const notification = payload.notification as NotificationData;
+    const handleNewNotification = (payload: NewNotificationPayload) => {
+      try {
+        const notification = payload.notification;
 
-      console.log("New notification received:", notification);
+        console.log("New notification received:", notification);
 
-      // Add to notification store
-      addNotification(notification);
+        // Update main notifications list
+        queryClient.setQueryData<NotificationsInfiniteData>(
+          getNotificationsQueryKey(),
+          (old) => {
+            if (!old?.pages?.length) {
+              return {
+                pages: [
+                  {
+                    notifications: [notification],
+                    pagination: {
+                      limit: 50,
+                      cursor: null,
+                      nextCursor: null,
+                      hasMore: false,
+                    },
+                    unread_count: notification.is_read ? 0 : 1,
+                  },
+                ],
+                pageParams: [undefined],
+              };
+            }
 
-      // Update React Query cache for notifications list
-      queryClient.setQueryData(getNotificationsQueryKey(), (old: any) => {
-        if (!old) {
-          return {
-            notifications: [notification],
-            unreadCount: notification.is_read ? 0 : 1,
-          };
+            // Check if notification already exists
+            const exists = old.pages.some((page) =>
+              page.notifications.some((n) => n.id === notification.id)
+            );
+            if (exists) return old;
+
+            // Add to first page
+            const newPages = [...old.pages];
+            const firstPage = newPages[0];
+
+            newPages[0] = {
+              ...firstPage,
+              notifications: [notification, ...firstPage.notifications],
+              unread_count:
+                firstPage.unread_count + (notification.is_read ? 0 : 1),
+            };
+
+            return { ...old, pages: newPages };
+          }
+        );
+
+        // Update unread notifications list (only if notification is unread)
+        if (!notification.is_read) {
+          queryClient.setQueryData<NotificationsInfiniteData>(
+            getUnreadNotificationsQueryKey(),
+            (old) => {
+              if (!old?.pages?.length) {
+                return {
+                  pages: [
+                    {
+                      notifications: [notification],
+                      pagination: {
+                        limit: 50,
+                        cursor: null,
+                        nextCursor: null,
+                        hasMore: false,
+                      },
+                      unread_count: 1,
+                    },
+                  ],
+                  pageParams: [undefined],
+                };
+              }
+
+              // Check if notification already exists
+              const exists = old.pages.some((page) =>
+                page.notifications.some((n) => n.id === notification.id)
+              );
+              if (exists) return old;
+
+              // Add to first page
+              const newPages = [...old.pages];
+              const firstPage = newPages[0];
+
+              newPages[0] = {
+                ...firstPage,
+                notifications: [notification, ...firstPage.notifications],
+                unread_count: firstPage.unread_count + 1,
+              };
+
+              return { ...old, pages: newPages };
+            }
+          );
+
+          // Update unread count
+          queryClient.setQueryData<{ unread_count: number }>(
+            notificationKeys.unreadCount(workspaceId),
+            (old) => ({
+              unread_count: (old?.unread_count || 0) + 1,
+            })
+          );
         }
 
-        // Check if notification already exists
-        const exists = old.notifications?.some(
-          (n: NotificationData) => n.id === notification.id
-        );
-        if (exists) return old;
-
-        return {
-          notifications: [notification, ...(old.notifications || [])],
-          unreadCount: notification.is_read
-            ? old.unreadCount
-            : (old.unreadCount || 0) + 1,
-        };
-      });
-
-      // Optional: Show toast/system notification
-      if (document.hidden || !document.hasFocus()) {
-        toast.info(notification.title, { description: notification.message });
+        // Show toast notification when app is not focused
+        if (document.hidden || !document.hasFocus()) {
+          toast.info(notification.title, {
+            description: notification.message,
+          });
+        }
+      } catch (error) {
+        console.error("Error handling new notification:", error);
       }
     };
 
-    // Handler: Notification read status update
-    const handleNotificationRead = (payload: any) => {
-      const { notificationId, isRead } = payload;
+    const handleNotificationRead = (payload: NotificationReadPayload) => {
+      try {
+        const { notificationId, isRead } = payload;
 
-      // Update store
-      if (isRead) {
-        markAsRead(notificationId);
-      }
+        console.log("Notification read status updated:", {
+          notificationId,
+          isRead,
+        });
 
-      // Update React Query cache
-      queryClient.setQueryData(getNotificationsQueryKey(), (old: any) => {
-        if (!old?.notifications) return old;
+        // Update main notifications list
+        queryClient.setQueryData<NotificationsInfiniteData>(
+          getNotificationsQueryKey(),
+          (old) => {
+            if (!old?.pages?.length) return old;
 
-        const updatedNotifications = old.notifications.map(
-          (n: NotificationData) =>
-            n.id === notificationId ? { ...n, is_read: isRead } : n
+            const newPages = old.pages.map((page) => ({
+              ...page,
+              notifications: page.notifications.map((notification) =>
+                notification.id === notificationId
+                  ? {
+                      ...notification,
+                      is_read: isRead,
+                      read_at: isRead ? new Date().toISOString() : null,
+                    }
+                  : notification
+              ),
+            }));
+
+            return { ...old, pages: newPages };
+          }
         );
 
-        const unreadCount = updatedNotifications.filter(
-          (n: NotificationData) => !n.is_read
-        ).length;
+        // If marked as read, remove from unread list
+        if (isRead) {
+          queryClient.setQueryData<NotificationsInfiniteData>(
+            getUnreadNotificationsQueryKey(),
+            (old) => {
+              if (!old?.pages?.length) return old;
 
-        return {
-          notifications: updatedNotifications,
-          unreadCount,
-        };
-      });
+              const newPages = old.pages.map((page) => ({
+                ...page,
+                notifications: page.notifications.filter(
+                  (notification) => notification.id !== notificationId
+                ),
+                unread_count: Math.max(0, page.unread_count - 1),
+              }));
+
+              return { ...old, pages: newPages };
+            }
+          );
+
+          // Update unread count
+          queryClient.setQueryData<{ unread_count: number }>(
+            notificationKeys.unreadCount(workspaceId),
+            (old) => ({
+              unread_count: Math.max(0, (old?.unread_count || 0) - 1),
+            })
+          );
+        }
+      } catch (error) {
+        console.error("Error handling notification read status:", error);
+      }
     };
 
-    // Subscribe to broadcast events using your existing pattern
-    subscriptionManager.subscribeBroadcast(
-      topic,
-      "new_notification",
-      handleNewNotification
-    );
+    const handleAllNotificationsRead = () => {
+      try {
+        console.log(
+          "All notifications marked as read for workspace:",
+          workspaceId
+        );
 
-    subscriptionManager.subscribeBroadcast(
-      topic,
-      "notification_read",
-      handleNotificationRead
-    );
+        const now = new Date().toISOString();
 
-    // Listen to connection status updates
+        // Update main notifications list - mark all as read
+        queryClient.setQueryData<NotificationsInfiniteData>(
+          getNotificationsQueryKey(),
+          (old) => {
+            if (!old?.pages?.length) return old;
+
+            const newPages = old.pages.map((page) => ({
+              ...page,
+              notifications: page.notifications.map((notification) => ({
+                ...notification,
+                is_read: true,
+                read_at: now,
+              })),
+              unread_count: 0,
+            }));
+
+            return { ...old, pages: newPages };
+          }
+        );
+
+        // Clear unread notifications list
+        queryClient.setQueryData<NotificationsInfiniteData>(
+          getUnreadNotificationsQueryKey(),
+          (old) => {
+            if (!old?.pages?.length) return old;
+
+            const newPages = old.pages.map((page) => ({
+              ...page,
+              notifications: [],
+              unread_count: 0,
+            }));
+
+            return { ...old, pages: newPages };
+          }
+        );
+
+        // Reset unread count
+        queryClient.setQueryData<{ unread_count: number }>(
+          notificationKeys.unreadCount(workspaceId),
+          { unread_count: 0 }
+        );
+      } catch (error) {
+        console.error("Error handling all notifications read:", error);
+      }
+    };
+
+    const handleConnectionError = (error: any) => {
+      console.error("Realtime connection error:", error);
+      setConnectionStatus("CHANNEL_ERROR");
+      setIsConnected(false);
+    };
+
     const handleStatusChange = (status: string) => {
-      setConnectionStatus(status as any);
-      setIsConnected(status === "SUBSCRIBED");
+      const connectionStatus = status as ConnectionStatus;
+      setConnectionStatus(connectionStatus);
+      setIsConnected(connectionStatus === "SUBSCRIBED");
+
+      if (
+        connectionStatus === "CHANNEL_ERROR" ||
+        connectionStatus === "TIMED_OUT"
+      ) {
+        console.warn(
+          `Notification subscription ${connectionStatus.toLowerCase()}:`,
+          topic
+        );
+      }
     };
 
-    subscriptionManager.onStatusChange(topic, handleStatusChange);
+    try {
+      subscriptionManager.subscribeBroadcast(
+        topic,
+        "new_notification",
+        handleNewNotification
+      );
 
-    // Cleanup on unmount or dependency change
+      subscriptionManager.subscribeBroadcast(
+        topic,
+        "notification_read",
+        handleNotificationRead
+      );
+
+      subscriptionManager.subscribeBroadcast(
+        topic,
+        "all_notifications_read",
+        handleAllNotificationsRead
+      );
+
+      subscriptionManager.onStatusChange(topic, handleStatusChange);
+    } catch (error) {
+      console.error("Error setting up notification subscriptions:", error);
+      setConnectionStatus("CHANNEL_ERROR");
+    }
+
     return () => {
-      subscriptionManager.unsubscribe(topic);
-      subscriptionManager.offStatusChange(topic, handleStatusChange);
+      try {
+        subscriptionManager.unsubscribe(topic);
+        subscriptionManager.offStatusChange(topic, handleStatusChange);
+      } catch (error) {
+        console.error("Error cleaning up notification subscriptions:", error);
+      }
     };
-  }, [
-    topic,
-    userId,
-    workspaceId,
-    enabled,
-    queryClient,
-    addNotification,
-    markAsRead,
-  ]);
+  }, [workspaceMemberId, workspaceId, enabled]);
 
-  return { isConnected, connectionStatus };
+  return {
+    isConnected,
+    connectionStatus,
+    topic,
+  };
 };

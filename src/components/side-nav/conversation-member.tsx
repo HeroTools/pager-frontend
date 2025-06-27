@@ -3,7 +3,9 @@ import Link from "next/link";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useConversationNotifications } from "@/features/notifications/hooks/use-conversation-notifications";
 import { cn } from "@/lib/utils";
 
 const conversationItemVariants = cva(
@@ -94,6 +96,10 @@ export const ConversationItem = ({
 }: ConversationItemProps) => {
   const workspaceId = useWorkspaceId();
   const display = getConversationDisplay(conversation);
+  const { getConversationUnreadCount } =
+    useConversationNotifications(workspaceId);
+
+  const unreadCount = getConversationUnreadCount(conversation.id);
 
   return (
     <Button
@@ -114,19 +120,26 @@ export const ConversationItem = ({
             </AvatarFallback>
           </Avatar>
 
-          {/* Member count badge for group conversations */}
           {conversation.is_group_conversation && (
-            <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
-              {conversation.member_count}
+            <div className="absolute -bottom-0.5 -right-0.5 bg-sidebar text-color-foreground text-xs rounded-md min-w-[14px] h-3.5 flex items-center justify-center px-1 border border-background">
+              {conversation.member_count > 9 ? "9+" : conversation.member_count}
             </div>
           )}
+
+          {/* {!conversation.is_group_conversation && unreadCount === 0 && (
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+          )} */}
         </div>
 
         <span className="text-sm truncate flex-1">{display.name}</span>
 
-        {/* TODO: Add online status indicator */}
-        {!conversation.is_group_conversation && (
-          <div className="w-2 h-2 bg-green-500 rounded-full ml-auto opacity-60" />
+        {unreadCount > 0 && (
+          <Badge
+            variant="destructive"
+            className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs font-medium"
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </Badge>
         )}
       </Link>
     </Button>
