@@ -118,10 +118,14 @@ const ImageAttachment: FC<{
 const VideoAttachment: FC<{
   attachment: Attachment;
   onOpenMediaViewer: () => void;
-}> = ({ attachment, onOpenMediaViewer }) => {
+  isSingle?: boolean;
+  fixedHeight?: number;
+}> = ({ attachment, onOpenMediaViewer, isSingle = false, fixedHeight }) => {
   const [duration, setDuration] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+
+  const { maxHeight, maxWidth } = isSingle ? ATTACHMENT_SIZES.SINGLE : ATTACHMENT_SIZES.MULTI;
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -148,7 +152,7 @@ const VideoAttachment: FC<{
 
   return (
     <div
-      className="relative group/video max-w-md cursor-pointer"
+      className="relative group/video flex-shrink-0 cursor-pointer"
       onClick={onOpenMediaViewer}
     >
       {/* Placeholder while loading to prevent layout shift */}
@@ -170,9 +174,16 @@ const VideoAttachment: FC<{
         <video
           src={attachment.publicUrl}
           className={cn(
-            "rounded-lg max-w-full h-auto",
+            "rounded-lg cursor-pointer border",
+            fixedHeight ? "object-cover" : "object-contain",
             !isLoaded && "opacity-0 absolute inset-0"
           )}
+          style={{
+            height: fixedHeight ? `${fixedHeight}px` : 'auto',
+            maxHeight: fixedHeight ? 'none' : `${maxHeight}px`,
+            maxWidth: `${maxWidth}px`,
+            minWidth: fixedHeight ? "120px" : 'auto'
+          }}
           preload="metadata"
           onLoadedMetadata={handleLoadedMetadata}
           onError={handleError}
@@ -180,7 +191,7 @@ const VideoAttachment: FC<{
           Your browser does not support the video tag.
         </video>
       )}
-
+      
       {/* Video overlay with play icon and duration - only show when loaded */}
       {isLoaded && !hasError && (
         <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
@@ -415,7 +426,12 @@ const AttachmentGrid: FC<{
   attachments: Attachment[];
   onOpenMediaViewer: (attachments: Attachment[], initialIndex: number) => void;
 }> = ({ attachments, onOpenMediaViewer }) => {
-  const renderAttachment = (attachment: Attachment, index: number) => {
+  const renderAttachment = (
+    attachment: Attachment,
+    index: number,
+    isSingle = false,
+    fixedHeight?: number
+  ) => {
     const mimeType = attachment.contentType || "";
     const filename = attachment.originalFilename || "";
 
@@ -425,6 +441,8 @@ const AttachmentGrid: FC<{
           key={attachment.id}
           attachment={attachment}
           onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
+          isSingle={isSingle}
+          fixedHeight={fixedHeight}
         />
       );
     }
@@ -435,6 +453,8 @@ const AttachmentGrid: FC<{
           key={attachment.id}
           attachment={attachment}
           onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
+          isSingle={isSingle}
+          fixedHeight={fixedHeight}
         />
       );
     }
@@ -464,14 +484,21 @@ const AttachmentGrid: FC<{
 
   if (attachments.length === 0) return null;
 
+  const isSingleAttachment = attachments.length === 1;
+  
+  // Use fixed height for multi-attachment layout to align all media
+  const fixedHeight = isSingleAttachment ? undefined : ATTACHMENT_SIZES.MULTI.fixedHeight;
+
   return (
     <div className="mt-2">
-      {attachments.length === 1 ? (
-        renderAttachment(attachments[0], 0)
+      {isSingleAttachment ? (
+        <div className="flex justify-start">
+          {renderAttachment(attachments[0], 0, true)}
+        </div>
       ) : (
-        <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 max-w-2xl">
+        <div className="flex flex-wrap items-start gap-1.5 max-w-5xl">
           {attachments.map((attachment, index) =>
-            renderAttachment(attachment, index)
+            renderAttachment(attachment, index, false, fixedHeight)
           )}
         </div>
       )}
