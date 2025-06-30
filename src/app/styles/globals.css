@@ -360,11 +360,11 @@ body {
   }
 
   .ql-container {
-    @apply !font-sans !border !border-border !border-t-0 !rounded-b-md !bg-input;
+    @apply !font-sans !border !border-border !border-t-0 !rounded-b-md !bg-input max-h-80 overflow-y-auto;
   }
 
   .ql-editor {
-    @apply !leading-6 !p-4 !text-foreground !font-normal !font-sans !text-sm !min-h-20;
+    @apply !leading-6 !p-4 !text-foreground !font-normal !font-sans !text-sm !min-h-20 max-h-64 overflow-y-auto;
   }
 
   .ql-editor.ql-blank::before {

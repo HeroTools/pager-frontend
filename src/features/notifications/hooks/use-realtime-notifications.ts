@@ -5,6 +5,9 @@ import type { InfiniteData } from "@tanstack/react-query";
 
 import { subscriptionManager } from "@/lib/realtime/subscription-manager";
 import { notificationKeys } from "@/features/notifications/constants/query-keys";
+import { useParamIds } from "@/hooks/use-param-ids";
+import { useBrowserFocus } from "@/hooks/use-browser-focus";
+import { useFocusNotificationManager } from "@/features/notifications/hooks/use-focus-notification-manager";
 import type {
   NotificationEntity,
   NotificationsResponse,
@@ -46,6 +49,12 @@ export const useRealtimeNotifications = ({
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("CONNECTING");
 
+  const { id: currentEntityId, type: currentEntityType } = useParamIds();
+  const { isFocused } = useBrowserFocus();
+
+  // Initialize the focus notification manager
+  useFocusNotificationManager();
+
   const topic = `workspace_member:${workspaceMemberId}`;
 
   const getNotificationsQueryKey = () =>
@@ -65,6 +74,46 @@ export const useRealtimeNotifications = ({
 
         console.log("New notification received:", notification);
 
+        // Inline logic to determine notification behavior
+        const isNotificationForCurrentEntity = () => {
+          if (!currentEntityId) return false;
+
+          if (currentEntityType === "channel") {
+            return notification.related_channel_id === currentEntityId;
+          }
+
+          if (currentEntityType === "conversation") {
+            return notification.related_conversation_id === currentEntityId;
+          }
+
+          return false;
+        };
+
+        const isForCurrentEntity = isNotificationForCurrentEntity();
+
+        // Determine if we should create an unread notification
+        const shouldCreateUnreadNotification =
+          !isFocused || !isForCurrentEntity;
+
+        // Always show toast unless we're focused and it's for the current entity
+        const shouldShowToast = !isFocused || !isForCurrentEntity;
+
+        // Show toast if appropriate
+        if (shouldShowToast) {
+          toast.info(notification.title, {
+            description: notification.message,
+          });
+        }
+
+        // Create notification entry (read or unread based on context)
+        const notificationToStore = shouldCreateUnreadNotification
+          ? notification
+          : {
+              ...notification,
+              is_read: true,
+              read_at: new Date().toISOString(),
+            };
+
         // Update main notifications list
         queryClient.setQueryData<NotificationsInfiniteData>(
           getNotificationsQueryKey(),
@@ -73,14 +122,14 @@ export const useRealtimeNotifications = ({
               return {
                 pages: [
                   {
-                    notifications: [notification],
+                    notifications: [notificationToStore],
                     pagination: {
                       limit: 50,
                       cursor: null,
                       nextCursor: null,
                       hasMore: false,
                     },
-                    unread_count: notification.is_read ? 0 : 1,
+                    unread_count: notificationToStore.is_read ? 0 : 1,
                   },
                 ],
                 pageParams: [undefined],
@@ -99,9 +148,9 @@ export const useRealtimeNotifications = ({
 
             newPages[0] = {
               ...firstPage,
-              notifications: [notification, ...firstPage.notifications],
+              notifications: [notificationToStore, ...firstPage.notifications],
               unread_count:
-                firstPage.unread_count + (notification.is_read ? 0 : 1),
+                firstPage.unread_count + (notificationToStore.is_read ? 0 : 1),
             };
 
             return { ...old, pages: newPages };
@@ -109,7 +158,7 @@ export const useRealtimeNotifications = ({
         );
 
         // Update unread notifications list (only if notification is unread)
-        if (!notification.is_read) {
+        if (!notificationToStore.is_read) {
           queryClient.setQueryData<NotificationsInfiniteData>(
             getUnreadNotificationsQueryKey(),
             (old) => {
@@ -117,7 +166,7 @@ export const useRealtimeNotifications = ({
                 return {
                   pages: [
                     {
-                      notifications: [notification],
+                      notifications: [notificationToStore],
                       pagination: {
                         limit: 50,
                         cursor: null,
@@ -143,7 +192,10 @@ export const useRealtimeNotifications = ({
 
               newPages[0] = {
                 ...firstPage,
-                notifications: [notification, ...firstPage.notifications],
+                notifications: [
+                  notificationToStore,
+                  ...firstPage.notifications,
+                ],
                 unread_count: firstPage.unread_count + 1,
               };
 
@@ -160,12 +212,19 @@ export const useRealtimeNotifications = ({
           );
         }
 
-        // Show toast notification when app is not focused
-        if (document.hidden || !document.hasFocus()) {
-          toast.info(notification.title, {
-            description: notification.message,
-          });
-        }
+        // Log the decision for debugging
+        console.log("Notification handling decision:", {
+          notificationId: notification.id,
+          shouldCreateUnreadNotification,
+          shouldShowToast,
+          isForCurrentEntity,
+          isFocused,
+          currentEntityId,
+          currentEntityType,
+          finalNotificationState: notificationToStore.is_read
+            ? "read"
+            : "unread",
+        });
       } catch (error) {
         console.error("Error handling new notification:", error);
       }
@@ -345,7 +404,14 @@ export const useRealtimeNotifications = ({
         console.error("Error cleaning up notification subscriptions:", error);
       }
     };
-  }, [workspaceMemberId, workspaceId, enabled]);
+  }, [
+    workspaceMemberId,
+    workspaceId,
+    enabled,
+    currentEntityId,
+    currentEntityType,
+    isFocused,
+  ]);
 
   return {
     isConnected,

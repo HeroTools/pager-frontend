@@ -1,5 +1,6 @@
 import { cva, VariantProps } from "class-variance-authority";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { useConversationNotifications } from "@/features/notifications/hooks/use-conversation-notifications";
 import { cn } from "@/lib/utils";
+import { useMarkEntityNotificationsRead } from "@/features/notifications/hooks/use-mark-entity-notifications-read";
 
 const conversationItemVariants = cva(
   "flex items-center gap-1.5 justify-start font-normal h-7 px-4 text-sm overflow-hidden",
@@ -54,6 +56,7 @@ interface Conversation {
 interface ConversationItemProps {
   conversation: Conversation;
   variant?: VariantProps<typeof conversationItemVariants>["variant"];
+  hasUnread?: boolean;
 }
 
 const getConversationDisplay = (conversation: Conversation) => {
@@ -93,13 +96,34 @@ const getConversationDisplay = (conversation: Conversation) => {
 export const ConversationItem = ({
   conversation,
   variant,
+  hasUnread = false,
 }: ConversationItemProps) => {
   const workspaceId = useWorkspaceId();
   const display = getConversationDisplay(conversation);
   const { getConversationUnreadCount } =
     useConversationNotifications(workspaceId);
+  const { markEntityNotificationsRead } = useMarkEntityNotificationsRead();
+  const router = useRouter();
 
   const unreadCount = getConversationUnreadCount(conversation.id);
+
+  const handleConversationClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+
+    try {
+      router.push(`/${workspaceId}/d-${conversation.id}`);
+      if (hasUnread) {
+        await markEntityNotificationsRead(
+          workspaceId,
+          conversation.id,
+          "conversation"
+        );
+      }
+    } catch (error) {
+      console.error("Error handling conversation click:", error);
+      router.push(`/${workspaceId}/d-${conversation.id}`);
+    }
+  };
 
   return (
     <Button
@@ -108,7 +132,10 @@ export const ConversationItem = ({
       size="sm"
       asChild
     >
-      <Link href={`/${workspaceId}/d-${conversation.id}`}>
+      <Link
+        href={`/${workspaceId}/d-${conversation.id}`}
+        onClick={handleConversationClick}
+      >
         <div className="relative">
           <Avatar className="size-5 rounded-md mr-1">
             <AvatarImage
