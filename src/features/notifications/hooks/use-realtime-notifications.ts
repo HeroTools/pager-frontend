@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { InfiniteData } from "@tanstack/react-query";
@@ -48,64 +48,123 @@ export const useRealtimeNotifications = ({
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("CONNECTING");
+  const [connectionInfo, setConnectionInfo] = useState({
+    reconnectAttempts: 0,
+    circuitBreakerOpen: false,
+    lastActivity: Date.now(),
+  });
+
+  const lastStatusRef = useRef<string>("CONNECTING");
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined);
+  const processedNotificationsRef = useRef<Map<string, number>>(new Map()); // ID -> timestamp
 
   const { id: currentEntityId, type: currentEntityType } = useParamIds();
   const { isFocused } = useBrowserFocus();
 
-  // Initialize the focus notification manager
   useFocusNotificationManager();
 
   const topic = `workspace_member:${workspaceMemberId}`;
 
-  const getNotificationsQueryKey = () =>
-    notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false });
+  const getNotificationsQueryKey = useCallback(
+    () => notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
+    [workspaceId]
+  );
 
-  const getUnreadNotificationsQueryKey = () =>
-    notificationKeys.unread(workspaceId);
+  const getUnreadNotificationsQueryKey = useCallback(
+    () => notificationKeys.unread(workspaceId),
+    [workspaceId]
+  );
+
+  const isNotificationForCurrentEntity = useCallback(
+    (notification: NotificationEntity) => {
+      if (!currentEntityId) return false;
+
+      if (currentEntityType === "channel") {
+        return notification.related_channel_id === currentEntityId;
+      }
+
+      if (currentEntityType === "conversation") {
+        return notification.related_conversation_id === currentEntityId;
+      }
+
+      return false;
+    },
+    [currentEntityId, currentEntityType]
+  );
 
   useEffect(() => {
     if (!enabled || !workspaceMemberId || !workspaceId) return;
 
     setConnectionStatus("CONNECTING");
+    setConnectionInfo((prev) => ({
+      ...prev,
+      reconnectAttempts: 0,
+      circuitBreakerOpen: false,
+    }));
+
+    // Clear old processed notifications (older than 5 minutes)
+    const now = Date.now();
+    const FIVE_MINUTES = 5 * 60 * 1000;
+
+    processedNotificationsRef.current.forEach((timestamp, id) => {
+      if (now - timestamp > FIVE_MINUTES) {
+        processedNotificationsRef.current.delete(id);
+      }
+    });
 
     const handleNewNotification = (payload: NewNotificationPayload) => {
       try {
         const notification = payload.notification;
+        const now = Date.now();
+        const DUPLICATE_WINDOW = 30 * 1000; // 30 seconds
 
-        console.log("New notification received:", notification);
+        // Check for recent duplicates (within 30 seconds)
+        const lastProcessed = processedNotificationsRef.current.get(
+          notification.id
+        );
+        if (lastProcessed && now - lastProcessed < DUPLICATE_WINDOW) {
+          console.log(
+            `Duplicate notification ${notification.id} ignored (processed ${
+              now - lastProcessed
+            }ms ago)`
+          );
+          return;
+        }
 
-        // Inline logic to determine notification behavior
-        const isNotificationForCurrentEntity = () => {
-          if (!currentEntityId) return false;
+        // Record this notification processing time
+        processedNotificationsRef.current.set(notification.id, now);
 
-          if (currentEntityType === "channel") {
-            return notification.related_channel_id === currentEntityId;
-          }
+        // Clean up old entries periodically (keep only last 50 entries)
+        if (processedNotificationsRef.current.size > 50) {
+          const entries = Array.from(
+            processedNotificationsRef.current.entries()
+          )
+            .sort((a, b) => b[1] - a[1]) // Sort by timestamp, newest first
+            .slice(0, 25); // Keep newest 25
+          processedNotificationsRef.current = new Map(entries);
+        }
 
-          if (currentEntityType === "conversation") {
-            return notification.related_conversation_id === currentEntityId;
-          }
+        console.log("New notification received:", {
+          id: notification.id,
+          title: notification.title,
+          timestamp: new Date(
+            notification.created_at || Date.now()
+          ).toLocaleTimeString(),
+          cacheSize: processedNotificationsRef.current.size,
+        });
+        setConnectionInfo((prev) => ({ ...prev, lastActivity: Date.now() }));
 
-          return false;
-        };
-
-        const isForCurrentEntity = isNotificationForCurrentEntity();
-
-        // Determine if we should create an unread notification
+        const isForCurrentEntity = isNotificationForCurrentEntity(notification);
         const shouldCreateUnreadNotification =
           !isFocused || !isForCurrentEntity;
-
-        // Always show toast unless we're focused and it's for the current entity
         const shouldShowToast = !isFocused || !isForCurrentEntity;
 
-        // Show toast if appropriate
         if (shouldShowToast) {
           toast.info(notification.title, {
             description: notification.message,
           });
         }
 
-        // Create notification entry (read or unread based on context)
         const notificationToStore = shouldCreateUnreadNotification
           ? notification
           : {
@@ -114,7 +173,6 @@ export const useRealtimeNotifications = ({
               read_at: new Date().toISOString(),
             };
 
-        // Update main notifications list
         queryClient.setQueryData<NotificationsInfiniteData>(
           getNotificationsQueryKey(),
           (old) => {
@@ -136,13 +194,11 @@ export const useRealtimeNotifications = ({
               };
             }
 
-            // Check if notification already exists
             const exists = old.pages.some((page) =>
               page.notifications.some((n) => n.id === notification.id)
             );
             if (exists) return old;
 
-            // Add to first page
             const newPages = [...old.pages];
             const firstPage = newPages[0];
 
@@ -157,7 +213,6 @@ export const useRealtimeNotifications = ({
           }
         );
 
-        // Update unread notifications list (only if notification is unread)
         if (!notificationToStore.is_read) {
           queryClient.setQueryData<NotificationsInfiniteData>(
             getUnreadNotificationsQueryKey(),
@@ -180,13 +235,11 @@ export const useRealtimeNotifications = ({
                 };
               }
 
-              // Check if notification already exists
               const exists = old.pages.some((page) =>
                 page.notifications.some((n) => n.id === notification.id)
               );
               if (exists) return old;
 
-              // Add to first page
               const newPages = [...old.pages];
               const firstPage = newPages[0];
 
@@ -203,7 +256,6 @@ export const useRealtimeNotifications = ({
             }
           );
 
-          // Update unread count
           queryClient.setQueryData<{ unread_count: number }>(
             notificationKeys.unreadCount(workspaceId),
             (old) => ({
@@ -212,7 +264,6 @@ export const useRealtimeNotifications = ({
           );
         }
 
-        // Log the decision for debugging
         console.log("Notification handling decision:", {
           notificationId: notification.id,
           shouldCreateUnreadNotification,
@@ -238,8 +289,8 @@ export const useRealtimeNotifications = ({
           notificationId,
           isRead,
         });
+        setConnectionInfo((prev) => ({ ...prev, lastActivity: Date.now() }));
 
-        // Update main notifications list
         queryClient.setQueryData<NotificationsInfiniteData>(
           getNotificationsQueryKey(),
           (old) => {
@@ -262,7 +313,6 @@ export const useRealtimeNotifications = ({
           }
         );
 
-        // If marked as read, remove from unread list
         if (isRead) {
           queryClient.setQueryData<NotificationsInfiniteData>(
             getUnreadNotificationsQueryKey(),
@@ -281,7 +331,6 @@ export const useRealtimeNotifications = ({
             }
           );
 
-          // Update unread count
           queryClient.setQueryData<{ unread_count: number }>(
             notificationKeys.unreadCount(workspaceId),
             (old) => ({
@@ -300,10 +349,10 @@ export const useRealtimeNotifications = ({
           "All notifications marked as read for workspace:",
           workspaceId
         );
+        setConnectionInfo((prev) => ({ ...prev, lastActivity: Date.now() }));
 
         const now = new Date().toISOString();
 
-        // Update main notifications list - mark all as read
         queryClient.setQueryData<NotificationsInfiniteData>(
           getNotificationsQueryKey(),
           (old) => {
@@ -323,7 +372,6 @@ export const useRealtimeNotifications = ({
           }
         );
 
-        // Clear unread notifications list
         queryClient.setQueryData<NotificationsInfiniteData>(
           getUnreadNotificationsQueryKey(),
           (old) => {
@@ -339,7 +387,6 @@ export const useRealtimeNotifications = ({
           }
         );
 
-        // Reset unread count
         queryClient.setQueryData<{ unread_count: number }>(
           notificationKeys.unreadCount(workspaceId),
           { unread_count: 0 }
@@ -349,16 +396,46 @@ export const useRealtimeNotifications = ({
       }
     };
 
-    const handleConnectionError = (error: any) => {
-      console.error("Realtime connection error:", error);
-      setConnectionStatus("CHANNEL_ERROR");
-      setIsConnected(false);
-    };
-
     const handleStatusChange = (status: string) => {
+      // Prevent rapid status updates
+      if (lastStatusRef.current === status) return;
+      lastStatusRef.current = status;
+
       const connectionStatus = status as ConnectionStatus;
       setConnectionStatus(connectionStatus);
       setIsConnected(connectionStatus === "SUBSCRIBED");
+
+      // Update connection info based on subscription manager state
+      const health = subscriptionManager.getConnectionHealth();
+      const notificationState = health.channelStates.find(
+        (ch) => ch.topic === topic
+      );
+
+      if (notificationState) {
+        setConnectionInfo((prev) => ({
+          ...prev,
+          reconnectAttempts: notificationState.reconnectAttempts,
+          circuitBreakerOpen:
+            notificationState.circuitBreakerOpen ||
+            health.globalCircuitBreakerOpen,
+        }));
+      }
+
+      // Clear any pending manual reconnection attempts on successful connection
+      if (connectionStatus === "SUBSCRIBED") {
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = undefined;
+        }
+        // Clean up very old processed notifications on successful reconnection (older than 1 minute)
+        const now = Date.now();
+        const ONE_MINUTE = 60 * 1000;
+        processedNotificationsRef.current.forEach((timestamp, id) => {
+          if (now - timestamp > ONE_MINUTE) {
+            processedNotificationsRef.current.delete(id);
+          }
+        });
+      }
 
       if (
         connectionStatus === "CHANNEL_ERROR" ||
@@ -377,19 +454,16 @@ export const useRealtimeNotifications = ({
         "new_notification",
         handleNewNotification
       );
-
       subscriptionManager.subscribeBroadcast(
         topic,
         "notification_read",
         handleNotificationRead
       );
-
       subscriptionManager.subscribeBroadcast(
         topic,
         "all_notifications_read",
         handleAllNotificationsRead
       );
-
       subscriptionManager.onStatusChange(topic, handleStatusChange);
     } catch (error) {
       console.error("Error setting up notification subscriptions:", error);
@@ -397,6 +471,11 @@ export const useRealtimeNotifications = ({
     }
 
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = undefined;
+      }
+
       try {
         subscriptionManager.unsubscribe(topic);
         subscriptionManager.offStatusChange(topic, handleStatusChange);
@@ -411,11 +490,72 @@ export const useRealtimeNotifications = ({
     currentEntityId,
     currentEntityType,
     isFocused,
+    getNotificationsQueryKey,
+    getUnreadNotificationsQueryKey,
+    isNotificationForCurrentEntity,
   ]);
+
+  // Manual reconnect function with built-in cooldown
+  const forceReconnect = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      console.log(
+        "Reconnection already in progress, skipping manual reconnect"
+      );
+      return;
+    }
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      subscriptionManager.forceReconnect(topic);
+      reconnectTimeoutRef.current = undefined;
+    }, 1000);
+  }, [topic]);
+
+  // Get current connection health
+  const getConnectionHealth = useCallback(() => {
+    const health = subscriptionManager.getConnectionHealth();
+    const notificationState = health.channelStates.find(
+      (ch) => ch.topic === topic
+    );
+
+    return {
+      ...health,
+      notificationState: notificationState || null,
+    };
+  }, [topic]);
+
+  // Clear duplicate cache (useful for debugging)
+  const clearDuplicateCache = useCallback(() => {
+    console.log(
+      `Clearing duplicate notification cache (had ${processedNotificationsRef.current.size} entries)`
+    );
+    processedNotificationsRef.current.clear();
+  }, []);
+
+  // Get duplicate cache info (useful for debugging)
+  const getDuplicateCacheInfo = useCallback(() => {
+    const now = Date.now();
+    const entries = Array.from(processedNotificationsRef.current.entries()).map(
+      ([id, timestamp]) => ({
+        id,
+        ageMs: now - timestamp,
+        ageSeconds: Math.round((now - timestamp) / 1000),
+      })
+    );
+
+    return {
+      size: processedNotificationsRef.current.size,
+      entries: entries.sort((a, b) => a.ageMs - b.ageMs), // Sort by age, newest first
+    };
+  }, []);
 
   return {
     isConnected,
     connectionStatus,
+    connectionInfo,
     topic,
+    forceReconnect,
+    getConnectionHealth,
+    clearDuplicateCache,
+    getDuplicateCacheInfo,
   };
 };

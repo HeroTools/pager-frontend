@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { subscriptionManager } from "@/lib/realtime/subscription-manager";
 import type { ChannelWithMessages } from "../types";
@@ -26,9 +26,6 @@ interface ThreadQueryData {
   };
 }
 
-/**
- * Hook to manage real-time message events via SubscriptionManager.
- */
 export const useRealtimeChannel = ({
   workspaceId,
   channelId,
@@ -40,149 +37,147 @@ export const useRealtimeChannel = ({
   const [connectionStatus, setConnectionStatus] = useState<
     "CONNECTING" | "SUBSCRIBED" | "CHANNEL_ERROR" | "CLOSED" | "TIMED_OUT"
   >("CONNECTING");
+  const [connectionInfo, setConnectionInfo] = useState({
+    reconnectAttempts: 0,
+    circuitBreakerOpen: false,
+    lastActivity: Date.now(),
+  });
 
-  // Generate stable keys for React Query
-  const getChannelQueryKey = () => [
-    "channel",
-    workspaceId,
-    channelId,
-    "messages",
-    "infinite",
-  ];
+  const lastStatusRef = useRef<string>("CONNECTING");
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined);
 
-  const getThreadQueryKey = (threadParentId: string) => [
-    "thread",
-    workspaceId,
-    threadParentId,
-  ];
+  const getChannelQueryKey = useCallback(
+    () => ["channel", workspaceId, channelId, "messages", "infinite"],
+    [workspaceId, channelId]
+  );
+
+  const getThreadQueryKey = useCallback(
+    (threadParentId: string) => ["thread", workspaceId, threadParentId],
+    [workspaceId]
+  );
 
   const topic = `channel:${channelId}`;
 
-  /**
-   * Update thread metadata on the parent message when a thread reply is received
-   */
-  const updateParentThreadMetadata = (threadMessage: MessageWithUser) => {
-    const parentMessageId = threadMessage.parent_message_id;
-    if (!parentMessageId) return;
+  const updateParentThreadMetadata = useCallback(
+    (threadMessage: MessageWithUser) => {
+      const parentMessageId = threadMessage.parent_message_id;
+      if (!parentMessageId) return;
 
-    queryClient.setQueryData<InfiniteQueryData>(getChannelQueryKey(), (old) => {
-      if (!old?.pages?.length) return old;
+      queryClient.setQueryData<InfiniteQueryData>(
+        getChannelQueryKey(),
+        (old) => {
+          if (!old?.pages?.length) return old;
 
-      const newPages = old.pages.map((page) => ({
-        ...page,
-        messages: page.messages.map((msg) => {
-          if (msg.id === parentMessageId) {
-            // Update thread metadata
-            const currentParticipants = msg.thread_participants || [];
-            const messageUser = threadMessage.user;
+          const newPages = old.pages.map((page) => ({
+            ...page,
+            messages: page.messages.map((msg) => {
+              if (msg.id === parentMessageId) {
+                const currentParticipants = msg.thread_participants || [];
+                const messageUser = threadMessage.user;
 
-            // Add user to participants if not already there
-            const updatedParticipants =
-              messageUser &&
-              !currentParticipants.some((id) => id === messageUser.id)
-                ? [...currentParticipants, messageUser.id]
-                : currentParticipants;
+                const updatedParticipants =
+                  messageUser &&
+                  !currentParticipants.some((id) => id === messageUser.id)
+                    ? [...currentParticipants, messageUser.id]
+                    : currentParticipants;
 
-            return {
-              ...msg,
-              thread_reply_count: (msg.thread_reply_count || 0) + 1,
-              thread_last_reply_at: threadMessage.created_at,
-              thread_participants: updatedParticipants,
-            };
+                return {
+                  ...msg,
+                  thread_reply_count: (msg.thread_reply_count || 0) + 1,
+                  thread_last_reply_at: threadMessage.created_at,
+                  thread_participants: updatedParticipants,
+                };
+              }
+              return msg;
+            }),
+          }));
+
+          return { ...old, pages: newPages };
+        }
+      );
+    },
+    [queryClient, getChannelQueryKey]
+  );
+
+  const updateThreadCache = useCallback(
+    (threadMessage: MessageWithUser) => {
+      const parentMessageId = threadMessage.parent_message_id;
+      if (!parentMessageId) return;
+
+      const threadQueryKey = getThreadQueryKey(parentMessageId);
+
+      let isFirstThreadMessage = false;
+      const channelData = queryClient.getQueryData<InfiniteQueryData>(
+        getChannelQueryKey()
+      );
+      if (channelData?.pages) {
+        for (const page of channelData.pages) {
+          const parentMessage = page.messages.find(
+            (msg) => msg.id === parentMessageId
+          );
+          if (parentMessage) {
+            isFirstThreadMessage =
+              (parentMessage.thread_reply_count || 0) === 0;
+            break;
           }
-          return msg;
-        }),
-      }));
-
-      return { ...old, pages: newPages };
-    });
-  };
-
-  /**
-   * Add thread message to thread cache with smart logic:
-   * - If parent has thread_reply_count = 0: Create cache (first message)
-   * - If parent has thread_reply_count > 0: Only update if cache exists (user opened thread)
-   */
-  const updateThreadCache = (threadMessage: MessageWithUser) => {
-    const parentMessageId = threadMessage.parent_message_id;
-    if (!parentMessageId) return;
-
-    const threadQueryKey = getThreadQueryKey(parentMessageId);
-
-    // Check parent message's thread_reply_count to determine if this is the first thread message
-    let isFirstThreadMessage = false;
-    const channelData = queryClient.getQueryData<InfiniteQueryData>(
-      getChannelQueryKey()
-    );
-    if (channelData?.pages) {
-      for (const page of channelData.pages) {
-        const parentMessage = page.messages.find(
-          (msg) => msg.id === parentMessageId
-        );
-        if (parentMessage) {
-          isFirstThreadMessage = (parentMessage.thread_reply_count || 0) === 0;
-          break;
         }
       }
-    }
 
-    // Check if thread cache exists
-    const existingThreadData =
-      queryClient.getQueryData<ThreadQueryData>(threadQueryKey);
+      const existingThreadData =
+        queryClient.getQueryData<ThreadQueryData>(threadQueryKey);
 
-    // If this is the first thread message OR thread cache already exists, proceed with update
-    if (isFirstThreadMessage || existingThreadData) {
-      queryClient.setQueryData<ThreadQueryData>(threadQueryKey, (old) => {
-        if (!old) {
-          // Create new thread cache structure (for first message)
+      if (isFirstThreadMessage || existingThreadData) {
+        queryClient.setQueryData<ThreadQueryData>(threadQueryKey, (old) => {
+          if (!old) {
+            return {
+              replies: [threadMessage],
+              members: [],
+              pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
+            };
+          }
+
+          const messageExists = old.replies.some(
+            (reply) => reply.id === threadMessage.id
+          );
+          if (messageExists) {
+            return old;
+          }
+
           return {
-            replies: [threadMessage],
-            members: [],
-            pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
+            ...old,
+            replies: [...old.replies, threadMessage],
+            pagination: {
+              ...old.pagination,
+              totalCount: old.pagination.totalCount + 1,
+            },
           };
-        }
-
-        // Check if message already exists to prevent duplicates
-        const messageExists = old.replies.some(
-          (reply) => reply.id === threadMessage.id
-        );
-        if (messageExists) {
-          return old;
-        }
-
-        return {
-          ...old,
-          replies: [...old.replies, threadMessage],
-          pagination: {
-            ...old.pagination,
-            totalCount: old.pagination.totalCount + 1,
-          },
-        };
-      });
-    }
-  };
+        });
+      }
+    },
+    [queryClient, getChannelQueryKey, getThreadQueryKey]
+  );
 
   useEffect(() => {
     if (!enabled || !channelId || !workspaceId || !currentUserId) return;
 
     setConnectionStatus("CONNECTING");
+    setConnectionInfo((prev) => ({
+      ...prev,
+      reconnectAttempts: 0,
+      circuitBreakerOpen: false,
+    }));
 
-    // Handler: New messages
     const handleNewMessage = (payload: any) => {
       const message = payload.message as MessageWithUser;
       if (message.user?.id === currentUserId) return;
 
-      // Check if this is a thread message
+      setConnectionInfo((prev) => ({ ...prev, lastActivity: Date.now() }));
       const isThreadMessage = Boolean(message.parent_message_id);
 
       if (isThreadMessage) {
-        // Update parent message's thread metadata
         updateParentThreadMetadata(message);
-
-        // Update thread cache if it exists
         updateThreadCache(message);
       } else {
-        // Handle regular channel message
         queryClient.setQueryData<InfiniteQueryData>(
           getChannelQueryKey(),
           (old) => {
@@ -223,13 +218,13 @@ export const useRealtimeChannel = ({
       }
     };
 
-    // Handler: Message updates
     const handleMessageUpdated = (payload: any) => {
       const updated = payload.message as MessageWithUser;
       const isThreadMessage = Boolean(updated.parent_message_id);
 
+      setConnectionInfo((prev) => ({ ...prev, lastActivity: Date.now() }));
+
       if (isThreadMessage) {
-        // Update in thread cache if it exists
         const threadQueryKey = getThreadQueryKey(updated.parent_message_id!);
         queryClient.setQueryData<ThreadQueryData>(threadQueryKey, (old) => {
           if (!old) return old;
@@ -241,7 +236,6 @@ export const useRealtimeChannel = ({
           };
         });
       } else {
-        // Update in channel messages
         queryClient.setQueryData<InfiniteQueryData>(
           getChannelQueryKey(),
           (old) => {
@@ -258,13 +252,13 @@ export const useRealtimeChannel = ({
       }
     };
 
-    // Handler: Message deletions
     const handleMessageDeleted = (payload: any) => {
       const deletedId = payload.messageId as string;
       const parentMessageId = payload.parentMessageId as string | undefined;
 
+      setConnectionInfo((prev) => ({ ...prev, lastActivity: Date.now() }));
+
       if (parentMessageId) {
-        // Thread message deleted - update parent metadata and thread cache
         queryClient.setQueryData<InfiniteQueryData>(
           getChannelQueryKey(),
           (old) => {
@@ -288,7 +282,6 @@ export const useRealtimeChannel = ({
           }
         );
 
-        // Remove from thread cache if it exists
         const threadQueryKey = getThreadQueryKey(parentMessageId);
         queryClient.setQueryData<ThreadQueryData>(threadQueryKey, (old) => {
           if (!old) return old;
@@ -302,7 +295,6 @@ export const useRealtimeChannel = ({
           };
         });
       } else {
-        // Regular channel message deleted
         queryClient.setQueryData<InfiniteQueryData>(
           getChannelQueryKey(),
           (old) => {
@@ -317,39 +309,106 @@ export const useRealtimeChannel = ({
       }
     };
 
-    // Subscribe to broadcast events
+    const handleStatusChange = (status: string) => {
+      // Prevent rapid status updates
+      if (lastStatusRef.current === status) return;
+      lastStatusRef.current = status;
+
+      setConnectionStatus(status as any);
+      setIsConnected(status === "SUBSCRIBED");
+
+      // Update connection info based on subscription manager state
+      const health = subscriptionManager.getConnectionHealth();
+      const channelState = health.channelStates.find(
+        (ch) => ch.topic === topic
+      );
+
+      if (channelState) {
+        setConnectionInfo((prev) => ({
+          ...prev,
+          reconnectAttempts: channelState.reconnectAttempts,
+          circuitBreakerOpen:
+            channelState.circuitBreakerOpen || health.globalCircuitBreakerOpen,
+        }));
+      }
+
+      // Clear any pending manual reconnection attempts on successful connection
+      if (status === "SUBSCRIBED" && reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = undefined;
+      }
+    };
+
     subscriptionManager.subscribeBroadcast(
       topic,
       "new_message",
       handleNewMessage
     );
-
     subscriptionManager.subscribeBroadcast(
       topic,
       "message_updated",
       handleMessageUpdated
     );
-
     subscriptionManager.subscribeBroadcast(
       topic,
       "message_deleted",
       handleMessageDeleted
     );
-
-    // Listen to connection status updates
-    const handleStatusChange = (status: string) => {
-      setConnectionStatus(status as any);
-      setIsConnected(status === "SUBSCRIBED");
-    };
-
     subscriptionManager.onStatusChange(topic, handleStatusChange);
 
-    // Cleanup on unmount or dependency change
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = undefined;
+      }
       subscriptionManager.unsubscribe(topic);
       subscriptionManager.offStatusChange(topic, handleStatusChange);
     };
-  }, [topic, workspaceId, channelId, currentUserId, enabled, queryClient]);
+  }, [
+    topic,
+    workspaceId,
+    channelId,
+    currentUserId,
+    enabled,
+    queryClient,
+    getChannelQueryKey,
+    getThreadQueryKey,
+    updateParentThreadMetadata,
+    updateThreadCache,
+  ]);
 
-  return { isConnected, connectionStatus };
+  // Manual reconnect function with built-in cooldown
+  const forceReconnect = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      console.log(
+        "Reconnection already in progress, skipping manual reconnect"
+      );
+      return;
+    }
+
+    // Add a small delay to prevent immediate retry loops
+    reconnectTimeoutRef.current = setTimeout(() => {
+      subscriptionManager.forceReconnect(topic);
+      reconnectTimeoutRef.current = undefined;
+    }, 1000);
+  }, [topic]);
+
+  // Get current connection health
+  const getConnectionHealth = useCallback(() => {
+    const health = subscriptionManager.getConnectionHealth();
+    const channelState = health.channelStates.find((ch) => ch.topic === topic);
+
+    return {
+      ...health,
+      channelState: channelState || null,
+    };
+  }, [topic]);
+
+  return {
+    isConnected,
+    connectionStatus,
+    connectionInfo,
+    forceReconnect,
+    getConnectionHealth,
+  };
 };
