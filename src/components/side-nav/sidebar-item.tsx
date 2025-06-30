@@ -1,17 +1,20 @@
-import { Button } from "@/components/ui/button";
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { IconType } from "react-icons/lib";
+import { useRouter } from "next/navigation";
 import { cva, type VariantProps } from "class-variance-authority";
+
+import { Button } from "@/components/ui/button";
+import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useMarkEntityNotificationsRead } from "@/features/notifications/hooks/use-mark-entity-notifications-read";
 import { cn } from "@/lib/utils";
 
 interface SidebarItemProps {
   label: string;
   id: string;
-  icon: LucideIcon | IconType;
+  icon: LucideIcon;
   disabled?: boolean;
   variant?: VariantProps<typeof sidebarItemVariants>["variant"];
+  hasUnread?: boolean;
 }
 
 const sidebarItemVariants = cva(
@@ -35,8 +38,26 @@ export const SidebarItem = ({
   label,
   disabled,
   variant,
+  hasUnread = false,
 }: SidebarItemProps) => {
   const workspaceId = useWorkspaceId();
+  const router = useRouter();
+  const { markEntityNotificationsRead } = useMarkEntityNotificationsRead();
+
+  const handleChannelClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+
+    try {
+      router.push(`/${workspaceId}/c-${id}`);
+      if (hasUnread) {
+        await markEntityNotificationsRead(workspaceId, id, "channel");
+      }
+    } catch (error) {
+      console.error("Error handling channel click:", error);
+      // Still navigate even if marking as read fails
+      router.push(`/${workspaceId}/c-${id}`);
+    }
+  };
 
   if (disabled) {
     return (
@@ -46,7 +67,9 @@ export const SidebarItem = ({
         disabled={disabled}
       >
         <Icon className="size-3.5 mr-1 shrink-0" />
-        <span className="text-sm truncate">{label}</span>
+        <span className={cn("text-sm truncate", hasUnread && "font-bold")}>
+          {label}
+        </span>
       </Button>
     );
   }
@@ -57,10 +80,11 @@ export const SidebarItem = ({
       asChild
       className={cn(sidebarItemVariants({ variant }))}
     >
-      {/* // come back to this */}
-      <Link href={`/${workspaceId}/c-${id}`}>
+      <Link href={`/${workspaceId}/c-${id}`} onClick={handleChannelClick}>
         <Icon className="size-3.5 mr-1 shrink-0" />
-        <span className="text-sm truncate">{label}</span>
+        <span className={cn("text-sm truncate", hasUnread && "font-extrabold")}>
+          {label}
+        </span>
       </Link>
     </Button>
   );
