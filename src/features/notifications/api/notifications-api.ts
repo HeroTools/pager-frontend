@@ -54,10 +54,11 @@ export const notificationsApi = {
 
   markNotificationAsRead: async (
     workspaceId: string,
-    notificationId: string
+    notificationIds: string[]
   ): Promise<MarkNotificationReadResponse> => {
     const { data } = await api.patch<MarkNotificationReadResponse>(
-      `/workspaces/${workspaceId}/me/notifications/${notificationId}/read`
+      `/workspaces/${workspaceId}/me/notifications/read`,
+      { notificationIds }
     );
     return data;
   },

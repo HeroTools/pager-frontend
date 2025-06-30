@@ -423,7 +423,7 @@ const Editor = ({
       <div
         ref={editorWrapperRef}
         className={cn(
-          "flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition-all duration-200 relative",
+          "flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition-all duration-200 relative max-h-[calc(100%-36px)]",
           disabled && "opacity-50",
           isDragging && "border-primary bg-accent/50"
         )}
@@ -446,7 +446,10 @@ const Editor = ({
           </div>
         )}
 
-        <div ref={containerRef} className="h-full ql-custom"></div>
+        <div
+          ref={containerRef}
+          className="h-full ql-custom max-h-80 overflow-y-auto"
+        ></div>
 
         {/* Attachment previews */}
         {attachments.length > 0 && (

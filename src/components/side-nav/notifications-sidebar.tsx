@@ -75,7 +75,7 @@ export const NotificationsSidebar = ({
     if (!notification.is_read) {
       try {
         await markAsRead.mutateAsync({
-          notificationId: notification.id,
+          notificationIds: [notification.id],
           workspaceId,
         });
       } catch (error) {

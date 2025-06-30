@@ -17,6 +17,7 @@ import { useRealtimeNotifications } from "@/features/notifications/hooks/use-rea
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { useCurrentUser } from "@/features/auth";
 import { useNotificationPermissions } from "@/features/notifications/hooks/use-notification-permissions";
+import { useFocusAwareNotifications } from "@/features/notifications/hooks/use-focus-aware-notifications";
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;
@@ -33,6 +34,8 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
 
   const workspaceId = useWorkspaceId();
   const { user } = useCurrentUser(workspaceId);
+
+  useFocusAwareNotifications();
 
   useRealtimeNotifications({
     workspaceMemberId: user?.workspace_member_id || "",

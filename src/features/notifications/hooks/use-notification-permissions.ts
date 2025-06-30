@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 
 export function useNotificationPermissions() {
@@ -7,7 +9,7 @@ export function useNotificationPermissions() {
 
   useEffect(() => {
     // Check current notification permission
-    if ("Notification" in window) {
+    if (window && "Notification" in window) {
       setPermission(Notification.permission);
     }
 
@@ -38,7 +40,7 @@ export function useNotificationPermissions() {
   }, []);
 
   const requestPermission = async () => {
-    if ("Notification" in window) {
+    if (window && "Notification" in window) {
       const result = await Notification.requestPermission();
       setPermission(result);
       return result;
@@ -50,6 +52,6 @@ export function useNotificationPermissions() {
     permission,
     canPlaySounds,
     requestPermission,
-    isSupported: "Notification" in window,
+    isSupported: window && "Notification" in window,
   };
 }

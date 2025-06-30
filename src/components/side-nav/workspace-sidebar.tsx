@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { InviteModal } from "./invite-modal";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { useChannelNotifications } from "@/features/notifications/hooks/use-channel-notifications";
+import { useConversationNotifications } from "@/features/notifications/hooks/use-conversation-notifications";
 
 export const WorkspaceSidebar = () => {
   const router = useRouter();
@@ -38,6 +39,8 @@ export const WorkspaceSidebar = () => {
   const { conversations } = useConversations(workspaceId);
   const { user: currentUser } = useCurrentUser(workspaceId);
   const { hasChannelUnread } = useChannelNotifications(workspaceId);
+  const { getConversationUnreadCount } =
+    useConversationNotifications(workspaceId);
 
   const { startConversationCreation } = useConversationCreateStore();
 
@@ -133,6 +136,7 @@ export const WorkspaceSidebar = () => {
             key={conversation.id}
             conversation={conversation}
             variant={entityId === conversation.id ? "active" : "default"}
+            hasUnread={getConversationUnreadCount(conversation.id) > 0}
           />
         ))}
         {currentUser?.role === "admin" && (
