@@ -36,13 +36,11 @@ export default async function AuthCallback() {
 
           // If profile doesn't exist, create it
           if (!userProfile && profileError?.code === "PGRST116") {
-            const googleData = session.user.user_metadata || {};
-
             const { error: insertError } = await supabase.from("users").insert({
               id: session.user.id,
               email: session.user.email || "",
-              name: googleData.full_name || googleData.name || "User",
-              image: googleData.avatar_url || googleData.picture || null,
+              name: session.user.user_metadata?.name || "User",
+              image: session.user.user_metadata?.avatar_url || null,
             });
 
             if (insertError) {
