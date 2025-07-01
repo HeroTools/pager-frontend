@@ -1,5 +1,6 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { REALTIME_SUBSCRIBE_STATES } from "@supabase/realtime-js";
+import { supabase } from "@/lib/supabase/client";
 
 export type Topic = string;
 export type ChannelFactory<T extends SupabaseClient = SupabaseClient> = (
@@ -235,3 +236,8 @@ export class RealtimeHandler<T extends SupabaseClient> {
     );
   };
 }
+
+export const messageRealtimeHandler = new RealtimeHandler(supabase);
+export const notificationsRealtimeHandler = new RealtimeHandler(supabase, {
+  inactiveTabTimeoutSeconds: 24 * 60 * 60, // 1 day
+});

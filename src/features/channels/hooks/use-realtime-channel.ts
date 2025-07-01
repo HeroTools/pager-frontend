@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { RealtimeHandler } from "@/lib/realtime/realtime-handler"; // Assumed path
+import {
+  messageRealtimeHandler,
+  RealtimeHandler,
+} from "@/lib/realtime/realtime-handler"; // Assumed path
 import { supabase } from "@/lib/supabase/client"; // Assumed path
 import type { ChannelWithMessages } from "../types"; // Assumed path
 import type { MessageWithUser } from "@/features/messages/types"; // Assumed path
@@ -359,7 +362,7 @@ export const useRealtimeChannel = ({
     }
 
     setConnectionStatus("CONNECTING");
-    const handler = new RealtimeHandler(supabase);
+    const handler = messageRealtimeHandler;
     handlerRef.current = handler;
 
     const channelFactory = (sb: typeof supabase) =>
