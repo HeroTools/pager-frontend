@@ -29,6 +29,7 @@ type EditorValue = {
   image: File | null;
   body: string;
   attachments: UploadedAttachment[];
+  plainText: string;
 };
 
 interface EditorProps {
@@ -39,7 +40,12 @@ interface EditorProps {
   placeholder?: string;
   workspaceId: string;
   onCancel?: () => void;
-  onSubmit: ({ image, body, attachments }: EditorValue) => Promise<any> | void;
+  onSubmit: ({
+    image,
+    body,
+    attachments,
+    plainText,
+  }: EditorValue) => Promise<any> | void;
   maxFiles?: number;
   maxFileSizeBytes?: number;
 }
@@ -297,6 +303,7 @@ const Editor = ({
         image: oldImage,
         body,
         attachments: attachmentsForSubmit,
+        plainText: oldText,
       });
 
       quill.setText("");

@@ -49,6 +49,7 @@ export const useCreateChannelMessage = (
           parent_message_id: data.parent_message_id,
           thread_id: data.thread_id,
           message_type: data.message_type,
+          plain_text: data.plain_text,
         }
       );
 
@@ -426,6 +427,7 @@ export const useCreateConversationMessage = (
           parent_message_id: data.parent_message_id,
           thread_id: data.thread_id,
           message_type: data.message_type,
+          plain_text: data.plain_text,
         }
       );
 
