@@ -63,8 +63,10 @@ export default function CreateWorkspacePage() {
         {steps.map((label, idx) => (
           <div key={label} className="flex flex-col items-center">
             <div
-              className={`rounded-full w-8 h-8 flex items-center justify-center font-bold text-white ${
-                step === idx ? "bg-primary" : "bg-muted-foreground"
+              className={`rounded-full w-8 h-8 flex items-center justify-center font-bold ${
+                step === idx
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted"
               }`}
             >
               {idx + 1}
@@ -238,9 +240,6 @@ export default function CreateWorkspacePage() {
                 >
                   {isUploading ? "Uploading..." : "Upload a photo"}
                 </Button>
-                <span className="text-xs text-muted-foreground mt-1">
-                  Make sure it's cute!
-                </span>
               </div>
             </CardContent>
             <CardFooter className="justify-between">
@@ -416,7 +415,7 @@ export default function CreateWorkspacePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-secondary py-12">
+    <div className="min-h-screen flex flex-col items-center justify-center py-12 bg-secondary">
       <Stepper />
       {step === 0 && <WorkspaceNameStep />}
       {step === 1 && <UserProfileStep />}
