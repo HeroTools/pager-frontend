@@ -1,13 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import type { InfiniteData } from "@tanstack/react-query";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
-import { subscriptionManager } from "@/lib/realtime/subscription-manager";
+import {
+  notificationsRealtimeHandler,
+  RealtimeHandler,
+} from "@/lib/realtime/realtime-handler";
+import { supabase } from "@/lib/supabase/client";
+import { browserNotificationService } from "@/features/notifications/services/browser-notification-service";
 import { notificationKeys } from "@/features/notifications/constants/query-keys";
-import { useParamIds } from "@/hooks/use-param-ids";
-import { useBrowserFocus } from "@/hooks/use-browser-focus";
 import { useFocusNotificationManager } from "@/features/notifications/hooks/use-focus-notification-manager";
+import { useNotificationPermissions } from "@/features/notifications/hooks/use-notification-permissions";
+import { useNotificationContext } from "@/features/notifications/hooks/use-notification-context";
 import type {
   NotificationEntity,
   NotificationsResponse,
@@ -23,6 +30,7 @@ type NotificationsInfiniteData = InfiniteData<
   NotificationsResponse,
   string | undefined
 >;
+
 type ConnectionStatus =
   | "CONNECTING"
   | "SUBSCRIBED"
@@ -45,68 +53,116 @@ export const useRealtimeNotifications = ({
   enabled = true,
 }: UseRealtimeNotificationsProps) => {
   const queryClient = useQueryClient();
+  const router = useRouter();
+
+  // connection state
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("CONNECTING");
 
-  const { id: currentEntityId, type: currentEntityType } = useParamIds();
-  const { isFocused } = useBrowserFocus();
+  // refs
+  const realtimeHandlerRef = useRef<RealtimeHandler<typeof supabase> | null>(
+    null
+  );
+  const processedNotificationsRef = useRef<Map<string, number>>(new Map());
+  const cleanupFnRef = useRef<(() => void) | null>(null);
 
-  // Initialize the focus notification manager
+  // permissions & context
+  const { permission: notificationPermission } = useNotificationPermissions();
+  const {
+    shouldShowBrowserNotification,
+    shouldShowToast,
+    shouldCreateUnreadNotification,
+  } = useNotificationContext();
+
   useFocusNotificationManager();
 
+  // topic & query-key factories
   const topic = `workspace_member:${workspaceMemberId}`;
 
-  const getNotificationsQueryKey = () =>
-    notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false });
+  const getNotificationsQueryKey = useCallback(
+    () => notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
+    [workspaceId]
+  );
+  const getUnreadNotificationsQueryKey = useCallback(
+    () => notificationKeys.unread(workspaceId),
+    [workspaceId]
+  );
 
-  const getUnreadNotificationsQueryKey = () =>
-    notificationKeys.unread(workspaceId);
+  // click handler
+  const handleNotificationClick = useCallback(
+    (notification: NotificationEntity) => {
+      if (notification.related_channel_id) {
+        router.push(`/${workspaceId}/c-${notification.related_channel_id}`);
+      } else if (notification.related_conversation_id) {
+        router.push(
+          `/${workspaceId}/d-${notification.related_conversation_id}`
+        );
+      }
+    },
+    [workspaceId, router]
+  );
 
-  useEffect(() => {
-    if (!enabled || !workspaceMemberId || !workspaceId) return;
+  // ── Notification handlers: always latest logic via ref
+  const handlersRef = useRef({
+    handleNewNotification: (payload: NewNotificationPayload) => {},
+    handleNotificationRead: (payload: NotificationReadPayload) => {},
+    handleAllNotificationsRead: () => {},
+  });
 
-    setConnectionStatus("CONNECTING");
-
-    const handleNewNotification = (payload: NewNotificationPayload) => {
+  // 1) NEW NOTIFICATION
+  const handleNewNotification = useCallback(
+    async (payload: NewNotificationPayload) => {
       try {
         const notification = payload.notification;
+        const now = Date.now();
+        const DUPLICATE_WINDOW = 30 * 1000; // 30s
 
-        console.log("New notification received:", notification);
+        // dedupe
+        const last = processedNotificationsRef.current.get(notification.id);
+        if (last && now - last < DUPLICATE_WINDOW) {
+          console.log(`🔄 Duplicate notification ${notification.id} ignored`);
+          return;
+        }
+        processedNotificationsRef.current.set(notification.id, now);
 
-        // Inline logic to determine notification behavior
-        const isNotificationForCurrentEntity = () => {
-          if (!currentEntityId) return false;
+        // prune old
+        if (processedNotificationsRef.current.size > 50) {
+          const entries = Array.from(
+            processedNotificationsRef.current.entries()
+          )
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 25);
+          processedNotificationsRef.current = new Map(entries);
+        }
 
-          if (currentEntityType === "channel") {
-            return notification.related_channel_id === currentEntityId;
-          }
+        // Display logic
+        const showBrowser = shouldShowBrowserNotification(notification);
+        const showToastFlag = shouldShowToast(notification);
+        const storeUnread = shouldCreateUnreadNotification(notification);
 
-          if (currentEntityType === "conversation") {
-            return notification.related_conversation_id === currentEntityId;
-          }
-
-          return false;
-        };
-
-        const isForCurrentEntity = isNotificationForCurrentEntity();
-
-        // Determine if we should create an unread notification
-        const shouldCreateUnreadNotification =
-          !isFocused || !isForCurrentEntity;
-
-        // Always show toast unless we're focused and it's for the current entity
-        const shouldShowToast = !isFocused || !isForCurrentEntity;
-
-        // Show toast if appropriate
-        if (shouldShowToast) {
-          toast.info(notification.title, {
-            description: notification.message,
+        // browser notify
+        if (showBrowser && notificationPermission === "granted") {
+          await browserNotificationService.showNotification({
+            notification,
+            workspaceId,
+            onClickCallback: () => handleNotificationClick(notification),
           });
         }
 
-        // Create notification entry (read or unread based on context)
-        const notificationToStore = shouldCreateUnreadNotification
+        // toast
+        if (showToastFlag) {
+          toast.info(notification.title, {
+            description: notification.message,
+            action: {
+              label: "View",
+              onClick: () => handleNotificationClick(notification),
+            },
+          });
+        }
+
+        // prepare for cache
+        const toStore = storeUnread
           ? notification
           : {
               ...notification,
@@ -114,7 +170,7 @@ export const useRealtimeNotifications = ({
               read_at: new Date().toISOString(),
             };
 
-        // Update main notifications list
+        // update main list
         queryClient.setQueryData<NotificationsInfiniteData>(
           getNotificationsQueryKey(),
           (old) => {
@@ -122,43 +178,35 @@ export const useRealtimeNotifications = ({
               return {
                 pages: [
                   {
-                    notifications: [notificationToStore],
+                    notifications: [toStore],
                     pagination: {
                       limit: 50,
                       cursor: null,
                       nextCursor: null,
                       hasMore: false,
                     },
-                    unread_count: notificationToStore.is_read ? 0 : 1,
+                    unread_count: toStore.is_read ? 0 : 1,
                   },
                 ],
                 pageParams: [undefined],
               };
             }
-
-            // Check if notification already exists
-            const exists = old.pages.some((page) =>
-              page.notifications.some((n) => n.id === notification.id)
+            const exists = old.pages[0].notifications.some(
+              (n) => n.id === notification.id
             );
             if (exists) return old;
-
-            // Add to first page
-            const newPages = [...old.pages];
-            const firstPage = newPages[0];
-
-            newPages[0] = {
-              ...firstPage,
-              notifications: [notificationToStore, ...firstPage.notifications],
-              unread_count:
-                firstPage.unread_count + (notificationToStore.is_read ? 0 : 1),
+            const first = old.pages[0];
+            const updatedFirst = {
+              ...first,
+              notifications: [toStore, ...first.notifications],
+              unread_count: first.unread_count + (toStore.is_read ? 0 : 1),
             };
-
-            return { ...old, pages: newPages };
+            return { ...old, pages: [updatedFirst, ...old.pages.slice(1)] };
           }
         );
 
-        // Update unread notifications list (only if notification is unread)
-        if (!notificationToStore.is_read) {
+        // update unread list & count
+        if (!toStore.is_read) {
           queryClient.setQueryData<NotificationsInfiniteData>(
             getUnreadNotificationsQueryKey(),
             (old) => {
@@ -166,7 +214,7 @@ export const useRealtimeNotifications = ({
                 return {
                   pages: [
                     {
-                      notifications: [notificationToStore],
+                      notifications: [toStore],
                       pagination: {
                         limit: 50,
                         cursor: null,
@@ -179,109 +227,87 @@ export const useRealtimeNotifications = ({
                   pageParams: [undefined],
                 };
               }
-
-              // Check if notification already exists
-              const exists = old.pages.some((page) =>
-                page.notifications.some((n) => n.id === notification.id)
+              const exists = old.pages[0].notifications.some(
+                (n) => n.id === notification.id
               );
               if (exists) return old;
-
-              // Add to first page
-              const newPages = [...old.pages];
-              const firstPage = newPages[0];
-
-              newPages[0] = {
-                ...firstPage,
-                notifications: [
-                  notificationToStore,
-                  ...firstPage.notifications,
-                ],
-                unread_count: firstPage.unread_count + 1,
+              const first = old.pages[0];
+              const updatedFirst = {
+                ...first,
+                notifications: [toStore, ...first.notifications],
+                unread_count: first.unread_count + 1,
               };
-
-              return { ...old, pages: newPages };
+              return { ...old, pages: [updatedFirst, ...old.pages.slice(1)] };
             }
           );
-
-          // Update unread count
           queryClient.setQueryData<{ unread_count: number }>(
             notificationKeys.unreadCount(workspaceId),
-            (old) => ({
-              unread_count: (old?.unread_count || 0) + 1,
-            })
+            (old) => ({ unread_count: (old?.unread_count || 0) + 1 })
           );
         }
-
-        // Log the decision for debugging
-        console.log("Notification handling decision:", {
-          notificationId: notification.id,
-          shouldCreateUnreadNotification,
-          shouldShowToast,
-          isForCurrentEntity,
-          isFocused,
-          currentEntityId,
-          currentEntityType,
-          finalNotificationState: notificationToStore.is_read
-            ? "read"
-            : "unread",
-        });
-      } catch (error) {
-        console.error("Error handling new notification:", error);
+      } catch (err) {
+        console.error("❌ Error handling new notification:", err);
       }
-    };
+    },
+    [
+      shouldShowBrowserNotification,
+      shouldShowToast,
+      shouldCreateUnreadNotification,
+      notificationPermission,
+      handleNotificationClick,
+      workspaceId,
+      getNotificationsQueryKey,
+      getUnreadNotificationsQueryKey,
+      queryClient,
+    ]
+  );
 
-    const handleNotificationRead = (payload: NotificationReadPayload) => {
+  // 2) READ STATUS UPDATE
+  const handleNotificationRead = useCallback(
+    (payload: NotificationReadPayload) => {
       try {
         const { notificationId, isRead } = payload;
 
-        console.log("Notification read status updated:", {
-          notificationId,
-          isRead,
-        });
+        if (isRead)
+          browserNotificationService.closeNotification(notificationId);
 
-        // Update main notifications list
+        // update main list
         queryClient.setQueryData<NotificationsInfiniteData>(
           getNotificationsQueryKey(),
           (old) => {
             if (!old?.pages?.length) return old;
-
             const newPages = old.pages.map((page) => ({
               ...page,
-              notifications: page.notifications.map((notification) =>
-                notification.id === notificationId
+              notifications: page.notifications.map((n) =>
+                n.id === notificationId
                   ? {
-                      ...notification,
+                      ...n,
                       is_read: isRead,
                       read_at: isRead ? new Date().toISOString() : null,
                     }
-                  : notification
+                  : n
               ),
             }));
-
             return { ...old, pages: newPages };
           }
         );
 
-        // If marked as read, remove from unread list
+        // update unread list & count
         if (isRead) {
           queryClient.setQueryData<NotificationsInfiniteData>(
             getUnreadNotificationsQueryKey(),
             (old) => {
               if (!old?.pages?.length) return old;
-
               const newPages = old.pages.map((page) => ({
                 ...page,
                 notifications: page.notifications.filter(
-                  (notification) => notification.id !== notificationId
+                  (n) => n.id !== notificationId
                 ),
                 unread_count: Math.max(0, page.unread_count - 1),
               }));
-
               return { ...old, pages: newPages };
             }
           );
-
-          // Update unread count
           queryClient.setQueryData<{ unread_count: number }>(
             notificationKeys.unreadCount(workspaceId),
             (old) => ({
@@ -289,133 +315,151 @@ export const useRealtimeNotifications = ({
             })
           );
         }
-      } catch (error) {
-        console.error("Error handling notification read status:", error);
+      } catch (err) {
+        console.error("❌ Error handling notification read:", err);
       }
-    };
+    },
+    [
+      getNotificationsQueryKey,
+      getUnreadNotificationsQueryKey,
+      queryClient,
+      workspaceId,
+    ]
+  );
 
-    const handleAllNotificationsRead = () => {
-      try {
-        console.log(
-          "All notifications marked as read for workspace:",
-          workspaceId
-        );
-
-        const now = new Date().toISOString();
-
-        // Update main notifications list - mark all as read
-        queryClient.setQueryData<NotificationsInfiniteData>(
-          getNotificationsQueryKey(),
-          (old) => {
-            if (!old?.pages?.length) return old;
-
-            const newPages = old.pages.map((page) => ({
-              ...page,
-              notifications: page.notifications.map((notification) => ({
-                ...notification,
-                is_read: true,
-                read_at: now,
-              })),
-              unread_count: 0,
-            }));
-
-            return { ...old, pages: newPages };
-          }
-        );
-
-        // Clear unread notifications list
-        queryClient.setQueryData<NotificationsInfiniteData>(
-          getUnreadNotificationsQueryKey(),
-          (old) => {
-            if (!old?.pages?.length) return old;
-
-            const newPages = old.pages.map((page) => ({
-              ...page,
-              notifications: [],
-              unread_count: 0,
-            }));
-
-            return { ...old, pages: newPages };
-          }
-        );
-
-        // Reset unread count
-        queryClient.setQueryData<{ unread_count: number }>(
-          notificationKeys.unreadCount(workspaceId),
-          { unread_count: 0 }
-        );
-      } catch (error) {
-        console.error("Error handling all notifications read:", error);
-      }
-    };
-
-    const handleConnectionError = (error: any) => {
-      console.error("Realtime connection error:", error);
-      setConnectionStatus("CHANNEL_ERROR");
-      setIsConnected(false);
-    };
-
-    const handleStatusChange = (status: string) => {
-      const connectionStatus = status as ConnectionStatus;
-      setConnectionStatus(connectionStatus);
-      setIsConnected(connectionStatus === "SUBSCRIBED");
-
-      if (
-        connectionStatus === "CHANNEL_ERROR" ||
-        connectionStatus === "TIMED_OUT"
-      ) {
-        console.warn(
-          `Notification subscription ${connectionStatus.toLowerCase()}:`,
-          topic
-        );
-      }
-    };
-
+  // 3) MARK ALL READ
+  const handleAllNotificationsRead = useCallback(() => {
     try {
-      subscriptionManager.subscribeBroadcast(
-        topic,
-        "new_notification",
-        handleNewNotification
+      browserNotificationService.closeAllNotifications();
+      const now = new Date().toISOString();
+
+      queryClient.setQueryData<NotificationsInfiniteData>(
+        getNotificationsQueryKey(),
+        (old) => {
+          if (!old?.pages?.length) return old;
+          const newPages = old.pages.map((page) => ({
+            ...page,
+            notifications: page.notifications.map((n) => ({
+              ...n,
+              is_read: true,
+              read_at: now,
+            })),
+            unread_count: 0,
+          }));
+          return { ...old, pages: newPages };
+        }
       );
 
-      subscriptionManager.subscribeBroadcast(
-        topic,
-        "notification_read",
-        handleNotificationRead
+      queryClient.setQueryData<NotificationsInfiniteData>(
+        getUnreadNotificationsQueryKey(),
+        (old) => {
+          if (!old?.pages?.length) return old;
+          const newPages = old.pages.map((page) => ({
+            ...page,
+            notifications: [],
+            unread_count: 0,
+          }));
+          return { ...old, pages: newPages };
+        }
       );
 
-      subscriptionManager.subscribeBroadcast(
-        topic,
-        "all_notifications_read",
-        handleAllNotificationsRead
+      queryClient.setQueryData<{ unread_count: number }>(
+        notificationKeys.unreadCount(workspaceId),
+        { unread_count: 0 }
       );
-
-      subscriptionManager.onStatusChange(topic, handleStatusChange);
-    } catch (error) {
-      console.error("Error setting up notification subscriptions:", error);
-      setConnectionStatus("CHANNEL_ERROR");
+    } catch (err) {
+      console.error("❌ Error handling all notifications read:", err);
     }
+  }, [
+    getNotificationsQueryKey,
+    getUnreadNotificationsQueryKey,
+    queryClient,
+    workspaceId,
+  ]);
 
-    return () => {
-      try {
-        subscriptionManager.unsubscribe(topic);
-        subscriptionManager.offStatusChange(topic, handleStatusChange);
-      } catch (error) {
-        console.error("Error cleaning up notification subscriptions:", error);
-      }
+  // Sync handlers into ref on every change (but NOT part of main effect deps)
+  useEffect(() => {
+    handlersRef.current = {
+      handleNewNotification,
+      handleNotificationRead,
+      handleAllNotificationsRead,
     };
   }, [
-    workspaceMemberId,
-    workspaceId,
-    enabled,
-    currentEntityId,
-    currentEntityType,
-    isFocused,
+    handleNewNotification,
+    handleNotificationRead,
+    handleAllNotificationsRead,
   ]);
+
+  // Main realtime subscription effect
+  useEffect(() => {
+    if (!enabled || !workspaceMemberId || !workspaceId) return;
+
+    // Clean up old duplicates
+    const now = Date.now();
+    const FIVE_MINUTES = 5 * 60 * 1000;
+    processedNotificationsRef.current.forEach((ts, id) => {
+      if (now - ts > FIVE_MINUTES) {
+        processedNotificationsRef.current.delete(id);
+      }
+    });
+
+    const handler = notificationsRealtimeHandler;
+    realtimeHandlerRef.current = handler;
+
+    const channelFactory = (sbClient: typeof supabase) =>
+      sbClient
+        .channel(topic, { config: { broadcast: { self: false } } })
+        .on("broadcast", { event: "new_notification" }, ({ payload }) =>
+          handlersRef.current.handleNewNotification(payload)
+        )
+        .on("broadcast", { event: "notification_read" }, ({ payload }) =>
+          handlersRef.current.handleNotificationRead(payload)
+        )
+        .on("broadcast", { event: "all_notifications_read" }, () =>
+          handlersRef.current.handleAllNotificationsRead()
+        );
+
+    const removeChannel = handler.addChannel(channelFactory, {
+      onSubscribe: (chan: RealtimeChannel) => {
+        setConnectionStatus("SUBSCRIBED");
+        setIsConnected(true);
+      },
+      onClose: (chan) => {
+        setConnectionStatus("CLOSED");
+        setIsConnected(false);
+      },
+      onTimeout: (chan) => {
+        setConnectionStatus("TIMED_OUT");
+        setIsConnected(false);
+      },
+      onError: (chan, err) => {
+        setConnectionStatus("CHANNEL_ERROR");
+        setIsConnected(false);
+      },
+    });
+
+    const cleanup = handler.start();
+    cleanupFnRef.current = () => {
+      removeChannel();
+      cleanup();
+    };
+
+    return () => {
+      cleanupFnRef.current?.();
+      realtimeHandlerRef.current = null;
+    };
+    // Only core data should be dependencies:
+    // NOT the handlers!
+  }, [enabled, workspaceMemberId, workspaceId, topic]);
+
+  const forceReconnect = useCallback(() => {
+    realtimeHandlerRef.current?.reconnectChannel(topic);
+  }, [topic]);
 
   return {
     isConnected,
     connectionStatus,
     topic,
+    forceReconnect,
   };
 };
