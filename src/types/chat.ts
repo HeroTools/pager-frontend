@@ -28,6 +28,7 @@ export interface Channel {
   description?: string;
   isPrivate: boolean;
   memberCount?: number;
+  isDefault?: boolean;
 }
 
 export interface Attachment {
