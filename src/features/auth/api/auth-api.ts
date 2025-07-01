@@ -229,10 +229,10 @@ export const authApi = {
    * Get workspace invite link
    */
   getInviteLink: async (workspaceId: string): Promise<InviteLinkResponse> => {
-    const { data: response } = await api.post<InviteLinkResponse>(
+    const { data: response } = await api.post<{ success: boolean; data: InviteLinkResponse }>(
       "/auth/invite-link",
       { workspaceId }
     );
-    return response;
+    return response.data;
   },
 };
