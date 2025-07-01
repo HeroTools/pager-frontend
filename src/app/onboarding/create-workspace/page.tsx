@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { toast } from "sonner";
@@ -24,9 +24,11 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { useCreateWorkspace } from "@/features/workspaces";
 import { useFileUpload } from "@/features/file-upload";
 import { useParamIds } from "@/hooks/use-param-ids";
+import { useInviteLink } from "@/features/auth/hooks/use-auth-mutations";
 
 const steps = ["Workspace Name", "Your Profile", "Invite Teammates"];
 
@@ -36,8 +38,7 @@ export default function CreateWorkspacePage() {
   const [step, setStep] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [inviteEmails, setInviteEmails] = useState("");
-  const [inviteLink] = useState(() => "www.placeholder.com");
+  const [createdWorkspaceId, setCreatedWorkspaceId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step 1: Workspace name
@@ -55,6 +56,25 @@ export default function CreateWorkspacePage() {
     useCreateWorkspace();
 
   const uploadFileMutation = useFileUpload(workspaceId);
+  const inviteLinkMutation = useInviteLink();
+
+  // Generate invite link when we reach step 3 and have a workspace
+  useEffect(() => {
+    if (step === 2 && createdWorkspaceId) {
+      console.log("Generating invite link for workspace:", createdWorkspaceId);
+      inviteLinkMutation.mutate(createdWorkspaceId);
+    }
+  }, [step, createdWorkspaceId]);
+
+  // Debug logging
+  useEffect(() => {
+    if (inviteLinkMutation.data) {
+      console.log("Invite link data:", inviteLinkMutation.data);
+    }
+    if (inviteLinkMutation.error) {
+      console.error("Invite link error:", inviteLinkMutation.error);
+    }
+  }, [inviteLinkMutation.data, inviteLinkMutation.error]);
 
   // Stepper UI
   function Stepper() {
@@ -66,6 +86,8 @@ export default function CreateWorkspacePage() {
               className={`rounded-full w-8 h-8 flex items-center justify-center font-bold ${
                 step === idx
                   ? "bg-primary text-primary-foreground"
+                  : step > idx
+                  ? "bg-green-500"
                   : "bg-muted"
               }`}
             >
@@ -163,6 +185,21 @@ export default function CreateWorkspacePage() {
   // }
 
   function UserProfileStep() {
+    const handleNext = async () => {
+      const valid = await profileForm.trigger();
+      if (valid) {
+        try {
+          const name = workspaceForm.getValues("name");
+          const workspace = await createWorkspace({ name });
+          setCreatedWorkspaceId(workspace.id);
+          toast.success("Workspace created successfully!");
+          setStep(2);
+        } catch (err) {
+          toast.error("Failed to create workspace");
+        }
+      }
+    };
+
     return (
       <FormProvider {...profileForm}>
         <Form {...profileForm}>
@@ -251,13 +288,10 @@ export default function CreateWorkspacePage() {
                 Back
               </Button>
               <Button
-                onClick={async () => {
-                  const valid = await profileForm.trigger();
-                  if (valid) setStep(2);
-                }}
+                onClick={handleNext}
                 disabled={isCreating}
               >
-                Next
+                {isCreating ? "Creating workspace..." : "Next"}
               </Button>
             </CardFooter>
           </Card>
@@ -266,101 +300,40 @@ export default function CreateWorkspacePage() {
     );
   }
 
-  // Invite teammates state and logic
-  function InviteTeammatesStep({
-    isCreating,
-    inviteLink,
-    handleCreateWorkspace,
-    setStep,
-  }: {
-    isCreating: boolean;
-    inviteLink: string;
-    handleCreateWorkspace: (emails?: string) => Promise<void>;
-    setStep: (step: number) => void;
-  }) {
-    const [inviteInput, setInviteInput] = useState("");
-    const [invites, setInvites] = useState<string[]>([]);
-    const isValidEmail = (email: string) =>
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const handleInviteAdd = (e?: React.FormEvent) => {
-      if (e) e.preventDefault();
-      if (
-        inviteInput &&
-        isValidEmail(inviteInput) &&
-        !invites.includes(inviteInput)
-      ) {
-        setInvites([...invites, inviteInput]);
-        setInviteInput("");
+  // Step 3: Invite Teammates (Link only)
+  function InviteTeammatesStep() {
+    const handleCopy = () => {
+      const url = inviteLinkMutation.data?.url;
+      if (!url) return;
+      navigator.clipboard
+        .writeText(url)
+        .then(() => toast.success("Invite link copied to clipboard!"));
+    };
+
+    const handleFinish = () => {
+      if (createdWorkspaceId) {
+        router.push(`/${createdWorkspaceId}`);
       }
     };
-    const handleInviteRemove = (email: string) => {
-      setInvites(invites.filter((i) => i !== email));
-    };
+
     return (
       <Card className="max-w-md mx-auto w-full">
         <CardHeader>
           <CardTitle>Invite your teammates</CardTitle>
           <CardDescription>
-            Add email addresses to send invites now, or skip and do it later.
-            You can always invite more people from your workspace settings.
+            Share this link with your teammates to invite them to your workspace.
+            You can always invite more people later from your workspace settings.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={handleInviteAdd}>
-            <div className="mb-2 text-sm font-medium">Invite teammates</div>
-            <div className="flex gap-2">
-              <Input
-                value={inviteInput}
-                onChange={(e) => setInviteInput(e.target.value)}
-                placeholder="Enter email address"
-                disabled={isCreating}
-              />
-              <Button
-                type="submit"
-                variant="ghost"
-                size="sm"
-                disabled={
-                  isCreating ||
-                  !isValidEmail(inviteInput) ||
-                  invites.includes(inviteInput)
-                }
-              >
-                Add
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {invites.map((email) => (
-                <span
-                  key={email}
-                  className="flex items-center cursor-pointer bg-muted px-2 py-1 rounded text-xs"
-                >
-                  {email}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="ml-1 h-4 w-4 p-0"
-                    onClick={() => handleInviteRemove(email)}
-                    aria-label={`Remove ${email}`}
-                  >
-                    ×
-                  </Button>
-                </span>
-              ))}
-            </div>
-          </form>
-          <div className="flex gap-2 mt-4">
+          <div className="w-full flex flex-col gap-2">
+            <Label>Share this link</Label>
             <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(inviteLink);
-                toast.success("Invite link copied to clipboard!");
-              }}
-              disabled={isCreating}
+              variant="outline"
+              className="w-full"
+              onClick={handleCopy}
             >
-              Copy invite link
+              Copy Invite Link
             </Button>
           </div>
         </CardContent>
@@ -376,19 +349,12 @@ export default function CreateWorkspacePage() {
             <Button
               type="button"
               variant="outline"
-              onClick={async () => {
-                // Skip inviting, just create workspace
-                await handleCreateWorkspace();
-              }}
-              disabled={isCreating}
+              onClick={handleFinish}
             >
               Skip
             </Button>
             <Button
-              onClick={async () => {
-                await handleCreateWorkspace(invites.join(","));
-              }}
-              disabled={isCreating}
+              onClick={handleFinish}
             >
               Finish
             </Button>
@@ -398,34 +364,22 @@ export default function CreateWorkspacePage() {
     );
   }
 
-  // Final handler
-  async function handleCreateWorkspace(emails?: string) {
-    try {
-      const name = workspaceForm.getValues("name");
-      const displayName = profileForm.getValues("displayName");
-      const avatar = profileForm.getValues("avatar");
-      // TODO: send emails to backend if needed
-      const workspace = await createWorkspace({ name });
-      console.log(workspace);
-      toast.success("Workspace created");
-      router.push(`/${workspace.id}`);
-    } catch (err) {
-      toast.error("Failed to create workspace");
-    }
-  }
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center py-12 bg-secondary">
       <Stepper />
       {step === 0 && <WorkspaceNameStep />}
       {step === 1 && <UserProfileStep />}
       {step === 2 && (
-        <InviteTeammatesStep
-          isCreating={isCreating}
-          inviteLink={inviteLink}
-          handleCreateWorkspace={handleCreateWorkspace}
-          setStep={setStep}
-        />
+        inviteLinkMutation.data?.url ? (
+          <InviteTeammatesStep />
+        ) : (
+          <Card className="max-w-md mx-auto w-full">
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+              <p className="text-muted-foreground">Generating invite link...</p>
+            </CardContent>
+          </Card>
+        )
       )}
     </div>
   );
