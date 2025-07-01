@@ -195,8 +195,27 @@ export const useSwitchWorkspace = () => {
         );
       });
 
+      // Invalidate workspace-specific caches to ensure fresh data
+      queryClient.invalidateQueries({
+        queryKey: ["workspace", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["members", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["channels", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["conversations", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["currentMember", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", workspaceId],
+      });
+
       // Navigate to the workspace
-      // router.push(`/workspace/${workspaceId}`);
       router.push(`/${workspaceId}`);
     },
     onError: (error) => {

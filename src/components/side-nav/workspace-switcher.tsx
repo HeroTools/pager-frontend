@@ -2,8 +2,6 @@
 
 import { useMemo } from "react";
 import { Loader, PlusIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,11 +12,12 @@ import {
 import { useGetWorkspaces } from "@/features/workspaces/hooks/use-workspaces";
 import { useCreateWorkspaceModal } from "@/features/workspaces/store/use-create-workspace-modal";
 import { useParamIds } from "@/hooks/use-param-ids";
+import { useSwitchWorkspace } from "@/features/auth/hooks/use-auth-mutations";
 
 export const WorkspaceSwitcher = () => {
-  const router = useRouter();
   const { workspaceId } = useParamIds();
   const setOpen = useCreateWorkspaceModal((state) => state.setOpen);
+  const switchWorkspace = useSwitchWorkspace();
 
   const { data: workspaces, isLoading } = useGetWorkspaces();
 
@@ -32,11 +31,15 @@ export const WorkspaceSwitcher = () => {
     [workspaces, workspaceId]
   );
 
+  const handleWorkspaceSwitch = (workspaceId: string) => {
+    switchWorkspace.mutate(workspaceId);
+  };
+
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild className="outline-none relative">
         <Button className="size-9 relative overflow-hidden bg-primary hover:bg-primary/80 text-primary-foreground font-semibold text-xl">
-          {isLoading ? (
+          {isLoading || switchWorkspace.isPending ? (
             <Loader className="size-5 animate-spin shrink-0" />
           ) : (
             currentWorkspace?.name?.charAt(0).toUpperCase()
@@ -55,7 +58,7 @@ export const WorkspaceSwitcher = () => {
         {otherWorkspaces?.map((ws) => (
           <DropdownMenuItem
             key={ws.id}
-            onClick={() => router.push(`/${ws.id}`)}
+            onClick={() => handleWorkspaceSwitch(ws.id)}
             className="cursor-pointer capitalize overflow-hidden"
           >
             <div className="shrink-0 size-9 relative overflow-hidden bg-muted-foreground text-foreground font-semibold text-lg rounded-md flex items-center justify-center mr-2">
