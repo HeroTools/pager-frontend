@@ -10,7 +10,6 @@ import {
 import { useCurrentUser } from "../hooks/use-current-user";
 import { Loader, LogOutIcon } from "lucide-react";
 import { useSignOut } from "../hooks/use-auth-mutations";
-import { subscriptionManager } from "@/lib/realtime/subscription-manager";
 
 export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
   const { user, isLoading } = useCurrentUser(workspaceId);
@@ -18,7 +17,6 @@ export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
   const signOut = useSignOut();
 
   const handleSignOut = () => {
-    subscriptionManager.cleanup();
     signOut.mutate();
   };
 

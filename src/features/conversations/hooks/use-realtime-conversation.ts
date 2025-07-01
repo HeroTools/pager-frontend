@@ -1,8 +1,16 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { subscriptionManager } from "@/lib/realtime/subscription-manager";
+import { RealtimeHandler } from "@/lib/realtime/realtime-handler";
+import { supabase } from "@/lib/supabase/client";
 import type { ConversationWithMessagesAndMembers } from "../types";
 import type { MessageWithUser } from "@/features/messages/types";
+
+type ConnectionStatus =
+  | "CONNECTING"
+  | "SUBSCRIBED"
+  | "RECONNECTING"
+  | "CLOSED"
+  | "ERROR";
 
 interface UseRealtimeConversationProps {
   workspaceId: string;
@@ -33,65 +41,68 @@ export const useRealtimeConversation = ({
   enabled = true,
 }: UseRealtimeConversationProps) => {
   const queryClient = useQueryClient();
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<
-    "CONNECTING" | "SUBSCRIBED" | "CHANNEL_ERROR" | "CLOSED" | "TIMED_OUT"
-  >("CONNECTING");
-  const [connectionInfo, setConnectionInfo] = useState({
-    reconnectAttempts: 0,
-    circuitBreakerOpen: false,
-    lastActivity: Date.now(),
+  const [connectionStatus, setConnectionStatus] =
+    useState<ConnectionStatus>("CONNECTING");
+
+  const handlerRef = useRef<RealtimeHandler<typeof supabase> | null>(null);
+  const processedRef = useRef<Map<string, number>>(new Map());
+  const messageHandlersRef = useRef({
+    onNew: (p: any) => {},
+    onUpdate: (p: any) => {},
+    onDelete: (p: any) => {},
   });
 
-  const lastStatusRef = useRef<string>("CONNECTING");
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined);
-
-  const getConversationQueryKey = useCallback(
-    () => ["conversation", workspaceId, conversationId, "messages", "infinite"],
-    [workspaceId, conversationId]
+  const topic = useMemo(
+    () => `conversation:${conversationId}`,
+    [conversationId]
   );
 
+  const getConversationQueryKey = useCallback(
+    () =>
+      [
+        "conversation",
+        workspaceId,
+        conversationId,
+        "messages",
+        "infinite",
+      ] as const,
+    [workspaceId, conversationId]
+  );
   const getThreadQueryKey = useCallback(
-    (threadParentId: string) => ["thread", workspaceId, threadParentId],
+    (parentId: string) => ["thread", workspaceId, parentId] as const,
     [workspaceId]
   );
 
-  const topic = `conversation:${conversationId}`;
-
+  // --- Helpers for parent thread metadata and thread cache ---
   const updateParentThreadMetadata = useCallback(
-    (threadMessage: MessageWithUser) => {
-      const parentMessageId = threadMessage.parent_message_id;
-      if (!parentMessageId) return;
+    (threadMsg: MessageWithUser) => {
+      const parentId = threadMsg.parent_message_id;
+      if (!parentId) return;
 
       queryClient.setQueryData<InfiniteQueryData>(
         getConversationQueryKey(),
         (old) => {
           if (!old?.pages?.length) return old;
-
           const newPages = old.pages.map((page) => ({
             ...page,
             messages: page.messages.map((msg) => {
-              if (msg.id === parentMessageId) {
+              if (msg.id === parentId) {
                 const currentParticipants = msg.thread_participants || [];
-                const messageUser = threadMessage.user;
-
+                const messageUser = threadMsg.user;
                 const updatedParticipants =
-                  messageUser &&
-                  !currentParticipants.some((id) => id === messageUser.id)
+                  messageUser && !currentParticipants.includes(messageUser.id)
                     ? [...currentParticipants, messageUser.id]
                     : currentParticipants;
-
                 return {
                   ...msg,
                   thread_reply_count: (msg.thread_reply_count || 0) + 1,
-                  thread_last_reply_at: threadMessage.created_at,
+                  thread_last_reply_at: threadMsg.created_at,
                   thread_participants: updatedParticipants,
                 };
               }
               return msg;
             }),
           }));
-
           return { ...old, pages: newPages };
         }
       );
@@ -100,52 +111,42 @@ export const useRealtimeConversation = ({
   );
 
   const updateThreadCache = useCallback(
-    (threadMessage: MessageWithUser) => {
-      const parentMessageId = threadMessage.parent_message_id;
-      if (!parentMessageId) return;
+    (threadMsg: MessageWithUser) => {
+      const parentId = threadMsg.parent_message_id;
+      if (!parentId) return;
 
-      const threadQueryKey = getThreadQueryKey(parentMessageId);
+      const threadKey = getThreadQueryKey(parentId);
 
+      // Detect first reply
       let isFirstThreadMessage = false;
-      const conversationData = queryClient.getQueryData<InfiniteQueryData>(
+      const convData = queryClient.getQueryData<InfiniteQueryData>(
         getConversationQueryKey()
       );
-      if (conversationData?.pages) {
-        for (const page of conversationData.pages) {
-          const parentMessage = page.messages.find(
-            (msg) => msg.id === parentMessageId
-          );
-          if (parentMessage) {
-            isFirstThreadMessage =
-              (parentMessage.thread_reply_count || 0) === 0;
+      if (convData?.pages) {
+        for (const page of convData.pages) {
+          const pm = page.messages.find((m) => m.id === parentId);
+          if (pm) {
+            isFirstThreadMessage = (pm.thread_reply_count || 0) === 0;
             break;
           }
         }
       }
 
-      const existingThreadData =
-        queryClient.getQueryData<ThreadQueryData>(threadQueryKey);
+      const existing = queryClient.getQueryData<ThreadQueryData>(threadKey);
 
-      if (isFirstThreadMessage || existingThreadData) {
-        queryClient.setQueryData<ThreadQueryData>(threadQueryKey, (old) => {
+      if (isFirstThreadMessage || existing) {
+        queryClient.setQueryData<ThreadQueryData>(threadKey, (old) => {
           if (!old) {
             return {
-              replies: [threadMessage],
+              replies: [threadMsg],
               members: [],
               pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
             };
           }
-
-          const messageExists = old.replies.some(
-            (reply) => reply.id === threadMessage.id
-          );
-          if (messageExists) {
-            return old;
-          }
-
+          if (old.replies.some((r) => r.id === threadMsg.id)) return old;
           return {
             ...old,
-            replies: [...old.replies, threadMessage],
+            replies: [...old.replies, threadMsg],
             pagination: {
               ...old.pagination,
               totalCount: old.pagination.totalCount + 1,
@@ -157,267 +158,246 @@ export const useRealtimeConversation = ({
     [queryClient, getConversationQueryKey, getThreadQueryKey]
   );
 
-  useEffect(() => {
-    if (!enabled || !conversationId || !workspaceId || !currentUserId) return;
+  // --- Real-time message handlers ---
+  const handleNewMessage = useCallback(
+    (payload: any) => {
+      try {
+        const msg = payload.message as MessageWithUser;
+        if (msg.user?.id === currentUserId) return;
 
-    setConnectionStatus("CONNECTING");
-    setConnectionInfo((prev) => ({
-      ...prev,
-      reconnectAttempts: 0,
-      circuitBreakerOpen: false,
-    }));
+        const now = Date.now();
+        const DUPLICATE_WINDOW = 10 * 1000; // 10s
 
-    const handleNewMessage = (payload: any) => {
-      const message = payload.message as MessageWithUser;
-      if (message.user?.id === currentUserId) return;
+        // Prevent duplicate processing
+        const lastProcessed = processedRef.current.get(msg.id);
+        if (lastProcessed && now - lastProcessed < DUPLICATE_WINDOW) {
+          return;
+        }
+        processedRef.current.set(msg.id, now);
+        if (processedRef.current.size > 100) {
+          const entries = Array.from(processedRef.current.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 50);
+          processedRef.current = new Map(entries);
+        }
 
-      setConnectionInfo((prev) => ({ ...prev, lastActivity: Date.now() }));
-      const isThreadMessage = Boolean(message.parent_message_id);
-
-      if (isThreadMessage) {
-        updateParentThreadMetadata(message);
-        updateThreadCache(message);
-      } else {
-        queryClient.setQueryData<InfiniteQueryData>(
-          getConversationQueryKey(),
-          (old) => {
-            if (!old?.pages?.length) {
-              return {
-                pages: [
-                  {
-                    conversation: {
-                      id: conversationId,
-                      workspace_id: workspaceId,
-                      created_at: new Date().toISOString(),
-                      updated_at: new Date().toISOString(),
+        const isThread = Boolean(msg.parent_message_id);
+        if (isThread) {
+          updateParentThreadMetadata(msg);
+          updateThreadCache(msg);
+        } else {
+          queryClient.setQueryData<InfiniteQueryData>(
+            getConversationQueryKey(),
+            (old) => {
+              if (!old?.pages?.length) {
+                return {
+                  pages: [
+                    {
+                      conversation: {
+                        id: conversationId,
+                        workspace_id: workspaceId,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                      },
+                      messages: [msg],
+                      members: [],
+                      pagination: {
+                        hasMore: false,
+                        nextCursor: null,
+                        totalCount: 1,
+                      },
                     },
-                    messages: [message],
-                    members: [],
-                    pagination: {
-                      hasMore: false,
-                      nextCursor: null,
-                      totalCount: 1,
-                    },
-                  },
-                ],
-                pageParams: [undefined],
+                  ],
+                  pageParams: [undefined],
+                };
+              }
+              if (
+                old.pages.some((p) => p.messages.some((m) => m.id === msg.id))
+              )
+                return old;
+              const first = old.pages[0];
+              const updatedFirst = {
+                ...first,
+                messages: [msg, ...first.messages],
+                pagination: {
+                  ...first.pagination,
+                  totalCount: first.pagination.totalCount + 1,
+                },
               };
+              return { ...old, pages: [updatedFirst, ...old.pages.slice(1)] };
             }
+          );
+        }
+      } catch (error) {
+        console.error("❌ Error handling new conversation message:", error);
+      }
+    },
+    [
+      currentUserId,
+      conversationId,
+      workspaceId,
+      updateParentThreadMetadata,
+      updateThreadCache,
+      queryClient,
+      getConversationQueryKey,
+    ]
+  );
 
-            const exists = old.pages.some((page) =>
-              page.messages.some((m) => m.id === message.id)
-            );
-            if (exists) return old;
+  const handleMessageUpdated = useCallback(
+    (payload: any) => {
+      try {
+        const updated = payload.message as MessageWithUser;
+        const isThread = Boolean(updated.parent_message_id);
+        if (isThread) {
+          const threadKey = getThreadQueryKey(updated.parent_message_id!);
+          queryClient.setQueryData<ThreadQueryData>(threadKey, (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              replies: old.replies.map((r) =>
+                r.id === updated.id ? updated : r
+              ),
+            };
+          });
+        } else {
+          queryClient.setQueryData<InfiniteQueryData>(
+            getConversationQueryKey(),
+            (old) => {
+              if (!old?.pages?.length) return old;
+              const newPages = old.pages.map((page) => ({
+                ...page,
+                messages: page.messages.map((m) =>
+                  m.id === updated.id ? updated : m
+                ),
+              }));
+              return { ...old, pages: newPages };
+            }
+          );
+        }
+      } catch (error) {
+        console.error("❌ Error handling conversation message update:", error);
+      }
+    },
+    [getConversationQueryKey, getThreadQueryKey, queryClient]
+  );
 
-            const newPages = [...old.pages];
-            newPages[0] = {
-              ...newPages[0],
-              messages: [message, ...newPages[0].messages],
+  const handleMessageDeleted = useCallback(
+    (payload: any) => {
+      try {
+        const deletedId = payload.messageId as string;
+        const parentId = payload.parentMessageId as string | undefined;
+        if (parentId) {
+          // Update reply count for parent, and remove from thread replies
+          queryClient.setQueryData<InfiniteQueryData>(
+            getConversationQueryKey(),
+            (old) => {
+              if (!old?.pages?.length) return old;
+              const newPages = old.pages.map((page) => ({
+                ...page,
+                messages: page.messages.map((m) =>
+                  m.id === parentId
+                    ? {
+                        ...m,
+                        thread_reply_count: Math.max(
+                          0,
+                          (m.thread_reply_count || 0) - 1
+                        ),
+                      }
+                    : m
+                ),
+              }));
+              return { ...old, pages: newPages };
+            }
+          );
+          const threadKey = getThreadQueryKey(parentId);
+          queryClient.setQueryData<ThreadQueryData>(threadKey, (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              replies: old.replies.filter((r) => r.id !== deletedId),
               pagination: {
-                ...newPages[0].pagination,
-                totalCount: newPages[0].pagination.totalCount + 1,
+                ...old.pagination,
+                totalCount: Math.max(0, old.pagination.totalCount - 1),
               },
             };
-            return { ...old, pages: newPages };
-          }
+          });
+        } else {
+          queryClient.setQueryData<InfiniteQueryData>(
+            getConversationQueryKey(),
+            (old) => {
+              if (!old?.pages?.length) return old;
+              const newPages = old.pages.map((page) => ({
+                ...page,
+                messages: page.messages.filter((m) => m.id !== deletedId),
+              }));
+              return { ...old, pages: newPages };
+            }
+          );
+        }
+      } catch (error) {
+        console.error(
+          "❌ Error handling conversation message deletion:",
+          error
         );
       }
+    },
+    [getConversationQueryKey, getThreadQueryKey, queryClient]
+  );
+
+  // --- Set the latest handler references ---
+  useEffect(() => {
+    messageHandlersRef.current = {
+      onNew: handleNewMessage,
+      onUpdate: handleMessageUpdated,
+      onDelete: handleMessageDeleted,
     };
+  }, [handleNewMessage, handleMessageUpdated, handleMessageDeleted]);
 
-    const handleMessageUpdated = (payload: any) => {
-      const updated = payload.message as MessageWithUser;
-      const isThreadMessage = Boolean(updated.parent_message_id);
+  // --- Setup and cleanup the realtime handler ---
+  useEffect(() => {
+    if (!enabled || !workspaceId || !conversationId || !currentUserId) return;
 
-      setConnectionInfo((prev) => ({ ...prev, lastActivity: Date.now() }));
+    setConnectionStatus("CONNECTING");
+    const handler = new RealtimeHandler(supabase);
+    handlerRef.current = handler;
 
-      if (isThreadMessage) {
-        const threadQueryKey = getThreadQueryKey(updated.parent_message_id!);
-        queryClient.setQueryData<ThreadQueryData>(threadQueryKey, (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            replies: old.replies.map((reply) =>
-              reply.id === updated.id ? updated : reply
-            ),
-          };
-        });
-      } else {
-        queryClient.setQueryData<InfiniteQueryData>(
-          getConversationQueryKey(),
-          (old) => {
-            if (!old?.pages?.length) return old;
-            const newPages = old.pages.map((page) => ({
-              ...page,
-              messages: page.messages.map((msg) =>
-                msg.id === updated.id ? updated : msg
-              ),
-            }));
-            return { ...old, pages: newPages };
-          }
-        );
-      }
-    };
-
-    const handleMessageDeleted = (payload: any) => {
-      const deletedId = payload.messageId as string;
-      const parentMessageId = payload.parentMessageId as string | undefined;
-
-      setConnectionInfo((prev) => ({ ...prev, lastActivity: Date.now() }));
-
-      if (parentMessageId) {
-        queryClient.setQueryData<InfiniteQueryData>(
-          getConversationQueryKey(),
-          (old) => {
-            if (!old?.pages?.length) return old;
-            const newPages = old.pages.map((page) => ({
-              ...page,
-              messages: page.messages.map((msg) => {
-                if (msg.id === parentMessageId) {
-                  return {
-                    ...msg,
-                    thread_reply_count: Math.max(
-                      0,
-                      (msg.thread_reply_count || 0) - 1
-                    ),
-                  };
-                }
-                return msg;
-              }),
-            }));
-            return { ...old, pages: newPages };
-          }
+    const channelFactory = (sb: typeof supabase) =>
+      sb
+        .channel(topic, { config: { broadcast: { self: false } } })
+        .on("broadcast", { event: "new_message" }, ({ payload }) =>
+          messageHandlersRef.current.onNew(payload)
+        )
+        .on("broadcast", { event: "message_updated" }, ({ payload }) =>
+          messageHandlersRef.current.onUpdate(payload)
+        )
+        .on("broadcast", { event: "message_deleted" }, ({ payload }) =>
+          messageHandlersRef.current.onDelete(payload)
         );
 
-        const threadQueryKey = getThreadQueryKey(parentMessageId);
-        queryClient.setQueryData<ThreadQueryData>(threadQueryKey, (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            replies: old.replies.filter((reply) => reply.id !== deletedId),
-            pagination: {
-              ...old.pagination,
-              totalCount: Math.max(0, old.pagination.totalCount - 1),
-            },
-          };
-        });
-      } else {
-        queryClient.setQueryData<InfiniteQueryData>(
-          getConversationQueryKey(),
-          (old) => {
-            if (!old?.pages?.length) return old;
-            const newPages = old.pages.map((page) => ({
-              ...page,
-              messages: page.messages.filter((m) => m.id !== deletedId),
-            }));
-            return { ...old, pages: newPages };
-          }
-        );
-      }
+    const subscriptionCallbacks = {
+      onSubscribe: () => setConnectionStatus("SUBSCRIBED"),
+      onClose: () => setConnectionStatus("CLOSED"),
+      onTimeout: () => setConnectionStatus("RECONNECTING"),
+      onError: () => setConnectionStatus("ERROR"),
     };
 
-    const handleStatusChange = (status: string) => {
-      // Prevent rapid status updates
-      if (lastStatusRef.current === status) return;
-      lastStatusRef.current = status;
-
-      setConnectionStatus(status as any);
-      setIsConnected(status === "SUBSCRIBED");
-
-      // Update connection info based on subscription manager state
-      const health = subscriptionManager.getConnectionHealth();
-      const conversationState = health.channelStates.find(
-        (ch) => ch.topic === topic
-      );
-
-      if (conversationState) {
-        setConnectionInfo((prev) => ({
-          ...prev,
-          reconnectAttempts: conversationState.reconnectAttempts,
-          circuitBreakerOpen:
-            conversationState.circuitBreakerOpen ||
-            health.globalCircuitBreakerOpen,
-        }));
-      }
-
-      // Clear any pending manual reconnection attempts on successful connection
-      if (status === "SUBSCRIBED" && reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = undefined;
-      }
-    };
-
-    subscriptionManager.subscribeBroadcast(
-      topic,
-      "new_message",
-      handleNewMessage
-    );
-    subscriptionManager.subscribeBroadcast(
-      topic,
-      "message_updated",
-      handleMessageUpdated
-    );
-    subscriptionManager.subscribeBroadcast(
-      topic,
-      "message_deleted",
-      handleMessageDeleted
-    );
-    subscriptionManager.onStatusChange(topic, handleStatusChange);
+    handler.addChannel(channelFactory, subscriptionCallbacks);
+    const cleanup = handler.start();
 
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = undefined;
-      }
-      subscriptionManager.unsubscribe(topic);
-      subscriptionManager.offStatusChange(topic, handleStatusChange);
+      cleanup();
+      handlerRef.current = null;
     };
-  }, [
-    topic,
-    workspaceId,
-    conversationId,
-    currentUserId,
-    enabled,
-    queryClient,
-    getConversationQueryKey,
-    getThreadQueryKey,
-    updateParentThreadMetadata,
-    updateThreadCache,
-  ]);
+  }, [enabled, workspaceId, conversationId, currentUserId, topic]);
 
-  // Manual reconnect function with built-in cooldown
   const forceReconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      console.log(
-        "Reconnection already in progress, skipping manual reconnect"
-      );
-      return;
+    if (handlerRef.current) {
+      setConnectionStatus("RECONNECTING");
+      handlerRef.current.reconnectChannel(topic);
     }
-
-    // Add a small delay to prevent immediate retry loops
-    reconnectTimeoutRef.current = setTimeout(() => {
-      subscriptionManager.forceReconnect(topic);
-      reconnectTimeoutRef.current = undefined;
-    }, 1000);
   }, [topic]);
 
-  // Get current connection health
-  const getConnectionHealth = useCallback(() => {
-    const health = subscriptionManager.getConnectionHealth();
-    const conversationState = health.channelStates.find(
-      (ch) => ch.topic === topic
-    );
+  const isConnected = connectionStatus === "SUBSCRIBED";
 
-    return {
-      ...health,
-      conversationState: conversationState || null,
-    };
-  }, [topic]);
-
-  return {
-    isConnected,
-    connectionStatus,
-    connectionInfo,
-    forceReconnect,
-    getConnectionHealth,
-  };
+  return { isConnected, connectionStatus, forceReconnect };
 };

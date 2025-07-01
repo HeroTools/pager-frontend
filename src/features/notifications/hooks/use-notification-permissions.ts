@@ -1,57 +1,72 @@
-"use client";
+import { useState, useEffect, useCallback } from "react";
 
-import { useState, useEffect } from "react";
+export type NotificationPermissionState =
+  | "default"
+  | "granted"
+  | "denied"
+  | "unsupported";
 
-export function useNotificationPermissions() {
-  const [permission, setPermission] =
-    useState<NotificationPermission>("default");
-  const [canPlaySounds, setCanPlaySounds] = useState(false);
-
-  useEffect(() => {
-    // Check current notification permission
-    if (window && "Notification" in window) {
-      setPermission(Notification.permission);
-    }
-
-    // Check if audio can be played (for autoplay restrictions)
-    const testAudio = () => {
-      const audio = new Audio();
-      const canPlay = audio.play();
-
-      if (canPlay !== undefined) {
-        canPlay
-          .then(() => {
-            setCanPlaySounds(true);
-            audio.pause();
-            audio.currentTime = 0;
-          })
-          .catch(() => {
-            setCanPlaySounds(false);
-          });
-      }
-    };
-
-    // Test after user interaction
-    document.addEventListener("click", testAudio, { once: true });
-
-    return () => {
-      document.removeEventListener("click", testAudio);
-    };
-  }, []);
-
-  const requestPermission = async () => {
-    if (window && "Notification" in window) {
-      const result = await Notification.requestPermission();
-      setPermission(result);
-      return result;
-    }
-    return "denied";
-  };
-
-  return {
-    permission,
-    canPlaySounds,
-    requestPermission,
-    isSupported: window && "Notification" in window,
-  };
+interface UseNotificationPermissionsReturn {
+  permission: NotificationPermissionState;
+  requestPermission: () => Promise<NotificationPermissionState>;
+  isSupported: boolean;
+  hasAskedBefore: boolean;
+  setHasAskedBefore: (value: boolean) => void;
 }
+
+export const useNotificationPermissions =
+  (): UseNotificationPermissionsReturn => {
+    const [permission, setPermission] =
+      useState<NotificationPermissionState>("default");
+    const [hasAskedBefore, setHasAskedBefore] = useState(false);
+
+    const isSupported =
+      typeof window !== "undefined" && "Notification" in window;
+
+    useEffect(() => {
+      if (!isSupported) {
+        setPermission("unsupported");
+        return;
+      }
+
+      // Check if we've asked before (stored in localStorage)
+      const hasAsked =
+        localStorage.getItem("notification_permission_asked") === "true";
+      setHasAskedBefore(hasAsked);
+
+      // Get current permission state
+      const currentPermission =
+        Notification.permission as NotificationPermissionState;
+      setPermission(currentPermission);
+    }, [isSupported]);
+
+    const requestPermission =
+      useCallback(async (): Promise<NotificationPermissionState> => {
+        if (!isSupported) {
+          return "unsupported";
+        }
+
+        try {
+          // Mark that we've asked for permission
+          localStorage.setItem("notification_permission_asked", "true");
+          setHasAskedBefore(true);
+
+          const result = await Notification.requestPermission();
+          const newPermission = result as NotificationPermissionState;
+          setPermission(newPermission);
+
+          return newPermission;
+        } catch (error) {
+          console.error("Error requesting notification permission:", error);
+          return permission;
+        }
+      }, [isSupported, permission]);
+
+    return {
+      permission,
+      requestPermission,
+      isSupported,
+      hasAskedBefore,
+      setHasAskedBefore,
+    };
+  };
