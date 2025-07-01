@@ -85,34 +85,6 @@ export const authApi = {
   },
 
   /**
-   * Sign in with Google
-   */
-  googleSignIn: async (redirectTo: string) => {
-    const { data: response } = await api.post<{ url?: string }>(
-      "/auth/oauth/google",
-      { redirect_to: redirectTo }
-    );
-
-    // Handle OAuth URL redirection
-    if (response.url) {
-      window.location.href = response.url;
-    }
-
-    return response;
-  },
-
-  /**
-   * Verify email with token
-   */
-  verifyEmail: async (token: string) => {
-    const { data: response } = await api.post<{ success: boolean }>(
-      "/auth/verify-email",
-      { token }
-    );
-    return response;
-  },
-
-  /**
    * Update user profile
    */
   updateProfile: async (data: UpdateProfileData) => {
@@ -199,23 +171,6 @@ export const authApi = {
     const { data: response } = await api.delete("/auth/account");
 
     await supabase.auth.signOut();
-
-    return response;
-  },
-
-  /**
-   * Handle OAuth callback (for use in callback page)
-   */
-  handleOAuthCallback: async (code: string, state?: string) => {
-    const { data: response } = await api.post<EnhancedAuthResponse>(
-      "/auth/oauth/callback",
-      { code, state }
-    );
-
-    // Store session from OAuth callback
-    if (response.session) {
-      await supabase.auth.setSession(response.session);
-    }
 
     return response;
   },

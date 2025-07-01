@@ -61,7 +61,6 @@ export default function CreateWorkspacePage() {
   // Generate invite link when we reach step 3 and have a workspace
   useEffect(() => {
     if (step === 2 && createdWorkspaceId) {
-      console.log("Generating invite link for workspace:", createdWorkspaceId);
       inviteLinkMutation.mutate(createdWorkspaceId);
     }
   }, [step, createdWorkspaceId]);
