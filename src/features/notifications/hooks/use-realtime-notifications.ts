@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import type { InfiniteData } from "@tanstack/react-query";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-import { RealtimeHandler } from "@/lib/realtime/realtime-handler";
+import {
+  notificationsRealtimeHandler,
+  RealtimeHandler,
+} from "@/lib/realtime/realtime-handler";
 import { supabase } from "@/lib/supabase/client";
 import { browserNotificationService } from "@/features/notifications/services/browser-notification-service";
 import { notificationKeys } from "@/features/notifications/constants/query-keys";
@@ -400,9 +403,7 @@ export const useRealtimeNotifications = ({
       }
     });
 
-    const handler = new RealtimeHandler(supabase, {
-      inactiveTabTimeoutSeconds: 24 * 60 * 60, // 1 day
-    });
+    const handler = notificationsRealtimeHandler;
     realtimeHandlerRef.current = handler;
 
     const channelFactory = (sbClient: typeof supabase) =>

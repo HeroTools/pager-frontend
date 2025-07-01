@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { RealtimeHandler } from "@/lib/realtime/realtime-handler";
+import {
+  messageRealtimeHandler,
+  RealtimeHandler,
+} from "@/lib/realtime/realtime-handler";
 import { supabase } from "@/lib/supabase/client";
 import type { ConversationWithMessagesAndMembers } from "../types";
 import type { MessageWithUser } from "@/features/messages/types";
@@ -358,7 +361,7 @@ export const useRealtimeConversation = ({
     if (!enabled || !workspaceId || !conversationId || !currentUserId) return;
 
     setConnectionStatus("CONNECTING");
-    const handler = new RealtimeHandler(supabase);
+    const handler = messageRealtimeHandler;
     handlerRef.current = handler;
 
     const channelFactory = (sb: typeof supabase) =>
