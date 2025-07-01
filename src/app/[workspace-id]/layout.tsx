@@ -1,6 +1,7 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { Bell, X } from "lucide-react";
 
 import {
   ResizableHandle,
@@ -17,7 +18,8 @@ import { useRealtimeNotifications } from "@/features/notifications/hooks/use-rea
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { useCurrentUser } from "@/features/auth";
 import { useNotificationPermissions } from "@/features/notifications/hooks/use-notification-permissions";
-import { useFocusAwareNotifications } from "@/features/notifications/hooks/use-focus-aware-notifications";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;
@@ -34,8 +36,7 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
 
   const workspaceId = useWorkspaceId();
   const { user } = useCurrentUser(workspaceId);
-
-  useFocusAwareNotifications();
+  const [showPermissionBanner, setShowPermissionBanner] = useState(false);
 
   useRealtimeNotifications({
     workspaceMemberId: user?.workspace_member_id || "",
@@ -43,12 +44,48 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     enabled: !!user?.workspace_member_id && !!workspaceId,
   });
 
-  const { permission, requestPermission } = useNotificationPermissions();
+  const {
+    permission,
+    requestPermission,
+    isSupported,
+    hasAskedBefore,
+    setHasAskedBefore,
+  } = useNotificationPermissions();
+
+  useEffect(() => {
+    // Show permission banner if:
+    // 1. Notifications are supported
+    // 2. Permission is "default" (not yet asked)
+    // 3. We haven't asked before in this session
+    // 4. User is logged in
+    if (
+      isSupported &&
+      permission === "default" &&
+      !hasAskedBefore &&
+      user?.workspace_member_id
+    ) {
+      // Show banner after a short delay to not overwhelm the user
+      const timer = setTimeout(() => {
+        setShowPermissionBanner(true);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isSupported, permission, hasAskedBefore, user]);
 
   const handleEnableNotifications = async () => {
-    if (permission === "default") {
-      await requestPermission();
+    const result = await requestPermission();
+    setShowPermissionBanner(false);
+
+    if (result === "granted") {
+      // You could show a success toast here
+      console.log("Browser notifications enabled!");
     }
+  };
+
+  const handleDismissBanner = () => {
+    setShowPermissionBanner(false);
+    setHasAskedBefore(true);
   };
 
   const handleCloseNotifications = () => {
@@ -58,11 +95,41 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
   return (
     <div className="h-full">
       <Toolbar />
-      {permission === "default" && (
-        <button onClick={handleEnableNotifications}>
-          Enable notifications for the best experience
-        </button>
+
+      {/* Notification Permission Banner */}
+      {showPermissionBanner && (
+        <div className="relative">
+          <Alert className="rounded-none border-x-0 border-t-0">
+            <Bell className="h-4 w-4" />
+            <AlertTitle>Enable Desktop Notifications</AlertTitle>
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                Get notified when you receive messages while away from the app
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDismissBanner}
+                >
+                  Not now
+                </Button>
+                <Button size="sm" onClick={handleEnableNotifications}>
+                  Enable notifications
+                </Button>
+              </div>
+            </AlertDescription>
+            <button
+              onClick={handleDismissBanner}
+              className="absolute right-2 top-2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </button>
+          </Alert>
+        </div>
       )}
+
       <div className="flex h-[calc(100vh-40px)]">
         <Sidebar />
         <ResizablePanelGroup

@@ -49,6 +49,7 @@ export const createClient = () => {
         },
       },
       realtime: {
+        worker: true,
         params: {
           eventsPerSecond: 10,
         },

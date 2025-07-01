@@ -28,33 +28,26 @@ export const useNotificationContext = () => {
     [currentEntityId, currentEntityType]
   );
 
-  const shouldShowNotification = useCallback(
+  // Simplified logic - browser notifications should show when tab not focused
+  const shouldShowBrowserNotification = useCallback(
     (notification: NotificationEntity): boolean => {
-      // Always show notification if browser is not focused
-      if (!isFocused) {
-        return true;
-      }
+      return !isFocused;
+    },
+    [isFocused]
+  );
 
-      // If browser is focused, only show notification if it's NOT for the current entity
-      return !isNotificationForCurrentEntity(notification);
+  // Toast notifications should show when not focused OR not for current entity
+  const shouldShowToast = useCallback(
+    (notification: NotificationEntity): boolean => {
+      return !isFocused || !isNotificationForCurrentEntity(notification);
     },
     [isFocused, isNotificationForCurrentEntity]
   );
 
-  const shouldShowToast = useCallback(
+  // Notifications should be marked as unread unless we're focused on the entity they're for
+  const shouldCreateUnreadNotification = useCallback(
     (notification: NotificationEntity): boolean => {
-      // Show toast if browser is not focused
-      if (!isFocused) {
-        return true;
-      }
-
-      // If browser is focused and notification is for current entity, show toast but no notification badge
-      if (isNotificationForCurrentEntity(notification)) {
-        return true;
-      }
-
-      // If browser is focused but notification is for different entity, show both notification and toast
-      return true;
+      return !isFocused || !isNotificationForCurrentEntity(notification);
     },
     [isFocused, isNotificationForCurrentEntity]
   );
@@ -75,13 +68,21 @@ export const useNotificationContext = () => {
   );
 
   return {
+    // Context info
     currentEntityId,
     currentEntityType,
     workspaceId,
     isFocused,
+
+    // Core logic
     isNotificationForCurrentEntity,
-    shouldShowNotification,
+
+    // Display decisions
+    shouldShowBrowserNotification,
     shouldShowToast,
+    shouldCreateUnreadNotification,
+
+    // Utility functions
     getNotificationsToMarkAsRead,
   };
 };
