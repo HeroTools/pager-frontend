@@ -23,6 +23,7 @@ interface ChatProps {
     body: string;
     image: File | null;
     attachments: UploadedAttachment[];
+    plainText: string;
   }) => void;
   onEditMessage?: (messageId: string) => void;
   onDeleteMessage?: (messageId: string) => void;
@@ -69,6 +70,7 @@ export const Chat: FC<ChatProps> = ({
     body: string;
     image: File | null;
     attachments: UploadedAttachment[];
+    plainText: string;
   }) => {
     onSendMessage(content);
   };

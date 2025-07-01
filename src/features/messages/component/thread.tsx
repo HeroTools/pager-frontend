@@ -110,6 +110,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
   const handleSubmit = async (content: {
     body: string;
     attachments: UploadedAttachment[];
+    plainText: string;
   }) => {
     if (!parentMessage || isWaitingForPersistence) {
       toast.error(
@@ -125,6 +126,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
         parent_message_id: parentMessage.id,
         thread_id: parentMessage.threadId || parentMessage.id,
         message_type: "thread",
+        plain_text: content.plainText,
       });
 
       setEditorKey((prev) => prev + 1);
