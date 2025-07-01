@@ -24,6 +24,7 @@ import { useDeleteAttachment, useFileUpload } from "@/features/file-upload";
 import AttachmentPreview from "./attachment-preview";
 import { validateFile } from "@/lib/helpers";
 import EmojiPicker from "@/components/emoji-picker";
+import EmojiAutoComplete from "./emoji-auto-complete";
 
 type EditorValue = {
   image: File | null;
@@ -97,6 +98,8 @@ const Editor = ({
   const { uploadMultipleFiles } = useFileUpload(workspaceId);
   const deleteAttachment = useDeleteAttachment();
 
+
+
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
     placeholderRef.current = placeholder;
@@ -159,7 +162,7 @@ const Editor = ({
       );
 
       setAttachments((prev) => {
-        const newState = [...prev, ...initialAttachments];
+        const newState: ManagedAttachment[] = [...prev, ...initialAttachments];
         return newState;
       });
 
@@ -184,7 +187,7 @@ const Editor = ({
 
         if (activeUploadBatchRef.current === batchId) {
           setAttachments((prev) => {
-            const updatedAttachments = prev.map((att) => {
+            const updatedAttachments: ManagedAttachment[] = prev.map((att) => {
               const originalFileIndex = fileIds.indexOf(att.id);
               if (originalFileIndex === -1) return att;
 
@@ -196,13 +199,13 @@ const Editor = ({
                   id: result.attachmentId,
                   publicUrl: result.publicUrl,
                   uploadProgress: 100,
-                  status: "completed",
+                  status: "completed" as const,
                   file: undefined, // Clear the preview file from memory
                 };
               } else {
                 return {
                   ...att,
-                  status: "error",
+                  status: "error" as const,
                   error: result.error,
                   file: undefined,
                 };
@@ -345,7 +348,13 @@ const Editor = ({
           bindings: {
             enterSubmit: {
               key: "Enter",
-              handler: function (range, context) {
+              handler: function (range: any, context: any) {
+                // If emoji dropdown is open, don't handle enter here - let the emoji component deal with it
+                const emojiDropdownOpen = quillRef.current && (quillRef.current as any).emojiDropdownOpen;
+                if (emojiDropdownOpen) {
+                  return true; // Let the event bubble up to emoji handler
+                }
+
                 const addedImage = imageElementRef.current?.files?.[0] || null;
                 const currentText = quillRef.current?.getText() || "";
 
@@ -365,7 +374,7 @@ const Editor = ({
             linebreak: {
               key: "Enter",
               shiftKey: true,
-              handler: function (range, context) {
+              handler: function (range: any, context: any) {
                 const quill = quillRef.current!;
                 const index = range ? range.index : quill.getLength();
                 quill.insertText(index, "\n");
@@ -409,6 +418,8 @@ const Editor = ({
     const idx = quill?.getSelection()?.index || 0;
     quill?.insertText(idx, emoji);
   };
+
+
 
   return (
     <div className="flex flex-col">
@@ -566,6 +577,9 @@ const Editor = ({
           </p>
         </div>
       )}
+
+      {/* Emoji Autocomplete */}
+      <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
     </div>
   );
 };
