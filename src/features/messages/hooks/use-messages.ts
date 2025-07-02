@@ -950,17 +950,55 @@ export const useDeleteMessage = (workspaceId: string) => {
             pages: oldData.pages.map((page: any) => ({
               ...page,
               messages:
-                page.messages?.map((message: Message) =>
-                  message.id === messageId
-                    ? { ...message, deleted_at: new Date().toISOString() }
-                    : message
-                ) || [],
+                page.messages?.map((message: Message) => {
+                  if (message.id === messageId) {
+                    // Mark the message as deleted
+                    return { ...message, deleted_at: new Date().toISOString() };
+                  }
+                  
+                  // If this message has a thread and we're deleting one of its replies,
+                  // decrement the thread count optimistically
+                  const deletedMessage = page.messages?.find((m: Message) => m.id === messageId);
+                  if (deletedMessage?.threadId === message.id || deletedMessage?.parent_message_id === message.id) {
+                    const currentCount = message.threadCount || 0;
+                    return {
+                      ...message,
+                      threadCount: Math.max(0, currentCount - 1),
+                    };
+                  }
+                  
+                  return message;
+                }) || [],
             })),
           };
         } else if (oldData?.messages) {
           return {
             ...oldData,
-            messages: oldData.messages.map((message: Message) =>
+            messages: oldData.messages.map((message: Message) => {
+              if (message.id === messageId) {
+                // Mark the message as deleted
+                return { ...message, deleted_at: new Date().toISOString() };
+              }
+              
+              // If this message has a thread and we're deleting one of its replies,
+              // decrement the thread count optimistically
+              const deletedMessage = oldData.messages?.find((m: Message) => m.id === messageId);
+              if (deletedMessage?.threadId === message.id || deletedMessage?.parent_message_id === message.id) {
+                const currentCount = message.threadCount || 0;
+                return {
+                  ...message,
+                  threadCount: Math.max(0, currentCount - 1),
+                };
+              }
+              
+              return message;
+            }),
+          };
+        } else if (oldData?.replies) {
+          // Handle thread-specific data structure
+          return {
+            ...oldData,
+            replies: oldData.replies.map((message: Message) =>
               message.id === messageId
                 ? { ...message, deleted_at: new Date().toISOString() }
                 : message
@@ -1016,6 +1054,28 @@ export const useDeleteMessage = (workspaceId: string) => {
       });
       queryClient.invalidateQueries({
         queryKey: ["conversations", workspaceId],
+      });
+      
+      // Invalidate all thread-related queries to update thread counts and replies
+      queryClient.invalidateQueries({
+        queryKey: ["thread", workspaceId],
+        exact: false,
+      });
+      
+      // Invalidate infinite message queries for both channels and conversations
+      queryClient.invalidateQueries({
+        queryKey: ["channel", workspaceId],
+        exact: false,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["conversation", workspaceId], 
+        exact: false,
+      });
+      
+      // Invalidate any specific message queries
+      queryClient.invalidateQueries({
+        queryKey: ["message", workspaceId],
+        exact: false,
       });
     },
   });
