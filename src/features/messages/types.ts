@@ -147,3 +147,14 @@ export interface MessageWithUser {
 }
 
 export type MessageWithUserResponse = ApiResponse<MessageWithUser>;
+
+export interface QuillDelta {
+  ops: QuillOp[];
+}
+
+export interface QuillOp {
+  insert?: string | Record<string, any>;
+  retain?: number;
+  delete?: number;
+  attributes?: Record<string, any>;
+}

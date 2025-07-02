@@ -206,7 +206,6 @@ const ChannelChat = () => {
         messageId,
         data: { body: newContent },
       });
-      console.log("Message edited successfully");
     } catch (error) {
       console.error("Failed to edit message:", error);
     }
@@ -215,7 +214,6 @@ const ChannelChat = () => {
   const handleDeleteMessage = async (messageId: string) => {
     try {
       await deleteMessage.mutateAsync(messageId);
-      console.log("Message deleted successfully");
     } catch (error) {
       console.error("Failed to delete message:", error);
     }

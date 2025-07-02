@@ -177,7 +177,6 @@ export const useRealtimeChannel = ({
         // Duplicate check
         const lastProcessed = processedRef.current.get(message.id);
         if (lastProcessed && now - lastProcessed < DUPLICATE_WINDOW) {
-          console.log(`💬 Duplicate channel message ${message.id} ignored`);
           return;
         }
 
@@ -189,13 +188,6 @@ export const useRealtimeChannel = ({
             .slice(0, 50);
           processedRef.current = new Map(entries);
         }
-
-        console.log("💬 New channel message received:", {
-          id: message.id,
-          channelId,
-          isThread: Boolean(message.parent_message_id),
-          connectionStatus,
-        });
 
         const isThreadMessage = Boolean(message.parent_message_id);
 
@@ -254,27 +246,37 @@ export const useRealtimeChannel = ({
     ]
   );
 
-  // 4) Message updates (unchanged)
   const handleMessageUpdated = useCallback(
     (payload: any) => {
       try {
-        const updated = payload.message as MessageWithUser;
-        const isThreadMsg = Boolean(updated.parent_message_id);
+        const {
+          message: {
+            id: messageId,
+            body,
+            text,
+            edited_at,
+            updated_at,
+            parent_message_id,
+          },
+        } = payload;
+        const isThread = Boolean(parent_message_id);
 
-        console.log("✏️ Channel message updated:", {
-          id: updated.id,
-          channelId,
-          isThread: isThreadMsg,
-        });
-
-        if (isThreadMsg) {
-          const threadKey = getThreadQueryKey(updated.parent_message_id!);
+        if (isThread) {
+          const threadKey = getThreadQueryKey(parent_message_id);
           queryClient.setQueryData<ThreadQueryData>(threadKey, (old) => {
             if (!old) return old;
             return {
               ...old,
               replies: old.replies.map((r) =>
-                r.id === updated.id ? updated : r
+                r.id === messageId
+                  ? {
+                      ...r,
+                      body,
+                      text,
+                      edited_at,
+                      updated_at,
+                    }
+                  : r
               ),
             };
           });
@@ -286,7 +288,15 @@ export const useRealtimeChannel = ({
               const newPages = old.pages.map((page) => ({
                 ...page,
                 messages: page.messages.map((m) =>
-                  m.id === updated.id ? updated : m
+                  m.id === messageId
+                    ? {
+                        ...m,
+                        body,
+                        text,
+                        edited_at,
+                        updated_at,
+                      }
+                    : m
                 ),
               }));
               return { ...old, pages: newPages };
@@ -297,21 +307,15 @@ export const useRealtimeChannel = ({
         console.error("❌ Error handling channel message update:", error);
       }
     },
-    [channelId, queryClient, getChannelQueryKey, getThreadQueryKey]
+    [getChannelQueryKey, getThreadQueryKey, queryClient]
   );
 
   // 5) Message deletions (unchanged)
   const handleMessageDeleted = useCallback(
     (payload: any) => {
       try {
-        const deletedId = payload.messageId as string;
-        const parentId = payload.parentMessageId as string | undefined;
-
-        console.log("🗑️ Channel message deleted:", {
-          id: deletedId,
-          channelId,
-          isThread: Boolean(parentId),
-        });
+        const deletedId = payload.message_id as string;
+        const parentId = payload.parent_message_id as string | undefined;
 
         if (parentId) {
           const threadKey = getThreadQueryKey(parentId);
@@ -343,7 +347,7 @@ export const useRealtimeChannel = ({
         console.error("❌ Error handling channel message deletion:", error);
       }
     },
-    [channelId, queryClient, getChannelQueryKey, getThreadQueryKey]
+    [getChannelQueryKey, getThreadQueryKey, queryClient]
   );
 
   useEffect(() => {
@@ -371,9 +375,9 @@ export const useRealtimeChannel = ({
         .on("broadcast", { event: "new_message" }, ({ payload }) =>
           messageHandlersRef.current.onNew(payload)
         )
-        .on("broadcast", { event: "message_updated" }, ({ payload }) =>
-          messageHandlersRef.current.onUpdate(payload)
-        )
+        .on("broadcast", { event: "message_updated" }, ({ payload }) => {
+          messageHandlersRef.current.onUpdate(payload);
+        })
         .on("broadcast", { event: "message_deleted" }, ({ payload }) =>
           messageHandlersRef.current.onDelete(payload)
         );

@@ -2,7 +2,7 @@ import { Attachment, Author, Message } from "@/types/chat";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { CurrentUser } from "@/features/auth";
 import { useUIStore } from "@/store/ui-store";
-import type { MessageWithUser } from "./types";
+import type { MessageWithUser, QuillDelta } from "./types";
 
 export const transformMessages = (
   messagesData: MessageWithUser[],
@@ -71,4 +71,61 @@ export const formatDateLabel = (dateInput: string | Date): string => {
     return "Yesterday";
   }
   return format(date, "MMMM d, yyyy");
+};
+
+/**
+ * Parses message content and returns a valid Quill Delta
+ * Handles both JSON delta format and plain text with graceful fallback
+ */
+export const parseMessageContent = (
+  content: string | null | undefined
+): QuillDelta => {
+  if (!content || content.trim() === "") {
+    return { ops: [{ insert: "\n" }] };
+  }
+
+  try {
+    const parsed = JSON.parse(content);
+
+    if (isValidDelta(parsed)) {
+      return parsed;
+    }
+
+    return createPlainTextDelta(content);
+  } catch {
+    return createPlainTextDelta(content);
+  }
+};
+
+/**
+ * Validates if an object is a valid Quill Delta
+ */
+const isValidDelta = (obj: any): obj is QuillDelta => {
+  return (
+    obj &&
+    typeof obj === "object" &&
+    Array.isArray(obj.ops) &&
+    obj.ops.length > 0 &&
+    obj.ops.every(
+      (op: any) =>
+        typeof op === "object" &&
+        (op.insert !== undefined ||
+          op.retain !== undefined ||
+          op.delete !== undefined)
+    )
+  );
+};
+
+/**
+ * Creates a simple delta from plain text
+ */
+const createPlainTextDelta = (text: string): QuillDelta => {
+  const cleanText = text.trim();
+  return {
+    ops: [
+      {
+        insert: cleanText + (cleanText.endsWith("\n") ? "" : "\n"),
+      },
+    ],
+  };
 };
