@@ -3,7 +3,9 @@ import { create } from "zustand";
 
 interface UIState {
   openEmojiPickerMessageId: string | null;
+  openEmojiPickerMessageIdInThread: string | null;
   setEmojiPickerOpen: (messageId: string | null) => void;
+  setEmojiPickerOpenInThread: (messageId: string | null) => void;
   isEmojiPickerOpen: () => boolean;
   openThreadMessageId: string | null;
   setThreadOpen: (message: Message | null) => void;
@@ -17,9 +19,15 @@ interface UIState {
 
 export const useUIStore = create<UIState>((set, get) => ({
   openEmojiPickerMessageId: null,
+  openEmojiPickerMessageIdInThread: null,
   setEmojiPickerOpen: (messageId) =>
     set({ openEmojiPickerMessageId: messageId }),
-  isEmojiPickerOpen: () => get().openEmojiPickerMessageId !== null,
+  setEmojiPickerOpenInThread: (messageId) =>
+    set({ openEmojiPickerMessageIdInThread: messageId }),
+  isEmojiPickerOpen: () => {
+    const state = get();
+    return state.openEmojiPickerMessageId !== null || state.openEmojiPickerMessageIdInThread !== null;
+  },
   openThreadMessageId: null,
   setThreadOpen: (message) => {
     set({ openThreadMessageId: message?.id });
