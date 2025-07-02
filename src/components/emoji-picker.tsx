@@ -1,5 +1,7 @@
 import React, { useState, ReactNode } from "react";
-import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import Picker from "@emoji-mart/react";
+import data from "@emoji-mart/data";
+import { useTheme } from "next-themes";
 import {
   Popover,
   PopoverTrigger,
@@ -15,12 +17,13 @@ interface EmojiPickerProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const EmojiPickerComponent: React.FC<EmojiPickerProps> = ({
+const EmojiPicker: React.FC<EmojiPickerProps> = ({
   onSelect,
   trigger,
   open,
   onOpenChange,
 }) => {
+  const { systemTheme } = useTheme();
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled =
     typeof open === "boolean" && typeof onOpenChange === "function";
@@ -52,24 +55,22 @@ const EmojiPickerComponent: React.FC<EmojiPickerProps> = ({
         side="top"
         sideOffset={8}
       >
-        <EmojiPicker
-          onEmojiClick={(emojiData: EmojiClickData) => {
-            onSelect(emojiData.emoji);
+        <Picker
+          data={data}
+          onEmojiSelect={(emoji: any) => {
+            onSelect(emoji.native);
             setOpen(false);
           }}
-          autoFocusSearch={false}
-          lazyLoadEmojis={true}
-          previewConfig={{
-            showPreview: false,
-          }}
-          searchDisabled={false}
-          skinTonesDisabled={true}
-          width={320}
-          height={400}
+          theme={systemTheme === "dark" ? "dark" : "light"}
+          set="native"
+          previewPosition="none"
+          skinTonePosition="none"
+          maxFrequentRows={2}
+          perLine={8}
         />
       </PopoverContent>
     </Popover>
   );
 };
 
-export default EmojiPickerComponent;
+export default EmojiPicker;

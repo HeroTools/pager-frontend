@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+
 import { SignInFlow } from "../types";
 import { authApi } from "@/features/auth/api/auth-api";
 import { useSignUp } from "@/features/auth";
@@ -109,31 +109,7 @@ export const SignUpCard = ({
     }
   );
 
-  const handleProviderSignUp = (provider: "google") => async () => {
-    if (provider !== "google") {
-      setError("Unsupported sign-in method. Please use Google to sign up.");
-      return;
-    }
-    setSigningUp(true);
-    setError("");
 
-    try {
-      const response = await authApi.googleSignIn(
-        `${window.location.origin}/auth/callback`
-      );
-      // Redirect to OAuth provider if url exists
-      if (response.url) {
-        window.location.href = response.url;
-      }
-    } catch (err: any) {
-      console.error(`${provider} sign up error:`, err);
-      setError(
-        err.response?.data?.error ||
-          `Failed to sign up with ${provider}. Please try again.`
-      );
-      setSigningUp(false);
-    }
-  };
 
   const handleResendEmail = async () => {
     if (!userEmail) return;
@@ -291,19 +267,6 @@ export const SignUpCard = ({
             {signingUp ? "Signing up..." : "Continue"}
           </Button>
         </form>
-        <Separator />
-        <div className="flex flex-col gap-y-2.5">
-          <Button
-            disabled={signingUp}
-            onClick={handleProviderSignUp("google")}
-            variant="outline"
-            size="lg"
-            className="w-full relative"
-          >
-            <span className="size-5 absolute top-3 left-2.5">G</span>
-            Continue with Google
-          </Button>
-        </div>
         {!hideSignInLink && (
           <p className="text-xs text-muted-foreground">
             Already have an account?{" "}

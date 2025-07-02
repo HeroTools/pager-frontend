@@ -23,8 +23,9 @@ interface ChatProps {
     body: string;
     image: File | null;
     attachments: UploadedAttachment[];
+    plainText: string;
   }) => void;
-  onEditMessage?: (messageId: string) => void;
+  onEditMessage?: (messageId: string, newContent: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onReplyToMessage?: (messageId: string) => void;
   onReactToMessage?: (messageId: string, emoji: string) => void;
@@ -69,13 +70,14 @@ export const Chat: FC<ChatProps> = ({
     body: string;
     image: File | null;
     attachments: UploadedAttachment[];
+    plainText: string;
   }) => {
     onSendMessage(content);
   };
 
-  const handleEditMessage = (messageId: string) => {
+  const handleEditMessage = (messageId: string, newContent: string) => {
     setEditingMessageId(messageId);
-    onEditMessage?.(messageId);
+    onEditMessage?.(messageId, newContent);
   };
 
   const handleOpenMediaViewer = (message: Message, attachmentIndex: number) => {

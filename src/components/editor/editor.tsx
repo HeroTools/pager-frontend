@@ -24,11 +24,13 @@ import { useDeleteAttachment, useFileUpload } from "@/features/file-upload";
 import AttachmentPreview from "./attachment-preview";
 import { validateFile } from "@/lib/helpers";
 import EmojiPicker from "@/components/emoji-picker";
+import EmojiAutoComplete from "./emoji-auto-complete";
 
 type EditorValue = {
   image: File | null;
   body: string;
   attachments: UploadedAttachment[];
+  plainText: string;
 };
 
 interface EditorProps {
@@ -39,7 +41,12 @@ interface EditorProps {
   placeholder?: string;
   workspaceId: string;
   onCancel?: () => void;
-  onSubmit: ({ image, body, attachments }: EditorValue) => Promise<any> | void;
+  onSubmit: ({
+    image,
+    body,
+    attachments,
+    plainText,
+  }: EditorValue) => Promise<any> | void;
   maxFiles?: number;
   maxFileSizeBytes?: number;
 }
@@ -90,6 +97,8 @@ const Editor = ({
 
   const { uploadMultipleFiles } = useFileUpload(workspaceId);
   const deleteAttachment = useDeleteAttachment();
+
+
 
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
@@ -153,7 +162,7 @@ const Editor = ({
       );
 
       setAttachments((prev) => {
-        const newState = [...prev, ...initialAttachments];
+        const newState: ManagedAttachment[] = [...prev, ...initialAttachments];
         return newState;
       });
 
@@ -178,7 +187,7 @@ const Editor = ({
 
         if (activeUploadBatchRef.current === batchId) {
           setAttachments((prev) => {
-            const updatedAttachments = prev.map((att) => {
+            const updatedAttachments: ManagedAttachment[] = prev.map((att) => {
               const originalFileIndex = fileIds.indexOf(att.id);
               if (originalFileIndex === -1) return att;
 
@@ -190,13 +199,13 @@ const Editor = ({
                   id: result.attachmentId,
                   publicUrl: result.publicUrl,
                   uploadProgress: 100,
-                  status: "completed",
+                  status: "completed" as const,
                   file: undefined, // Clear the preview file from memory
                 };
               } else {
                 return {
                   ...att,
-                  status: "error",
+                  status: "error" as const,
                   error: result.error,
                   file: undefined,
                 };
@@ -297,6 +306,7 @@ const Editor = ({
         image: oldImage,
         body,
         attachments: attachmentsForSubmit,
+        plainText: oldText,
       });
 
       quill.setText("");
@@ -338,7 +348,13 @@ const Editor = ({
           bindings: {
             enterSubmit: {
               key: "Enter",
-              handler: function (range, context) {
+              handler: function (range: any, context: any) {
+                // If emoji dropdown is open, don't handle enter here - let the emoji component deal with it
+                const emojiDropdownOpen = quillRef.current && (quillRef.current as any).emojiDropdownOpen;
+                if (emojiDropdownOpen) {
+                  return true; // Let the event bubble up to emoji handler
+                }
+
                 const addedImage = imageElementRef.current?.files?.[0] || null;
                 const currentText = quillRef.current?.getText() || "";
 
@@ -358,7 +374,7 @@ const Editor = ({
             linebreak: {
               key: "Enter",
               shiftKey: true,
-              handler: function (range, context) {
+              handler: function (range: any, context: any) {
                 const quill = quillRef.current!;
                 const index = range ? range.index : quill.getLength();
                 quill.insertText(index, "\n");
@@ -403,6 +419,8 @@ const Editor = ({
     quill?.insertText(idx, emoji);
   };
 
+
+
   return (
     <div className="flex flex-col">
       <input
@@ -423,7 +441,7 @@ const Editor = ({
       <div
         ref={editorWrapperRef}
         className={cn(
-          "flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition-all duration-200 relative",
+          "flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition-all duration-200 relative max-h-[calc(100%-36px)]",
           disabled && "opacity-50",
           isDragging && "border-primary bg-accent/50"
         )}
@@ -446,7 +464,10 @@ const Editor = ({
           </div>
         )}
 
-        <div ref={containerRef} className="h-full ql-custom"></div>
+        <div
+          ref={containerRef}
+          className="h-full ql-custom max-h-80 overflow-y-auto"
+        ></div>
 
         {/* Attachment previews */}
         {attachments.length > 0 && (
@@ -556,6 +577,9 @@ const Editor = ({
           </p>
         </div>
       )}
+
+      {/* Emoji Autocomplete */}
+      <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
     </div>
   );
 };

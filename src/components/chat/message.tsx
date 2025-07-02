@@ -23,16 +23,19 @@ import { MessageReactions } from "./message-reactions";
 import { MessageContent } from "./message-content";
 import { useUIStore } from "@/store/ui-store";
 import { MediaViewerModal } from "@/components/media-viewer-modal";
+import { DeleteMessageModal } from "@/components/delete-message-modal";
 import { CurrentUser } from "@/features/auth/types";
 import { useGetMembers } from "@/features/members";
 import { useParamIds } from "@/hooks/use-param-ids";
 import ThreadButton from "./thread-button";
+import Editor from "@/components/editor/editor";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { parseMessageContent } from "@/features/messages/helpers";
 
 const ATTACHMENT_SIZES = {
   SINGLE: { maxHeight: 300, maxWidth: 400 },
@@ -45,7 +48,9 @@ interface ChatMessageProps {
   hideReplies?: boolean;
   isCompact?: boolean;
   showAvatar?: boolean;
-  onEdit?: (messageId: string) => void;
+  hideThreadButton?: boolean;
+  isInThread?: boolean;
+  onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onReaction: (messageId: string, emoji: string) => void;
@@ -118,10 +123,16 @@ const ImageAttachment: FC<{
 const VideoAttachment: FC<{
   attachment: Attachment;
   onOpenMediaViewer: () => void;
-}> = ({ attachment, onOpenMediaViewer }) => {
+  isSingle?: boolean;
+  fixedHeight?: number;
+}> = ({ attachment, onOpenMediaViewer, isSingle = false, fixedHeight }) => {
   const [duration, setDuration] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+
+  const { maxHeight, maxWidth } = isSingle
+    ? ATTACHMENT_SIZES.SINGLE
+    : ATTACHMENT_SIZES.MULTI;
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -148,7 +159,7 @@ const VideoAttachment: FC<{
 
   return (
     <div
-      className="relative group/video max-w-md cursor-pointer"
+      className="relative group/video flex-shrink-0 cursor-pointer"
       onClick={onOpenMediaViewer}
     >
       {/* Placeholder while loading to prevent layout shift */}
@@ -170,9 +181,16 @@ const VideoAttachment: FC<{
         <video
           src={attachment.publicUrl}
           className={cn(
-            "rounded-lg max-w-full h-auto",
+            "rounded-lg cursor-pointer border",
+            fixedHeight ? "object-cover" : "object-contain",
             !isLoaded && "opacity-0 absolute inset-0"
           )}
+          style={{
+            height: fixedHeight ? `${fixedHeight}px` : "auto",
+            maxHeight: fixedHeight ? "none" : `${maxHeight}px`,
+            maxWidth: `${maxWidth}px`,
+            minWidth: fixedHeight ? "120px" : "auto",
+          }}
           preload="metadata"
           onLoadedMetadata={handleLoadedMetadata}
           onError={handleError}
@@ -415,7 +433,12 @@ const AttachmentGrid: FC<{
   attachments: Attachment[];
   onOpenMediaViewer: (attachments: Attachment[], initialIndex: number) => void;
 }> = ({ attachments, onOpenMediaViewer }) => {
-  const renderAttachment = (attachment: Attachment, index: number) => {
+  const renderAttachment = (
+    attachment: Attachment,
+    index: number,
+    isSingle = false,
+    fixedHeight?: number
+  ) => {
     const mimeType = attachment.contentType || "";
     const filename = attachment.originalFilename || "";
 
@@ -425,6 +448,8 @@ const AttachmentGrid: FC<{
           key={attachment.id}
           attachment={attachment}
           onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
+          isSingle={isSingle}
+          fixedHeight={fixedHeight}
         />
       );
     }
@@ -435,6 +460,8 @@ const AttachmentGrid: FC<{
           key={attachment.id}
           attachment={attachment}
           onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
+          isSingle={isSingle}
+          fixedHeight={fixedHeight}
         />
       );
     }
@@ -464,14 +491,23 @@ const AttachmentGrid: FC<{
 
   if (attachments.length === 0) return null;
 
+  const isSingleAttachment = attachments.length === 1;
+
+  // Use fixed height for multi-attachment layout to align all media
+  const fixedHeight = isSingleAttachment
+    ? undefined
+    : ATTACHMENT_SIZES.MULTI.fixedHeight;
+
   return (
     <div className="mt-2">
-      {attachments.length === 1 ? (
-        renderAttachment(attachments[0], 0)
+      {isSingleAttachment ? (
+        <div className="flex justify-start">
+          {renderAttachment(attachments[0], 0, true)}
+        </div>
       ) : (
-        <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 max-w-2xl">
+        <div className="flex flex-wrap items-start gap-1.5 max-w-5xl">
           {attachments.map((attachment, index) =>
-            renderAttachment(attachment, index)
+            renderAttachment(attachment, index, false, fixedHeight)
           )}
         </div>
       )}
@@ -493,29 +529,38 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   hideReplies = false,
   isCompact = false,
   showAvatar = true,
+  hideThreadButton = false,
+  isInThread = false,
   onEdit,
   onDelete,
   onReply,
   onReaction,
 }) => {
   const { workspaceId } = useParamIds();
-  const [isHovered, setIsHovered] = useState(false);
   const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
   const [mediaViewerAttachments, setMediaViewerAttachments] = useState<
     Attachment[]
   >([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingContent, setEditingContent] = useState<any>(null);
   const {
     openEmojiPickerMessageId,
+    openEmojiPickerMessageIdInThread,
     setEmojiPickerOpen,
-    openThreadMessageId,
+    setEmojiPickerOpenInThread,
     setThreadOpen,
   } = useUIStore();
   const getMembers = useGetMembers(workspaceId);
 
   const isOwnMessage = message.authorId === currentUser.id;
 
-  const isEmojiPickerOpen = openEmojiPickerMessageId === message.id;
+  const isEmojiPickerOpen = isInThread
+    ? openEmojiPickerMessageIdInThread === message.id
+    : openEmojiPickerMessageId === message.id;
 
   const handleEmojiSelect = (emoji: string) => {
     onReaction?.(message.id, emoji);
@@ -523,7 +568,11 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   };
 
   const handleEmojiPickerToggle = (open: boolean) => {
-    setEmojiPickerOpen(open ? message.id : null);
+    if (isInThread) {
+      setEmojiPickerOpenInThread(open ? message.id : null);
+    } else {
+      setEmojiPickerOpen(open ? message.id : null);
+    }
   };
 
   const handleOpenMediaViewer = (
@@ -535,17 +584,66 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setIsMediaViewerOpen(true);
   };
 
-  const shouldShowActions = isHovered || isEmojiPickerOpen;
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleEditClick = () => {
+    const deltaContent = parseMessageContent(message.content);
+    setEditingContent(deltaContent);
+    setIsEditing(true);
+    setIsDropdownOpen(false);
+  };
+
+  const handleEditCancel = () => {
+    setIsEditing(false);
+    setEditingContent(null);
+  };
+
+  const handleEditSave = async (editorValue: {
+    image: File | null;
+    body: string;
+    attachments: any[];
+    plainText: string;
+  }) => {
+    const { body, plainText } = editorValue;
+    if (!onEdit || !plainText.trim()) return;
+
+    try {
+      await onEdit(message.id, body);
+      setIsEditing(false);
+      setEditingContent(null);
+    } catch (error) {
+      console.error("Error updating message:", error);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(message.id);
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
+  };
 
   return (
     <>
       <div
         className={cn(
           "group relative px-4 hover:bg-message-hover transition-colors py-2",
-          isCompact && "-mt-1"
+          isCompact && "-mt-1",
+          isDropdownOpen && "bg-message-hover"
         )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="flex gap-3">
           {showAvatar && !isCompact ? (
@@ -588,7 +686,21 @@ export const ChatMessage: FC<ChatMessageProps> = ({
             )}
 
             <div className={cn("leading-relaxed", !isCompact && "mt-0")}>
-              <MessageContent content={message.content} />
+              {isEditing ? (
+                <div className="mt-2">
+                  <Editor
+                    variant="update"
+                    defaultValue={editingContent}
+                    workspaceId={workspaceId}
+                    onSubmit={handleEditSave}
+                    onCancel={handleEditCancel}
+                    placeholder="Edit your message..."
+                    disabled={false}
+                  />
+                </div>
+              ) : (
+                <MessageContent content={message.content} />
+              )}
             </div>
 
             {message.attachments && message.attachments.length > 0 && (
@@ -608,14 +720,22 @@ export const ChatMessage: FC<ChatMessageProps> = ({
 
             {message?.threadCount &&
             Number(message.threadCount) > 0 &&
-            !hideReplies ? (
+            !hideReplies &&
+            !hideThreadButton ? (
               <ThreadButton message={message} members={getMembers.data!} />
             ) : null}
           </div>
         </div>
 
-        {shouldShowActions && (
-          <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm">
+        {!isEditing && (
+          <div
+            className={cn(
+              "absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity",
+              isEmojiPickerOpen || isDropdownOpen
+                ? "opacity-100"
+                : "opacity-0 group-hover:opacity-100"
+            )}
+          >
             <div className="flex items-center">
               <EmojiPicker
                 open={isEmojiPickerOpen}
@@ -632,43 +752,44 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                 }
               />
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                onClick={() => setThreadOpen(message)}
-              >
-                <MessageSquare className="w-4 h-4" />
-              </Button>
+              {!hideThreadButton && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                  onClick={() => setThreadOpen(message)}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                </Button>
+              )}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {isOwnMessage && (
-                    <>
-                      <DropdownMenuItem onClick={() => onEdit?.(message.id)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit message
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => onDelete?.(message.id)}
-                        className="text-text-destructive hover:text-text-destructive/80"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete message
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Only show More button for own messages */}
+              {isOwnMessage && (
+                <DropdownMenu onOpenChange={setIsDropdownOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleEditClick}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit message
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleDeleteClick}
+                      className="text-text-destructive hover:text-text-destructive/80"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete message
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
         )}
@@ -679,6 +800,13 @@ export const ChatMessage: FC<ChatMessageProps> = ({
         onClose={() => setIsMediaViewerOpen(false)}
         attachments={mediaViewerAttachments}
         initialIndex={mediaViewerInitialIndex}
+      />
+
+      <DeleteMessageModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={isDeleting}
       />
     </>
   );

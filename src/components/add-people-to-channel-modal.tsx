@@ -5,7 +5,7 @@ import { useParamIds } from "@/hooks/use-param-ids";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import MemberSearchSelect from "./member-search-select";
 import { Button } from "./ui/button";
-import type { Channel } from "@/types/database";
+import type { Channel } from "@/types/chat";
 
 interface AddMembersDialogProps {
   isOpen: boolean;

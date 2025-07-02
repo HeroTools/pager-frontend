@@ -53,6 +53,7 @@ export interface Channel extends BaseEntity {
   workspace_id: string;
   channel_type: ChannelType;
   description?: string;
+  is_default?: boolean;
 }
 
 export interface ChannelMember extends BaseEntity {
