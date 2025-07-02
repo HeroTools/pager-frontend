@@ -48,6 +48,8 @@ interface ChatMessageProps {
   hideReplies?: boolean;
   isCompact?: boolean;
   showAvatar?: boolean;
+  hideThreadButton?: boolean;
+  isInThread?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
@@ -527,6 +529,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   hideReplies = false,
   isCompact = false,
   showAvatar = true,
+  hideThreadButton = false,
+  isInThread = false,
   onEdit,
   onDelete,
   onReply,
@@ -545,15 +549,18 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   const [editingContent, setEditingContent] = useState<any>(null);
   const {
     openEmojiPickerMessageId,
+    openEmojiPickerMessageIdInThread,
     setEmojiPickerOpen,
-    openThreadMessageId,
+    setEmojiPickerOpenInThread,
     setThreadOpen,
   } = useUIStore();
   const getMembers = useGetMembers(workspaceId);
 
   const isOwnMessage = message.authorId === currentUser.id;
 
-  const isEmojiPickerOpen = openEmojiPickerMessageId === message.id;
+  const isEmojiPickerOpen = isInThread
+    ? openEmojiPickerMessageIdInThread === message.id
+    : openEmojiPickerMessageId === message.id;
 
   const handleEmojiSelect = (emoji: string) => {
     onReaction?.(message.id, emoji);
@@ -561,7 +568,11 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   };
 
   const handleEmojiPickerToggle = (open: boolean) => {
-    setEmojiPickerOpen(open ? message.id : null);
+    if (isInThread) {
+      setEmojiPickerOpenInThread(open ? message.id : null);
+    } else {
+      setEmojiPickerOpen(open ? message.id : null);
+    }
   };
 
   const handleOpenMediaViewer = (
@@ -709,7 +720,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
 
             {message?.threadCount &&
             Number(message.threadCount) > 0 &&
-            !hideReplies ? (
+            !hideReplies &&
+            !hideThreadButton ? (
               <ThreadButton message={message} members={getMembers.data!} />
             ) : null}
           </div>
@@ -740,14 +752,16 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                 }
               />
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                onClick={() => setThreadOpen(message)}
-              >
-                <MessageSquare className="w-4 h-4" />
-              </Button>
+              {!hideThreadButton && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                  onClick={() => setThreadOpen(message)}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                </Button>
+              )}
 
               {/* Only show More button for own messages */}
               {isOwnMessage && (
