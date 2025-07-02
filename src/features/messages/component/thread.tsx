@@ -110,6 +110,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
   const handleSubmit = async (content: {
     body: string;
     attachments: UploadedAttachment[];
+    plainText: string;
   }) => {
     if (!parentMessage || isWaitingForPersistence) {
       toast.error(
@@ -125,6 +126,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
         parent_message_id: parentMessage.id,
         thread_id: parentMessage.threadId || parentMessage.id,
         message_type: "thread",
+        plain_text: content.plainText,
       });
 
       setEditorKey((prev) => prev + 1);
@@ -223,10 +225,10 @@ export const Thread = ({ onClose }: ThreadProps) => {
     <div className="h-full flex flex-col">
       <ThreadHeader onClose={onClose} title="Thread" />
 
-      <div className="flex-1 overflow-y-auto messages-scrollbar">
+      <div className="flex-1 overflow-y-auto messages-scrollbar relative">
         <div className="flex flex-col">
           {/* Parent message at the top */}
-          <div className="px-4 pt-4 pb-2 border-b border-border-subtle">
+          <div className="px-4 pt-4 pb-2 border-b border-border-subtle relative">
             <ChatMessage
               message={parentMessage}
               currentUser={currentUser}
@@ -236,6 +238,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
               onDelete={handleDelete}
               onReaction={handleReaction}
               hideReplies
+              hideThreadButton
+              isInThread
             />
           </div>
 
@@ -278,6 +282,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
                         onDelete={handleDelete}
                         onReaction={handleReaction}
                         hideReplies
+                        hideThreadButton
+                        isInThread
                       />
                     );
                   })}

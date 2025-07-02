@@ -131,23 +131,6 @@ export const useRefreshToken = () => {
   });
 };
 
-export const useGoogleSignIn = () => {
-  return useMutation({
-    mutationFn: ({ redirectTo }: { redirectTo: string }) =>
-      authApi.googleSignIn(redirectTo),
-  });
-};
-
-export const useVerifyEmail = () => {
-  const router = useRouter();
-  return useMutation({
-    mutationFn: ({ token }: { token: string }) => authApi.verifyEmail(token),
-    onSuccess: () => {
-      router.push("/auth/sign-in");
-    },
-  });
-};
-
 export const useUpdateProfile = () => {
   return useMutation({
     mutationFn: authApi.updateProfile,
@@ -195,8 +178,27 @@ export const useSwitchWorkspace = () => {
         );
       });
 
+      // Invalidate workspace-specific caches to ensure fresh data
+      queryClient.invalidateQueries({
+        queryKey: ["workspace", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["members", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["channels", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["conversations", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["currentMember", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", workspaceId],
+      });
+
       // Navigate to the workspace
-      // router.push(`/workspace/${workspaceId}`);
       router.push(`/${workspaceId}`);
     },
     onError: (error) => {

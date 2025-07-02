@@ -18,7 +18,7 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-import type { Channel } from "@/types/database";
+import { Channel, ChannelType } from "@/types/chat";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -85,19 +85,18 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
     memberName?: string;
   }>({ isOpen: false });
 
-  // Editing state
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingType, setIsEditingType] = useState(false);
   const [editedName, setEditedName] = useState(channel.name);
-  const [editedType, setEditedType] = useState(channel.channel_type);
+  const [editedType, setEditedType] = useState(channel.type);
 
   useEffect(() => {
     if (isOpen) {
       setActiveTab(initialTab);
       setEditedName(channel.name);
-      setEditedType(channel.channel_type);
+      setEditedType(channel.type);
     }
-  }, [isOpen, initialTab, channel.name, channel.channel_type]);
+  }, [isOpen, initialTab, channel.name, channel.type]);
 
   const filteredMembers = useMemo(() => {
     if (!searchQuery) return channelMembers;
@@ -150,20 +149,19 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
     return channelMembers.map((m) => m.workspace_member_id);
   }, [channelMembers]);
 
-  // Check if current user is a channel admin
   const isChannelAdmin = useMemo(() => {
     if (!user) return false;
-    
+
     const currentWorkspaceMember = workspaceMembers.find(
       (wm) => wm.user.id === user.id
     );
-    
+
     if (!currentWorkspaceMember) return false;
-    
+
     const currentChannelMember = channelMembers.find(
       (member) => member.workspace_member_id === currentWorkspaceMember.id
     );
-    
+
     return currentChannelMember?.role === "admin";
   }, [user, workspaceMembers, channelMembers]);
 
@@ -182,7 +180,9 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
       router.push(`/${workspaceId}`);
     } catch (error) {
       console.error("Failed to delete channel:", error);
-      toast.error("Failed to delete channel. You must be a channel admin to delete this channel.");
+      toast.error(
+        "Failed to delete channel. You must be a channel admin to delete this channel."
+      );
     }
   };
 
@@ -250,12 +250,12 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
     } catch (error) {
       console.error("Failed to update channel name:", error);
       toast.error("Failed to update channel name");
-      setEditedName(channel.name); // Reset to original value
+      setEditedName(channel.name);
     }
   };
 
   const handleSaveType = async () => {
-    if (editedType === channel.channel_type) {
+    if (editedType === channel.type) {
       setIsEditingType(false);
       return;
     }
@@ -272,16 +272,16 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
     } catch (error) {
       console.error("Failed to update channel type:", error);
       toast.error("Failed to update channel type");
-      setEditedType(channel.channel_type); // Reset to original value
+      setEditedType(channel.type);
     }
   };
 
-  const handleCancelEdit = (type: 'name' | 'type') => {
-    if (type === 'name') {
+  const handleCancelEdit = (type: "name" | "type") => {
+    if (type === "name") {
       setEditedName(channel.name);
       setIsEditingName(false);
     } else {
-      setEditedType(channel.channel_type);
+      setEditedType(channel.type);
       setIsEditingType(false);
     }
   };
@@ -292,7 +292,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
         <DialogContent className="max-w-2xl w-full h-[80vh] flex flex-col p-0 overflow-hidden">
           <div className="p-6 pb-0">
             <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
-              {channel.channel_type === "private" ? (
+              {channel.isPrivate ? (
                 <Lock className="w-5 h-5" />
               ) : (
                 <Hash className="w-5 h-5" />
@@ -472,8 +472,8 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                           className="max-w-md"
                           placeholder="Enter channel name"
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveName();
-                            if (e.key === 'Escape') handleCancelEdit('name');
+                            if (e.key === "Enter") handleSaveName();
+                            if (e.key === "Escape") handleCancelEdit("name");
                           }}
                         />
                         <Button
@@ -487,7 +487,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleCancelEdit('name')}
+                          onClick={() => handleCancelEdit("name")}
                           disabled={updateChannel.isPending}
                         >
                           <X className="h-4 w-4" />
@@ -495,7 +495,11 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                       </>
                     ) : (
                       <>
-                        <Input value={channel.name} className="max-w-md" readOnly />
+                        <Input
+                          value={channel.name}
+                          className="max-w-md"
+                          readOnly
+                        />
                         <Button
                           variant="outline"
                           onClick={() => setIsEditingName(true)}
@@ -513,7 +517,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                   <div className="flex items-center gap-2">
                     <div className="flex-1 max-w-md">
                       <p className="text-sm text-muted-foreground">
-                        {channel.channel_type === "private"
+                        {channel.isPrivate
                           ? "Private channels can only be viewed or joined by invitation."
                           : "Everyone in the workspace can view and join this channel."}
                       </p>
@@ -522,12 +526,14 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                       <>
                         <select
                           value={editedType}
-                          onChange={(e) => setEditedType(e.target.value as "public" | "private")}
+                          onChange={(e) =>
+                            setEditedType(e.target.value as ChannelType)
+                          }
                           className="px-3 py-2 border border-input bg-background rounded-md text-sm"
                           disabled={updateChannel.isPending}
                         >
-                          <option value="public">Public</option>
-                          <option value="private">Private</option>
+                          <option value={ChannelType.PUBLIC}>Public</option>
+                          <option value={ChannelType.PRIVATE}>Private</option>
                         </select>
                         <Button
                           variant="outline"
@@ -540,7 +546,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleCancelEdit('type')}
+                          onClick={() => handleCancelEdit("type")}
                           disabled={updateChannel.isPending}
                         >
                           <X className="h-4 w-4" />
@@ -553,7 +559,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                           onClick={() => setIsEditingType(true)}
                           disabled={!isChannelAdmin}
                         >
-                          {channel.channel_type === "private" ? (
+                          {channel.isPrivate ? (
                             <>
                               <Lock className="h-4 w-4 mr-2" />
                               Private
@@ -573,11 +579,14 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                 <div className="pt-4 border-t space-y-3">
                   {isChannelAdmin && (
                     <div className="space-y-2">
-                      <h3 className="font-medium text-destructive">Danger Zone</h3>
+                      <h3 className="font-medium text-destructive">
+                        Danger Zone
+                      </h3>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 max-w-md">
                           <p className="text-sm text-muted-foreground">
-                            Permanently delete this channel and all its messages. This action cannot be undone.
+                            Permanently delete this channel and all its
+                            messages. This action cannot be undone.
                           </p>
                         </div>
                         <Button
@@ -587,23 +596,27 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                           disabled={deleteChannel.isPending}
                         >
                           <Trash2 className="h-4 w-4" />
-                          {deleteChannel.isPending ? "Deleting..." : "Delete Channel"}
+                          {deleteChannel.isPending
+                            ? "Deleting..."
+                            : "Delete Channel"}
                         </Button>
                       </div>
                     </div>
                   )}
-                  
-                  <Button
-                    variant="destructive"
-                    className="gap-2"
-                    onClick={handleLeaveChannel}
-                    disabled={removeChannelMembers.isPending}
-                  >
-                    <XCircle className="h-4 w-4" />
-                    {removeChannelMembers.isPending
-                      ? "Leaving..."
-                      : "Leave Channel"}
-                  </Button>
+
+                  {!channel.isDefault && (
+                    <Button
+                      variant="destructive"
+                      className="gap-2"
+                      onClick={handleLeaveChannel}
+                      disabled={removeChannelMembers.isPending}
+                    >
+                      <XCircle className="h-4 w-4" />
+                      {removeChannelMembers.isPending
+                        ? "Leaving..."
+                        : "Leave Channel"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -628,7 +641,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
         }
         channelName={channel.name}
         memberName={removeConfirmation.memberName || ""}
-        isPrivate={channel.channel_type === "private"}
+        isPrivate={channel.isPrivate}
       />
 
       <ConfirmDeleteDialog />

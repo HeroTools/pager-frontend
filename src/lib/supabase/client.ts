@@ -31,10 +31,9 @@ export const createClient = () => {
           setItem: (key, value) => {
             if (typeof window === "undefined") return;
             try {
-              // Set secure cookie with appropriate settings
               document.cookie = `${key}=${encodeURIComponent(
                 value
-              )}; path=/; secure; samesite=lax; max-age=2592000`; // 30 days
+              )}; path=/; secure; samesite=lax; max-age=2592000`;
             } catch (error) {
               console.warn(`Failed to set cookie ${key}:`, error);
             }
@@ -50,15 +49,15 @@ export const createClient = () => {
         },
       },
       realtime: {
-        // Enable real-time with proper configuration
+        worker: true,
         params: {
-          eventsPerSecond: 10, // Prevent rate limiting
+          eventsPerSecond: 10,
         },
-        // Add heartbeat to keep connection alive
-        heartbeatIntervalMs: 30000, // 30 seconds
-        // Reconnect settings
-
-        timeout: 20_000, // wait up to 20 s for a pong
+        heartbeatIntervalMs: 30000,
+        timeout: 20000,
+        reconnectAfterMs: (tries: number) => {
+          return Math.min(1000 + tries * 2000, 10000);
+        },
       },
       global: {
         headers: {

@@ -28,16 +28,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { InviteModal } from "./invite-modal";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useChannelNotifications } from "@/features/notifications/hooks/use-channel-notifications";
+import { useConversationNotifications } from "@/features/notifications/hooks/use-conversation-notifications";
+import { ChannelType } from "@/types/chat";
 
 export const WorkspaceSidebar = () => {
   const router = useRouter();
   const { workspaceId, id: entityId } = useParamIds();
 
   const getWorkspace = useGetWorkspace(workspaceId);
-  // TODO optimise this to get the channels and conversations from the get workspace query just add include_details=true but update BE first
   const getUserChannels = useGetUserChannels(workspaceId);
   const { conversations } = useConversations(workspaceId);
   const { user: currentUser } = useCurrentUser(workspaceId);
+  const { hasChannelUnread } = useChannelNotifications(workspaceId);
+  const { getConversationUnreadCount } =
+    useConversationNotifications(workspaceId);
 
   const { startConversationCreation } = useConversationCreateStore();
 
@@ -97,9 +102,10 @@ export const WorkspaceSidebar = () => {
           <SidebarItem
             key={item.id}
             label={item.name}
-            icon={item.channel_type === "private" ? Lock : HashIcon}
+            icon={item.channel_type === ChannelType.PRIVATE ? Lock : HashIcon}
             id={item.id}
             variant={entityId === item.id ? "active" : "default"}
+            hasUnread={hasChannelUnread(item.id)}
           />
         ))}
         <div className="pt-2">
@@ -132,6 +138,7 @@ export const WorkspaceSidebar = () => {
             key={conversation.id}
             conversation={conversation}
             variant={entityId === conversation.id ? "active" : "default"}
+            hasUnread={getConversationUnreadCount(conversation.id) > 0}
           />
         ))}
         {currentUser?.role === "admin" && (

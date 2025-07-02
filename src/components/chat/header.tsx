@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { FC, useState } from "react";
 import {
   Hash,
   Lock,
@@ -9,6 +9,9 @@ import {
 } from "lucide-react";
 import { Channel } from "@/types/chat";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -22,14 +25,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { ChannelDetailsModal } from "../channel-details-modal";
+import { ChannelDetailsModal } from "@/components/channel-details-modal";
 import { ChannelMemberData } from "@/features/channels/types";
 import { useRemoveChannelMembers } from "@/features/channels";
 import { useCurrentUser } from "@/features/auth";
 import { useGetMembers } from "@/features/members";
 import { useParamIds } from "@/hooks/use-param-ids";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 interface ChatHeaderProps {
   channel: Channel;
@@ -37,7 +38,7 @@ interface ChatHeaderProps {
   members?: ChannelMemberData[];
 }
 
-export const ChatHeader: React.FC<ChatHeaderProps> = ({
+export const ChatHeader: FC<ChatHeaderProps> = ({
   channel,
   onToggleDetails,
   members = [],
@@ -170,14 +171,18 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={handleLeaveChannel}
-              disabled={removeChannelMembers.isPending}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              {removeChannelMembers.isPending ? "Leaving..." : "Leave channel"}
-            </DropdownMenuItem>
+            {!channel.isDefault && (
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={handleLeaveChannel}
+                disabled={removeChannelMembers.isPending}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                {removeChannelMembers.isPending
+                  ? "Leaving..."
+                  : "Leave channel"}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

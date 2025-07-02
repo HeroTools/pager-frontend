@@ -84,6 +84,7 @@ export interface CreateChannelMessageData {
   parent_message_id?: string;
   thread_id?: string;
   message_type?: "direct" | "thread" | "system";
+  plain_text?: string;
 }
 
 export interface CreateConversationMessageData {
@@ -92,6 +93,7 @@ export interface CreateConversationMessageData {
   parent_message_id?: string;
   thread_id?: string;
   message_type?: "direct" | "thread" | "system";
+  plain_text?: string;
 }
 
 export interface CreateMessageData {
@@ -101,6 +103,7 @@ export interface CreateMessageData {
   parent_message_id?: string;
   thread_id?: string;
   message_type?: "direct" | "thread" | "system";
+  plain_text?: string;
 }
 
 export interface UpdateMessageData {
@@ -144,3 +147,14 @@ export interface MessageWithUser {
 }
 
 export type MessageWithUserResponse = ApiResponse<MessageWithUser>;
+
+export interface QuillDelta {
+  ops: QuillOp[];
+}
+
+export interface QuillOp {
+  insert?: string | Record<string, any>;
+  retain?: number;
+  delete?: number;
+  attributes?: Record<string, any>;
+}

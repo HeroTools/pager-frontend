@@ -170,7 +170,7 @@ export const messagesApi = {
     messageId: string,
     data: UpdateMessageData
   ): Promise<MessageEntity> => {
-    const { data: response } = await api.patch<MessageResponse>(
+    const { data: response } = await api.put<MessageResponse>(
       `/workspaces/${workspaceId}/messages/${messageId}`,
       data
     );

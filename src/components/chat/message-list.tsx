@@ -11,7 +11,7 @@ interface ChatMessageListProps {
   messages: Message[];
   currentUser: CurrentUser;
   isLoading?: boolean;
-  onEdit?: (messageId: string) => void;
+  onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onReaction?: (messageId: string, emoji: string) => void;
@@ -106,7 +106,7 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onReply={onReply}
-                  onReaction={onReaction}
+                  onReaction={onReaction || (() => {})}
                 />
               </Fragment>
             );

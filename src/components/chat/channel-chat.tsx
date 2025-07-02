@@ -14,7 +14,7 @@ import {
 import { useGetMembers } from "@/features/members";
 import { useMessageOperations } from "@/features/messages";
 import { useCurrentUser } from "@/features/auth";
-import type { Channel } from "@/types/chat";
+import { ChannelType, type Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import type { UploadedAttachment } from "@/features/file-upload";
 import type { WorkspaceMember } from "@/types/database";
@@ -80,8 +80,10 @@ const ChannelChat = () => {
       id: channelData.id,
       name: channelData.name,
       description: channelData.description,
-      isPrivate: channelData.channel_type === "private",
+      isPrivate: channelData.channel_type === ChannelType.PRIVATE,
+      type: channelData.channel_type,
       memberCount: channelData.members?.length || 0,
+      isDefault: channelData.is_default,
     }),
     []
   );
@@ -166,6 +168,7 @@ const ChannelChat = () => {
   const handleSendMessage = async (content: {
     body: string;
     attachments: UploadedAttachment[];
+    plainText: string;
   }) => {
     const optimisticId = `temp-${Date.now()}-${Math.random()}`;
 
@@ -182,6 +185,7 @@ const ChannelChat = () => {
         body: content.body,
         attachments: content.attachments,
         message_type: "direct",
+        plain_text: content.plainText,
         _optimisticId: optimisticId,
       });
 
@@ -204,7 +208,6 @@ const ChannelChat = () => {
         messageId,
         data: { body: newContent },
       });
-      console.log("Message edited successfully");
     } catch (error) {
       console.error("Failed to edit message:", error);
     }
@@ -213,7 +216,6 @@ const ChannelChat = () => {
   const handleDeleteMessage = async (messageId: string) => {
     try {
       await deleteMessage.mutateAsync(messageId);
-      console.log("Message deleted successfully");
     } catch (error) {
       console.error("Failed to delete message:", error);
     }
@@ -264,22 +266,6 @@ const ChannelChat = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Enhanced connection status indicator */}
-      <h2>{connectionStatus}</h2>{" "}
-      {!isConnected && (
-        <div className="bg-warning/10 border-b border-warning/20 px-4 py-2 text-sm text-warning-foreground">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="size-2 bg-warning rounded-full animate-pulse" />
-              <span>
-                {connectionStatus === "CONNECTING"
-                  ? "Connecting to real-time updates..."
-                  : `Connection issue (${connectionStatus})`}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
       <Chat
         channel={channel}
         messages={messages}

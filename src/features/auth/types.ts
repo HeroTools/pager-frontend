@@ -99,11 +99,7 @@ export interface AuthError {
   status?: number;
 }
 
-// OAuth sign-in data
-export interface OAuthSignInData {
-  redirectTo: string;
-  scopes?: string;
-}
+
 
 // User preferences (for updating last workspace, etc.)
 export interface UserPreferences {
@@ -129,8 +125,7 @@ export interface UseSignInReturn
   extends AuthMutationHook<AuthResponseWithWorkspaces, SignInData> {}
 export interface UseSignUpReturn
   extends AuthMutationHook<SignUpResponse, SignUpData> {}
-export interface UseOAuthSignInReturn
-  extends AuthMutationHook<void, OAuthSignInData> {}
+
 export interface UseSignOutReturn extends AuthMutationHook<void, void> {}
 
 // Workspace-related types for auth context

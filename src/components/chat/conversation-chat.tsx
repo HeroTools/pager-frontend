@@ -124,6 +124,7 @@ const ConversationChat = () => {
   const handleSendMessage = async (content: {
     body: string;
     attachments: UploadedAttachment[];
+    plainText: string;
   }) => {
     const optimisticId = `temp-${Date.now()}-${Math.random()}`;
 
@@ -139,6 +140,7 @@ const ConversationChat = () => {
         body: content.body,
         attachments: content.attachments,
         message_type: "direct",
+        plain_text: content.plainText,
         _optimisticId: optimisticId,
       });
 
