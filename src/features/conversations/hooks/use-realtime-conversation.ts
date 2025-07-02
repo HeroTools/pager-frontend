@@ -249,16 +249,34 @@ export const useRealtimeConversation = ({
   const handleMessageUpdated = useCallback(
     (payload: any) => {
       try {
-        const updated = payload.message as MessageWithUser;
-        const isThread = Boolean(updated.parent_message_id);
+        const {
+          message: {
+            id: messageId,
+            body,
+            text,
+            edited_at,
+            updated_at,
+            parent_message_id,
+          },
+        } = payload;
+        const isThread = Boolean(parent_message_id);
+
         if (isThread) {
-          const threadKey = getThreadQueryKey(updated.parent_message_id!);
+          const threadKey = getThreadQueryKey(parent_message_id);
           queryClient.setQueryData<ThreadQueryData>(threadKey, (old) => {
             if (!old) return old;
             return {
               ...old,
               replies: old.replies.map((r) =>
-                r.id === updated.id ? updated : r
+                r.id === messageId
+                  ? {
+                      ...r,
+                      body,
+                      text,
+                      edited_at,
+                      updated_at,
+                    }
+                  : r
               ),
             };
           });
@@ -270,7 +288,15 @@ export const useRealtimeConversation = ({
               const newPages = old.pages.map((page) => ({
                 ...page,
                 messages: page.messages.map((m) =>
-                  m.id === updated.id ? updated : m
+                  m.id === messageId
+                    ? {
+                        ...m,
+                        body,
+                        text,
+                        edited_at,
+                        updated_at,
+                      }
+                    : m
                 ),
               }));
               return { ...old, pages: newPages };
@@ -287,8 +313,8 @@ export const useRealtimeConversation = ({
   const handleMessageDeleted = useCallback(
     (payload: any) => {
       try {
-        const deletedId = payload.messageId as string;
-        const parentId = payload.parentMessageId as string | undefined;
+        const deletedId = payload.message_id as string;
+        const parentId = payload.parent_message_id as string | undefined;
         if (parentId) {
           // Update reply count for parent, and remove from thread replies
           queryClient.setQueryData<InfiniteQueryData>(
