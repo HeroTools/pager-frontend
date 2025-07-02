@@ -45,6 +45,7 @@ interface ChatMessageProps {
   hideReplies?: boolean;
   isCompact?: boolean;
   showAvatar?: boolean;
+  hideThreadButton?: boolean;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
@@ -520,6 +521,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   hideReplies = false,
   isCompact = false,
   showAvatar = true,
+  hideThreadButton = false,
   onEdit,
   onDelete,
   onReply,
@@ -635,7 +637,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
 
             {message?.threadCount &&
             Number(message.threadCount) > 0 &&
-            !hideReplies ? (
+            !hideReplies &&
+            !hideThreadButton ? (
               <ThreadButton message={message} members={getMembers.data!} />
             ) : null}
           </div>
@@ -659,14 +662,16 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                 }
               />
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                onClick={() => setThreadOpen(message)}
-              >
-                <MessageSquare className="w-4 h-4" />
-              </Button>
+              {!hideThreadButton && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                  onClick={() => setThreadOpen(message)}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                </Button>
+              )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

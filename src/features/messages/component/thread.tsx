@@ -225,10 +225,10 @@ export const Thread = ({ onClose }: ThreadProps) => {
     <div className="h-full flex flex-col">
       <ThreadHeader onClose={onClose} title="Thread" />
 
-      <div className="flex-1 overflow-y-auto messages-scrollbar">
+      <div className="flex-1 overflow-y-auto messages-scrollbar relative">
         <div className="flex flex-col">
           {/* Parent message at the top */}
-          <div className="px-4 pt-4 pb-2 border-b border-border-subtle">
+          <div className="px-4 pt-4 pb-2 border-b border-border-subtle relative">
             <ChatMessage
               message={parentMessage}
               currentUser={currentUser}
@@ -238,6 +238,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
               onDelete={handleDelete}
               onReaction={handleReaction}
               hideReplies
+              hideThreadButton
             />
           </div>
 
@@ -280,6 +281,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
                         onDelete={handleDelete}
                         onReaction={handleReaction}
                         hideReplies
+                        hideThreadButton
                       />
                     );
                   })}
