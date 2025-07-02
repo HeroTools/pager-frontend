@@ -23,6 +23,7 @@ import { MessageReactions } from "./message-reactions";
 import { MessageContent } from "./message-content";
 import { useUIStore } from "@/store/ui-store";
 import { MediaViewerModal } from "@/components/media-viewer-modal";
+import { DeleteMessageModal } from "@/components/delete-message-modal";
 import { CurrentUser } from "@/features/auth/types";
 import { useGetMembers } from "@/features/members";
 import { useParamIds } from "@/hooks/use-param-ids";
@@ -531,6 +532,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     Attachment[]
   >([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const {
     openEmojiPickerMessageId,
     setEmojiPickerOpen,
@@ -559,6 +562,28 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setMediaViewerAttachments(attachments);
     setMediaViewerInitialIndex(initialIndex);
     setIsMediaViewerOpen(true);
+  };
+
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!onDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await onDelete(message.id);
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
   };
 
   return (
@@ -684,7 +709,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                       Edit message
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => onDelete?.(message.id)}
+                      onClick={handleDeleteClick}
                       className="text-text-destructive hover:text-text-destructive/80"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
@@ -703,6 +728,13 @@ export const ChatMessage: FC<ChatMessageProps> = ({
         onClose={() => setIsMediaViewerOpen(false)}
         attachments={mediaViewerAttachments}
         initialIndex={mediaViewerInitialIndex}
+      />
+
+      <DeleteMessageModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={isDeleting}
       />
     </>
   );
