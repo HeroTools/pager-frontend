@@ -1,6 +1,7 @@
 import React, { useState, ReactNode } from "react";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
+import { useTheme } from "next-themes";
 import {
   Popover,
   PopoverTrigger,
@@ -22,6 +23,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   open,
   onOpenChange,
 }) => {
+  const { systemTheme } = useTheme();
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled =
     typeof open === "boolean" && typeof onOpenChange === "function";
@@ -59,7 +61,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
             onSelect(emoji.native);
             setOpen(false);
           }}
-          theme="light"
+          theme={systemTheme === "dark" ? "dark" : "light"}
           set="native"
           previewPosition="none"
           skinTonePosition="none"
