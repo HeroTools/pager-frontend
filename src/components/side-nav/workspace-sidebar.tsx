@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   HashIcon,
+  Lock,
   Loader,
   MessageSquareText,
   SendHorizonal,
@@ -29,6 +30,7 @@ import { InviteModal } from "./invite-modal";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { useChannelNotifications } from "@/features/notifications/hooks/use-channel-notifications";
 import { useConversationNotifications } from "@/features/notifications/hooks/use-conversation-notifications";
+import { ChannelType } from "@/types/chat";
 
 export const WorkspaceSidebar = () => {
   const router = useRouter();
@@ -100,7 +102,7 @@ export const WorkspaceSidebar = () => {
           <SidebarItem
             key={item.id}
             label={item.name}
-            icon={HashIcon}
+            icon={item.channel_type === ChannelType.PRIVATE ? Lock : HashIcon}
             id={item.id}
             variant={entityId === item.id ? "active" : "default"}
             hasUnread={hasChannelUnread(item.id)}

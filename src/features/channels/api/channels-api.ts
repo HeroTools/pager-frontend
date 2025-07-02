@@ -3,7 +3,6 @@ import type {
   ChannelEntity,
   CreateChannelData,
   UpdateChannelData,
-  ChannelResponse,
   ChannelsResponse,
   AddChannelMembersData,
   UpdateChannelMemberData,
@@ -105,8 +104,8 @@ export const channelsApi = {
     workspaceId: string,
     channelId: string,
     data: UpdateChannelData
-  ): Promise<ChannelEntity> => {
-    const { data: response } = await api.patch<ChannelResponse>(
+  ): Promise<{ channelId: string }> => {
+    const { data: response } = await api.patch<{ channelId: string }>(
       `/workspaces/${workspaceId}/channels/${channelId}`,
       data
     );
@@ -121,16 +120,6 @@ export const channelsApi = {
     channelId: string
   ): Promise<void> => {
     await api.delete(`/workspaces/${workspaceId}/channels/${channelId}`);
-  },
-
-  /**
-   * Join a channel
-   */
-  joinChannel: async (
-    workspaceId: string,
-    channelId: string
-  ): Promise<void> => {
-    await api.post(`/workspaces/${workspaceId}/channels/${channelId}/join`);
   },
 
   /**
