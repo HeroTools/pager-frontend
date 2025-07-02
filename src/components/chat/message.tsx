@@ -526,7 +526,6 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   onReaction,
 }) => {
   const { workspaceId } = useParamIds();
-  const [isHovered, setIsHovered] = useState(false);
   const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
   const [mediaViewerAttachments, setMediaViewerAttachments] = useState<
     Attachment[]
@@ -562,8 +561,6 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setIsMediaViewerOpen(true);
   };
 
-  const shouldShowActions = isHovered || isEmojiPickerOpen;
-
   return (
     <>
       <div
@@ -571,8 +568,6 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           "group relative px-4 hover:bg-message-hover transition-colors py-2",
           isCompact && "-mt-1"
         )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="flex gap-3">
           {showAvatar && !isCompact ? (
@@ -641,64 +636,66 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           </div>
         </div>
 
-        {shouldShowActions && (
-          <div className="absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm">
-            <div className="flex items-center">
-              <EmojiPicker
-                open={isEmojiPickerOpen}
-                onOpenChange={handleEmojiPickerToggle}
-                onSelect={handleEmojiSelect}
-                trigger={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                  >
-                    <Smile className="w-4 h-4" />
-                  </Button>
-                }
-              />
+        {/* Show toolbar on hover (CSS) or when emoji picker is open (JS state) */}
+        <div className={cn(
+          "absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity",
+          isEmojiPickerOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )}>
+          <div className="flex items-center">
+            <EmojiPicker
+              open={isEmojiPickerOpen}
+              onOpenChange={handleEmojiPickerToggle}
+              onSelect={handleEmojiSelect}
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                >
+                  <Smile className="w-4 h-4" />
+                </Button>
+              }
+            />
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                onClick={() => setThreadOpen(message)}
-              >
-                <MessageSquare className="w-4 h-4" />
-              </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+              onClick={() => setThreadOpen(message)}
+            >
+              <MessageSquare className="w-4 h-4" />
+            </Button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {isOwnMessage && (
-                    <>
-                      <DropdownMenuItem onClick={() => onEdit?.(message.id)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit message
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => onDelete?.(message.id)}
-                        className="text-text-destructive hover:text-text-destructive/80"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete message
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {isOwnMessage && (
+                  <>
+                    <DropdownMenuItem onClick={() => onEdit?.(message.id)}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit message
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => onDelete?.(message.id)}
+                      className="text-text-destructive hover:text-text-destructive/80"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete message
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        )}
+        </div>
       </div>
 
       <MediaViewerModal
