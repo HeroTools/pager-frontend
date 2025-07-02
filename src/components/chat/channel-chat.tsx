@@ -82,6 +82,7 @@ const ChannelChat = () => {
       description: channelData.description,
       isPrivate: channelData.channel_type === "private",
       memberCount: channelData.members?.length || 0,
+      isDefault: channelData.is_default,
     }),
     []
   );

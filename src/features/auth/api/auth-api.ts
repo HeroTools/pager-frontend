@@ -85,34 +85,6 @@ export const authApi = {
   },
 
   /**
-   * Sign in with Google
-   */
-  googleSignIn: async (redirectTo: string) => {
-    const { data: response } = await api.post<{ url?: string }>(
-      "/auth/oauth/google",
-      { redirect_to: redirectTo }
-    );
-
-    // Handle OAuth URL redirection
-    if (response.url) {
-      window.location.href = response.url;
-    }
-
-    return response;
-  },
-
-  /**
-   * Verify email with token
-   */
-  verifyEmail: async (token: string) => {
-    const { data: response } = await api.post<{ success: boolean }>(
-      "/auth/verify-email",
-      { token }
-    );
-    return response;
-  },
-
-  /**
    * Update user profile
    */
   updateProfile: async (data: UpdateProfileData) => {
@@ -203,23 +175,6 @@ export const authApi = {
     return response;
   },
 
-  /**
-   * Handle OAuth callback (for use in callback page)
-   */
-  handleOAuthCallback: async (code: string, state?: string) => {
-    const { data: response } = await api.post<EnhancedAuthResponse>(
-      "/auth/oauth/callback",
-      { code, state }
-    );
-
-    // Store session from OAuth callback
-    if (response.session) {
-      await supabase.auth.setSession(response.session);
-    }
-
-    return response;
-  },
-
   updateUserPreferences: async (data: UserPreferences) => {
     const { data: response } = await api.patch("/auth/user-preferences", data);
     return response;
@@ -229,10 +184,10 @@ export const authApi = {
    * Get workspace invite link
    */
   getInviteLink: async (workspaceId: string): Promise<InviteLinkResponse> => {
-    const { data: response } = await api.post<InviteLinkResponse>(
+    const { data: response } = await api.post<{ success: boolean; data: InviteLinkResponse }>(
       "/auth/invite-link",
       { workspaceId }
     );
-    return response;
+    return response.data;
   },
 };
