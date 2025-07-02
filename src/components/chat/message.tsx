@@ -46,6 +46,7 @@ interface ChatMessageProps {
   isCompact?: boolean;
   showAvatar?: boolean;
   hideThreadButton?: boolean;
+  isInThread?: boolean;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
@@ -522,6 +523,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   isCompact = false,
   showAvatar = true,
   hideThreadButton = false,
+  isInThread = false,
   onEdit,
   onDelete,
   onReply,
@@ -536,15 +538,18 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
   const {
     openEmojiPickerMessageId,
+    openEmojiPickerMessageIdInThread,
     setEmojiPickerOpen,
-    openThreadMessageId,
+    setEmojiPickerOpenInThread,
     setThreadOpen,
   } = useUIStore();
   const getMembers = useGetMembers(workspaceId);
 
   const isOwnMessage = message.authorId === currentUser.id;
 
-  const isEmojiPickerOpen = openEmojiPickerMessageId === message.id;
+  const isEmojiPickerOpen = isInThread 
+    ? openEmojiPickerMessageIdInThread === message.id
+    : openEmojiPickerMessageId === message.id;
 
   const handleEmojiSelect = (emoji: string) => {
     onReaction?.(message.id, emoji);
@@ -552,7 +557,11 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   };
 
   const handleEmojiPickerToggle = (open: boolean) => {
-    setEmojiPickerOpen(open ? message.id : null);
+    if (isInThread) {
+      setEmojiPickerOpenInThread(open ? message.id : null);
+    } else {
+      setEmojiPickerOpen(open ? message.id : null);
+    }
   };
 
   const handleOpenMediaViewer = (

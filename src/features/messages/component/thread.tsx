@@ -239,6 +239,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
               onReaction={handleReaction}
               hideReplies
               hideThreadButton
+              isInThread
             />
           </div>
 
@@ -282,6 +283,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
                         onReaction={handleReaction}
                         hideReplies
                         hideThreadButton
+                        isInThread
                       />
                     );
                   })}
