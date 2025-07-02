@@ -15,6 +15,7 @@ interface SidebarItemProps {
   disabled?: boolean;
   variant?: VariantProps<typeof sidebarItemVariants>["variant"];
   hasUnread?: boolean;
+  isDefault?: boolean;
 }
 
 const sidebarItemVariants = cva(

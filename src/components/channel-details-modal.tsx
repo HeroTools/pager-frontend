@@ -366,19 +366,21 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                   </div>
                 </div>
 
-                <div className="pt-4 border-t">
-                  <Button
-                    variant="destructive"
-                    className="gap-2"
-                    onClick={handleLeaveChannel}
-                    disabled={removeChannelMembers.isPending}
-                  >
-                    <XCircle className="h-4 w-4" />
-                    {removeChannelMembers.isPending
-                      ? "Leaving..."
-                      : "Leave Channel"}
-                  </Button>
-                </div>
+                {!channel.isDefault && (
+                  <div className="pt-4 border-t">
+                    <Button
+                      variant="destructive"
+                      className="gap-2"
+                      onClick={handleLeaveChannel}
+                      disabled={removeChannelMembers.isPending}
+                    >
+                      <XCircle className="h-4 w-4" />
+                      {removeChannelMembers.isPending
+                        ? "Leaving..."
+                        : "Leave Channel"}
+                    </Button>
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>

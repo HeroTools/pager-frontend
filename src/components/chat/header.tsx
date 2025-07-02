@@ -169,14 +169,16 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={handleLeaveChannel}
-              disabled={removeChannelMembers.isPending}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              {removeChannelMembers.isPending ? "Leaving..." : "Leave channel"}
-            </DropdownMenuItem>
+            {!channel.isDefault && (
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={handleLeaveChannel}
+                disabled={removeChannelMembers.isPending}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                {removeChannelMembers.isPending ? "Leaving..." : "Leave channel"}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
