@@ -221,7 +221,7 @@ export const authApi = {
   },
 
   updateUserPreferences: async (data: UserPreferences) => {
-    const { data: response } = await api.put("/auth/user-preferences", data);
+    const { data: response } = await api.patch("/auth/user-preferences", data);
     return response;
   },
 
