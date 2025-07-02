@@ -28,6 +28,7 @@ import { CurrentUser } from "@/features/auth/types";
 import { useGetMembers } from "@/features/members";
 import { useParamIds } from "@/hooks/use-param-ids";
 import ThreadButton from "./thread-button";
+import Editor from "@/components/editor/editor";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,11 +47,36 @@ interface ChatMessageProps {
   hideReplies?: boolean;
   isCompact?: boolean;
   showAvatar?: boolean;
-  onEdit?: (messageId: string) => void;
+  onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onReaction: (messageId: string, emoji: string) => void;
 }
+
+// Helper function to parse JSON content to Quill Delta format
+const parseMessageContent = (content: string) => {
+  try {
+    // If content is already JSON (Quill Delta), parse it
+    const parsed = JSON.parse(content);
+    if (parsed.ops) {
+      return parsed;
+    }
+    // If it's not Delta format, create a simple Delta with the text
+    return { ops: [{ insert: content + '\n' }] };
+  } catch {
+    // If JSON parsing fails, treat as plain text
+    return { ops: [{ insert: content + '\n' }] };
+  }
+};
+
+// Helper function to extract plain text from Quill Delta
+const getPlainTextFromDelta = (delta: any): string => {
+  if (!delta.ops) return '';
+  return delta.ops
+    .map((op: any) => (typeof op.insert === 'string' ? op.insert : ''))
+    .join('')
+    .trim();
+};
 
 const ImageAttachment: FC<{
   attachment: Attachment;
@@ -535,6 +561,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingContent, setEditingContent] = useState<any>(null);
   const {
     openEmojiPickerMessageId,
     setEmojiPickerOpen,
@@ -567,6 +595,36 @@ export const ChatMessage: FC<ChatMessageProps> = ({
 
   const handleDeleteClick = () => {
     setIsDeleteModalOpen(true);
+  };
+
+  const handleEditClick = () => {
+    const deltaContent = parseMessageContent(message.content);
+    setEditingContent(deltaContent);
+    setIsEditing(true);
+    setIsDropdownOpen(false);
+  };
+
+  const handleEditCancel = () => {
+    setIsEditing(false);
+    setEditingContent(null);
+  };
+
+  const handleEditSave = async (editorValue: {
+    image: File | null;
+    body: string;
+    attachments: any[];
+    plainText: string;
+  }) => {
+    const { body, plainText } = editorValue;
+    if (!onEdit || !plainText.trim()) return;
+    
+    try {
+      await onEdit(message.id, body);
+      setIsEditing(false);
+      setEditingContent(null);
+    } catch (error) {
+      console.error("Error updating message:", error);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -637,7 +695,21 @@ export const ChatMessage: FC<ChatMessageProps> = ({
             )}
 
             <div className={cn("leading-relaxed", !isCompact && "mt-0")}>
-              <MessageContent content={message.content} />
+              {isEditing ? (
+                <div className="mt-2">
+                  <Editor
+                    variant="update"
+                    defaultValue={editingContent}
+                    workspaceId={workspaceId}
+                    onSubmit={handleEditSave}
+                    onCancel={handleEditCancel}
+                    placeholder="Edit your message..."
+                    disabled={false}
+                  />
+                </div>
+              ) : (
+                <MessageContent content={message.content} />
+              )}
             </div>
 
             {message.attachments && message.attachments.length > 0 && (
@@ -664,64 +736,66 @@ export const ChatMessage: FC<ChatMessageProps> = ({
         </div>
 
         {/* Show toolbar on hover (CSS) or when emoji picker is open (JS state) */}
-        <div className={cn(
-          "absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity",
-          isEmojiPickerOpen || isDropdownOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-        )}>
-          <div className="flex items-center">
-            <EmojiPicker
-              open={isEmojiPickerOpen}
-              onOpenChange={handleEmojiPickerToggle}
-              onSelect={handleEmojiSelect}
-              trigger={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                >
-                  <Smile className="w-4 h-4" />
-                </Button>
-              }
-            />
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-              onClick={() => setThreadOpen(message)}
-            >
-              <MessageSquare className="w-4 h-4" />
-            </Button>
-
-            {/* Only show More button for own messages */}
-            {isOwnMessage && (
-              <DropdownMenu onOpenChange={setIsDropdownOpen}>
-                <DropdownMenuTrigger asChild>
+        {!isEditing && (
+          <div className={cn(
+            "absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity",
+            isEmojiPickerOpen || isDropdownOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}>
+            <div className="flex items-center">
+              <EmojiPicker
+                open={isEmojiPickerOpen}
+                onOpenChange={handleEmojiPickerToggle}
+                onSelect={handleEmojiSelect}
+                trigger={
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0 hover:bg-sidebar-hover"
                   >
-                    <MoreHorizontal className="w-4 h-4" />
+                    <Smile className="w-4 h-4" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onEdit?.(message.id)}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit message
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={handleDeleteClick}
-                    className="text-text-destructive hover:text-text-destructive/80"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete message
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                }
+              />
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                onClick={() => setThreadOpen(message)}
+              >
+                <MessageSquare className="w-4 h-4" />
+              </Button>
+
+              {/* Only show More button for own messages */}
+              {isOwnMessage && (
+                <DropdownMenu onOpenChange={setIsDropdownOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleEditClick}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit message
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleDeleteClick}
+                      className="text-text-destructive hover:text-text-destructive/80"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete message
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <MediaViewerModal
