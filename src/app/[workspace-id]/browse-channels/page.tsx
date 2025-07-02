@@ -3,26 +3,105 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Hash, Lock, Loader } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   useGetAllAvailableChannels,
+  useGetUserChannels,
   useCreateChannelModal,
+  useAddChannelMembers,
 } from "@/features/channels";
+import { useCurrentMember } from "@/features/members/hooks/use-members";
 import { useParamIds } from "@/hooks/use-param-ids";
+import { ChannelEntity } from "@/features/channels/types";
+
+// Extended interface for browse channels with additional API properties
+interface BrowseChannelItem extends ChannelEntity {
+  is_member?: boolean;
+  member_count?: number;
+  description?: string;
+}
 
 export default function BrowseChannels() {
   const [search, setSearch] = useState<string>("");
+  const [joiningChannelId, setJoiningChannelId] = useState<string | null>(null);
   const { workspaceId } = useParamIds();
+  const router = useRouter();
   const openCreateModal = useCreateChannelModal((state) => state.setOpen);
+  const addChannelMembers = useAddChannelMembers();
+  const { data: currentMember } = useCurrentMember(workspaceId);
 
-  // Fetch channels (public + ones the user has joined)
-  const { data: channels = [], isLoading } =
+  // Fetch all available channels (public + private user is member of)
+  const { data: allAvailableChannels = [], isLoading: isLoadingAvailable } =
     useGetAllAvailableChannels(workspaceId);
+  
+  // Fetch user's channels to ensure we get all private channels they're in
+  const { data: userChannels = [], isLoading: isLoadingUser } =
+    useGetUserChannels(workspaceId);
+
+  // Combine and deduplicate channels
+  const combinedChannels = useMemo(() => {
+    const channelMap = new Map<string, BrowseChannelItem>();
+    
+    // Add all available channels first
+    allAvailableChannels.forEach(channel => {
+      channelMap.set(channel.id, channel as BrowseChannelItem);
+    });
+    
+    // Add user channels, marking them as member if not already marked
+    userChannels.forEach(channel => {
+      const existingChannel = channelMap.get(channel.id);
+      if (existingChannel) {
+        // Update existing channel to ensure is_member is true
+        channelMap.set(channel.id, {
+          ...existingChannel,
+          is_member: true,
+        });
+      } else {
+        // Add new channel (this covers private channels not in allAvailable)
+        channelMap.set(channel.id, {
+          ...channel as BrowseChannelItem,
+          is_member: true,
+        });
+      }
+    });
+    
+    return Array.from(channelMap.values());
+  }, [allAvailableChannels, userChannels]);
+
+  const isLoading = isLoadingAvailable || isLoadingUser;
 
   // Filter by name (case-insensitive)
-  const displayedChannels = channels.filter((c) =>
+  const displayedChannels = combinedChannels.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleJoinChannel = (channelId: string) => {
+    if (!currentMember?.id) {
+      console.error("No current member ID available");
+      return;
+    }
+    
+    setJoiningChannelId(channelId);
+    addChannelMembers.mutate({
+      workspaceId,
+      channelId,
+      data: {
+        memberIds: [currentMember.id],
+      },
+    }, {
+      onSuccess: () => {
+        setJoiningChannelId(null);
+      },
+      onError: () => {
+        setJoiningChannelId(null);
+      },
+    });
+  };
+
+  const handleOpenChannel = (channelId: string) => {
+    router.push(`/${workspaceId}/c-${channelId}`);
+  };
 
   return (
     <div className="flex flex-col h-full p-8">
@@ -87,7 +166,26 @@ export default function BrowseChannels() {
                   </div>
                 </div>
 
-                {/* TODO: Add join/leave button if needed */}
+                <div className="flex gap-2">
+                  {channel.is_member ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenChannel(channel.id)}
+                    >
+                      Open
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleJoinChannel(channel.id)}
+                      disabled={joiningChannelId === channel.id || !currentMember?.id}
+                    >
+                      {joiningChannelId === channel.id ? "Joining..." : "Join"}
+                    </Button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

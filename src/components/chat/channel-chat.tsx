@@ -14,7 +14,7 @@ import {
 import { useGetMembers } from "@/features/members";
 import { useMessageOperations } from "@/features/messages";
 import { useCurrentUser } from "@/features/auth";
-import type { Channel } from "@/types/chat";
+import { ChannelType, type Channel } from "@/types/chat";
 import { useParamIds } from "@/hooks/use-param-ids";
 import type { UploadedAttachment } from "@/features/file-upload";
 import type { WorkspaceMember } from "@/types/database";
@@ -80,7 +80,8 @@ const ChannelChat = () => {
       id: channelData.id,
       name: channelData.name,
       description: channelData.description,
-      isPrivate: channelData.channel_type === "private",
+      isPrivate: channelData.channel_type === ChannelType.PRIVATE,
+      type: channelData.channel_type,
       memberCount: channelData.members?.length || 0,
       isDefault: channelData.is_default,
     }),

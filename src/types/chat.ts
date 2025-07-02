@@ -27,8 +27,14 @@ export interface Channel {
   name: string;
   description?: string;
   isPrivate: boolean;
+  type: ChannelType;
   memberCount?: number;
   isDefault?: boolean;
+}
+
+export enum ChannelType {
+  PUBLIC = "public",
+  PRIVATE = "private",
 }
 
 export interface Attachment {

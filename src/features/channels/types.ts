@@ -35,10 +35,12 @@ export interface CreateChannelData {
   description?: string;
 }
 
-// Update channel data
-export type UpdateChannelData = UpdateEntityInput<Channel> & {
+// Update channel data - matches backend API expectations
+export interface UpdateChannelData {
+  name?: string;
+  channel_type?: ChannelType;
   description?: string;
-};
+}
 
 // Channel-specific API response types using the generic ApiResponse
 export type ChannelResponse = ApiResponse<ChannelEntity>;
