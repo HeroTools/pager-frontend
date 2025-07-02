@@ -35,6 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { parseMessageContent } from "@/features/messages/helpers";
 
 const ATTACHMENT_SIZES = {
   SINGLE: { maxHeight: 300, maxWidth: 400 },
@@ -52,31 +53,6 @@ interface ChatMessageProps {
   onReply?: (messageId: string) => void;
   onReaction: (messageId: string, emoji: string) => void;
 }
-
-// Helper function to parse JSON content to Quill Delta format
-const parseMessageContent = (content: string) => {
-  try {
-    // If content is already JSON (Quill Delta), parse it
-    const parsed = JSON.parse(content);
-    if (parsed.ops) {
-      return parsed;
-    }
-    // If it's not Delta format, create a simple Delta with the text
-    return { ops: [{ insert: content + '\n' }] };
-  } catch {
-    // If JSON parsing fails, treat as plain text
-    return { ops: [{ insert: content + '\n' }] };
-  }
-};
-
-// Helper function to extract plain text from Quill Delta
-const getPlainTextFromDelta = (delta: any): string => {
-  if (!delta.ops) return '';
-  return delta.ops
-    .map((op: any) => (typeof op.insert === 'string' ? op.insert : ''))
-    .join('')
-    .trim();
-};
 
 const ImageAttachment: FC<{
   attachment: Attachment;
@@ -152,7 +128,9 @@ const VideoAttachment: FC<{
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  const { maxHeight, maxWidth } = isSingle ? ATTACHMENT_SIZES.SINGLE : ATTACHMENT_SIZES.MULTI;
+  const { maxHeight, maxWidth } = isSingle
+    ? ATTACHMENT_SIZES.SINGLE
+    : ATTACHMENT_SIZES.MULTI;
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -206,10 +184,10 @@ const VideoAttachment: FC<{
             !isLoaded && "opacity-0 absolute inset-0"
           )}
           style={{
-            height: fixedHeight ? `${fixedHeight}px` : 'auto',
-            maxHeight: fixedHeight ? 'none' : `${maxHeight}px`,
+            height: fixedHeight ? `${fixedHeight}px` : "auto",
+            maxHeight: fixedHeight ? "none" : `${maxHeight}px`,
             maxWidth: `${maxWidth}px`,
-            minWidth: fixedHeight ? "120px" : 'auto'
+            minWidth: fixedHeight ? "120px" : "auto",
           }}
           preload="metadata"
           onLoadedMetadata={handleLoadedMetadata}
@@ -218,7 +196,7 @@ const VideoAttachment: FC<{
           Your browser does not support the video tag.
         </video>
       )}
-      
+
       {/* Video overlay with play icon and duration - only show when loaded */}
       {isLoaded && !hasError && (
         <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
@@ -512,9 +490,11 @@ const AttachmentGrid: FC<{
   if (attachments.length === 0) return null;
 
   const isSingleAttachment = attachments.length === 1;
-  
+
   // Use fixed height for multi-attachment layout to align all media
-  const fixedHeight = isSingleAttachment ? undefined : ATTACHMENT_SIZES.MULTI.fixedHeight;
+  const fixedHeight = isSingleAttachment
+    ? undefined
+    : ATTACHMENT_SIZES.MULTI.fixedHeight;
 
   return (
     <div className="mt-2">
@@ -617,7 +597,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   }) => {
     const { body, plainText } = editorValue;
     if (!onEdit || !plainText.trim()) return;
-    
+
     try {
       await onEdit(message.id, body);
       setIsEditing(false);
@@ -629,7 +609,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
 
   const handleDeleteConfirm = async () => {
     if (!onDelete) return;
-    
+
     setIsDeleting(true);
     try {
       await onDelete(message.id);
@@ -735,12 +715,15 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           </div>
         </div>
 
-        {/* Show toolbar on hover (CSS) or when emoji picker is open (JS state) */}
         {!isEditing && (
-          <div className={cn(
-            "absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity",
-            isEmojiPickerOpen || isDropdownOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          )}>
+          <div
+            className={cn(
+              "absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity",
+              isEmojiPickerOpen || isDropdownOpen
+                ? "opacity-100"
+                : "opacity-0 group-hover:opacity-100"
+            )}
+          >
             <div className="flex items-center">
               <EmojiPicker
                 open={isEmojiPickerOpen}
