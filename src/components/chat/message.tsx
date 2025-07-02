@@ -534,6 +534,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const {
     openEmojiPickerMessageId,
     setEmojiPickerOpen,
@@ -591,7 +592,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       <div
         className={cn(
           "group relative px-4 hover:bg-message-hover transition-colors py-2",
-          isCompact && "-mt-1"
+          isCompact && "-mt-1",
+          isDropdownOpen && "bg-message-hover"
         )}
       >
         <div className="flex gap-3">
@@ -664,7 +666,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
         {/* Show toolbar on hover (CSS) or when emoji picker is open (JS state) */}
         <div className={cn(
           "absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity",
-          isEmojiPickerOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          isEmojiPickerOpen || isDropdownOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         )}>
           <div className="flex items-center">
             <EmojiPicker
@@ -691,34 +693,33 @@ export const ChatMessage: FC<ChatMessageProps> = ({
               <MessageSquare className="w-4 h-4" />
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {isOwnMessage && (
-                  <>
-                    <DropdownMenuItem onClick={() => onEdit?.(message.id)}>
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit message
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={handleDeleteClick}
-                      className="text-text-destructive hover:text-text-destructive/80"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete message
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Only show More button for own messages */}
+            {isOwnMessage && (
+              <DropdownMenu onOpenChange={setIsDropdownOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 hover:bg-sidebar-hover"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEdit?.(message.id)}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit message
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleDeleteClick}
+                    className="text-text-destructive hover:text-text-destructive/80"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete message
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>
