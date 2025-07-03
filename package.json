@@ -18,6 +18,7 @@
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-popover": "^1.1.14",
     "@radix-ui/react-scroll-area": "^1.2.9",
+    "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slider": "^1.3.5",
     "@radix-ui/react-slot": "^1.2.3",
@@ -52,6 +53,7 @@
     "react-verification-input": "^4.2.2",
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.1",
+    "use-debounce": "^10.0.5",
     "uuid": "^11.1.0",
     "zustand": "^5.0.6"
   },
