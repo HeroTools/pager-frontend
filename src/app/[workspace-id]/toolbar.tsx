@@ -1,25 +1,9 @@
-import {
-  Search,
-  Hash,
-  MessageCircle,
-  Clock,
-  Sparkles,
-  Loader2,
-} from "lucide-react";
+import { Search, Hash, MessageCircle, Sparkles, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 
 import { Button } from "@/components/ui/button";
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
@@ -28,23 +12,7 @@ import { useGetMembers } from "@/features/members/hooks/use-members";
 import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { useSearch } from "@/features/search/hooks/use-search";
-import type { SearchResult } from "@/features/search/types";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-
-// Timestamp formatter
-const formatTimestamp = (timestamp: string) => {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  } else if (diffDays < 7) {
-    return `${diffDays}d ago`;
-  } else {
-    return date.toLocaleDateString();
-  }
-};
 
 const ContextIcon = ({ type }: { type: string }) => {
   switch (type) {
@@ -56,50 +24,6 @@ const ContextIcon = ({ type }: { type: string }) => {
       return <MessageCircle className="size-3" />;
   }
 };
-
-const SearchResultItem = ({
-  result,
-  onSelect,
-  isHighlighted = false,
-}: {
-  result: SearchResult;
-  onSelect: () => void;
-  isHighlighted?: boolean;
-}) => (
-  <CommandItem onSelect={onSelect} className={isHighlighted ? "bg-accent" : ""}>
-    <div className="flex items-start gap-3 w-full">
-      <Avatar className="size-6 flex-shrink-0 mt-0.5">
-        <AvatarImage src={result.authorImage} alt={result.authorName} />
-        <AvatarFallback className="text-xs">
-          {result.authorName.charAt(0).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-medium text-sm truncate">
-            {result.authorName}
-          </span>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <ContextIcon type={result.contextType} />
-            <span className="truncate">
-              {result.channelName || "Direct Message"}
-            </span>
-            <Clock className="size-3" />
-            <span>{formatTimestamp(result.timestamp)}</span>
-          </div>
-        </div>
-        <p className="text-sm text-foreground line-clamp-2 leading-relaxed">
-          {result.content}
-        </p>
-        {result.isThread && (
-          <Badge variant="secondary" className="mt-1 text-xs">
-            Thread
-          </Badge>
-        )}
-      </div>
-    </div>
-  </CommandItem>
-);
 
 const AIAnswerSection = ({
   answer,
@@ -358,7 +282,7 @@ export const Toolbar = () => {
                     >
                       <Avatar className="size-6 mt-0.5">
                         <AvatarImage
-                          src={result.authorImage}
+                          src={result.authorImage || ""}
                           alt={result.authorName}
                         />
                         <AvatarFallback className="text-xs">
