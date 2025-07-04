@@ -1,20 +1,15 @@
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Users } from "lucide-react";
-import { FormEvent } from "react";
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { Users } from 'lucide-react';
+import { FormEvent } from 'react';
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
-import { useGetMembers } from "@/features/members";
-import { useConversationCreateStore } from "../store/conversation-create-store";
-import MemberSearchSelect from "@/components/member-search-select";
-import { Button } from "@/components/ui/button";
-import { useConversations } from "../hooks/use-conversations";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { useGetMembers } from '@/features/members';
+import { useConversationCreateStore } from '../store/conversation-create-store';
+import MemberSearchSelect from '@/components/member-search-select';
+import { Button } from '@/components/ui/button';
+import { useConversations } from '../hooks/use-conversations';
 
 export const CreateConversationModal = () => {
   const router = useRouter();
@@ -36,29 +31,26 @@ export const CreateConversationModal = () => {
   };
 
   const getConversationTitle = () => {
-    if (selectedMembers.length === 0) return "New chat";
-    if (selectedMembers.length === 1)
-      return `Chat with ${selectedMembers[0].user.name}`;
+    if (selectedMembers.length === 0) return 'New chat';
+    if (selectedMembers.length === 1) return `Chat with ${selectedMembers[0].user.name}`;
     if (selectedMembers.length === 2) {
       return `${selectedMembers[0].user.name}, ${selectedMembers[1].user.name}`;
     }
     return `${selectedMembers[0].user.name}, ${
       selectedMembers[1].user.name
-    } and ${selectedMembers.length - 2} other${
-      selectedMembers.length > 3 ? "s" : ""
-    }`;
+    } and ${selectedMembers.length - 2} other${selectedMembers.length > 3 ? 's' : ''}`;
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (selectedMembers.length === 0) {
-      toast.error("Please select at least one person to chat with");
+      toast.error('Please select at least one person to chat with');
       return;
     }
 
-    if (typeof workspaceId !== "string") {
-      toast.error("Workspace ID is required");
+    if (typeof workspaceId !== 'string') {
+      toast.error('Workspace ID is required');
       return;
     }
 
@@ -73,10 +65,10 @@ export const CreateConversationModal = () => {
       router.push(`/${workspaceId}/d-${newConversation.id}`);
 
       handleClose();
-      toast.success("Conversation created");
+      toast.success('Conversation created');
     } catch (error) {
       console.error(error);
-      toast.error("Failed to create conversation");
+      toast.error('Failed to create conversation');
     }
   };
 
@@ -105,12 +97,12 @@ export const CreateConversationModal = () => {
                     {member.user?.image ? (
                       <img
                         src={member.user.image}
-                        alt={member.user.name || "User"}
+                        alt={member.user.name || 'User'}
                         className="w-full h-full rounded-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full rounded-full bg-secondary flex items-center justify-center text-xs font-medium text-secondary-foreground">
-                        {member.user?.name?.charAt(0).toUpperCase() || "U"}
+                        {member.user?.name?.charAt(0).toUpperCase() || 'U'}
                       </div>
                     )}
                   </div>
@@ -122,13 +114,9 @@ export const CreateConversationModal = () => {
                 )}
               </div>
               <div className="flex-1">
-                <div className="font-medium text-sm text-foreground">
-                  {getConversationTitle()}
-                </div>
+                <div className="font-medium text-sm text-foreground">{getConversationTitle()}</div>
                 <div className="text-xs text-muted-foreground">
-                  {selectedMembers.length === 1
-                    ? "Direct message"
-                    : "Group chat"}
+                  {selectedMembers.length === 1 ? 'Direct message' : 'Group chat'}
                 </div>
               </div>
             </div>
@@ -165,12 +153,8 @@ export const CreateConversationModal = () => {
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={!canSubmit}
-              className="min-w-[100px]"
-            >
-              {createConversation.isPending ? "Creating..." : "Create Chat"}
+            <Button type="submit" disabled={!canSubmit} className="min-w-[100px]">
+              {createConversation.isPending ? 'Creating...' : 'Create Chat'}
             </Button>
           </div>
         </form>

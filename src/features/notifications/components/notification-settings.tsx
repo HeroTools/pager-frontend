@@ -1,18 +1,12 @@
-import { Bell, BellOff, Chrome, Settings } from "lucide-react";
-import { useNotificationPermissions } from "@/features/notifications/hooks/use-notification-permissions";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { Bell, BellOff, Chrome, Settings } from 'lucide-react';
+import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useState, useEffect } from 'react';
 
 interface NotificationPreferences {
   soundEnabled: boolean;
@@ -28,35 +22,30 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   desktopEnabled: true,
   onlyMentions: false,
   quietHoursEnabled: false,
-  quietHoursStart: "22:00",
-  quietHoursEnd: "08:00",
+  quietHoursStart: '22:00',
+  quietHoursEnd: '08:00',
 };
 
 export const NotificationSettings = () => {
-  const { permission, requestPermission, isSupported } =
-    useNotificationPermissions();
-  const [preferences, setPreferences] =
-    useState<NotificationPreferences>(DEFAULT_PREFERENCES);
+  const { permission, requestPermission, isSupported } = useNotificationPermissions();
+  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
   const [isLoading, setIsLoading] = useState(false);
 
   // Load preferences from localStorage on mount
   useEffect(() => {
-    const savedPreferences = localStorage.getItem("notification_preferences");
+    const savedPreferences = localStorage.getItem('notification_preferences');
     if (savedPreferences) {
       try {
         setPreferences(JSON.parse(savedPreferences));
       } catch (error) {
-        console.error("Error loading notification preferences:", error);
+        console.error('Error loading notification preferences:', error);
       }
     }
   }, []);
 
   // Save preferences to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem(
-      "notification_preferences",
-      JSON.stringify(preferences)
-    );
+    localStorage.setItem('notification_preferences', JSON.stringify(preferences));
   }, [preferences]);
 
   const handleRequestPermission = async () => {
@@ -70,33 +59,33 @@ export const NotificationSettings = () => {
 
   const updatePreference = <K extends keyof NotificationPreferences>(
     key: K,
-    value: NotificationPreferences[K]
+    value: NotificationPreferences[K],
   ) => {
     setPreferences((prev) => ({ ...prev, [key]: value }));
   };
 
   const getPermissionBadge = () => {
     switch (permission) {
-      case "granted":
+      case 'granted':
         return <Badge variant="default">Enabled</Badge>;
-      case "denied":
+      case 'denied':
         return <Badge variant="destructive">Blocked</Badge>;
-      case "default":
+      case 'default':
         return <Badge variant="secondary">Not Set</Badge>;
-      case "unsupported":
+      case 'unsupported':
         return <Badge variant="outline">Unsupported</Badge>;
     }
   };
 
   const getPermissionDescription = () => {
     switch (permission) {
-      case "granted":
+      case 'granted':
         return "You'll receive desktop notifications for new messages.";
-      case "denied":
+      case 'denied':
         return "Desktop notifications are blocked. You'll need to enable them in your browser settings.";
-      case "default":
+      case 'default':
         return "Enable desktop notifications to get alerts when you're not actively using the app.";
-      case "unsupported":
+      case 'unsupported':
         return "Your browser doesn't support desktop notifications.";
     }
   };
@@ -109,9 +98,7 @@ export const NotificationSettings = () => {
             <Bell className="h-5 w-5" />
             Desktop Notifications
           </CardTitle>
-          <CardDescription>
-            Manage how you receive notifications
-          </CardDescription>
+          <CardDescription>Manage how you receive notifications</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Permission Status */}
@@ -122,28 +109,22 @@ export const NotificationSettings = () => {
                   <Label>Browser Permission</Label>
                   {getPermissionBadge()}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {getPermissionDescription()}
-                </p>
+                <p className="text-sm text-muted-foreground">{getPermissionDescription()}</p>
               </div>
-              {permission === "default" && isSupported && (
-                <Button
-                  onClick={handleRequestPermission}
-                  disabled={isLoading}
-                  size="sm"
-                >
+              {permission === 'default' && isSupported && (
+                <Button onClick={handleRequestPermission} disabled={isLoading} size="sm">
                   Enable
                 </Button>
               )}
             </div>
 
-            {permission === "denied" && (
+            {permission === 'denied' && (
               <div className="rounded-lg bg-muted p-3 text-sm">
                 <p className="font-medium">How to enable notifications:</p>
                 <ol className="mt-2 space-y-1 text-muted-foreground">
                   <li>
-                    1. Click the <Chrome className="inline h-3 w-3" /> icon in
-                    your browser's address bar
+                    1. Click the <Chrome className="inline h-3 w-3" /> icon in your browser's
+                    address bar
                   </li>
                   <li>2. Find "Notifications" in the site settings</li>
                   <li>3. Change from "Block" to "Allow"</li>
@@ -169,13 +150,9 @@ export const NotificationSettings = () => {
                 </div>
                 <Switch
                   id="desktop-enabled"
-                  checked={
-                    preferences.desktopEnabled && permission === "granted"
-                  }
-                  onCheckedChange={(checked) =>
-                    updatePreference("desktopEnabled", checked)
-                  }
-                  disabled={permission !== "granted"}
+                  checked={preferences.desktopEnabled && permission === 'granted'}
+                  onCheckedChange={(checked) => updatePreference('desktopEnabled', checked)}
+                  disabled={permission !== 'granted'}
                 />
               </div>
 
@@ -189,17 +166,13 @@ export const NotificationSettings = () => {
                 <Switch
                   id="sound-enabled"
                   checked={preferences.soundEnabled}
-                  onCheckedChange={(checked) =>
-                    updatePreference("soundEnabled", checked)
-                  }
+                  onCheckedChange={(checked) => updatePreference('soundEnabled', checked)}
                 />
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="only-mentions">
-                    Only Direct Messages & Mentions
-                  </Label>
+                  <Label htmlFor="only-mentions">Only Direct Messages & Mentions</Label>
                   <p className="text-sm text-muted-foreground">
                     Only notify for direct messages and @mentions
                   </p>
@@ -207,9 +180,7 @@ export const NotificationSettings = () => {
                 <Switch
                   id="only-mentions"
                   checked={preferences.onlyMentions}
-                  onCheckedChange={(checked) =>
-                    updatePreference("onlyMentions", checked)
-                  }
+                  onCheckedChange={(checked) => updatePreference('onlyMentions', checked)}
                 />
               </div>
             </div>
@@ -232,9 +203,7 @@ export const NotificationSettings = () => {
                 <Switch
                   id="quiet-hours"
                   checked={preferences.quietHoursEnabled}
-                  onCheckedChange={(checked) =>
-                    updatePreference("quietHoursEnabled", checked)
-                  }
+                  onCheckedChange={(checked) => updatePreference('quietHoursEnabled', checked)}
                 />
               </div>
 
@@ -246,9 +215,7 @@ export const NotificationSettings = () => {
                       id="quiet-start"
                       type="time"
                       value={preferences.quietHoursStart}
-                      onChange={(e) =>
-                        updatePreference("quietHoursStart", e.target.value)
-                      }
+                      onChange={(e) => updatePreference('quietHoursStart', e.target.value)}
                       className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </div>
@@ -258,9 +225,7 @@ export const NotificationSettings = () => {
                       id="quiet-end"
                       type="time"
                       value={preferences.quietHoursEnd}
-                      onChange={(e) =>
-                        updatePreference("quietHoursEnd", e.target.value)
-                      }
+                      onChange={(e) => updatePreference('quietHoursEnd', e.target.value)}
                       className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </div>
@@ -282,14 +247,14 @@ export const NotificationSettings = () => {
         <CardContent>
           <Button
             onClick={() => {
-              if (permission === "granted") {
-                new Notification("Test Notification", {
-                  body: "This is what your notifications will look like!",
-                  icon: "/favicon.ico",
+              if (permission === 'granted') {
+                new Notification('Test Notification', {
+                  body: 'This is what your notifications will look like!',
+                  icon: '/favicon.ico',
                 });
               }
             }}
-            disabled={permission !== "granted"}
+            disabled={permission !== 'granted'}
             variant="outline"
             className="w-full"
           >
@@ -305,9 +270,9 @@ export const NotificationSettings = () => {
 export type { NotificationPreferences };
 
 export const getNotificationPreferences = (): NotificationPreferences => {
-  if (typeof window === "undefined") return DEFAULT_PREFERENCES;
+  if (typeof window === 'undefined') return DEFAULT_PREFERENCES;
 
-  const saved = localStorage.getItem("notification_preferences");
+  const saved = localStorage.getItem('notification_preferences');
   if (!saved) return DEFAULT_PREFERENCES;
 
   try {

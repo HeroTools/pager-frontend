@@ -1,24 +1,19 @@
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { useCreateWorkspace } from "..";
-import { useCreateWorkspaceModal } from "../store/use-create-workspace-modal";
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useCreateWorkspace } from '..';
+import { useCreateWorkspaceModal } from '../store/use-create-workspace-modal';
 
 export const CreateWorkspaceModal = () => {
   const router = useRouter();
 
   const form = useForm({
     defaultValues: {
-      name: "",
+      name: '',
     },
   });
 
@@ -33,7 +28,7 @@ export const CreateWorkspaceModal = () => {
 
   const handleCreateWorkspace = form.handleSubmit(async ({ name }) => {
     const workspace = await mutateAsync({ name });
-    toast.success("Workspace created");
+    toast.success('Workspace created');
     router.push(`/${workspace.id}`);
     handleClose();
   });
@@ -46,7 +41,7 @@ export const CreateWorkspaceModal = () => {
         </DialogHeader>
         <form className="space-y-4" onSubmit={handleCreateWorkspace}>
           <Input
-            {...form.register("name", {
+            {...form.register('name', {
               required: true,
               minLength: 3,
               maxLength: 80,

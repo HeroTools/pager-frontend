@@ -1,20 +1,20 @@
-import { FC, useCallback, useEffect, useRef, useState, UIEvent } from "react";
+import { FC, useCallback, useEffect, useRef, useState, UIEvent } from 'react';
 
-import type { Message, Channel, Attachment } from "@/types/chat";
-import { ChatHeader } from "./header";
-import { ChatMessageList } from "./message-list";
-import Editor from "@/components/editor/editor";
-import { useParamIds } from "@/hooks/use-param-ids";
-import type { ChannelMemberData } from "@/features/channels";
-import type { UploadedAttachment } from "@/features/file-upload";
-import type { CurrentUser } from "@/features/auth";
-import { MediaViewerModal } from "@/components/media-viewer-modal";
+import type { Message, Channel, Attachment } from '@/types/chat';
+import { ChatHeader } from './header';
+import { ChatMessageList } from './message-list';
+import Editor from '@/components/editor/editor';
+import { useParamIds } from '@/hooks/use-param-ids';
+import type { ChannelMemberData } from '@/features/channels';
+import type { UploadedAttachment } from '@/features/file-upload';
+import type { CurrentUser } from '@/features/auth';
+import { MediaViewerModal } from '@/components/media-viewer-modal';
 
 interface ChatProps {
   channel: Channel;
   messages: Message[];
   currentUser: CurrentUser;
-  chatType?: "conversation" | "channel";
+  chatType?: 'conversation' | 'channel';
   onLoadMore: () => void;
   hasMoreMessages: boolean;
   isLoadingMore: boolean;
@@ -59,9 +59,7 @@ export const Chat: FC<ChatProps> = ({
   const { workspaceId } = useParamIds();
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
-  const [mediaViewerAttachments, setMediaViewerAttachments] = useState<
-    Attachment[]
-  >([]);
+  const [mediaViewerAttachments, setMediaViewerAttachments] = useState<Attachment[]>([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
@@ -83,20 +81,18 @@ export const Chat: FC<ChatProps> = ({
   const handleOpenMediaViewer = (message: Message, attachmentIndex: number) => {
     // Get all viewable attachments (images, videos, and documents)
     const viewableAttachments = message.attachments.filter((attachment) => {
-      const mimeType = attachment.contentType || "";
-      const filename = attachment.originalFilename || "";
-      const extension = filename.split(".").pop()?.toLowerCase();
+      const mimeType = attachment.contentType || '';
+      const filename = attachment.originalFilename || '';
+      const extension = filename.split('.').pop()?.toLowerCase();
 
       return (
-        attachment.contentType?.startsWith("image/") ||
-        attachment.contentType?.startsWith("video/") ||
-        mimeType.includes("pdf") ||
-        mimeType.includes("document") ||
-        mimeType.includes("spreadsheet") ||
-        mimeType.includes("presentation") ||
-        ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(
-          extension || ""
-        )
+        attachment.contentType?.startsWith('image/') ||
+        attachment.contentType?.startsWith('video/') ||
+        mimeType.includes('pdf') ||
+        mimeType.includes('document') ||
+        mimeType.includes('spreadsheet') ||
+        mimeType.includes('presentation') ||
+        ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension || '')
       );
     });
 
@@ -107,7 +103,7 @@ export const Chat: FC<ChatProps> = ({
     }
   };
 
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const c = messagesContainerRef.current;
     if (c) c.scrollTo({ top: c.scrollHeight, behavior });
   }, []);
@@ -119,10 +115,10 @@ export const Chat: FC<ChatProps> = ({
   useEffect(() => {
     if (!shouldScrollToBottom) return;
     const c = messagesContainerRef.current;
-    if (!c || typeof ResizeObserver === "undefined") return;
+    if (!c || typeof ResizeObserver === 'undefined') return;
 
     const ro = new ResizeObserver(() => {
-      scrollToBottom("auto");
+      scrollToBottom('auto');
     });
     ro.observe(c);
     return () => ro.disconnect();
@@ -133,18 +129,18 @@ export const Chat: FC<ChatProps> = ({
     const c = messagesContainerRef.current;
     if (!c) return;
 
-    const imgs = Array.from(c.querySelectorAll("img"));
+    const imgs = Array.from(c.querySelectorAll('img'));
 
     const onImgLoad = () => {
-      c.scrollTo({ top: c.scrollHeight, behavior: "auto" });
+      c.scrollTo({ top: c.scrollHeight, behavior: 'auto' });
     };
 
     imgs.forEach((img) => {
-      if (!img.complete) img.addEventListener("load", onImgLoad);
+      if (!img.complete) img.addEventListener('load', onImgLoad);
     });
 
     return () => {
-      imgs.forEach((img) => img.removeEventListener("load", onImgLoad));
+      imgs.forEach((img) => img.removeEventListener('load', onImgLoad));
     };
   }, [messages, shouldScrollToBottom]);
 
@@ -161,20 +157,14 @@ export const Chat: FC<ChatProps> = ({
           c.scrollTop = c.scrollHeight - prevH;
         }, 100);
       }
-      setShouldScrollToBottom(
-        c.scrollTop + c.clientHeight >= c.scrollHeight - 100
-      );
+      setShouldScrollToBottom(c.scrollTop + c.clientHeight >= c.scrollHeight - 100);
     },
-    [hasMoreMessages, isLoadingMore, onLoadMore]
+    [hasMoreMessages, isLoadingMore, onLoadMore],
   );
 
   return (
     <div className="flex flex-col h-full">
-      <ChatHeader
-        channel={channel}
-        onToggleDetails={onToggleChannelDetails}
-        members={members}
-      />
+      <ChatHeader channel={channel} onToggleDetails={onToggleChannelDetails} members={members} />
 
       <ChatMessageList
         messages={messages}
@@ -191,9 +181,7 @@ export const Chat: FC<ChatProps> = ({
       <div className="p-4 border-t border-border-subtle">
         <Editor
           workspaceId={workspaceId}
-          placeholder={`Message ${chatType === "channel" ? "#" : ""}${
-            channel.name
-          }`}
+          placeholder={`Message ${chatType === 'channel' ? '#' : ''}${channel.name}`}
           onSubmit={handleSendMessage}
           disabled={isLoading}
           maxFiles={10}

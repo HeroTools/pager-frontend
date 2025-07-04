@@ -1,9 +1,9 @@
-import { PlusIcon, ChevronDown } from "lucide-react";
-import { ReactNode } from "react";
-import { useToggle } from "react-use";
-import { Hint } from "@/components/hint";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { PlusIcon, ChevronDown } from 'lucide-react';
+import { ReactNode } from 'react';
+import { useToggle } from 'react-use';
+import { Hint } from '@/components/hint';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface WorkspaceSectionProps {
   children: ReactNode;
@@ -12,12 +12,7 @@ interface WorkspaceSectionProps {
   onNew?: () => void;
 }
 
-export const WorkspaceSection = ({
-  children,
-  hint,
-  label,
-  onNew,
-}: WorkspaceSectionProps) => {
+export const WorkspaceSection = ({ children, hint, label, onNew }: WorkspaceSectionProps) => {
   const [on, toggle] = useToggle(true);
 
   return (
@@ -28,9 +23,7 @@ export const WorkspaceSection = ({
           className="p-0.5 text-sm text-foreground shrink-0 size-6 hover:bg-secondary/90"
           onClick={toggle}
         >
-          <ChevronDown
-            className={cn("size-4 transition-transform", !on && "-rotate-90")}
-          />
+          <ChevronDown className={cn('size-4 transition-transform', !on && '-rotate-90')} />
         </Button>
         <Button
           variant="transparent"

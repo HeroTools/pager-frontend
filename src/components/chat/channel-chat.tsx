@@ -1,29 +1,26 @@
-"use client";
+'use client';
 
-import { AlertTriangle, Loader } from "lucide-react";
-import { useMemo, useCallback } from "react";
+import { AlertTriangle, Loader } from 'lucide-react';
+import { useMemo, useCallback } from 'react';
 
-import { Chat } from "@/components/chat/chat";
+import { Chat } from '@/components/chat/chat';
 import {
   useGetChannel,
   useGetChannelWithMessagesInfinite,
   useRealtimeChannel,
   useGetChannelMembers,
   type ChannelMemberData,
-} from "@/features/channels";
-import { useGetMembers } from "@/features/members";
-import { useMessageOperations } from "@/features/messages";
-import { useCurrentUser } from "@/features/auth";
-import { ChannelType, type Channel } from "@/types/chat";
-import { useParamIds } from "@/hooks/use-param-ids";
-import type { UploadedAttachment } from "@/features/file-upload";
-import type { WorkspaceMember } from "@/types/database";
-import {
-  transformMessages,
-  updateSelectedMessageIfNeeded,
-} from "@/features/messages/helpers";
-import { useToggleReaction } from "@/features/reactions";
-import { useMessagesStore } from "@/features/messages/store/messages-store";
+} from '@/features/channels';
+import { useGetMembers } from '@/features/members';
+import { useMessageOperations } from '@/features/messages';
+import { useCurrentUser } from '@/features/auth';
+import { ChannelType, type Channel } from '@/types/chat';
+import { useParamIds } from '@/hooks/use-param-ids';
+import type { UploadedAttachment } from '@/features/file-upload';
+import type { WorkspaceMember } from '@/types/database';
+import { transformMessages, updateSelectedMessageIfNeeded } from '@/features/messages/helpers';
+import { useToggleReaction } from '@/features/reactions';
+import { useMessagesStore } from '@/features/messages/store/messages-store';
 
 const ChannelChat = () => {
   const { id: channelId, workspaceId, type } = useParamIds();
@@ -62,16 +59,13 @@ const ChannelChat = () => {
     channelId,
     currentUserId: currentUser?.id,
     enabled:
-      isAuthenticated &&
-      Boolean(channelId) &&
-      Boolean(workspaceId) &&
-      Boolean(currentUser?.id),
+      isAuthenticated && Boolean(channelId) && Boolean(workspaceId) && Boolean(currentUser?.id),
   });
 
   const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
     workspaceId,
     channelId,
-    type
+    type,
   );
   const toggleReaction = useToggleReaction(workspaceId);
 
@@ -85,7 +79,7 @@ const ChannelChat = () => {
       memberCount: channelData.members?.length || 0,
       isDefault: channelData.is_default,
     }),
-    []
+    [],
   );
 
   const members = useMemo(() => {
@@ -94,7 +88,7 @@ const ChannelChat = () => {
     return channelMembersResponse
       .map((channelMember) => {
         const workspaceMember = workspaceMembers.find(
-          (wm: WorkspaceMember) => wm.id === channelMember.workspace_member_id
+          (wm: WorkspaceMember) => wm.id === channelMember.workspace_member_id,
         );
 
         if (!workspaceMember?.user) return null;
@@ -113,18 +107,13 @@ const ChannelChat = () => {
 
   const handleRefreshData = useCallback(async () => {
     try {
-      await Promise.all([
-        refetchMessages(),
-        refetchChannel(),
-        refetchMembers(),
-      ]);
+      await Promise.all([refetchMessages(), refetchChannel(), refetchMembers()]);
     } catch (error) {
-      console.error("Failed to refresh channel data:", error);
+      console.error('Failed to refresh channel data:', error);
     }
   }, [refetchMessages, refetchChannel, refetchMembers]);
 
-  const isLoading =
-    isLoadingMessages || isLoadingChannel || isLoadingMembers || !currentUser;
+  const isLoading = isLoadingMessages || isLoadingChannel || isLoadingMembers || !currentUser;
   const error = messagesError || channelError || membersError;
 
   if (isLoading) {
@@ -140,7 +129,7 @@ const ChannelChat = () => {
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
         <span className="text-muted-foreground text-sm">
-          {error ? "Failed to load channel" : "Channel not found"}
+          {error ? 'Failed to load channel' : 'Channel not found'}
         </span>
         <button
           onClick={handleRefreshData}
@@ -158,8 +147,7 @@ const ChannelChat = () => {
     }) || [];
 
   const sortedMessages = [...allMessages].sort(
-    (a, b) =>
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   );
 
   const channel = transformChannel(channelDetails);
@@ -184,21 +172,18 @@ const ChannelChat = () => {
       const message = await createMessage.mutateAsync({
         body: content.body,
         attachments: content.attachments,
-        message_type: "direct",
+        message_type: 'direct',
         plain_text: content.plainText,
         _optimisticId: optimisticId,
       });
 
-      updateSelectedMessageIfNeeded(
-        optimisticId,
-        transformMessages([message], currentUser)[0]
-      );
+      updateSelectedMessageIfNeeded(optimisticId, transformMessages([message], currentUser)[0]);
 
       removePendingMessage(optimisticId);
-      console.log("Message sent successfully");
+      console.log('Message sent successfully');
     } catch (error) {
       removePendingMessage(optimisticId);
-      console.error("Failed to send message:", error);
+      console.error('Failed to send message:', error);
     }
   };
 
@@ -209,7 +194,7 @@ const ChannelChat = () => {
         data: { body: newContent },
       });
     } catch (error) {
-      console.error("Failed to edit message:", error);
+      console.error('Failed to edit message:', error);
     }
   };
 
@@ -217,7 +202,7 @@ const ChannelChat = () => {
     try {
       await deleteMessage.mutateAsync(messageId);
     } catch (error) {
-      console.error("Failed to delete message:", error);
+      console.error('Failed to delete message:', error);
     }
   };
 
@@ -225,12 +210,8 @@ const ChannelChat = () => {
     try {
       // Check if user already reacted with this emoji
       const message = allMessages.find((msg) => msg.id === messageId);
-      const existingReaction = message?.reactions?.find(
-        (r) => r.value === emoji
-      );
-      const hasReacted = existingReaction?.users.some(
-        (user: any) => user.id === currentUser?.id
-      );
+      const existingReaction = message?.reactions?.find((r) => r.value === emoji);
+      const hasReacted = existingReaction?.users.some((user: any) => user.id === currentUser?.id);
 
       await toggleReaction.mutateAsync({
         messageId,
@@ -238,23 +219,20 @@ const ChannelChat = () => {
         currentlyReacted: hasReacted || false,
       });
     } catch (error) {
-      console.error("Failed to react to message:", error);
+      console.error('Failed to react to message:', error);
     }
   };
 
-  const handleReplyToMessage = async (
-    messageId: string,
-    replyContent: string
-  ) => {
+  const handleReplyToMessage = async (messageId: string, replyContent: string) => {
     try {
       await createMessage.mutateAsync({
         body: replyContent,
         parent_message_id: messageId,
-        message_type: "thread",
+        message_type: 'thread',
       });
-      console.log("Reply sent successfully");
+      console.log('Reply sent successfully');
     } catch (error) {
-      console.error("Failed to reply to message:", error);
+      console.error('Failed to reply to message:', error);
     }
   };
 

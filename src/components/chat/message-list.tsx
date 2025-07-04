@@ -1,11 +1,11 @@
-import { FC, Fragment, RefObject, UIEvent, useRef } from "react";
-import { differenceInMinutes, isSameDay, parseISO } from "date-fns";
+import { FC, Fragment, RefObject, UIEvent, useRef } from 'react';
+import { differenceInMinutes, isSameDay, parseISO } from 'date-fns';
 
-import { Message } from "@/types/chat";
-import { ChatMessage } from "./message";
-import { useUIStore } from "@/store/ui-store";
-import { cn } from "@/lib/utils";
-import { CurrentUser } from "@/features/auth";
+import { Message } from '@/types/chat';
+import { ChatMessage } from './message';
+import { useUIStore } from '@/store/ui-store';
+import { cn } from '@/lib/utils';
+import { CurrentUser } from '@/features/auth';
 
 interface ChatMessageListProps {
   messages: Message[];
@@ -37,13 +37,8 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
 
   const checkCompact = (message: Message, prev: Message) => {
     const currTime =
-      typeof message.timestamp === "string"
-        ? parseISO(message.timestamp)
-        : message.timestamp;
-    const prevTime =
-      typeof prev.timestamp === "string"
-        ? parseISO(prev.timestamp)
-        : prev.timestamp;
+      typeof message.timestamp === 'string' ? parseISO(message.timestamp) : message.timestamp;
+    const prevTime = typeof prev.timestamp === 'string' ? parseISO(prev.timestamp) : prev.timestamp;
 
     return (
       prev.authorId === message.authorId &&
@@ -55,10 +50,7 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
   const shouldShowDateDivider = (message: Message, index: number) => {
     if (index === 0) return true;
     const prevMessage = messages[index - 1];
-    return !isSameDay(
-      new Date(prevMessage.timestamp),
-      new Date(message.timestamp)
-    );
+    return !isSameDay(new Date(prevMessage.timestamp), new Date(message.timestamp));
   };
 
   return (
@@ -66,8 +58,8 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
       ref={containerRef}
       onScroll={onScroll}
       className={cn(
-        "flex-1 bg-chat",
-        isEmojiPickerOpen() ? "overflow-y-hidden" : "overflow-y-auto"
+        'flex-1 bg-chat',
+        isEmojiPickerOpen() ? 'overflow-y-hidden' : 'overflow-y-auto',
       )}
     >
       <div className="pb-4">

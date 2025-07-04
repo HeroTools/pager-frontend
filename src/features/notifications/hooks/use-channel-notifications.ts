@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useNotifications } from "./use-notifications";
+import { useMemo } from 'react';
+import { useNotifications } from './use-notifications';
 
 export function useChannelNotifications(workspaceId: string) {
   const { data: notifications } = useNotifications({
@@ -21,8 +21,7 @@ export function useChannelNotifications(workspaceId: string) {
     return unreadChannels;
   }, [notifications]);
 
-  const hasChannelUnread = (channelId: string) =>
-    channelsWithUnread.has(channelId);
+  const hasChannelUnread = (channelId: string) => channelsWithUnread.has(channelId);
 
   return {
     hasChannelUnread,

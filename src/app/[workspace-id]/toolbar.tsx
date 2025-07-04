@@ -1,18 +1,18 @@
-import { Search, Hash, Sparkles, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useDebounce } from "use-debounce";
+import { Search, Hash, Sparkles, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useDebounce } from 'use-debounce';
 
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
-import { useGetAllAvailableChannels } from "@/features/channels/hooks/use-channels-mutations";
-import { useGetMembers } from "@/features/members/hooks/use-members";
-import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
-import { useSearch } from "@/features/search/hooks/use-search";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useGetAllAvailableChannels } from '@/features/channels/hooks/use-channels-mutations';
+import { useGetMembers } from '@/features/members/hooks/use-members';
+import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { useSearch } from '@/features/search/hooks/use-search';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 const AIAnswerSection = ({
   answer,
@@ -33,18 +33,18 @@ const AIAnswerSection = ({
         }
         return match;
       }),
-    [references]
+    [references],
   );
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains("citation-link")) {
-        const messageId = target.getAttribute("data-message-id");
+      if (target.classList.contains('citation-link')) {
+        const messageId = target.getAttribute('data-message-id');
         if (messageId) onReferenceClick(messageId);
       }
     },
-    [onReferenceClick]
+    [onReferenceClick],
   );
 
   return (
@@ -70,36 +70,28 @@ export const Toolbar = () => {
   const { data: members } = useGetMembers(workspaceId);
 
   const [open, setOpen] = useState(false);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState('');
   const [debouncedQuery] = useDebounce(inputValue, 800);
 
   const shouldSearchMessages = debouncedQuery.trim().length >= 2;
 
   // Remote search (debounced)
-  const { data: searchData, isLoading: isSearching } = useSearch(
-    workspaceId,
-    debouncedQuery,
-    {
-      includeThreads: true,
-      limit: 15,
-    }
-  );
+  const { data: searchData, isLoading: isSearching } = useSearch(workspaceId, debouncedQuery, {
+    includeThreads: true,
+    limit: 15,
+  });
 
   // Always filter channels/members locally
   const filteredChannels = useMemo(() => {
     if (!inputValue.trim() || !channels) return channels?.slice(0, 5) || [];
     const query = inputValue.toLowerCase();
-    return channels
-      .filter((channel) => channel.name.toLowerCase().includes(query))
-      .slice(0, 5);
+    return channels.filter((channel) => channel.name.toLowerCase().includes(query)).slice(0, 5);
   }, [channels, inputValue]);
 
   const filteredMembers = useMemo(() => {
     if (!inputValue.trim() || !members) return members?.slice(0, 5) || [];
     const query = inputValue.toLowerCase();
-    return members
-      .filter((member) => member.user.name.toLowerCase().includes(query))
-      .slice(0, 5);
+    return members.filter((member) => member.user.name.toLowerCase().includes(query)).slice(0, 5);
   }, [members, inputValue]);
 
   // Click handlers
@@ -108,38 +100,38 @@ export const Toolbar = () => {
       setOpen(false);
       router.push(`/${workspaceId}/c-${channelId}`);
     },
-    [workspaceId, router]
+    [workspaceId, router],
   );
   const handleMemberClick = useCallback(
     (memberId: string) => () => {
       setOpen(false);
       router.push(`/${workspaceId}/d-${memberId}`);
     },
-    [workspaceId, router]
+    [workspaceId, router],
   );
   const handleMessageClick = useCallback(
     (messageId: string) => () => {
       setOpen(false);
       router.push(`/${workspaceId}/m-${messageId}`);
     },
-    [workspaceId, router]
+    [workspaceId, router],
   );
 
   // Reset input on dialog close
   useEffect(() => {
-    if (!open) setInputValue("");
+    if (!open) setInputValue('');
   }, [open]);
 
   // Keyboard shortcut handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen(true);
       }
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const uniqueResults = useMemo(() => {
@@ -155,19 +147,14 @@ export const Toolbar = () => {
   const hasAnswer = !!searchData?.answer;
 
   console.log(searchData);
-  console.log(hasMessageResults, "hasMessageResults");
-  console.log(hasAnswer, "hasAnswer");
-  console.log(
-    isSearching && shouldSearchMessages,
-    "isSearching && shouldSearchMessages"
-  );
+  console.log(hasMessageResults, 'hasMessageResults');
+  console.log(hasAnswer, 'hasAnswer');
+  console.log(isSearching && shouldSearchMessages, 'isSearching && shouldSearchMessages');
 
   const Section = ({ title, children }) =>
     children && Array.isArray(children) && children.length > 0 ? (
       <div className="mb-3">
-        <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">
-          {title}
-        </div>
+        <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">{title}</div>
         <div className="flex flex-col gap-1">{children}</div>
       </div>
     ) : null;
@@ -219,13 +206,8 @@ export const Toolbar = () => {
                     onClick={() => handleMemberClick(member.id)}
                   >
                     <Avatar className="size-5">
-                      <AvatarImage
-                        src={member.user.image}
-                        alt={member.user.name}
-                      />
-                      <AvatarFallback>
-                        {member.user.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
+                      <AvatarImage src={member.user.image} alt={member.user.name} />
+                      <AvatarFallback>{member.user.name.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <span>{member.user.name}</span>
                   </button>
@@ -259,26 +241,19 @@ export const Toolbar = () => {
                       onClick={() => handleMessageClick(result.messageId)}
                     >
                       <Avatar className="size-6 mt-0.5">
-                        <AvatarImage
-                          src={result.authorImage || ""}
-                          alt={result.authorName}
-                        />
+                        <AvatarImage src={result.authorImage || ''} alt={result.authorName} />
                         <AvatarFallback className="text-xs">
                           {result.authorName?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm truncate">
-                            {result.authorName}
-                          </span>
+                          <span className="font-medium text-sm truncate">{result.authorName}</span>
                           <span className="truncate text-xs text-muted-foreground">
-                            {result.channelName || "DM"}
+                            {result.channelName || 'DM'}
                           </span>
                         </div>
-                        <p className="text-sm line-clamp-2 leading-relaxed">
-                          {result.content}
-                        </p>
+                        <p className="text-sm line-clamp-2 leading-relaxed">{result.content}</p>
                         {result.isThread && (
                           <Badge variant="secondary" className="mt-1 text-xs">
                             Thread
@@ -298,8 +273,7 @@ export const Toolbar = () => {
                 (filteredMembers?.length ?? 0) === 0 &&
                 !searchData?.answer && (
                   <div className="text-muted-foreground text-center py-10">
-                    No results found for{" "}
-                    <span className="font-semibold">{inputValue}</span>
+                    No results found for <span className="font-semibold">{inputValue}</span>
                   </div>
                 )}
             </div>

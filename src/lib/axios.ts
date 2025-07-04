@@ -22,24 +22,24 @@
  * ```
  */
 
-import axios from "axios";
-import { supabase } from "./supabase/client";
+import axios from 'axios';
+import { supabase } from './supabase/client';
 
 // Helper function to get cookie value
 const getCookie = (name: string): string | null => {
-  if (typeof document === "undefined") return null;
+  if (typeof document === 'undefined') return null;
 
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) {
-    return parts.pop()?.split(";").shift() || null;
+    return parts.pop()?.split(';').shift() || null;
   }
   return null;
 };
 
 // Helper function to set cookie
 const setCookie = (name: string, value: string, days: number = 7): void => {
-  if (typeof document === "undefined") return;
+  if (typeof document === 'undefined') return;
 
   const expires = new Date();
   expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
@@ -48,7 +48,7 @@ const setCookie = (name: string, value: string, days: number = 7): void => {
 
 // Helper function to remove cookie
 const removeCookie = (name: string): void => {
-  if (typeof document === "undefined") return;
+  if (typeof document === 'undefined') return;
 
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
 };
@@ -56,28 +56,28 @@ const removeCookie = (name: string): void => {
 // Helper function to handle logout
 const handleLogout = (): void => {
   // Clear all auth-related cookies
-  removeCookie("idToken");
-  removeCookie("refreshToken");
-  removeCookie("user-profile");
+  removeCookie('idToken');
+  removeCookie('refreshToken');
+  removeCookie('user-profile');
 
   // Clear any other app-specific data
-  if (typeof localStorage !== "undefined") {
-    localStorage.removeItem("user-profile");
-    localStorage.removeItem("app-state");
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('user-profile');
+    localStorage.removeItem('app-state');
     // Add any other localStorage keys you want to clear
   }
 
   // Redirect to login page
-  if (typeof window !== "undefined") {
-    window.location.href = "/auth";
+  if (typeof window !== 'undefined') {
+    window.location.href = '/auth';
   }
 };
 
 // Create axios instance with default config
 export const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8081",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8081',
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
@@ -95,9 +95,9 @@ axiosInstance.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error("Request interceptor error:", error);
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
-  }
+  },
 );
 
 // Add response interceptor to handle auth errors
@@ -117,7 +117,7 @@ axiosInstance.interceptors.response.use(
         } = await supabase.auth.refreshSession();
 
         if (refreshError) {
-          console.error("Token refresh failed:", {
+          console.error('Token refresh failed:', {
             message: refreshError.message,
             status: refreshError.status,
           });
@@ -130,81 +130,77 @@ axiosInstance.interceptors.response.use(
         }
 
         // If no session after refresh, redirect to login
-        window.location.href = "/login";
-        return Promise.reject(new Error("No session available"));
+        window.location.href = '/login';
+        return Promise.reject(new Error('No session available'));
       } catch (refreshError: any) {
-        console.error("Token refresh failed:", {
+        console.error('Token refresh failed:', {
           message: refreshError.message,
           status: refreshError.response?.status,
           data: refreshError.response?.data,
         });
 
         // Redirect to login on refresh failure
-        window.location.href = "/login";
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }
 
     // Handle 403 Forbidden errors
     if (error.response?.status === 403) {
-      console.error("Permission denied:", {
+      console.error('Permission denied:', {
         message:
-          error.response.data?.message ||
-          "You do not have permission to access this resource",
+          error.response.data?.message || 'You do not have permission to access this resource',
         path: originalRequest.url,
       });
-      return Promise.reject(new Error("Permission denied"));
+      return Promise.reject(new Error('Permission denied'));
     }
 
     // Handle 404 Not Found errors
     if (error.response?.status === 404) {
-      console.error("Resource not found:", {
-        message:
-          error.response.data?.message ||
-          "The requested resource was not found",
+      console.error('Resource not found:', {
+        message: error.response.data?.message || 'The requested resource was not found',
         path: originalRequest.url,
       });
-      return Promise.reject(new Error("Resource not found"));
+      return Promise.reject(new Error('Resource not found'));
     }
 
     // Handle 500 Server errors
     if (error.response?.status >= 500) {
-      console.error("Server error:", {
-        message:
-          error.response.data?.message || "An unexpected server error occurred",
+      console.error('Server error:', {
+        message: error.response.data?.message || 'An unexpected server error occurred',
         status: error.response.status,
         path: originalRequest.url,
       });
-      return Promise.reject(new Error("Server error"));
+      return Promise.reject(new Error('Server error'));
     }
 
     // Handle network errors
     if (!error.response) {
-      console.error("Network error:", {
-        message: error.message || "Network error occurred",
+      console.error('Network error:', {
+        message: error.message || 'Network error occurred',
         path: originalRequest.url,
       });
-      return Promise.reject(new Error("Network error"));
+      return Promise.reject(new Error('Network error'));
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 // Export helper functions for managing auth cookies
 export const authCookies = {
   setTokens: (idToken: string, refreshToken: string) => {
-    setCookie("idToken", idToken);
-    setCookie("refreshToken", refreshToken);
+    setCookie('idToken', idToken);
+    setCookie('refreshToken', refreshToken);
   },
 
   clearTokens: () => {
-    removeCookie("idToken");
-    removeCookie("refreshToken");
+    removeCookie('idToken');
+    removeCookie('refreshToken');
   },
 
-  getIdToken: () => getCookie("idToken"),
-  getRefreshToken: () => getCookie("refreshToken"),
+  getIdToken: () => getCookie('idToken'),
+  getRefreshToken: () => getCookie('refreshToken'),
 
   // Add logout function to the exported utilities
   logout: handleLogout,

@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { soundManager } from "@/features/notifications/lib/sound-manager";
-import { tabBadgeManager } from "@/features/notifications/lib/tab-badge-manager";
-import { NotificationData } from "../types";
+import { create } from 'zustand';
+import { soundManager } from '@/features/notifications/lib/sound-manager';
+import { tabBadgeManager } from '@/features/notifications/lib/tab-badge-manager';
+import { NotificationData } from '../types';
 
 interface NotificationStore {
   notifications: NotificationData[];
@@ -23,11 +23,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   isLoading: false,
 
   addNotification: (notification) => {
-    console.log(
-      "🔔 New notification:",
-      notification.title,
-      `(${notification.type})`
-    );
+    console.log('🔔 New notification:', notification.title, `(${notification.type})`);
 
     const { notifications } = get();
 
@@ -36,9 +32,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     if (exists) return;
 
     set((state) => {
-      const newUnreadCount = notification.is_read
-        ? state.unreadCount
-        : state.unreadCount + 1;
+      const newUnreadCount = notification.is_read ? state.unreadCount : state.unreadCount + 1;
 
       if (!notification.is_read) {
         // Play type-specific sound
@@ -58,12 +52,10 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   markAsRead: (notificationId) => {
     set((state) => {
       const updatedNotifications = state.notifications.map((n) =>
-        n.id === notificationId ? { ...n, is_read: true } : n
+        n.id === notificationId ? { ...n, is_read: true } : n,
       );
 
-      const newUnreadCount = updatedNotifications.filter(
-        (n) => !n.is_read
-      ).length;
+      const newUnreadCount = updatedNotifications.filter((n) => !n.is_read).length;
       tabBadgeManager.setUnreadCount(newUnreadCount);
 
       return {
@@ -89,20 +81,14 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   removeNotification: (notificationId) => {
     set((state) => {
-      const notification = state.notifications.find(
-        (n) => n.id === notificationId
-      );
+      const notification = state.notifications.find((n) => n.id === notificationId);
       const wasUnread = notification && !notification.is_read;
 
-      const newUnreadCount = wasUnread
-        ? Math.max(0, state.unreadCount - 1)
-        : state.unreadCount;
+      const newUnreadCount = wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount;
       tabBadgeManager.setUnreadCount(newUnreadCount);
 
       return {
-        notifications: state.notifications.filter(
-          (n) => n.id !== notificationId
-        ),
+        notifications: state.notifications.filter((n) => n.id !== notificationId),
         unreadCount: newUnreadCount,
       };
     });

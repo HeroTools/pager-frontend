@@ -1,6 +1,6 @@
-import { FC } from "react";
-import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
+import { FC } from 'react';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 
 interface RemoveConfirmationProps {
   isOpen: boolean;

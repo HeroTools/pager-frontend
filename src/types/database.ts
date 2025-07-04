@@ -1,26 +1,20 @@
 // Enums
-export type MessageType = "text" | "file" | "system" | "bot" | "thread_reply";
-export type ChannelMemberRole = "admin" | "member";
-export type WorkspaceMemberRole = "admin" | "member";
-export type InviteType = "workspace" | "channel";
-export type InviteStatus = "pending" | "accepted" | "expired" | "revoked";
+export type MessageType = 'text' | 'file' | 'system' | 'bot' | 'thread_reply';
+export type ChannelMemberRole = 'admin' | 'member';
+export type WorkspaceMemberRole = 'admin' | 'member';
+export type InviteType = 'workspace' | 'channel';
+export type InviteStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
 export type NotificationType =
-  | "mention"
-  | "direct_message"
-  | "channel_message"
-  | "thread_reply"
-  | "system";
-export type ChannelType = "public" | "private";
-export type UserStatus = "online" | "away" | "busy" | "offline";
-export type CallType = "audio" | "video";
-export type CallStatus =
-  | "initiated"
-  | "ringing"
-  | "active"
-  | "ended"
-  | "missed"
-  | "declined";
-export type CallParticipantStatus = "invited" | "joined" | "left" | "declined";
+  | 'mention'
+  | 'direct_message'
+  | 'channel_message'
+  | 'thread_reply'
+  | 'system';
+export type ChannelType = 'public' | 'private';
+export type UserStatus = 'online' | 'away' | 'busy' | 'offline';
+export type CallType = 'audio' | 'video';
+export type CallStatus = 'initiated' | 'ringing' | 'active' | 'ended' | 'missed' | 'declined';
+export type CallParticipantStatus = 'invited' | 'joined' | 'left' | 'declined';
 
 // Base interface for common fields
 interface BaseEntity {
@@ -87,7 +81,7 @@ export interface Attachment extends BaseEntity {
   original_filename?: string;
 }
 
-export interface Message extends Omit<BaseEntity, "updated_at"> {
+export interface Message extends Omit<BaseEntity, 'updated_at'> {
   body: string;
   attachment_id?: string;
   workspace_member_id: string;
@@ -102,14 +96,14 @@ export interface Message extends Omit<BaseEntity, "updated_at"> {
   updated_at?: string;
 }
 
-export interface Reaction extends Omit<BaseEntity, "updated_at"> {
+export interface Reaction extends Omit<BaseEntity, 'updated_at'> {
   workspace_id: string;
   message_id: string;
   member_id: string;
   value: string;
 }
 
-export interface Notification extends Omit<BaseEntity, "updated_at"> {
+export interface Notification extends Omit<BaseEntity, 'updated_at'> {
   user_id: string;
   workspace_id: string;
   type: NotificationType;
@@ -151,7 +145,7 @@ export interface CustomEmoji extends BaseEntity {
   created_by_user_id: string;
 }
 
-export interface AuditLog extends Omit<BaseEntity, "updated_at"> {
+export interface AuditLog extends Omit<BaseEntity, 'updated_at'> {
   workspace_id: string;
   user_id: string;
   action: string;
@@ -323,19 +317,16 @@ export interface UserSearchFilters {
 }
 
 // Utility types
-export type CreateEntityInput<T extends BaseEntity> = Omit<
-  T,
-  "id" | "created_at" | "updated_at"
->;
+export type CreateEntityInput<T extends BaseEntity> = Omit<T, 'id' | 'created_at' | 'updated_at'>;
 export type UpdateEntityInput<T extends BaseEntity> = Partial<
-  Omit<T, "id" | "created_at" | "updated_at">
+  Omit<T, 'id' | 'created_at' | 'updated_at'>
 >;
 
 // Database query options
 export interface QueryOptions {
   include?: Record<string, boolean | QueryOptions>;
   select?: Record<string, boolean>;
-  orderBy?: Record<string, "asc" | "desc">;
+  orderBy?: Record<string, 'asc' | 'desc'>;
   take?: number;
   skip?: number;
   where?: Record<string, any>;
@@ -353,29 +344,28 @@ export interface RealtimeEvent<T = any> {
 }
 
 export interface MessageEvent extends RealtimeEvent<MessageWithRelations> {
-  type: "message.created" | "message.updated" | "message.deleted";
+  type: 'message.created' | 'message.updated' | 'message.deleted';
 }
 
 export interface ReactionEvent extends RealtimeEvent<Reaction> {
-  type: "reaction.added" | "reaction.removed";
+  type: 'reaction.added' | 'reaction.removed';
 }
 
 export interface UserStatusEvent extends RealtimeEvent<UserStatus> {
-  type: "user.status_changed";
+  type: 'user.status_changed';
 }
 
-export interface TypingEvent
-  extends RealtimeEvent<{ user_id: string; user_name: string }> {
-  type: "user.typing" | "user.stop_typing";
+export interface TypingEvent extends RealtimeEvent<{ user_id: string; user_name: string }> {
+  type: 'user.typing' | 'user.stop_typing';
 }
 
 export interface CallEvent extends RealtimeEvent<CallWithParticipants> {
   type:
-    | "call.initiated"
-    | "call.started"
-    | "call.ended"
-    | "call.participant_joined"
-    | "call.participant_left";
+    | 'call.initiated'
+    | 'call.started'
+    | 'call.ended'
+    | 'call.participant_joined'
+    | 'call.participant_left';
 }
 
 // Export all event types as union

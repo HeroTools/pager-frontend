@@ -1,4 +1,4 @@
-import { SearchFilters, SearchHistoryItem, SearchResult } from "./types";
+import { SearchFilters, SearchHistoryItem, SearchResult } from './types';
 
 // Search utilities
 export class SearchUtils {
@@ -33,13 +33,10 @@ export class SearchUtils {
   static highlightText(text: string, query: string): string {
     if (!query.trim()) return text;
 
-    const regex = new RegExp(
-      `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-      "gi"
-    );
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     return text.replace(
       regex,
-      '<mark class="bg-yellow-200 dark:bg-yellow-800 px-0.5 rounded">$1</mark>'
+      '<mark class="bg-yellow-200 dark:bg-yellow-800 px-0.5 rounded">$1</mark>',
     );
   }
 
@@ -60,8 +57,7 @@ export class SearchUtils {
 
     // Boost for recent messages
     const daysSinceMessage =
-      (Date.now() - new Date(result.timestamp).getTime()) /
-      (1000 * 60 * 60 * 24);
+      (Date.now() - new Date(result.timestamp).getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceMessage < 7) {
       score += 0.05;
     }
@@ -69,27 +65,25 @@ export class SearchUtils {
     return Math.min(score, 1);
   }
 
-  static groupResultsByContext(
-    results: SearchResult[]
-  ): Record<string, SearchResult[]> {
-    return results.reduce((groups, result) => {
-      const key = result.channelId
-        ? `channel-${result.channelId}`
-        : `conversation-${result.conversationId}`;
+  static groupResultsByContext(results: SearchResult[]): Record<string, SearchResult[]> {
+    return results.reduce(
+      (groups, result) => {
+        const key = result.channelId
+          ? `channel-${result.channelId}`
+          : `conversation-${result.conversationId}`;
 
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key].push(result);
+        if (!groups[key]) {
+          groups[key] = [];
+        }
+        groups[key].push(result);
 
-      return groups;
-    }, {} as Record<string, SearchResult[]>);
+        return groups;
+      },
+      {} as Record<string, SearchResult[]>,
+    );
   }
 
-  static generateSearchSuggestions(
-    query: string,
-    recentSearches: string[]
-  ): string[] {
+  static generateSearchSuggestions(query: string, recentSearches: string[]): string[] {
     const suggestions: string[] = [];
 
     // Add variations of current query
@@ -101,10 +95,7 @@ export class SearchUtils {
 
     // Add recent searches that match
     const matchingRecent = recentSearches
-      .filter(
-        (search) =>
-          search.toLowerCase().includes(query.toLowerCase()) && search !== query
-      )
+      .filter((search) => search.toLowerCase().includes(query.toLowerCase()) && search !== query)
       .slice(0, 3);
 
     suggestions.push(...matchingRecent);
@@ -137,14 +128,14 @@ export class SearchUtils {
     const channelMatch = query.match(/in:(\w+)/);
     if (channelMatch) {
       filters.channelId = channelMatch[1];
-      cleanQuery = cleanQuery.replace(/in:\w+/g, "").trim();
+      cleanQuery = cleanQuery.replace(/in:\w+/g, '').trim();
     }
 
     // Extract author filter
     const authorMatch = query.match(/from:(\w+)/);
     if (authorMatch) {
       filters.authorId = authorMatch[1];
-      cleanQuery = cleanQuery.replace(/from:\w+/g, "").trim();
+      cleanQuery = cleanQuery.replace(/from:\w+/g, '').trim();
     }
 
     // Extract date filters
@@ -153,12 +144,10 @@ export class SearchUtils {
 
     if (beforeMatch || afterMatch) {
       filters.dateRange = {
-        start: afterMatch ? new Date(afterMatch[1]) : new Date("1970-01-01"),
+        start: afterMatch ? new Date(afterMatch[1]) : new Date('1970-01-01'),
         end: beforeMatch ? new Date(beforeMatch[1]) : new Date(),
       };
-      cleanQuery = cleanQuery
-        .replace(/(before|after):\d{4}-\d{2}-\d{2}/g, "")
-        .trim();
+      cleanQuery = cleanQuery.replace(/(before|after):\d{4}-\d{2}-\d{2}/g, '').trim();
     }
 
     return { cleanQuery, filters };
@@ -167,13 +156,13 @@ export class SearchUtils {
 
 // Local storage helpers for search history
 export class SearchHistory {
-  private static readonly STORAGE_KEY = "search-history";
+  private static readonly STORAGE_KEY = 'search-history';
   private static readonly MAX_ITEMS = 50;
 
   static add(item: SearchHistoryItem): void {
     const history = this.get();
     const filtered = history.filter(
-      (h) => h.query !== item.query || h.workspaceId !== item.workspaceId
+      (h) => h.query !== item.query || h.workspaceId !== item.workspaceId,
     );
 
     filtered.unshift(item);
@@ -188,9 +177,7 @@ export class SearchHistory {
       if (!stored) return [];
 
       const history = JSON.parse(stored) as SearchHistoryItem[];
-      return workspaceId
-        ? history.filter((item) => item.workspaceId === workspaceId)
-        : history;
+      return workspaceId ? history.filter((item) => item.workspaceId === workspaceId) : history;
     } catch {
       return [];
     }
@@ -199,9 +186,7 @@ export class SearchHistory {
   static clear(workspaceId?: string): void {
     if (workspaceId) {
       const history = this.get();
-      const filtered = history.filter(
-        (item) => item.workspaceId !== workspaceId
-      );
+      const filtered = history.filter((item) => item.workspaceId !== workspaceId);
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
     } else {
       localStorage.removeItem(this.STORAGE_KEY);

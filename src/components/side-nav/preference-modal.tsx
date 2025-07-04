@@ -1,10 +1,10 @@
-import { TrashIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
+import { TrashIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogClose,
@@ -13,14 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  useDeleteWorkspace,
-  useUpdateWorkspace,
-} from "@/features/workspaces/hooks/use-workspaces";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
-import { useConfirm } from "@/hooks/use-confirm";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useDeleteWorkspace, useUpdateWorkspace } from '@/features/workspaces/hooks/use-workspaces';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface PreferenceModalProps {
   initialVlaue: string;
@@ -28,16 +25,9 @@ interface PreferenceModalProps {
   setOpen: (open: boolean) => void;
 }
 
-export const PreferenceModal = ({
-  initialVlaue,
-  open,
-  setOpen,
-}: PreferenceModalProps) => {
+export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModalProps) => {
   const router = useRouter();
-  const [ConfirmDialog, confirm] = useConfirm(
-    "Are you sure?",
-    "This action is irreversible"
-  );
+  const [ConfirmDialog, confirm] = useConfirm('Are you sure?', 'This action is irreversible');
 
   const workspaceId = useWorkspaceId();
   const [editOpen, setEditOpen] = useState(false);
@@ -47,7 +37,7 @@ export const PreferenceModal = ({
       name: initialVlaue,
     },
   });
-  const value = form.watch("name");
+  const value = form.watch('name');
 
   const updateWorkspace = useUpdateWorkspace();
   const removeWorkspace = useDeleteWorkspace();
@@ -59,7 +49,7 @@ export const PreferenceModal = ({
 
   const handleUpdateWorkspace = form.handleSubmit(async ({ name }) => {
     if (!workspaceId) {
-      toast.error("Workspace ID not found.");
+      toast.error('Workspace ID not found.');
       return;
     }
     try {
@@ -68,10 +58,10 @@ export const PreferenceModal = ({
         data: { name },
       });
       setEditOpen(false);
-      toast.success("Workspace updated");
+      toast.success('Workspace updated');
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update workspace");
+      toast.error('Failed to update workspace');
     }
   });
 
@@ -79,16 +69,16 @@ export const PreferenceModal = ({
     const ok = await confirm();
     if (!ok) return;
     if (!workspaceId) {
-      toast.error("Workspace ID not found.");
+      toast.error('Workspace ID not found.');
       return;
     }
     try {
       await removeWorkspace.mutateAsync(workspaceId as string);
-      toast.success("Workspace removed");
-      router.replace("/");
+      toast.success('Workspace removed');
+      router.replace('/');
     } catch (error) {
       console.error(error);
-      toast.error("Failed to remove workspace");
+      toast.error('Failed to remove workspace');
     }
   };
 
@@ -119,7 +109,7 @@ export const PreferenceModal = ({
                 </DialogHeader>
                 <form className="space-y-4" onSubmit={handleUpdateWorkspace}>
                   <Input
-                    {...form.register("name", {
+                    {...form.register('name', {
                       required: true,
                       minLength: 3,
                       maxLength: 80,
@@ -130,10 +120,7 @@ export const PreferenceModal = ({
                   />
                   <DialogFooter>
                     <DialogClose asChild>
-                      <Button
-                        variant="outline"
-                        disabled={updateWorkspace.isPending}
-                      >
+                      <Button variant="outline" disabled={updateWorkspace.isPending}>
                         Cancel
                       </Button>
                     </DialogClose>

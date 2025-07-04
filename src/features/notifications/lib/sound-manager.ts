@@ -8,7 +8,7 @@ class NotificationSoundManager {
   private pendingSounds: string[] = [];
 
   constructor() {
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       this.init();
     }
   }
@@ -20,60 +20,60 @@ class NotificationSoundManager {
       this.setupUserInteractionListener();
       this.isInitialized = true;
     } catch (error) {
-      console.warn("Failed to initialize sound manager:", error);
+      console.warn('Failed to initialize sound manager:', error);
     }
   }
 
   private setupUserInteractionListener() {
-    if (typeof document === "undefined") return;
+    if (typeof document === 'undefined') return;
 
     const initAudioContext = () => {
       this.initializeAudioContext();
 
       // Remove listeners once initialized
-      document.removeEventListener("click", initAudioContext);
-      document.removeEventListener("keydown", initAudioContext);
-      document.removeEventListener("touchstart", initAudioContext);
+      document.removeEventListener('click', initAudioContext);
+      document.removeEventListener('keydown', initAudioContext);
+      document.removeEventListener('touchstart', initAudioContext);
     };
 
     // Listen for any user interaction to initialize AudioContext
-    document.addEventListener("click", initAudioContext, { once: true });
-    document.addEventListener("keydown", initAudioContext, { once: true });
-    document.addEventListener("touchstart", initAudioContext, { once: true });
+    document.addEventListener('click', initAudioContext, { once: true });
+    document.addEventListener('keydown', initAudioContext, { once: true });
+    document.addEventListener('touchstart', initAudioContext, { once: true });
   }
 
   private initializeAudioContext() {
-    if (this.isAudioContextReady || typeof AudioContext === "undefined") return;
+    if (this.isAudioContextReady || typeof AudioContext === 'undefined') return;
 
     try {
       this.audioContext = new AudioContext();
       this.isAudioContextReady = true;
 
-      console.log("🎵 AudioContext initialized after user interaction");
+      console.log('🎵 AudioContext initialized after user interaction');
 
       // Play any pending sounds
       this.pendingSounds.forEach((type) => this.playNotificationSound(type));
       this.pendingSounds = [];
     } catch (error) {
-      console.warn("Failed to initialize AudioContext:", error);
+      console.warn('Failed to initialize AudioContext:', error);
     }
   }
 
   private async loadSounds() {
-    if (typeof Audio === "undefined") return;
+    if (typeof Audio === 'undefined') return;
 
     const soundFiles = {
-      mention: "/sounds/mention.mp3", // Higher pitch for mentions
-      direct_message: "/sounds/message.mp3", // Standard message sound
-      channel_message: "/sounds/channel.mp3", // Softer for channel messages
-      thread_reply: "/sounds/thread.mp3", // Different tone for threads
+      mention: '/sounds/mention.mp3', // Higher pitch for mentions
+      direct_message: '/sounds/message.mp3', // Standard message sound
+      channel_message: '/sounds/channel.mp3', // Softer for channel messages
+      thread_reply: '/sounds/thread.mp3', // Different tone for threads
     };
 
     const loadPromises = Object.entries(soundFiles).map(([type, url]) => {
       return new Promise<void>((resolve) => {
         const audio = new Audio(url);
         audio.volume = this.volume;
-        audio.preload = "auto";
+        audio.preload = 'auto';
 
         const onCanPlayThrough = () => {
           this.sounds.set(type, audio);
@@ -89,14 +89,14 @@ class NotificationSoundManager {
         };
 
         const cleanup = () => {
-          audio.removeEventListener("canplaythrough", onCanPlayThrough);
-          audio.removeEventListener("error", onError);
+          audio.removeEventListener('canplaythrough', onCanPlayThrough);
+          audio.removeEventListener('error', onError);
         };
 
-        audio.addEventListener("canplaythrough", onCanPlayThrough, {
+        audio.addEventListener('canplaythrough', onCanPlayThrough, {
           once: true,
         });
-        audio.addEventListener("error", onError, { once: true });
+        audio.addEventListener('error', onError, { once: true });
 
         // Fallback timeout
         setTimeout(() => {
@@ -107,37 +107,33 @@ class NotificationSoundManager {
     });
 
     await Promise.all(loadPromises);
-    console.log(
-      `🎵 Sound loading complete. Loaded ${this.sounds.size} sound files.`
-    );
+    console.log(`🎵 Sound loading complete. Loaded ${this.sounds.size} sound files.`);
   }
 
   private loadPreferences() {
-    if (typeof localStorage === "undefined") return;
+    if (typeof localStorage === 'undefined') return;
 
     try {
-      const enabled = localStorage.getItem("notifications-sound-enabled");
-      const volume = localStorage.getItem("notifications-sound-volume");
+      const enabled = localStorage.getItem('notifications-sound-enabled');
+      const volume = localStorage.getItem('notifications-sound-volume');
 
-      this.isEnabled = enabled !== "false";
+      this.isEnabled = enabled !== 'false';
       this.volume = volume ? parseFloat(volume) : 0.7;
 
-      console.log(
-        `🎛️ Sound preferences loaded: enabled=${this.isEnabled}, volume=${this.volume}`
-      );
+      console.log(`🎛️ Sound preferences loaded: enabled=${this.isEnabled}, volume=${this.volume}`);
     } catch (error) {
-      console.warn("Failed to load sound preferences:", error);
+      console.warn('Failed to load sound preferences:', error);
     }
   }
 
   async playNotificationSound(type: string): Promise<void> {
     if (!this.isEnabled) {
-      console.log("🔇 Sound disabled by user preference");
+      console.log('🔇 Sound disabled by user preference');
       return;
     }
 
     if (!this.isInitialized) {
-      console.log("⏳ Sound manager not initialized yet");
+      console.log('⏳ Sound manager not initialized yet');
       return;
     }
 
@@ -154,7 +150,7 @@ class NotificationSoundManager {
 
   private async tryPlaySoundFile(type: string): Promise<boolean> {
     try {
-      const sound = this.sounds.get(type) || this.sounds.get("direct_message");
+      const sound = this.sounds.get(type) || this.sounds.get('direct_message');
 
       if (sound) {
         // Clone the audio to allow multiple simultaneous plays
@@ -177,8 +173,8 @@ class NotificationSoundManager {
 
   private async playSystemBeep(): Promise<void> {
     const playBeep = () => {
-      if (!this.audioContext || this.audioContext.state !== "running") {
-        console.warn("⚠️ AudioContext not ready for beep");
+      if (!this.audioContext || this.audioContext.state !== 'running') {
+        console.warn('⚠️ AudioContext not ready for beep');
         return;
       }
 
@@ -190,21 +186,15 @@ class NotificationSoundManager {
         gainNode.connect(this.audioContext.destination);
 
         oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
-        gainNode.gain.setValueAtTime(
-          this.volume * 0.1,
-          this.audioContext.currentTime
-        );
-        gainNode.gain.exponentialRampToValueAtTime(
-          0.01,
-          this.audioContext.currentTime + 0.1
-        );
+        gainNode.gain.setValueAtTime(this.volume * 0.1, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
 
         oscillator.start();
         oscillator.stop(this.audioContext.currentTime + 0.1);
 
-        console.log("✅ System beep played successfully");
+        console.log('✅ System beep played successfully');
       } catch (error) {
-        console.warn("❌ System beep failed:", error);
+        console.warn('❌ System beep failed:', error);
       }
     };
 
@@ -213,9 +203,9 @@ class NotificationSoundManager {
       playBeep();
     } else {
       // Queue beep for after user interaction
-      console.log("⏳ Queueing beep for after user interaction...");
-      if (!this.pendingSounds.includes("beep")) {
-        this.pendingSounds.push("beep");
+      console.log('⏳ Queueing beep for after user interaction...');
+      if (!this.pendingSounds.includes('beep')) {
+        this.pendingSounds.push('beep');
       }
 
       // Try immediate fallback
@@ -234,36 +224,30 @@ class NotificationSoundManager {
       gainNode.connect(tempAudioContext.destination);
 
       oscillator.frequency.setValueAtTime(800, tempAudioContext.currentTime);
-      gainNode.gain.setValueAtTime(
-        this.volume * 0.1,
-        tempAudioContext.currentTime
-      );
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        tempAudioContext.currentTime + 0.1
-      );
+      gainNode.gain.setValueAtTime(this.volume * 0.1, tempAudioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, tempAudioContext.currentTime + 0.1);
 
       oscillator.start();
       oscillator.stop(tempAudioContext.currentTime + 0.1);
 
-      console.log("✅ Immediate beep played (despite AudioContext warning)");
+      console.log('✅ Immediate beep played (despite AudioContext warning)');
     } catch (error) {
-      console.warn("❌ Immediate beep also failed:", error);
+      console.warn('❌ Immediate beep also failed:', error);
     }
   }
 
   setEnabled(enabled: boolean) {
     this.isEnabled = enabled;
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem("notifications-sound-enabled", String(enabled));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('notifications-sound-enabled', String(enabled));
     }
     console.log(`🎛️ Sound enabled: ${enabled}`);
   }
 
   setVolume(volume: number) {
     this.volume = Math.max(0, Math.min(1, volume));
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem("notifications-sound-volume", String(this.volume));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('notifications-sound-volume', String(this.volume));
     }
 
     // Update all sound volumes
@@ -303,7 +287,7 @@ class NotificationSoundManager {
 let soundManagerInstance: NotificationSoundManager | null = null;
 
 export const getSoundManager = (): NotificationSoundManager => {
-  if (!soundManagerInstance && typeof window !== "undefined") {
+  if (!soundManagerInstance && typeof window !== 'undefined') {
     soundManagerInstance = new NotificationSoundManager();
   }
   return soundManagerInstance as NotificationSoundManager;

@@ -1,39 +1,26 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  Search,
-  Filter,
-  X,
-  Clock,
-  TrendingUp,
-  Sparkles,
-  ExternalLink,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useDebounce } from "use-debounce";
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Search, Filter, X, Clock, TrendingUp, Sparkles, ExternalLink } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useDebounce } from 'use-debounce';
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 
-import { useSearch } from "@/features/search/hooks/use-search";
-import { useGetAllAvailableChannels } from "@/features/channels/hooks/use-channels-mutations";
-import { SearchUtils, SearchHistory } from "@/features/search/utils";
-import type { SearchResult, SearchFilters } from "@/features/search/types";
+import { useSearch } from '@/features/search/hooks/use-search';
+import { useGetAllAvailableChannels } from '@/features/channels/hooks/use-channels-mutations';
+import { SearchUtils, SearchHistory } from '@/features/search/utils';
+import type { SearchResult, SearchFilters } from '@/features/search/types';
 
 interface SearchDialogProps {
   open: boolean;
@@ -55,13 +42,13 @@ const SearchResultCard = ({
 }) => {
   const highlightedContent = useMemo(
     () => SearchUtils.highlightText(result.content, query),
-    [result.content, query]
+    [result.content, query],
   );
 
   return (
     <div
       className={`p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors ${
-        isReferenced ? "ring-2 ring-brand-blue/30 bg-brand-blue/5" : ""
+        isReferenced ? 'ring-2 ring-brand-blue/30 bg-brand-blue/5' : ''
       }`}
       onClick={() => onNavigate(result.messageId)}
     >
@@ -75,7 +62,7 @@ const SearchResultCard = ({
               </Badge>
             )}
             <span className="text-xs text-muted-foreground">
-              in {result.channelName || "Direct Message"}
+              in {result.channelName || 'Direct Message'}
             </span>
             <span className="text-xs text-muted-foreground">
               {new Date(result.timestamp).toLocaleDateString()}
@@ -122,20 +109,20 @@ const AIAnswerCard = ({
         return match;
       });
     },
-    [references]
+    [references],
   );
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains("citation-link")) {
-        const messageId = target.getAttribute("data-message-id");
+      if (target.classList.contains('citation-link')) {
+        const messageId = target.getAttribute('data-message-id');
         if (messageId) {
           onReferenceClick(messageId);
         }
       }
     },
-    [onReferenceClick]
+    [onReferenceClick],
   );
 
   return (
@@ -157,7 +144,7 @@ export const SearchDialog = ({
   open,
   onOpenChange,
   workspaceId,
-  initialQuery = "",
+  initialQuery = '',
 }: SearchDialogProps) => {
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
@@ -169,12 +156,12 @@ export const SearchDialog = ({
 
   const searchOptions = useMemo(
     () => ({
-      includeThreads: filters.messageType !== "direct",
+      includeThreads: filters.messageType !== 'direct',
       channelId: filters.channelId,
       conversationId: filters.conversationId,
       limit: 20,
     }),
-    [filters]
+    [filters],
   );
 
   const {
@@ -185,13 +172,10 @@ export const SearchDialog = ({
 
   const referencedMessageIds = useMemo(
     () => new Set(searchData?.references?.map((ref) => ref.messageId) || []),
-    [searchData?.references]
+    [searchData?.references],
   );
 
-  const recentSearches = useMemo(
-    () => SearchHistory.getRecentQueries(workspaceId),
-    [workspaceId]
-  );
+  const recentSearches = useMemo(() => SearchHistory.getRecentQueries(workspaceId), [workspaceId]);
 
   const handleNavigate = useCallback(
     (messageId: string) => {
@@ -207,7 +191,7 @@ export const SearchDialog = ({
       onOpenChange(false);
       router.push(`/${workspaceId}/m-${messageId}`);
     },
-    [query, searchData?.results?.length, workspaceId, onOpenChange, router]
+    [query, searchData?.results?.length, workspaceId, onOpenChange, router],
   );
 
   const handleRecentSearchClick = useCallback((recentQuery: string) => {
@@ -225,7 +209,7 @@ export const SearchDialog = ({
   }, [initialQuery]);
 
   const hasActiveFilters = Object.keys(filters).some(
-    (key) => filters[key as keyof SearchFilters] !== undefined
+    (key) => filters[key as keyof SearchFilters] !== undefined,
   );
 
   const hasResults = searchData?.results && searchData.results.length > 0;
@@ -256,7 +240,7 @@ export const SearchDialog = ({
                 size="sm"
                 variant="ghost"
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 size-8 p-0"
-                onClick={() => setQuery("")}
+                onClick={() => setQuery('')}
               >
                 <X className="size-4" />
               </Button>
@@ -277,11 +261,7 @@ export const SearchDialog = ({
                   variant="secondary"
                   className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
                 >
-                  {
-                    Object.keys(filters).filter(
-                      (key) => filters[key as keyof SearchFilters]
-                    ).length
-                  }
+                  {Object.keys(filters).filter((key) => filters[key as keyof SearchFilters]).length}
                 </Badge>
               )}
             </Button>
@@ -296,11 +276,9 @@ export const SearchDialog = ({
           {showFilters && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
               <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Channel
-                </label>
+                <label className="text-sm font-medium mb-2 block">Channel</label>
                 <Select
-                  value={filters.channelId || ""}
+                  value={filters.channelId || ''}
                   onValueChange={(value) =>
                     setFilters((prev) => ({
                       ...prev,
@@ -323,11 +301,9 @@ export const SearchDialog = ({
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Message Type
-                </label>
+                <label className="text-sm font-medium mb-2 block">Message Type</label>
                 <Select
-                  value={filters.messageType || "all"}
+                  value={filters.messageType || 'all'}
                   onValueChange={(value) =>
                     setFilters((prev) => ({
                       ...prev,
@@ -358,9 +334,7 @@ export const SearchDialog = ({
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Clock className="size-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Recent Searches
-                  </span>
+                  <span className="text-sm font-medium text-muted-foreground">Recent Searches</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {recentSearches.map((recentQuery, index) => (
@@ -382,9 +356,7 @@ export const SearchDialog = ({
               <div className="flex items-center justify-center py-8">
                 <div className="flex items-center gap-2">
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
-                  <span className="text-sm text-muted-foreground">
-                    Searching...
-                  </span>
+                  <span className="text-sm text-muted-foreground">Searching...</span>
                 </div>
               </div>
             )}
@@ -397,9 +369,7 @@ export const SearchDialog = ({
 
             {debouncedQuery && !isLoading && !hasResults && !error && (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  No results found for "{debouncedQuery}"
-                </p>
+                <p className="text-muted-foreground">No results found for "{debouncedQuery}"</p>
               </div>
             )}
 

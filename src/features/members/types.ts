@@ -4,7 +4,7 @@ import {
   Workspace,
   ApiResponse,
   WorkspaceMemberRole,
-} from "@/types/database";
+} from '@/types/database';
 
 // Use the database types directly
 export type UserEntity = User;
@@ -79,7 +79,7 @@ export interface BulkRemoveMembersData {
 
 // Member profile data for workspace context
 export interface WorkspaceMemberProfile extends MemberWithUser {
-  status?: "online" | "away" | "busy" | "offline";
+  status?: 'online' | 'away' | 'busy' | 'offline';
   custom_status?: string;
   channels_count?: number;
   conversations_count?: number;
@@ -97,7 +97,7 @@ export interface MemberDirectoryItem {
   };
   role: WorkspaceMemberRole;
   joined_at: string;
-  status?: "online" | "away" | "busy" | "offline";
+  status?: 'online' | 'away' | 'busy' | 'offline';
   last_seen_at?: string;
   is_active: boolean;
 }

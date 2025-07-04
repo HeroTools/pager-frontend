@@ -1,24 +1,21 @@
-"use client";
+'use client';
 
-import { AlertTriangle, Loader } from "lucide-react";
+import { AlertTriangle, Loader } from 'lucide-react';
 
-import { Chat } from "@/components/chat/chat";
+import { Chat } from '@/components/chat/chat';
 import {
   useGetConversationWithMessagesInfinite,
   useRealtimeConversation,
-} from "@/features/conversations";
-import { useMessageOperations } from "@/features/messages/hooks/use-messages";
-import { useCurrentUser } from "@/features/auth";
-import { Channel } from "@/types/chat";
-import { useParamIds } from "@/hooks/use-param-ids";
-import { UploadedAttachment } from "@/features/file-upload/types";
-import {
-  transformMessages,
-  updateSelectedMessageIfNeeded,
-} from "@/features/messages/helpers";
-import { useToggleReaction } from "@/features/reactions";
-import { useMessagesStore } from "@/features/messages/store/messages-store";
-import { useCallback } from "react";
+} from '@/features/conversations';
+import { useMessageOperations } from '@/features/messages/hooks/use-messages';
+import { useCurrentUser } from '@/features/auth';
+import { Channel } from '@/types/chat';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { UploadedAttachment } from '@/features/file-upload/types';
+import { transformMessages, updateSelectedMessageIfNeeded } from '@/features/messages/helpers';
+import { useToggleReaction } from '@/features/reactions';
+import { useMessagesStore } from '@/features/messages/store/messages-store';
+import { useCallback } from 'react';
 
 const ConversationChat = () => {
   const { id: conversationId, workspaceId, type } = useParamIds();
@@ -52,18 +49,18 @@ const ConversationChat = () => {
   const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
     workspaceId,
     conversationId,
-    type
+    type,
   );
   const toggleReaction = useToggleReaction(workspaceId);
 
   const transformConversation = (conversationData: any): Channel => {
     const otherMembers = conversationData.members.filter(
-      (member: any) => member.user.id !== currentUser?.id
+      (member: any) => member.user.id !== currentUser?.id,
     );
     const displayName =
       otherMembers.length === 1
         ? otherMembers[0].user.name
-        : `${otherMembers.map((m: any) => m.user.name).join(", ")}`;
+        : `${otherMembers.map((m: any) => m.user.name).join(', ')}`;
 
     return {
       id: conversationData.id,
@@ -78,7 +75,7 @@ const ConversationChat = () => {
     try {
       await refetchMessages();
     } catch (error) {
-      console.error("Failed to refresh channel data:", error);
+      console.error('Failed to refresh channel data:', error);
     }
   }, [refetchMessages]);
 
@@ -99,25 +96,20 @@ const ConversationChat = () => {
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
         <span className="text-muted-foreground text-sm">
-          {error ? "Failed to load conversation" : "Conversation not found"}
+          {error ? 'Failed to load conversation' : 'Conversation not found'}
         </span>
       </div>
     );
   }
 
-  const allMessages =
-    conversationWithMessages?.pages.flatMap((page) => page?.messages || []) ||
-    [];
+  const allMessages = conversationWithMessages?.pages.flatMap((page) => page?.messages || []) || [];
 
   const sortedMessages = [...allMessages].sort(
-    (a, b) =>
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   );
 
   // Transform data for chat component
-  const conversationChannel = transformConversation(
-    conversationWithMessages?.pages?.[0]
-  );
+  const conversationChannel = transformConversation(conversationWithMessages?.pages?.[0]);
   const messages = transformMessages(sortedMessages || [], currentUser);
 
   // Handle message sending with real-time integration
@@ -139,21 +131,18 @@ const ConversationChat = () => {
       const message = await createMessage.mutateAsync({
         body: content.body,
         attachments: content.attachments,
-        message_type: "direct",
+        message_type: 'direct',
         plain_text: content.plainText,
         _optimisticId: optimisticId,
       });
 
-      updateSelectedMessageIfNeeded(
-        optimisticId,
-        transformMessages([message], currentUser)[0]
-      );
+      updateSelectedMessageIfNeeded(optimisticId, transformMessages([message], currentUser)[0]);
 
       removePendingMessage(optimisticId);
-      console.log("Message sent successfully");
+      console.log('Message sent successfully');
     } catch (error) {
       removePendingMessage(optimisticId);
-      console.error("Failed to send message:", error);
+      console.error('Failed to send message:', error);
     }
   };
 
@@ -165,9 +154,9 @@ const ConversationChat = () => {
         data: { body: newContent },
       });
 
-      console.log("Message edited successfully");
+      console.log('Message edited successfully');
     } catch (error) {
-      console.error("Failed to edit message:", error);
+      console.error('Failed to edit message:', error);
     }
   };
 
@@ -175,9 +164,9 @@ const ConversationChat = () => {
   const handleDeleteMessage = async (messageId: string) => {
     try {
       await deleteMessage.mutateAsync(messageId);
-      console.log("Message deleted successfully");
+      console.log('Message deleted successfully');
     } catch (error) {
-      console.error("Failed to delete message:", error);
+      console.error('Failed to delete message:', error);
     }
   };
 
@@ -186,44 +175,37 @@ const ConversationChat = () => {
     try {
       // Check if user already reacted with this emoji
       const message = allMessages.find((msg) => msg.id === messageId);
-      const existingReaction = message?.reactions?.find(
-        (r) => r.value === emoji
-      );
-      const hasReacted = existingReaction?.users.some(
-        (user: any) => user.id === currentUser?.id
-      );
+      const existingReaction = message?.reactions?.find((r) => r.value === emoji);
+      const hasReacted = existingReaction?.users.some((user: any) => user.id === currentUser?.id);
       await toggleReaction.mutateAsync({
         messageId,
         emoji,
         currentlyReacted: hasReacted || false,
       });
     } catch (error) {
-      console.error("Failed to react to message:", error);
+      console.error('Failed to react to message:', error);
     }
   };
 
   // Handle replies/threads
-  const handleReplyToMessage = async (
-    messageId: string,
-    replyContent: string
-  ) => {
+  const handleReplyToMessage = async (messageId: string, replyContent: string) => {
     try {
       await createMessage.mutateAsync({
         body: replyContent,
         parent_message_id: messageId,
-        message_type: "thread",
+        message_type: 'thread',
       });
 
-      console.log("Reply sent successfully");
+      console.log('Reply sent successfully');
     } catch (error) {
-      console.error("Failed to reply to message:", error);
+      console.error('Failed to reply to message:', error);
     }
   };
 
   // Handle conversation details toggle
   const handleToggleConversationDetails = () => {
     // Replace with your conversation details logic
-    console.log("Toggle conversation details");
+    console.log('Toggle conversation details');
   };
 
   // Handle loading more messages (when user scrolls up)

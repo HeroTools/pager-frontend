@@ -1,8 +1,8 @@
-import { User, UpdateEntityInput } from "@/types/database";
-import { WorkspaceEntity } from "../workspaces/types";
+import { User, UpdateEntityInput } from '@/types/database';
+import { WorkspaceEntity } from '../workspaces/types';
 
 // Auth-specific flow type (not database related)
-export type SignInFlow = "signIn" | "signUp";
+export type SignInFlow = 'signIn' | 'signUp';
 
 // Use the database User type directly
 export type AuthUser = User;
@@ -72,7 +72,7 @@ export interface AuthResponseWithWorkspaces extends AuthResponse {
     created_at: string;
     updated_at: string;
     is_active: boolean;
-    role: "owner" | "admin" | "member" | "guest";
+    role: 'owner' | 'admin' | 'member' | 'guest';
     last_accessed_at?: string;
   }>;
   defaultWorkspaceId?: string;
@@ -99,12 +99,10 @@ export interface AuthError {
   status?: number;
 }
 
-
-
 // User preferences (for updating last workspace, etc.)
 export interface UserPreferences {
   last_workspace_id?: string;
-  theme?: "light" | "dark" | "system";
+  theme?: 'light' | 'dark' | 'system';
   notifications_enabled?: boolean;
 }
 
@@ -121,23 +119,21 @@ export interface AuthMutationHook<TData = any, TVariables = any> {
 }
 
 // Specific hook return types
-export interface UseSignInReturn
-  extends AuthMutationHook<AuthResponseWithWorkspaces, SignInData> {}
-export interface UseSignUpReturn
-  extends AuthMutationHook<SignUpResponse, SignUpData> {}
+export interface UseSignInReturn extends AuthMutationHook<AuthResponseWithWorkspaces, SignInData> {}
+export interface UseSignUpReturn extends AuthMutationHook<SignUpResponse, SignUpData> {}
 
 export interface UseSignOutReturn extends AuthMutationHook<void, void> {}
 
 // Workspace-related types for auth context
 export interface WorkspaceRole {
   workspaceId: string;
-  role: "owner" | "admin" | "member" | "guest";
+  role: 'owner' | 'admin' | 'member' | 'guest';
   permissions: string[];
 }
 
 // Extended auth context that includes workspace information
 export interface ExtendedAuthState extends AuthState {
-  workspaces: AuthResponseWithWorkspaces["workspaces"];
+  workspaces: AuthResponseWithWorkspaces['workspaces'];
   currentWorkspaceId?: string;
   userRoles: WorkspaceRole[];
   hasWorkspaceAccess: (workspaceId: string, requiredRole?: string) => boolean;

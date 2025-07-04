@@ -1,11 +1,11 @@
-import { useRef, useCallback } from "react";
-import { toast } from "sonner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef, useCallback } from 'react';
+import { toast } from 'sonner';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { messagesApi } from "../api/messages-api";
-import type { MessageWithUser, CreateMessageData } from "../types";
-import { UploadedAttachment } from "@/features/file-upload/types";
-import { Message } from "@/types/chat";
+import { messagesApi } from '../api/messages-api';
+import type { MessageWithUser, CreateMessageData } from '../types';
+import { UploadedAttachment } from '@/features/file-upload/types';
+import { Message } from '@/types/chat';
 
 interface UpdateMessageData {
   body?: string;
@@ -18,54 +18,45 @@ interface UpdateMessageData {
 /**
  * Updated hook for creating channel messages with correct cache keys
  */
-export const useCreateChannelMessage = (
-  workspaceId: string,
-  channelId: string
-) => {
+export const useCreateChannelMessage = (workspaceId: string, channelId: string) => {
   const queryClient = useQueryClient();
 
   const getInfiniteQueryKey = useCallback(
-    () => ["channel", workspaceId, channelId, "messages", "infinite"],
-    [workspaceId, channelId]
+    () => ['channel', workspaceId, channelId, 'messages', 'infinite'],
+    [workspaceId, channelId],
   );
 
   const getThreadQueryKey = useCallback(
-    (threadParentId: string) => ["thread", workspaceId, threadParentId],
-    [workspaceId]
+    (threadParentId: string) => ['thread', workspaceId, threadParentId],
+    [workspaceId],
   );
 
   return useMutation({
-    mutationKey: ["createChannelMessage", workspaceId, channelId],
+    mutationKey: ['createChannelMessage', workspaceId, channelId],
 
     mutationFn: async (data: CreateMessageData) => {
-      console.log("Creating message:", data);
+      console.log('Creating message:', data);
 
-      const result = await messagesApi.createChannelMessage(
-        workspaceId,
-        channelId,
-        {
-          body: data.body,
-          attachment_ids: data.attachments?.map((att) => att.id),
-          parent_message_id: data.parent_message_id,
-          thread_id: data.thread_id,
-          message_type: data.message_type,
-          plain_text: data.plain_text,
-        }
-      );
+      const result = await messagesApi.createChannelMessage(workspaceId, channelId, {
+        body: data.body,
+        attachment_ids: data.attachments?.map((att) => att.id),
+        parent_message_id: data.parent_message_id,
+        thread_id: data.thread_id,
+        message_type: data.message_type,
+        plain_text: data.plain_text,
+      });
 
-      console.log("Message created successfully:", result);
+      console.log('Message created successfully:', result);
       return result;
     },
 
     onMutate: async (data) => {
-      console.log("onMutate called with:", data);
+      console.log('onMutate called with:', data);
 
       const threadParentId = data.parent_message_id || data.thread_id;
       const isThreadMessage = Boolean(threadParentId);
       const queryKey = getInfiniteQueryKey();
-      const threadQueryKey = isThreadMessage
-        ? getThreadQueryKey(threadParentId)
-        : null;
+      const threadQueryKey = isThreadMessage ? getThreadQueryKey(threadParentId) : null;
 
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey });
@@ -76,14 +67,12 @@ export const useCreateChannelMessage = (
       // Snapshot the previous values
       const previousChannelMessages = queryClient.getQueryData(queryKey);
       const previousThreadMessages =
-        isThreadMessage && threadQueryKey
-          ? queryClient.getQueryData(threadQueryKey)
-          : null;
+        isThreadMessage && threadQueryKey ? queryClient.getQueryData(threadQueryKey) : null;
 
-      const currentUser = queryClient.getQueryData(["current-user"]) as any;
+      const currentUser = queryClient.getQueryData(['current-user']) as any;
 
       if (!currentUser) {
-        console.error("No current user found for optimistic update");
+        console.error('No current user found for optimistic update');
         return {
           previousChannelMessages,
           previousThreadMessages,
@@ -98,18 +87,18 @@ export const useCreateChannelMessage = (
         channel_id: channelId,
         conversation_id: null,
         workspace_id: workspaceId,
-        message_type: data.message_type || "channel",
+        message_type: data.message_type || 'channel',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         edited_at: null,
         deleted_at: null,
         parent_message_id: data.parent_message_id || null,
         thread_id: data.thread_id || null,
-        workspace_member_id: currentUser?.workspace_member_id || "",
+        workspace_member_id: currentUser?.workspace_member_id || '',
         user: {
-          id: currentUser?.id || "",
-          name: currentUser?.name || "You",
-          email: currentUser?.email || "",
+          id: currentUser?.id || '',
+          name: currentUser?.name || 'You',
+          email: currentUser?.email || '',
           image: currentUser?.image || null,
         },
         attachments:
@@ -118,9 +107,9 @@ export const useCreateChannelMessage = (
             public_url: attachment.publicUrl,
             content_type: attachment.contentType,
             size_bytes: attachment.sizeBytes,
-            s3_bucket: "",
-            s3_key: "",
-            uploaded_by: "",
+            s3_bucket: '',
+            s3_key: '',
+            uploaded_by: '',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })) || [],
@@ -138,17 +127,14 @@ export const useCreateChannelMessage = (
         const channelData: any = queryClient.getQueryData(queryKey);
         if (channelData?.pages) {
           for (const page of channelData.pages) {
-            const parentMessage = page.messages.find(
-              (msg: any) => msg.id === threadParentId
-            );
+            const parentMessage = page.messages.find((msg: any) => msg.id === threadParentId);
             if (parentMessage) {
-              isFirstThreadMessage =
-                (parentMessage.thread_reply_count || 0) === 0;
+              isFirstThreadMessage = (parentMessage.thread_reply_count || 0) === 0;
               console.log(
-                "🧵 Parent message thread_reply_count:",
+                '🧵 Parent message thread_reply_count:',
                 parentMessage.thread_reply_count,
-                "isFirst:",
-                isFirstThreadMessage
+                'isFirst:',
+                isFirstThreadMessage,
               );
               break;
             }
@@ -194,10 +180,7 @@ export const useCreateChannelMessage = (
 
                 // Add current user to participants if not already there
                 const updatedParticipants =
-                  messageUser &&
-                  !currentParticipants.some(
-                    (id: string) => id === messageUser.id
-                  )
+                  messageUser && !currentParticipants.some((id: string) => id === messageUser.id)
                     ? [...currentParticipants, messageUser.id]
                     : currentParticipants;
 
@@ -238,7 +221,7 @@ export const useCreateChannelMessage = (
 
           // Check if message already exists (prevent duplicates)
           const messageExists = firstPage.messages.some(
-            (msg: any) => msg.id === optimisticMessage.id
+            (msg: any) => msg.id === optimisticMessage.id,
           );
 
           if (messageExists) {
@@ -282,9 +265,7 @@ export const useCreateChannelMessage = (
           const newPages = old.pages.map((page: any) => ({
             ...page,
             messages: page.messages.map((msg: any) =>
-              msg.id === context.optimisticId
-                ? { ...realMessage, _isOptimistic: false }
-                : msg
+              msg.id === context.optimisticId ? { ...realMessage, _isOptimistic: false } : msg,
             ),
           }));
 
@@ -302,7 +283,7 @@ export const useCreateChannelMessage = (
               replies: old.replies.map((reply: any) =>
                 reply.id === context.optimisticId
                   ? { ...realMessage, _isOptimistic: false }
-                  : reply
+                  : reply,
               ),
             };
           });
@@ -319,9 +300,7 @@ export const useCreateChannelMessage = (
                     // Use server data for thread metadata if available
                     return {
                       ...msg,
-                      thread_reply_count:
-                        realMessage.thread_reply_count ||
-                        msg.thread_reply_count,
+                      thread_reply_count: realMessage.thread_reply_count || msg.thread_reply_count,
                       thread_last_reply_at: realMessage.created_at,
                       // Keep participants as is for now, server should handle this
                     };
@@ -338,7 +317,7 @@ export const useCreateChannelMessage = (
 
     // If the mutation fails, rollback
     onError: (error, variables, context) => {
-      console.error("Failed to send channel message:", error);
+      console.error('Failed to send channel message:', error);
 
       const queryKey = getInfiniteQueryKey();
 
@@ -348,19 +327,12 @@ export const useCreateChannelMessage = (
       }
 
       // Rollback thread messages if applicable
-      if (
-        context?.isThreadMessage &&
-        context?.threadParentId &&
-        context?.previousThreadMessages
-      ) {
+      if (context?.isThreadMessage && context?.threadParentId && context?.previousThreadMessages) {
         const threadQueryKey = getThreadQueryKey(context.threadParentId);
-        queryClient.setQueryData(
-          threadQueryKey,
-          context.previousThreadMessages
-        );
+        queryClient.setQueryData(threadQueryKey, context.previousThreadMessages);
       }
 
-      toast.error("Failed to send message. Please try again.");
+      toast.error('Failed to send message. Please try again.');
     },
 
     // Always refetch after error or success to ensure consistency
@@ -371,7 +343,7 @@ export const useCreateChannelMessage = (
       queryClient.invalidateQueries({
         queryKey,
         exact: true,
-        refetchType: "none", // Don't refetch immediately to avoid disrupting UX
+        refetchType: 'none', // Don't refetch immediately to avoid disrupting UX
       });
 
       // Invalidate thread messages if applicable
@@ -380,7 +352,7 @@ export const useCreateChannelMessage = (
         queryClient.invalidateQueries({
           queryKey: threadQueryKey,
           exact: true,
-          refetchType: "none",
+          refetchType: 'none',
         });
       }
 
@@ -396,54 +368,45 @@ export const useCreateChannelMessage = (
   });
 };
 
-export const useCreateConversationMessage = (
-  workspaceId: string,
-  conversationId: string
-) => {
+export const useCreateConversationMessage = (workspaceId: string, conversationId: string) => {
   const queryClient = useQueryClient();
 
   const getInfiniteQueryKey = useCallback(
-    () => ["conversation", workspaceId, conversationId, "messages", "infinite"],
-    [workspaceId, conversationId]
+    () => ['conversation', workspaceId, conversationId, 'messages', 'infinite'],
+    [workspaceId, conversationId],
   );
 
   const getThreadQueryKey = useCallback(
-    (threadParentId: string) => ["thread", workspaceId, threadParentId],
-    [workspaceId]
+    (threadParentId: string) => ['thread', workspaceId, threadParentId],
+    [workspaceId],
   );
 
   return useMutation({
-    mutationKey: ["createConversationMessage", workspaceId, conversationId],
+    mutationKey: ['createConversationMessage', workspaceId, conversationId],
 
     mutationFn: async (data: CreateMessageData) => {
-      console.log("Creating conversation message:", data);
+      console.log('Creating conversation message:', data);
 
-      const result = await messagesApi.createConversationMessage(
-        workspaceId,
-        conversationId,
-        {
-          body: data.body,
-          attachment_ids: data.attachments?.map((att) => att.id),
-          parent_message_id: data.parent_message_id,
-          thread_id: data.thread_id,
-          message_type: data.message_type,
-          plain_text: data.plain_text,
-        }
-      );
+      const result = await messagesApi.createConversationMessage(workspaceId, conversationId, {
+        body: data.body,
+        attachment_ids: data.attachments?.map((att) => att.id),
+        parent_message_id: data.parent_message_id,
+        thread_id: data.thread_id,
+        message_type: data.message_type,
+        plain_text: data.plain_text,
+      });
 
-      console.log("Conversation message created successfully:", result);
+      console.log('Conversation message created successfully:', result);
       return result;
     },
 
     onMutate: async (data) => {
-      console.log("onMutate called with:", data);
+      console.log('onMutate called with:', data);
 
       const threadParentId = data.parent_message_id || data.thread_id;
       const isThreadMessage = Boolean(threadParentId);
       const queryKey = getInfiniteQueryKey();
-      const threadQueryKey = isThreadMessage
-        ? getThreadQueryKey(threadParentId)
-        : null;
+      const threadQueryKey = isThreadMessage ? getThreadQueryKey(threadParentId) : null;
 
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey });
@@ -454,14 +417,12 @@ export const useCreateConversationMessage = (
       // Snapshot the previous values
       const previousConversationMessages = queryClient.getQueryData(queryKey);
       const previousThreadMessages =
-        isThreadMessage && threadQueryKey
-          ? queryClient.getQueryData(threadQueryKey)
-          : null;
+        isThreadMessage && threadQueryKey ? queryClient.getQueryData(threadQueryKey) : null;
 
-      const currentUser = queryClient.getQueryData(["current-user"]) as any;
+      const currentUser = queryClient.getQueryData(['current-user']) as any;
 
       if (!currentUser) {
-        console.error("No current user found for optimistic update");
+        console.error('No current user found for optimistic update');
         return {
           previousConversationMessages,
           previousThreadMessages,
@@ -476,18 +437,18 @@ export const useCreateConversationMessage = (
         channel_id: null,
         conversation_id: conversationId,
         workspace_id: workspaceId,
-        message_type: data.message_type || "direct",
+        message_type: data.message_type || 'direct',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         edited_at: null,
         deleted_at: null,
         parent_message_id: data.parent_message_id || null,
         thread_id: data.thread_id || null,
-        workspace_member_id: currentUser?.workspace_member_id || "",
+        workspace_member_id: currentUser?.workspace_member_id || '',
         user: {
-          id: currentUser?.id || "",
-          name: currentUser?.name || "You",
-          email: currentUser?.email || "",
+          id: currentUser?.id || '',
+          name: currentUser?.name || 'You',
+          email: currentUser?.email || '',
           image: currentUser?.image || null,
         },
         attachments:
@@ -496,9 +457,9 @@ export const useCreateConversationMessage = (
             public_url: attachment.publicUrl,
             content_type: attachment.contentType,
             size_bytes: attachment.sizeBytes,
-            s3_bucket: "",
-            s3_key: "",
-            uploaded_by: "",
+            s3_bucket: '',
+            s3_key: '',
+            uploaded_by: '',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })) || [],
@@ -516,17 +477,14 @@ export const useCreateConversationMessage = (
         const conversationData: any = queryClient.getQueryData(queryKey);
         if (conversationData?.pages) {
           for (const page of conversationData.pages) {
-            const parentMessage = page.messages.find(
-              (msg: any) => msg.id === threadParentId
-            );
+            const parentMessage = page.messages.find((msg: any) => msg.id === threadParentId);
             if (parentMessage) {
-              isFirstThreadMessage =
-                (parentMessage.thread_reply_count || 0) === 0;
+              isFirstThreadMessage = (parentMessage.thread_reply_count || 0) === 0;
               console.log(
-                "🧵 Parent message thread_reply_count:",
+                '🧵 Parent message thread_reply_count:',
                 parentMessage.thread_reply_count,
-                "isFirst:",
-                isFirstThreadMessage
+                'isFirst:',
+                isFirstThreadMessage,
               );
               break;
             }
@@ -572,10 +530,7 @@ export const useCreateConversationMessage = (
 
                 // Add current user to participants if not already there
                 const updatedParticipants =
-                  messageUser &&
-                  !currentParticipants.some(
-                    (id: string) => id === messageUser.id
-                  )
+                  messageUser && !currentParticipants.some((id: string) => id === messageUser.id)
                     ? [...currentParticipants, messageUser.id]
                     : currentParticipants;
 
@@ -616,7 +571,7 @@ export const useCreateConversationMessage = (
 
           // Check if message already exists (prevent duplicates)
           const messageExists = firstPage.messages.some(
-            (msg: any) => msg.id === optimisticMessage.id
+            (msg: any) => msg.id === optimisticMessage.id,
           );
 
           if (messageExists) {
@@ -660,9 +615,7 @@ export const useCreateConversationMessage = (
           const newPages = old.pages.map((page: any) => ({
             ...page,
             messages: page.messages.map((msg: any) =>
-              msg.id === context.optimisticId
-                ? { ...realMessage, _isOptimistic: false }
-                : msg
+              msg.id === context.optimisticId ? { ...realMessage, _isOptimistic: false } : msg,
             ),
           }));
 
@@ -680,7 +633,7 @@ export const useCreateConversationMessage = (
               replies: old.replies.map((reply: any) =>
                 reply.id === context.optimisticId
                   ? { ...realMessage, _isOptimistic: false }
-                  : reply
+                  : reply,
               ),
             };
           });
@@ -697,9 +650,7 @@ export const useCreateConversationMessage = (
                     // Use server data for thread metadata if available
                     return {
                       ...msg,
-                      thread_reply_count:
-                        realMessage.thread_reply_count ||
-                        msg.thread_reply_count,
+                      thread_reply_count: realMessage.thread_reply_count || msg.thread_reply_count,
                       thread_last_reply_at: realMessage.created_at,
                       // Keep participants as is for now, server should handle this
                     };
@@ -716,32 +667,22 @@ export const useCreateConversationMessage = (
 
     // If the mutation fails, rollback
     onError: (error, variables, context) => {
-      console.error("Failed to send conversation message:", error);
+      console.error('Failed to send conversation message:', error);
 
       const queryKey = getInfiniteQueryKey();
 
       // Rollback conversation messages
       if (context?.previousConversationMessages) {
-        queryClient.setQueryData(
-          queryKey,
-          context.previousConversationMessages
-        );
+        queryClient.setQueryData(queryKey, context.previousConversationMessages);
       }
 
       // Rollback thread messages if applicable
-      if (
-        context?.isThreadMessage &&
-        context?.threadParentId &&
-        context?.previousThreadMessages
-      ) {
+      if (context?.isThreadMessage && context?.threadParentId && context?.previousThreadMessages) {
         const threadQueryKey = getThreadQueryKey(context.threadParentId);
-        queryClient.setQueryData(
-          threadQueryKey,
-          context.previousThreadMessages
-        );
+        queryClient.setQueryData(threadQueryKey, context.previousThreadMessages);
       }
 
-      toast.error("Failed to send message. Please try again.");
+      toast.error('Failed to send message. Please try again.');
     },
 
     // Always refetch after error or success to ensure consistency
@@ -752,7 +693,7 @@ export const useCreateConversationMessage = (
       queryClient.invalidateQueries({
         queryKey,
         exact: true,
-        refetchType: "none", // Don't refetch immediately to avoid disrupting UX
+        refetchType: 'none', // Don't refetch immediately to avoid disrupting UX
       });
 
       // Invalidate thread messages if applicable
@@ -761,7 +702,7 @@ export const useCreateConversationMessage = (
         queryClient.invalidateQueries({
           queryKey: threadQueryKey,
           exact: true,
-          refetchType: "none",
+          refetchType: 'none',
         });
       }
 
@@ -783,41 +724,36 @@ export const useUpdateMessage = (workspaceId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      messageId,
-      data,
-    }: {
-      messageId: string;
-      data: UpdateMessageData;
-    }) => messagesApi.updateMessage(workspaceId, messageId, data),
+    mutationFn: ({ messageId, data }: { messageId: string; data: UpdateMessageData }) =>
+      messagesApi.updateMessage(workspaceId, messageId, data),
 
     onMutate: async ({ messageId, data }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       await queryClient.cancelQueries({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       await queryClient.cancelQueries({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
 
       // Snapshot previous data
       const previousData = {
         channels: queryClient.getQueriesData({
-          queryKey: ["channel", workspaceId],
+          queryKey: ['channel', workspaceId],
           exact: false,
         }),
         conversations: queryClient.getQueriesData({
-          queryKey: ["conversation", workspaceId],
+          queryKey: ['conversation', workspaceId],
           exact: false,
         }),
         threads: queryClient.getQueriesData({
-          queryKey: ["thread", workspaceId],
+          queryKey: ['thread', workspaceId],
           exact: false,
         }),
       };
@@ -837,7 +773,7 @@ export const useUpdateMessage = (workspaceId: string) => {
                         body: data.body ?? message.body,
                         edited_at: new Date().toISOString(),
                       }
-                    : message
+                    : message,
                 ) || [],
             })),
           };
@@ -851,7 +787,7 @@ export const useUpdateMessage = (workspaceId: string) => {
                     body: data.body ?? message.body,
                     edited_at: new Date().toISOString(),
                   }
-                : message
+                : message,
             ),
           };
         }
@@ -860,23 +796,23 @@ export const useUpdateMessage = (workspaceId: string) => {
 
       // Apply optimistic updates
       queryClient.setQueriesData(
-        { queryKey: ["channel", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['channel', workspaceId], exact: false },
+        updateFunction,
       );
       queryClient.setQueriesData(
-        { queryKey: ["conversation", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['conversation', workspaceId], exact: false },
+        updateFunction,
       );
       queryClient.setQueriesData(
-        { queryKey: ["thread", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['thread', workspaceId], exact: false },
+        updateFunction,
       );
 
       return previousData;
     },
 
     onError: (error, variables, context) => {
-      console.error("Failed to update message:", error);
+      console.error('Failed to update message:', error);
 
       // Rollback optimistic updates
       if (context) {
@@ -891,12 +827,12 @@ export const useUpdateMessage = (workspaceId: string) => {
         });
       }
 
-      toast.error("Failed to update message. Please try again.");
+      toast.error('Failed to update message. Please try again.');
     },
 
     onSuccess: (updatedMessage) => {
-      console.log("Message updated successfully:", updatedMessage);
-      toast.success("Message updated successfully");
+      console.log('Message updated successfully:', updatedMessage);
+      toast.success('Message updated successfully');
     },
   });
 };
@@ -908,36 +844,35 @@ export const useDeleteMessage = (workspaceId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (messageId: string) =>
-      messagesApi.deleteMessage(workspaceId, messageId),
+    mutationFn: (messageId: string) => messagesApi.deleteMessage(workspaceId, messageId),
 
     onMutate: async (messageId) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       await queryClient.cancelQueries({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       await queryClient.cancelQueries({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
 
       // Snapshot previous data
       const previousData = {
         channels: queryClient.getQueriesData({
-          queryKey: ["channel", workspaceId],
+          queryKey: ['channel', workspaceId],
           exact: false,
         }),
         conversations: queryClient.getQueriesData({
-          queryKey: ["conversation", workspaceId],
+          queryKey: ['conversation', workspaceId],
           exact: false,
         }),
         threads: queryClient.getQueriesData({
-          queryKey: ["thread", workspaceId],
+          queryKey: ['thread', workspaceId],
           exact: false,
         }),
       };
@@ -955,18 +890,21 @@ export const useDeleteMessage = (workspaceId: string) => {
                     // Mark the message as deleted
                     return { ...message, deleted_at: new Date().toISOString() };
                   }
-                  
+
                   // If this message has a thread and we're deleting one of its replies,
                   // decrement the thread count optimistically
                   const deletedMessage = page.messages?.find((m: Message) => m.id === messageId);
-                  if (deletedMessage?.threadId === message.id || deletedMessage?.parent_message_id === message.id) {
+                  if (
+                    deletedMessage?.threadId === message.id ||
+                    deletedMessage?.parent_message_id === message.id
+                  ) {
                     const currentCount = message.threadCount || 0;
                     return {
                       ...message,
                       threadCount: Math.max(0, currentCount - 1),
                     };
                   }
-                  
+
                   return message;
                 }) || [],
             })),
@@ -979,18 +917,21 @@ export const useDeleteMessage = (workspaceId: string) => {
                 // Mark the message as deleted
                 return { ...message, deleted_at: new Date().toISOString() };
               }
-              
+
               // If this message has a thread and we're deleting one of its replies,
               // decrement the thread count optimistically
               const deletedMessage = oldData.messages?.find((m: Message) => m.id === messageId);
-              if (deletedMessage?.threadId === message.id || deletedMessage?.parent_message_id === message.id) {
+              if (
+                deletedMessage?.threadId === message.id ||
+                deletedMessage?.parent_message_id === message.id
+              ) {
                 const currentCount = message.threadCount || 0;
                 return {
                   ...message,
                   threadCount: Math.max(0, currentCount - 1),
                 };
               }
-              
+
               return message;
             }),
           };
@@ -1001,7 +942,7 @@ export const useDeleteMessage = (workspaceId: string) => {
             replies: oldData.replies.map((message: Message) =>
               message.id === messageId
                 ? { ...message, deleted_at: new Date().toISOString() }
-                : message
+                : message,
             ),
           };
         }
@@ -1010,23 +951,23 @@ export const useDeleteMessage = (workspaceId: string) => {
 
       // Apply optimistic updates
       queryClient.setQueriesData(
-        { queryKey: ["channel", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['channel', workspaceId], exact: false },
+        updateFunction,
       );
       queryClient.setQueriesData(
-        { queryKey: ["conversation", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['conversation', workspaceId], exact: false },
+        updateFunction,
       );
       queryClient.setQueriesData(
-        { queryKey: ["thread", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['thread', workspaceId], exact: false },
+        updateFunction,
       );
 
       return previousData;
     },
 
     onError: (error, messageId, context) => {
-      console.error("Failed to delete message:", error);
+      console.error('Failed to delete message:', error);
 
       // Rollback optimistic updates
       if (context) {
@@ -1041,40 +982,40 @@ export const useDeleteMessage = (workspaceId: string) => {
         });
       }
 
-      toast.error("Failed to delete message. Please try again.");
+      toast.error('Failed to delete message. Please try again.');
     },
 
     onSuccess: () => {
-      console.log("Message deleted successfully");
-      toast.success("Message deleted successfully");
+      console.log('Message deleted successfully');
+      toast.success('Message deleted successfully');
 
       // Invalidate to refresh lists and update last message info
       queryClient.invalidateQueries({
-        queryKey: ["channels", workspaceId],
+        queryKey: ['channels', workspaceId],
       });
       queryClient.invalidateQueries({
-        queryKey: ["conversations", workspaceId],
+        queryKey: ['conversations', workspaceId],
       });
-      
+
       // Invalidate all thread-related queries to update thread counts and replies
       queryClient.invalidateQueries({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
-      
+
       // Invalidate infinite message queries for both channels and conversations
       queryClient.invalidateQueries({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       queryClient.invalidateQueries({
-        queryKey: ["conversation", workspaceId], 
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
-      
+
       // Invalidate any specific message queries
       queryClient.invalidateQueries({
-        queryKey: ["message", workspaceId],
+        queryKey: ['message', workspaceId],
         exact: false,
       });
     },
@@ -1084,7 +1025,7 @@ export const useDeleteMessage = (workspaceId: string) => {
 export const useTypingIndicator = (
   workspaceId: string,
   channelId?: string,
-  conversationId?: string
+  conversationId?: string,
 ) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
@@ -1098,7 +1039,7 @@ export const useTypingIndicator = (
       return messagesApi.sendTypingIndicator(endpoint, { is_typing: isTyping });
     },
     onError: (error) => {
-      console.error("Failed to send typing indicator:", error);
+      console.error('Failed to send typing indicator:', error);
     },
   });
 
@@ -1149,24 +1090,24 @@ export const useMessageReplies = (
     limit?: number;
     cursor?: string;
     before?: string;
-    entity_type?: "channel" | "conversation";
+    entity_type?: 'channel' | 'conversation';
     entity_id?: string;
-  }
+  },
 ) => {
   const {
     data,
     isLoading: isLoadingThread,
     error: threadError,
   } = useQuery({
-    queryKey: ["thread", workspaceId, messageId],
+    queryKey: ['thread', workspaceId, messageId],
     queryFn: () =>
       messagesApi.getMessageReplies({
         workspaceId,
         messageId,
         params: {
           limit: params?.limit || 50,
-          include_reactions: "true",
-          include_attachments: "true",
+          include_reactions: 'true',
+          include_attachments: 'true',
           entity_type: params?.entity_type,
           entity_id: params?.entity_id,
         },
@@ -1175,7 +1116,7 @@ export const useMessageReplies = (
       !!workspaceId &&
       !!messageId &&
       threadCount !== 0 &&
-      !messageId.includes("temp") &&
+      !messageId.includes('temp') &&
       !!params?.entity_type &&
       !!params?.entity_id,
   });
@@ -1186,24 +1127,15 @@ export const useMessageReplies = (
 /**
  * Unified hook for message operations (convenience hook)
  */
-export const useMessageOperations = (
-  workspaceId: string,
-  entityId?: string,
-  type?: string
-) => {
+export const useMessageOperations = (workspaceId: string, entityId?: string, type?: string) => {
   const createChannelMessage = useCreateChannelMessage(workspaceId, entityId!);
-  const createConversationMessage = useCreateConversationMessage(
-    workspaceId,
-    entityId!
-  );
+  const createConversationMessage = useCreateConversationMessage(workspaceId, entityId!);
   const updateMessage = useUpdateMessage(workspaceId);
   const deleteMessage = useDeleteMessage(workspaceId);
 
   return {
     createMessage:
-      entityId && type === "channel"
-        ? createChannelMessage
-        : createConversationMessage,
+      entityId && type === 'channel' ? createChannelMessage : createConversationMessage,
     updateMessage,
     deleteMessage,
     createChannelMessage,

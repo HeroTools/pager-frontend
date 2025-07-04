@@ -1,12 +1,12 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback } from 'react';
 import {
   useFileUpload,
   useDeleteAttachment,
   UploadProgress,
-} from "@/features/file-upload/hooks/use-upload";
-import { v4 as uuidv4 } from "uuid";
-import { X } from "lucide-react";
-import { UploadedAttachment } from "../types";
+} from '@/features/file-upload/hooks/use-upload';
+import { v4 as uuidv4 } from 'uuid';
+import { X } from 'lucide-react';
+import { UploadedAttachment } from '../types';
 
 interface AttachmentUploaderProps {
   workspaceId: string;
@@ -30,24 +30,22 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
   const validateFile = (file: File): string | null => {
     if (file.size > maxFileSizeBytes) {
       return `File "${file.name}" is too large. Maximum size is ${Math.round(
-        maxFileSizeBytes / 1024 / 1024
+        maxFileSizeBytes / 1024 / 1024,
       )}MB.`;
     }
 
     const allowedTypes = [
-      "image/",
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument",
-      "video/",
-      "audio/",
-      "text/",
-      "application/zip",
+      'image/',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument',
+      'video/',
+      'audio/',
+      'text/',
+      'application/zip',
     ];
 
-    const isAllowedType = allowedTypes.some((type) =>
-      file.type.startsWith(type)
-    );
+    const isAllowedType = allowedTypes.some((type) => file.type.startsWith(type));
     if (!isAllowedType) {
       return `File type "${file.type}" is not supported.`;
     }
@@ -69,21 +67,19 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
         .filter((error) => error !== null);
 
       if (validationErrors.length > 0) {
-        alert(validationErrors.join("\n"));
+        alert(validationErrors.join('\n'));
         return;
       }
 
-      const initialAttachments: UploadedAttachment[] = fileArray.map(
-        (file) => ({
-          id: `temp-${uuidv4()}`,
-          originalFilename: file.name,
-          contentType: file.type,
-          sizeBytes: file.size,
-          publicUrl: "",
-          uploadProgress: 0,
-          status: "uploading",
-        })
-      );
+      const initialAttachments: UploadedAttachment[] = fileArray.map((file) => ({
+        id: `temp-${uuidv4()}`,
+        originalFilename: file.name,
+        contentType: file.type,
+        sizeBytes: file.size,
+        publicUrl: '',
+        uploadProgress: 0,
+        status: 'uploading',
+      }));
 
       setAttachments((prev) => [...prev, ...initialAttachments]);
 
@@ -100,10 +96,10 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
                   };
                 }
                 return att;
-              })
+              }),
             );
           },
-          3
+          3,
         );
 
         setAttachments((prev) => {
@@ -112,7 +108,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
 
             if (resultIndex >= 0 && resultIndex < results.length) {
               const result = results[resultIndex];
-              console.log(result, "result.publicUrl");
+              console.log(result, 'result.publicUrl');
               return {
                 id: result.attachmentId || att.id,
                 originalFilename: att.originalFilename,
@@ -120,10 +116,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
                 sizeBytes: att.sizeBytes,
                 publicUrl: result.publicUrl,
                 uploadProgress: 100,
-                status:
-                  result.status === "success"
-                    ? ("completed" as const)
-                    : ("error" as const),
+                status: result.status === 'success' ? ('completed' as const) : ('error' as const),
                 error: result.error,
               };
             }
@@ -131,27 +124,25 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
             return att;
           });
 
-          const completedAttachments = newAttachments.filter(
-            (att) => att.status === "completed"
-          );
+          const completedAttachments = newAttachments.filter((att) => att.status === 'completed');
           onAttachmentsChange(completedAttachments);
 
           return newAttachments;
         });
       } catch (error) {
-        console.error("Upload failed:", error);
+        console.error('Upload failed:', error);
 
         // Mark all uploading files as failed
         setAttachments((prev) =>
           prev.map((att) =>
-            att.status === "uploading"
-              ? { ...att, status: "error" as const, error: "Upload failed" }
-              : att
-          )
+            att.status === 'uploading'
+              ? { ...att, status: 'error' as const, error: 'Upload failed' }
+              : att,
+          ),
         );
       }
     },
-    [attachments.length, maxFiles, uploadMultipleFiles, onAttachmentsChange]
+    [attachments.length, maxFiles, uploadMultipleFiles, onAttachmentsChange],
   );
 
   const removeAttachment = async (attachmentId: string) => {
@@ -159,26 +150,21 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
     if (!attachment) return;
 
     // If the attachment was successfully uploaded, delete it from the server
-    if (
-      attachment.status === "completed" &&
-      !attachmentId.startsWith("temp-")
-    ) {
+    if (attachment.status === 'completed' && !attachmentId.startsWith('temp-')) {
       try {
         await deleteAttachmentMutation.mutateAsync({
           attachmentId,
           workspaceId,
         });
       } catch (error) {
-        console.error("Failed to delete attachment:", error);
+        console.error('Failed to delete attachment:', error);
         // Continue with local removal even if server deletion fails
       }
     }
 
     setAttachments((prev) => {
       const newAttachments = prev.filter((att) => att.id !== attachmentId);
-      const completedAttachments = newAttachments.filter(
-        (att) => att.status === "completed"
-      );
+      const completedAttachments = newAttachments.filter((att) => att.status === 'completed');
       onAttachmentsChange(completedAttachments);
       return newAttachments;
     });
@@ -190,7 +176,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
       setIsDragging(false);
       handleFiles(e.dataTransfer.files);
     },
-    [handleFiles]
+    [handleFiles],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -204,11 +190,11 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
   }, []);
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) return '0 Bytes';
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
@@ -218,17 +204,15 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
           border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200
           ${
             isDragging
-              ? "border-primary bg-accent/50 scale-[1.02]"
-              : "border-border bg-card hover:border-primary hover:bg-accent/30"
+              ? 'border-primary bg-accent/50 scale-[1.02]'
+              : 'border-border bg-card hover:border-primary hover:bg-accent/30'
           }
-          ${isUploading ? "pointer-events-none opacity-75" : ""}
+          ${isUploading ? 'pointer-events-none opacity-75' : ''}
         `}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onClick={() =>
-          !isUploading && document.getElementById("file-input")?.click()
-        }
+        onClick={() => !isUploading && document.getElementById('file-input')?.click()}
       >
         <input
           id="file-input"
@@ -240,13 +224,10 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
         />
         <div className="space-y-2">
           <p className="text-foreground">
-            {isUploading
-              ? "Uploading files..."
-              : "Drop files here or click to browse"}
+            {isUploading ? 'Uploading files...' : 'Drop files here or click to browse'}
           </p>
           <p className="text-sm text-muted-foreground">
-            Max {maxFiles} files, up to{" "}
-            {Math.round(maxFileSizeBytes / 1024 / 1024)}MB each
+            Max {maxFiles} files, up to {Math.round(maxFileSizeBytes / 1024 / 1024)}MB each
           </p>
         </div>
       </div>
@@ -267,7 +248,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
                 </div>
               </div>
 
-              {attachment.status === "uploading" && (
+              {attachment.status === 'uploading' && (
                 <div className="flex-1 mx-4">
                   <div className="w-full bg-muted rounded-full h-1 overflow-hidden">
                     <div
@@ -281,16 +262,12 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
                 </div>
               )}
 
-              {attachment.status === "error" && (
-                <div className="flex-1 mx-4 text-xs text-destructive">
-                  {attachment.error}
-                </div>
+              {attachment.status === 'error' && (
+                <div className="flex-1 mx-4 text-xs text-destructive">{attachment.error}</div>
               )}
 
-              {attachment.status === "completed" && (
-                <div className="flex-1 mx-4 text-xs text-green-600">
-                  ✓ Uploaded
-                </div>
+              {attachment.status === 'completed' && (
+                <div className="flex-1 mx-4 text-xs text-green-600">✓ Uploaded</div>
               )}
 
               <button
