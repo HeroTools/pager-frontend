@@ -1,4 +1,3 @@
-// Enums
 export type MessageType = 'text' | 'file' | 'system' | 'bot' | 'thread_reply';
 export type ChannelMemberRole = 'admin' | 'member';
 export type WorkspaceMemberRole = 'admin' | 'member';
@@ -151,7 +150,7 @@ export interface AuditLog extends Omit<BaseEntity, 'updated_at'> {
   action: string;
   resource_type: string;
   resource_id?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   ip_address?: string;
   user_agent?: string;
 }
@@ -329,11 +328,11 @@ export interface QueryOptions {
   orderBy?: Record<string, 'asc' | 'desc'>;
   take?: number;
   skip?: number;
-  where?: Record<string, any>;
+  where?: Record<string, unknown>;
 }
 
 // Real-time event types (for WebSocket/Server-Sent Events)
-export interface RealtimeEvent<T = any> {
+export interface RealtimeEvent<T = unknown> {
   type: string;
   workspace_id: string;
   channel_id?: string;

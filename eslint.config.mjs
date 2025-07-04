@@ -1,8 +1,6 @@
-// eslint.config.mjs
-
 import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
-import typescriptParser from '@typescript-eslint/parser'; // ✅ actual parser module
+import typescriptParser from '@typescript-eslint/parser';
 import pluginReact from 'eslint-plugin-react';
 import pluginReactHooks from 'eslint-plugin-react-hooks';
 import pluginNext from '@next/eslint-plugin-next';
@@ -13,23 +11,21 @@ const compat = new FlatCompat({
   recommendedConfig: js.configs.recommended,
 });
 
-export default [
-  // 1. Built-in Next.js + TypeScript rules
+const config = [
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
 
-  // 2. Prettier styling overrides
   eslintConfigPrettier,
 
-  // 3. Custom project-level rules
   {
     files: ['**/*.{js,jsx,ts,tsx,mjs,cjs}'],
     languageOptions: {
-      parser: typescriptParser, // ✅ parser module, not string
+      parser: typescriptParser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
         ecmaFeatures: { jsx: true },
         project: './tsconfig.json',
+        tsconfigRootDir: '.',
       },
     },
     plugins: {
@@ -47,8 +43,9 @@ export default [
     },
   },
 
-  // 4. Global ignore patterns
   {
     ignores: ['node_modules/', '.next/', 'public/', 'dist/', 'build/'],
   },
 ];
+
+export default config;
