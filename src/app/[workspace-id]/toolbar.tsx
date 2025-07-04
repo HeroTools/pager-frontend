@@ -1,4 +1,4 @@
-import { Search, Hash, MessageCircle, Sparkles, Loader2 } from "lucide-react";
+import { Search, Hash, Sparkles, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDebounce } from "use-debounce";
@@ -13,17 +13,6 @@ import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
 import { useWorkspaceId } from "@/hooks/use-workspace-id";
 import { useSearch } from "@/features/search/hooks/use-search";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-
-const ContextIcon = ({ type }: { type: string }) => {
-  switch (type) {
-    case "channel":
-      return <Hash className="size-3" />;
-    case "conversation":
-      return <MessageCircle className="size-3" />;
-    default:
-      return <MessageCircle className="size-3" />;
-  }
-};
 
 const AIAnswerSection = ({
   answer,
@@ -77,7 +66,6 @@ export const Toolbar = () => {
   const router = useRouter();
   const workspaceId = useWorkspaceId() as string;
 
-  const { data: workspace } = useGetWorkspace(workspaceId);
   const { data: channels } = useGetAllAvailableChannels(workspaceId);
   const { data: members } = useGetMembers(workspaceId);
 
@@ -88,14 +76,14 @@ export const Toolbar = () => {
   const shouldSearchMessages = debouncedQuery.trim().length >= 2;
 
   // Remote search (debounced)
-  const {
-    data: searchData,
-    isLoading: isSearching,
-    error: searchError,
-  } = useSearch(workspaceId, debouncedQuery, {
-    includeThreads: true,
-    limit: 15,
-  });
+  const { data: searchData, isLoading: isSearching } = useSearch(
+    workspaceId,
+    debouncedQuery,
+    {
+      includeThreads: true,
+      limit: 15,
+    }
+  );
 
   // Always filter channels/members locally
   const filteredChannels = useMemo(() => {
@@ -113,12 +101,6 @@ export const Toolbar = () => {
       .filter((member) => member.user.name.toLowerCase().includes(query))
       .slice(0, 5);
   }, [members, inputValue]);
-
-  // For highlighting AI-referenced results
-  const referencedMessageIds = useMemo(
-    () => new Set(searchData?.references?.map((ref) => ref.messageId) || []),
-    [searchData?.references]
-  );
 
   // Click handlers
   const handleChannelClick = useCallback(
@@ -160,10 +142,6 @@ export const Toolbar = () => {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Show local sections always if query matches, only show remote when ready
-  const hasQuery = inputValue.trim().length > 0;
-  const hasChannelResults = filteredChannels.length > 0;
-  const hasMemberResults = filteredMembers.length > 0;
   const uniqueResults = useMemo(() => {
     const seen = new Set();
     return (searchData?.results || []).filter((r) => {
