@@ -2,13 +2,23 @@ import React, { useState, ReactNode } from "react";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
 import { useTheme } from "next-themes";
+import { Smile } from "lucide-react";
+
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Smile } from "lucide-react";
+
+interface EmojiData {
+  id: string;
+  name: string;
+  native: string;
+  unified: string;
+  keywords: string[];
+  shortcodes: string;
+}
 
 interface EmojiPickerProps {
   onSelect: (emoji: string) => void;
@@ -23,17 +33,23 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   open,
   onOpenChange,
 }) => {
-  const { systemTheme } = useTheme();
-  const [internalOpen, setInternalOpen] = useState(false);
-  const isControlled =
-    typeof open === "boolean" && typeof onOpenChange === "function";
-  const popoverOpen = isControlled ? open! : internalOpen;
-  const setOpen = (val: boolean) => {
-    if (isControlled) {
-      onOpenChange!(val);
+  const { resolvedTheme } = useTheme();
+  const [internalOpen, setInternalOpen] = useState<boolean>(false);
+
+  const isControlled = open !== undefined && onOpenChange !== undefined;
+  const popoverOpen = isControlled ? open : internalOpen;
+
+  const setOpen = (val: boolean): void => {
+    if (isControlled && onOpenChange) {
+      onOpenChange(val);
     } else {
       setInternalOpen(val);
     }
+  };
+
+  const handleEmojiSelect = (emoji: EmojiData): void => {
+    onSelect(emoji.native);
+    setOpen(false);
   };
 
   const defaultTrigger = (
@@ -57,11 +73,8 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
       >
         <Picker
           data={data}
-          onEmojiSelect={(emoji: any) => {
-            onSelect(emoji.native);
-            setOpen(false);
-          }}
-          theme={systemTheme === "dark" ? "dark" : "light"}
+          onEmojiSelect={handleEmojiSelect}
+          theme={resolvedTheme === "dark" ? "dark" : "light"}
           set="native"
           previewPosition="none"
           skinTonePosition="none"
