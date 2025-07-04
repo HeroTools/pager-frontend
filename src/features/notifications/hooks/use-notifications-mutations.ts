@@ -5,207 +5,258 @@ import type {
   MarkNotificationReadResponse,
   MarkAllNotificationsReadResponse,
   NotificationsResponse,
+  NotificationEntity,
 } from '@/features/notifications/types';
 import type { InfiniteData } from '@tanstack/react-query';
 
 type NotificationsInfiniteData = InfiniteData<NotificationsResponse, string | null>;
 
-/**
- * Hook to mark one or multiple notifications as read.
- */
+interface UnreadCountData {
+  unread_count: number;
+}
+
+interface MarkNotificationMutationParams {
+  notificationIds: string[];
+  workspaceId: string;
+}
+
+interface NotificationMutationContext {
+  prevList?: NotificationsInfiniteData;
+  prevUnread?: NotificationsInfiniteData;
+  prevCount?: UnreadCountData;
+}
+
+interface NotificationQueryKeys {
+  list: readonly unknown[];
+  unread: readonly unknown[];
+  unreadCount: readonly unknown[];
+}
+
 export function useMarkNotificationAsRead() {
   const queryClient = useQueryClient();
 
   return useMutation<
     MarkNotificationReadResponse,
     Error,
-    { notificationIds: string[]; workspaceId: string }
+    MarkNotificationMutationParams,
+    NotificationMutationContext
   >({
-    mutationFn: ({ notificationIds, workspaceId }) =>
+    mutationFn: ({ notificationIds, workspaceId }: MarkNotificationMutationParams) =>
       notificationsApi.markNotificationAsRead(workspaceId, notificationIds),
 
-    onMutate: async ({ notificationIds, workspaceId }) => {
+    onMutate: async ({ notificationIds, workspaceId }): Promise<NotificationMutationContext> => {
+      const queryKeys: NotificationQueryKeys = {
+        list: notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
+        unread: notificationKeys.unread(workspaceId),
+        unreadCount: notificationKeys.unreadCount(workspaceId),
+      };
+
       await Promise.all([
-        queryClient.cancelQueries({
-          queryKey: notificationKeys.list(workspaceId, {
-            limit: 50,
-            unreadOnly: false,
-          }),
-        }),
-        queryClient.cancelQueries({
-          queryKey: notificationKeys.unread(workspaceId),
-        }),
-        queryClient.cancelQueries({
-          queryKey: notificationKeys.unreadCount(workspaceId),
-        }),
+        queryClient.cancelQueries({ queryKey: queryKeys.list }),
+        queryClient.cancelQueries({ queryKey: queryKeys.unread }),
+        queryClient.cancelQueries({ queryKey: queryKeys.unreadCount }),
       ]);
 
       const now = new Date().toISOString();
 
-      const updatePages = (data?: NotificationsInfiniteData) =>
-        data
-          ? {
-              ...data,
-              pages: data.pages.map((page) => {
-                const countRead = page.notifications.filter((n) =>
-                  notificationIds.includes(n.id),
-                ).length;
-                return {
-                  ...page,
-                  notifications: page.notifications.map((n) =>
-                    notificationIds.includes(n.id) ? { ...n, is_read: true, read_at: now } : n,
-                  ),
-                  unread_count: Math.max(0, (page as any).unread_count - countRead),
-                };
-              }),
-            }
-          : data;
+      const updatePages = (
+        data?: NotificationsInfiniteData,
+      ): NotificationsInfiniteData | undefined => {
+        if (!data) return data;
 
-      const prevList = queryClient.getQueryData<NotificationsInfiniteData>(
-        notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
-      );
-      const prevUnread = queryClient.getQueryData<NotificationsInfiniteData>(
-        notificationKeys.unread(workspaceId),
-      );
-      const prevCount = queryClient.getQueryData<{ unread_count: number }>(
-        notificationKeys.unreadCount(workspaceId),
-      );
+        return {
+          ...data,
+          pages: data.pages.map((page) => {
+            const unreadNotificationsBeingMarked = page.notifications.filter(
+              (notification) => notificationIds.includes(notification.id) && !notification.is_read,
+            );
+            const countRead = unreadNotificationsBeingMarked.length;
 
-      queryClient.setQueryData(
-        notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
-        updatePages,
-      );
-      queryClient.setQueryData(notificationKeys.unread(workspaceId), updatePages);
+            return {
+              ...page,
+              notifications: page.notifications.map((notification) =>
+                notificationIds.includes(notification.id)
+                  ? { ...notification, is_read: true, read_at: now }
+                  : notification,
+              ),
+              unread_count: Math.max(0, page.unread_count - countRead),
+            };
+          }),
+        };
+      };
+
+      const removeFromUnreadPages = (
+        data?: NotificationsInfiniteData,
+      ): NotificationsInfiniteData | undefined => {
+        if (!data) return data;
+
+        return {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            notifications: page.notifications.filter(
+              (notification) => !notificationIds.includes(notification.id),
+            ),
+            unread_count: Math.max(0, page.unread_count - notificationIds.length),
+          })),
+        };
+      };
+
+      const prevList = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.list);
+      const prevUnread = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.unread);
+      const prevCount = queryClient.getQueryData<UnreadCountData>(queryKeys.unreadCount);
+
+      queryClient.setQueryData(queryKeys.list, updatePages);
+      queryClient.setQueryData(queryKeys.unread, removeFromUnreadPages);
+
       if (prevCount) {
-        queryClient.setQueryData(notificationKeys.unreadCount(workspaceId), {
-          unread_count: Math.max(0, prevCount.unread_count - notificationIds.length),
+        const unreadToMarkCount = notificationIds.length;
+        queryClient.setQueryData<UnreadCountData>(queryKeys.unreadCount, {
+          unread_count: Math.max(0, prevCount.unread_count - unreadToMarkCount),
         });
       }
 
       return { prevList, prevUnread, prevCount };
     },
 
-    onError: (err, { workspaceId }, ctx) => {
-      if (ctx?.prevList)
-        queryClient.setQueryData(
-          notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
-          ctx.prevList,
-        );
-      if (ctx?.prevUnread)
-        queryClient.setQueryData(notificationKeys.unread(workspaceId), ctx.prevUnread);
-      if (ctx?.prevCount)
-        queryClient.setQueryData(notificationKeys.unreadCount(workspaceId), ctx.prevCount);
-      console.error('Error marking notifications read:', err);
+    onError: (
+      err: Error,
+      { workspaceId }: MarkNotificationMutationParams,
+      context?: NotificationMutationContext,
+    ) => {
+      const queryKeys: NotificationQueryKeys = {
+        list: notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
+        unread: notificationKeys.unread(workspaceId),
+        unreadCount: notificationKeys.unreadCount(workspaceId),
+      };
+
+      if (context?.prevList) {
+        queryClient.setQueryData(queryKeys.list, context.prevList);
+      }
+      if (context?.prevUnread) {
+        queryClient.setQueryData(queryKeys.unread, context.prevUnread);
+      }
+      if (context?.prevCount) {
+        queryClient.setQueryData(queryKeys.unreadCount, context.prevCount);
+      }
+
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Error marking notifications read:', errorMessage);
     },
 
-    onSettled: (_data, _error, { workspaceId }) => {
-      queryClient.invalidateQueries({
-        queryKey: notificationKeys.list(workspaceId, {
-          limit: 50,
-          unreadOnly: false,
-        }),
-      });
-      queryClient.invalidateQueries({
-        queryKey: notificationKeys.unread(workspaceId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: notificationKeys.unreadCount(workspaceId),
-      });
+    onSettled: (_data, _error, { workspaceId }: MarkNotificationMutationParams) => {
+      const queryKeys: NotificationQueryKeys = {
+        list: notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
+        unread: notificationKeys.unread(workspaceId),
+        unreadCount: notificationKeys.unreadCount(workspaceId),
+      };
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.list });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unread });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount });
     },
   });
 }
 
-/**
- * Hook to mark all notifications as read.
- */
 export function useMarkAllNotificationsAsRead() {
   const queryClient = useQueryClient();
 
-  return useMutation<MarkAllNotificationsReadResponse, Error, string>({
-    mutationFn: (workspaceId) => notificationsApi.markAllNotificationsAsRead(workspaceId),
+  return useMutation<MarkAllNotificationsReadResponse, Error, string, NotificationMutationContext>({
+    mutationFn: (workspaceId: string) => notificationsApi.markAllNotificationsAsRead(workspaceId),
 
-    onMutate: async (workspaceId) => {
+    onMutate: async (workspaceId: string): Promise<NotificationMutationContext> => {
+      const queryKeys: NotificationQueryKeys = {
+        list: notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
+        unread: notificationKeys.unread(workspaceId),
+        unreadCount: notificationKeys.unreadCount(workspaceId),
+      };
+
       await Promise.all([
-        queryClient.cancelQueries({
-          queryKey: notificationKeys.list(workspaceId, {
-            limit: 50,
-            unreadOnly: false,
-          }),
-        }),
-        queryClient.cancelQueries({
-          queryKey: notificationKeys.unread(workspaceId),
-        }),
-        queryClient.cancelQueries({
-          queryKey: notificationKeys.unreadCount(workspaceId),
-        }),
+        queryClient.cancelQueries({ queryKey: queryKeys.list }),
+        queryClient.cancelQueries({ queryKey: queryKeys.unread }),
+        queryClient.cancelQueries({ queryKey: queryKeys.unreadCount }),
       ]);
 
       const now = new Date().toISOString();
 
-      const markAll = (data?: NotificationsInfiniteData) =>
-        data
-          ? {
-              ...data,
-              pages: data.pages.map((page) => ({
-                ...page,
-                notifications: page.notifications.map((n) => ({
-                  ...n,
-                  is_read: true,
-                  read_at: now,
-                })),
-                unread_count: 0,
-              })),
-            }
-          : data;
+      const markAllRead = (
+        data?: NotificationsInfiniteData,
+      ): NotificationsInfiniteData | undefined => {
+        if (!data) return data;
 
-      const prevList = queryClient.getQueryData<NotificationsInfiniteData>(
-        notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
-      );
-      const prevUnread = queryClient.getQueryData<NotificationsInfiniteData>(
-        notificationKeys.unread(workspaceId),
-      );
-      const prevCount = queryClient.getQueryData<{ unread_count: number }>(
-        notificationKeys.unreadCount(workspaceId),
-      );
+        return {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            notifications: page.notifications.map((notification: NotificationEntity) => ({
+              ...notification,
+              is_read: true,
+              read_at: now,
+            })),
+            unread_count: 0,
+          })),
+        };
+      };
 
-      queryClient.setQueryData(
-        notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
-        markAll,
-      );
-      queryClient.setQueryData(notificationKeys.unread(workspaceId), markAll);
-      queryClient.setQueryData(notificationKeys.unreadCount(workspaceId), {
+      const clearUnreadPages = (
+        data?: NotificationsInfiniteData,
+      ): NotificationsInfiniteData | undefined => {
+        if (!data) return data;
+
+        return {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            notifications: [],
+            unread_count: 0,
+          })),
+        };
+      };
+
+      const prevList = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.list);
+      const prevUnread = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.unread);
+      const prevCount = queryClient.getQueryData<UnreadCountData>(queryKeys.unreadCount);
+
+      queryClient.setQueryData(queryKeys.list, markAllRead);
+      queryClient.setQueryData(queryKeys.unread, clearUnreadPages);
+      queryClient.setQueryData<UnreadCountData>(queryKeys.unreadCount, {
         unread_count: 0,
       });
 
       return { prevList, prevUnread, prevCount };
     },
 
-    onError: (err, workspaceId, ctx) => {
-      if (ctx?.prevList)
-        queryClient.setQueryData(
-          notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
-          ctx.prevList,
-        );
-      if (ctx?.prevUnread)
-        queryClient.setQueryData(notificationKeys.unread(workspaceId), ctx.prevUnread);
-      if (ctx?.prevCount)
-        queryClient.setQueryData(notificationKeys.unreadCount(workspaceId), ctx.prevCount);
-      console.error('Error marking all notifications read:', err);
+    onError: (err: Error, workspaceId: string, context?: NotificationMutationContext) => {
+      const queryKeys: NotificationQueryKeys = {
+        list: notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
+        unread: notificationKeys.unread(workspaceId),
+        unreadCount: notificationKeys.unreadCount(workspaceId),
+      };
+
+      if (context?.prevList) {
+        queryClient.setQueryData(queryKeys.list, context.prevList);
+      }
+      if (context?.prevUnread) {
+        queryClient.setQueryData(queryKeys.unread, context.prevUnread);
+      }
+      if (context?.prevCount) {
+        queryClient.setQueryData(queryKeys.unreadCount, context.prevCount);
+      }
+
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Error marking all notifications read:', errorMessage);
     },
 
-    onSettled: (_data, _error, workspaceId) => {
-      queryClient.invalidateQueries({
-        queryKey: notificationKeys.list(workspaceId, {
-          limit: 50,
-          unreadOnly: false,
-        }),
-      });
-      queryClient.invalidateQueries({
-        queryKey: notificationKeys.unread(workspaceId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: notificationKeys.unreadCount(workspaceId),
-      });
+    onSettled: (_data, _error, workspaceId: string) => {
+      const queryKeys: NotificationQueryKeys = {
+        list: notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
+        unread: notificationKeys.unread(workspaceId),
+        unreadCount: notificationKeys.unreadCount(workspaceId),
+      };
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.list });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unread });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount });
     },
   });
 }

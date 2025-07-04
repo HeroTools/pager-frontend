@@ -24,13 +24,10 @@ export const useNotificationContext = () => {
     [currentEntityId, currentEntityType],
   );
 
-  // Simplified logic - browser notifications should show when tab not focused
-  const shouldShowBrowserNotification = useCallback(
-    (notification: NotificationEntity): boolean => {
-      return !isFocused;
-    },
-    [isFocused],
-  );
+  // browser notifications should show when tab not focused
+  const shouldShowBrowserNotification = useCallback((): boolean => {
+    return !isFocused;
+  }, [isFocused]);
 
   // Toast notifications should show when not focused OR not for current entity
   const shouldShowToast = useCallback(
@@ -62,21 +59,14 @@ export const useNotificationContext = () => {
   );
 
   return {
-    // Context info
     currentEntityId,
     currentEntityType,
     workspaceId,
     isFocused,
-
-    // Core logic
     isNotificationForCurrentEntity,
-
-    // Display decisions
     shouldShowBrowserNotification,
     shouldShowToast,
     shouldCreateUnreadNotification,
-
-    // Utility functions
     getNotificationsToMarkAsRead,
   };
 };

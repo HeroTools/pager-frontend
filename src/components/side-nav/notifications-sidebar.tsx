@@ -95,21 +95,6 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
     }
   };
 
-  const formatNotificationMessage = (message: string) => {
-    try {
-      const parsed = JSON.parse(message);
-      if (parsed.ops && Array.isArray(parsed.ops)) {
-        return parsed.ops
-          .map((op: any) => op.insert)
-          .join('')
-          .trim();
-      }
-    } catch {
-      // If parsing fails, return the message as is
-    }
-    return message;
-  };
-
   if (isLoading) {
     return (
       <div className="flex flex-col h-full bg-background">
@@ -221,7 +206,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
                   </div>
 
                   <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                    {formatNotificationMessage(notification.message)}
+                    {notification.message}
                   </p>
 
                   <div className="flex items-center gap-2 text-xs text-text-subtle pt-0.5">

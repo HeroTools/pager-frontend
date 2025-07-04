@@ -116,7 +116,7 @@ class BrowserNotificationService {
 
       this.activeNotifications.set(notification.id, browserNotification);
 
-      browserNotification.onclick = (event: Event): void => {
+      browserNotification.onclick = (): void => {
         if (typeof window !== 'undefined') {
           window.focus();
         }

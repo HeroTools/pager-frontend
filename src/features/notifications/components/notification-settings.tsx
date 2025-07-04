@@ -1,4 +1,6 @@
-import { Bell, BellOff, Chrome, Settings } from 'lucide-react';
+import { Bell, Chrome, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
 import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useState, useEffect } from 'react';
 
 interface NotificationPreferences {
   soundEnabled: boolean;
@@ -123,11 +124,11 @@ export const NotificationSettings = () => {
                 <p className="font-medium">How to enable notifications:</p>
                 <ol className="mt-2 space-y-1 text-muted-foreground">
                   <li>
-                    1. Click the <Chrome className="inline h-3 w-3" /> icon in your browser's
+                    1. Click the <Chrome className="inline h-3 w-3" /> icon in your browser&apos;s
                     address bar
                   </li>
-                  <li>2. Find "Notifications" in the site settings</li>
-                  <li>3. Change from "Block" to "Allow"</li>
+                  <li>2. Find &quot;Notifications&quot; in the site settings</li>
+                  <li>3. Change from &quot;Block&quot; to &quot;Allow&quot;</li>
                   <li>4. Refresh this page</li>
                 </ol>
               </div>
