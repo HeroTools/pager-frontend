@@ -4,9 +4,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 // Routes that don't require authentication
 const PUBLIC_ROUTES = ['/auth', '/login', '/signup', '/forgot-password', '/join', '/register'];
 
-// Routes that require authentication but don't need workspace context
-const AUTH_ONLY_ROUTES = ['/onboarding', '/workspaces'];
-
 // API routes that should be excluded from auth checks
 const PUBLIC_API_ROUTES = ['/api/auth', '/api/public', '/api/webhooks'];
 
@@ -24,7 +21,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
             request,
           });
@@ -47,7 +44,6 @@ export async function updateSession(request: NextRequest) {
 
   // Check route types
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
-  const isAuthOnlyRoute = AUTH_ONLY_ROUTES.some((route) => pathname.startsWith(route));
   const isPublicApiRoute = PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route));
 
   // Check if the path is a workspace ID (root level)
