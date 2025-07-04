@@ -1,15 +1,11 @@
-import React, { useState, ReactNode } from "react";
-import Picker from "@emoji-mart/react";
-import data from "@emoji-mart/data";
-import { useTheme } from "next-themes";
-import { Smile } from "lucide-react";
+import React, { useState, ReactNode } from 'react';
+import Picker from '@emoji-mart/react';
+import data from '@emoji-mart/data';
+import { useTheme } from 'next-themes';
+import { Smile } from 'lucide-react';
 
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 
 interface EmojiData {
   id: string;
@@ -27,12 +23,7 @@ interface EmojiPickerProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const EmojiPicker: React.FC<EmojiPickerProps> = ({
-  onSelect,
-  trigger,
-  open,
-  onOpenChange,
-}) => {
+const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, trigger, open, onOpenChange }) => {
   const { resolvedTheme } = useTheme();
   const [internalOpen, setInternalOpen] = useState<boolean>(false);
 
@@ -53,11 +44,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   };
 
   const defaultTrigger = (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-    >
+    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-sidebar-hover">
       <Smile className="w-4 h-4" />
     </Button>
   );
@@ -74,7 +61,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
         <Picker
           data={data}
           onEmojiSelect={handleEmojiSelect}
-          theme={resolvedTheme === "dark" ? "dark" : "light"}
+          theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
           set="native"
           previewPosition="none"
           skinTonePosition="none"

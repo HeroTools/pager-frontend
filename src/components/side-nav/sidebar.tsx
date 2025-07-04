@@ -1,16 +1,16 @@
-"use client";
-import { Bell, Home, MessagesSquare, MoreHorizontal } from "lucide-react";
-import { UserButton } from "@/features/auth";
-import { SidebarButton } from "./sidebar-button";
-import { WorkspaceSwitcher } from "./workspace-switcher";
-import { useParamIds } from "@/hooks/use-param-ids";
-import { useUnreadCount } from "@/features/notifications/hooks/use-notifications";
-import { useUIStore } from "@/store/ui-store";
+'use client';
+import { Bell, Home, MessagesSquare, MoreHorizontal } from 'lucide-react';
+import { UserButton } from '@/features/auth';
+import { SidebarButton } from './sidebar-button';
+import { WorkspaceSwitcher } from './workspace-switcher';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { useUnreadCount } from '@/features/notifications/hooks/use-notifications';
+import { useUIStore } from '@/store/ui-store';
 
 export const Sidebar = () => {
   const { workspaceId } = useParamIds();
   const { isNotificationsPanelOpen, toggleNotificationsPanel } = useUIStore();
-  const { data: unreadData } = useUnreadCount(workspaceId || "");
+  const { data: unreadData } = useUnreadCount(workspaceId || '');
   const unreadCount = unreadData?.unread_count || 0;
 
   const handleHomeClick = () => {

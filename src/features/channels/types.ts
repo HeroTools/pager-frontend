@@ -5,8 +5,8 @@ import {
   ApiResponse,
   ChannelType,
   Attachment,
-} from "@/types/database";
-import { MessageWithUser } from "../messages/types";
+} from '@/types/database';
+import { MessageWithUser } from '../messages/types';
 
 // Use the database Channel type directly
 export type ChannelEntity = Channel;
@@ -22,7 +22,7 @@ export interface ChannelMemberData {
   id: string;
   name: string;
   avatar?: string;
-  role?: "admin" | "member";
+  role?: 'admin' | 'member';
   workspace_member_id: string;
   email: string;
 }
@@ -52,7 +52,7 @@ export interface AddChannelMembersData {
 }
 
 export interface UpdateChannelMemberData {
-  role?: "admin" | "member";
+  role?: 'admin' | 'member';
   notifications_enabled?: boolean;
 }
 
@@ -69,7 +69,7 @@ export interface ChannelListItem extends ChannelEntity {
   unread_count?: number;
   last_message_at?: string;
   is_member?: boolean;
-  member_role?: "admin" | "member";
+  member_role?: 'admin' | 'member';
 }
 
 // Form data types for UI components
@@ -82,7 +82,7 @@ export interface ChannelFormData {
 // Channel invitation types
 export interface ChannelInviteData {
   email: string;
-  role?: "admin" | "member";
+  role?: 'admin' | 'member';
 }
 
 export interface ChannelMemberWithUser {

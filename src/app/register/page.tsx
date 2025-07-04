@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Loader } from "lucide-react";
-import Image from "next/image";
-import { SignUpCard } from "@/features/auth/components/sign-up-card";
-import { useWorkspaceFromInviteToken } from "@/features/workspaces/hooks/use-workspaces";
+import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Loader } from 'lucide-react';
+import Image from 'next/image';
+import { SignUpCard } from '@/features/auth/components/sign-up-card';
+import { useWorkspaceFromInviteToken } from '@/features/workspaces/hooks/use-workspaces';
 
 const RegisterPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const invitation = searchParams.get("invitation");
-  const [step, setStep] = useState<"signup" | "joining" | "joined">("signup");
+  const invitation = searchParams.get('invitation');
+  const [step, setStep] = useState<'signup' | 'joining' | 'joined'>('signup');
   const [joinedWorkspaceId, setJoinedWorkspaceId] = useState<string | null>(null);
 
   // Fetch workspace info from invite token
@@ -23,12 +23,12 @@ const RegisterPage = () => {
 
   // Callback for after successful registration
   const handleRegisterSuccess = (workspaceId?: string) => {
-    setStep("joined");
+    setStep('joined');
     setJoinedWorkspaceId(workspaceId || null);
     if (workspaceId) {
       setTimeout(() => router.replace(`/${workspaceId}`), 1500);
     } else {
-      setTimeout(() => router.replace("/"), 1500);
+      setTimeout(() => router.replace('/'), 1500);
     }
   };
 
@@ -40,9 +40,7 @@ const RegisterPage = () => {
         {inviteLoading ? (
           <Loader className="size-6 animate-spin text-muted-foreground" />
         ) : inviteError ? (
-          <div className="text-destructive text-center">
-            Invalid or expired invitation link.
-          </div>
+          <div className="text-destructive text-center">Invalid or expired invitation link.</div>
         ) : inviteInfo?.workspace ? (
           <div className="flex flex-col items-center gap-y-2">
             {inviteInfo.workspace.image && (
@@ -60,21 +58,25 @@ const RegisterPage = () => {
         <div className="flex flex-col gap-y-2 items-center justify-center">
           <h1 className="text-2xl font-bold">Join Workspace</h1>
           <p className="text-md text-muted-foreground">
-            {step === "signup"
-              ? "Create an account to join this workspace."
-              : step === "joining"
-              ? "Joining workspace..."
-              : step === "joined"
-              ? "Success! Redirecting to workspace..."
-              : "Redirecting..."}
+            {step === 'signup'
+              ? 'Create an account to join this workspace.'
+              : step === 'joining'
+                ? 'Joining workspace...'
+                : step === 'joined'
+                  ? 'Success! Redirecting to workspace...'
+                  : 'Redirecting...'}
           </p>
         </div>
-        {step === "signup" && !inviteLoading && !inviteError && inviteInfo?.workspace && (
+        {step === 'signup' && !inviteLoading && !inviteError && inviteInfo?.workspace && (
           <div className="w-full flex flex-col items-center gap-y-4">
-            <SignUpCard hideSignInLink inviteToken={invitation || undefined} onSuccess={handleRegisterSuccess} />
+            <SignUpCard
+              hideSignInLink
+              inviteToken={invitation || undefined}
+              onSuccess={handleRegisterSuccess}
+            />
           </div>
         )}
-        {step === "joining" && (
+        {step === 'joining' && (
           <div className="w-full flex flex-col items-center gap-y-4">
             <Loader className="size-6 animate-spin text-muted-foreground" />
           </div>
@@ -84,4 +86,4 @@ const RegisterPage = () => {
   );
 };
 
-export default RegisterPage; 
+export default RegisterPage;

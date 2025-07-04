@@ -1,7 +1,7 @@
-import { useParams } from "next/navigation";
+import { useParams } from 'next/navigation';
 
 export const useMemberId = () => {
   const params = useParams();
 
-  return params["member-id"] as string;
+  return params['member-id'] as string;
 };

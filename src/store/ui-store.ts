@@ -1,5 +1,5 @@
-import { Message } from "@/types/chat";
-import { create } from "zustand";
+import { Message } from '@/types/chat';
+import { create } from 'zustand';
 
 interface UIState {
   openEmojiPickerMessageId: string | null;
@@ -20,13 +20,13 @@ interface UIState {
 export const useUIStore = create<UIState>((set, get) => ({
   openEmojiPickerMessageId: null,
   openEmojiPickerMessageIdInThread: null,
-  setEmojiPickerOpen: (messageId) =>
-    set({ openEmojiPickerMessageId: messageId }),
-  setEmojiPickerOpenInThread: (messageId) =>
-    set({ openEmojiPickerMessageIdInThread: messageId }),
+  setEmojiPickerOpen: (messageId) => set({ openEmojiPickerMessageId: messageId }),
+  setEmojiPickerOpenInThread: (messageId) => set({ openEmojiPickerMessageIdInThread: messageId }),
   isEmojiPickerOpen: () => {
     const state = get();
-    return state.openEmojiPickerMessageId !== null || state.openEmojiPickerMessageIdInThread !== null;
+    return (
+      state.openEmojiPickerMessageId !== null || state.openEmojiPickerMessageIdInThread !== null
+    );
   },
   openThreadMessageId: null,
   setThreadOpen: (message) => {
@@ -34,8 +34,7 @@ export const useUIStore = create<UIState>((set, get) => ({
     set({ selectedThreadParentMessage: message });
   },
   selectedThreadParentMessage: null,
-  setSelectedThreadParentMessage: (message) =>
-    set({ selectedThreadParentMessage: message }),
+  setSelectedThreadParentMessage: (message) => set({ selectedThreadParentMessage: message }),
   isThreadOpen: () => get().openThreadMessageId !== null,
   isNotificationsPanelOpen: false,
   setNotificationsPanelOpen: (open) => set({ isNotificationsPanelOpen: open }),

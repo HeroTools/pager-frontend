@@ -1,11 +1,11 @@
 class TabBadgeManager {
-  private originalTitle: string = "";
+  private originalTitle: string = '';
   private unreadCount: number = 0;
   private isPageVisible: boolean = true;
   private isInitialized: boolean = false;
 
   constructor() {
-    if (typeof document !== "undefined") {
+    if (typeof document !== 'undefined') {
       this.init();
     }
   }
@@ -17,25 +17,25 @@ class TabBadgeManager {
       this.setupVisibilityHandlers();
       this.isInitialized = true;
     } catch (error) {
-      console.warn("Failed to initialize tab badge manager:", error);
+      console.warn('Failed to initialize tab badge manager:', error);
     }
   }
 
   private setupVisibilityHandlers() {
-    if (typeof document === "undefined") return;
+    if (typeof document === 'undefined') return;
 
-    document.addEventListener("visibilitychange", () => {
+    document.addEventListener('visibilitychange', () => {
       this.isPageVisible = !document.hidden;
       this.updateTitle();
     });
 
-    if (typeof window !== "undefined") {
-      window.addEventListener("focus", () => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', () => {
         this.isPageVisible = true;
         this.updateTitle();
       });
 
-      window.addEventListener("blur", () => {
+      window.addEventListener('blur', () => {
         this.isPageVisible = false;
       });
     }
@@ -47,21 +47,20 @@ class TabBadgeManager {
   }
 
   private updateTitle() {
-    if (!this.isInitialized || typeof document === "undefined") return;
+    if (!this.isInitialized || typeof document === 'undefined') return;
 
     try {
       if (this.unreadCount > 0 && !this.isPageVisible) {
-        const countText =
-          this.unreadCount > 99 ? "99+" : this.unreadCount.toString();
+        const countText = this.unreadCount > 99 ? '99+' : this.unreadCount.toString();
         // Remove existing count if present, then add new count
-        const cleanTitle = this.originalTitle.replace(/^\(\d+\+?\)\s*/, "");
+        const cleanTitle = this.originalTitle.replace(/^\(\d+\+?\)\s*/, '');
         document.title = `(${countText}) ${cleanTitle}`;
       } else {
         // Remove count from title
-        document.title = this.originalTitle.replace(/^\(\d+\+?\)\s*/, "");
+        document.title = this.originalTitle.replace(/^\(\d+\+?\)\s*/, '');
       }
     } catch (error) {
-      console.warn("Failed to update document title:", error);
+      console.warn('Failed to update document title:', error);
     }
   }
 
@@ -74,7 +73,7 @@ class TabBadgeManager {
 let tabBadgeManagerInstance: TabBadgeManager | null = null;
 
 export const getTabBadgeManager = (): TabBadgeManager | null => {
-  if (!tabBadgeManagerInstance && typeof document !== "undefined") {
+  if (!tabBadgeManagerInstance && typeof document !== 'undefined') {
     tabBadgeManagerInstance = new TabBadgeManager();
   }
   return tabBadgeManagerInstance;

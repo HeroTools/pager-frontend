@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useCallback } from "react";
+import { FC, useState, useEffect, useCallback } from 'react';
 import {
   Download,
   ChevronLeft,
@@ -7,12 +7,12 @@ import {
   ZoomIn,
   ZoomOut,
   ExternalLink,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Attachment } from "@/types/chat";
-import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Attachment } from '@/types/chat';
+import { cn } from '@/lib/utils';
 
 interface MediaViewerModalProps {
   isOpen: boolean;
@@ -35,37 +35,28 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
   const [showControls, setShowControls] = useState(false);
 
   const currentAttachment = attachments[currentIndex];
-  const isImage = currentAttachment?.contentType?.startsWith("image/");
-  const isVideo = currentAttachment?.contentType?.startsWith("video/");
+  const isImage = currentAttachment?.contentType?.startsWith('image/');
+  const isVideo = currentAttachment?.contentType?.startsWith('video/');
 
   // Document type detection
   const getDocumentType = (attachment: Attachment | undefined) => {
     if (!attachment) return null;
 
-    const mimeType = attachment.contentType || "";
-    const filename = attachment.originalFilename || "";
-    const extension = filename.split(".").pop()?.toLowerCase();
+    const mimeType = attachment.contentType || '';
+    const filename = attachment.originalFilename || '';
+    const extension = filename.split('.').pop()?.toLowerCase();
 
-    if (mimeType.includes("pdf") || extension === "pdf") {
-      return "pdf";
+    if (mimeType.includes('pdf') || extension === 'pdf') {
+      return 'pdf';
     }
-    if (
-      mimeType.includes("document") ||
-      ["doc", "docx"].includes(extension || "")
-    ) {
-      return "word";
+    if (mimeType.includes('document') || ['doc', 'docx'].includes(extension || '')) {
+      return 'word';
     }
-    if (
-      mimeType.includes("spreadsheet") ||
-      ["xls", "xlsx"].includes(extension || "")
-    ) {
-      return "excel";
+    if (mimeType.includes('spreadsheet') || ['xls', 'xlsx'].includes(extension || '')) {
+      return 'excel';
     }
-    if (
-      mimeType.includes("presentation") ||
-      ["ppt", "pptx"].includes(extension || "")
-    ) {
-      return "powerpoint";
+    if (mimeType.includes('presentation') || ['ppt', 'pptx'].includes(extension || '')) {
+      return 'powerpoint';
     }
     return null;
   };
@@ -89,34 +80,34 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
-        case "Escape":
+        case 'Escape':
           onClose();
           break;
-        case "ArrowLeft":
+        case 'ArrowLeft':
           goToPrevious();
           break;
-        case "ArrowRight":
+        case 'ArrowRight':
           goToNext();
           break;
-        case "r":
-        case "R":
+        case 'r':
+        case 'R':
           if (isImage) rotate();
           break;
-        case "+":
-        case "=":
+        case '+':
+        case '=':
           if (isImage) zoomIn();
           break;
-        case "-":
+        case '-':
           if (isImage) zoomOut();
           break;
-        case "0":
+        case '0':
           if (isImage) resetZoom();
           break;
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, currentIndex, attachments.length, isImage]);
 
   const goToPrevious = useCallback(() => {
@@ -146,10 +137,10 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
 
   const handleDownload = () => {
     if (currentAttachment) {
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = currentAttachment.publicUrl;
-      link.download = currentAttachment.originalFilename || "download";
-      link.target = "_blank";
+      link.download = currentAttachment.originalFilename || 'download';
+      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -158,7 +149,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
 
   const openInNewTab = () => {
     if (currentAttachment) {
-      window.open(currentAttachment.publicUrl, "_blank");
+      window.open(currentAttachment.publicUrl, '_blank');
     }
   };
 
@@ -167,14 +158,14 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
 
     const viewerUrl = (() => {
       switch (documentType) {
-        case "pdf":
+        case 'pdf':
           return currentAttachment.publicUrl;
-        case "word":
-        case "excel":
-        case "powerpoint":
+        case 'word':
+        case 'excel':
+        case 'powerpoint':
           // Use Microsoft Office Online viewer for Office documents
           return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-            currentAttachment.publicUrl
+            currentAttachment.publicUrl,
           )}`;
         default:
           return null;
@@ -183,7 +174,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
 
     if (!viewerUrl) return null;
 
-    if (documentType === "pdf") {
+    if (documentType === 'pdf') {
       return (
         <iframe
           src={viewerUrl}
@@ -220,8 +211,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <DialogTitle className="sr-only">
-          Media Viewer -{" "}
-          {currentAttachment.originalFilename || "Unknown Filename"}
+          Media Viewer - {currentAttachment.originalFilename || 'Unknown Filename'}
         </DialogTitle>
         <div
           className="relative w-full h-full flex items-center justify-center overflow-hidden"
@@ -235,8 +225,8 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border-border text-foreground transition-opacity duration-200",
-                  showControls ? "opacity-100" : "opacity-0"
+                  'absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border-border text-foreground transition-opacity duration-200',
+                  showControls ? 'opacity-100' : 'opacity-0',
                 )}
                 onClick={goToPrevious}
               >
@@ -246,8 +236,8 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border-border text-foreground transition-opacity duration-200",
-                  showControls ? "opacity-100" : "opacity-0"
+                  'absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border-border text-foreground transition-opacity duration-200',
+                  showControls ? 'opacity-100' : 'opacity-0',
                 )}
                 onClick={goToNext}
               >
@@ -260,8 +250,8 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           {isImage && (
             <div
               className={cn(
-                "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
-                showControls ? "opacity-100" : "opacity-0"
+                'absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200',
+                showControls ? 'opacity-100' : 'opacity-0',
               )}
             >
               <Button
@@ -308,8 +298,8 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           {isDocument && (
             <div
               className={cn(
-                "absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200",
-                showControls ? "opacity-100" : "opacity-0"
+                'absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200',
+                showControls ? 'opacity-100' : 'opacity-0',
               )}
             >
               <Button
@@ -336,29 +326,25 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           {/* File info */}
           <div
             className={cn(
-              "absolute top-4 left-4 z-50 bg-card/80 border border-border rounded-lg p-3 text-foreground transition-opacity duration-200",
-              showControls ? "opacity-100" : "opacity-0"
+              'absolute top-4 left-4 z-50 bg-card/80 border border-border rounded-lg p-3 text-foreground transition-opacity duration-200',
+              showControls ? 'opacity-100' : 'opacity-0',
             )}
           >
-            <p className="text-sm font-medium">
-              {currentAttachment.originalFilename}
-            </p>
+            <p className="text-sm font-medium">{currentAttachment.originalFilename}</p>
             {attachments.length > 1 && (
               <p className="text-xs text-muted-foreground">
                 {currentIndex + 1} of {attachments.length}
               </p>
             )}
             {isDocument && (
-              <p className="text-xs text-muted-foreground capitalize">
-                {documentType} document
-              </p>
+              <p className="text-xs text-muted-foreground capitalize">{documentType} document</p>
             )}
           </div>
 
           {/* Media content */}
           <div
             className="relative flex items-center justify-center"
-            style={{ width: "calc(100% - 1rem)", height: "calc(100% - 1rem)" }}
+            style={{ width: 'calc(100% - 1rem)', height: 'calc(100% - 1rem)' }}
           >
             {isLoading && !hasError && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -369,12 +355,12 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
             {hasError ? (
               <div className="text-foreground text-center">
                 <p className="text-lg font-medium">
-                  Failed to load {isDocument ? "document" : "media"}
+                  Failed to load {isDocument ? 'document' : 'media'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {isDocument
-                    ? "The document might not be accessible or supported for preview"
-                    : "The file might be corrupted or unavailable"}
+                    ? 'The document might not be accessible or supported for preview'
+                    : 'The file might be corrupted or unavailable'}
                 </p>
                 <div className="flex gap-2 mt-4 justify-center">
                   <Button
@@ -398,10 +384,10 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
             ) : isImage ? (
               <img
                 src={currentAttachment.publicUrl}
-                alt={currentAttachment.originalFilename || "Unknown Filename"}
+                alt={currentAttachment.originalFilename || 'Unknown Filename'}
                 className={cn(
-                  "max-w-full max-h-full object-contain transition-all duration-200",
-                  !isLoading && "cursor-grab active:cursor-grabbing"
+                  'max-w-full max-h-full object-contain transition-all duration-200',
+                  !isLoading && 'cursor-grab active:cursor-grabbing',
                 )}
                 style={{
                   transform: `scale(${zoom}) rotate(${rotation}deg)`,
@@ -434,7 +420,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
               <div className="text-foreground text-center">
                 <p className="text-lg font-medium">Preview not available</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {currentAttachment.originalFilename || "Unknown file"}
+                  {currentAttachment.originalFilename || 'Unknown file'}
                 </p>
                 <Button
                   variant="outline"

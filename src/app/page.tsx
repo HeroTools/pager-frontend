@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo } from 'react';
 
-import { UserButton } from "@/features/auth/components/user-button";
-import { useGetWorkspaces } from "@/features/workspaces";
-import { useCreateWorkspaceModal } from "@/features/workspaces/store/use-create-workspace-modal";
+import { UserButton } from '@/features/auth/components/user-button';
+import { useGetWorkspaces } from '@/features/workspaces';
+import { useCreateWorkspaceModal } from '@/features/workspaces/store/use-create-workspace-modal';
 
 export default function Home() {
   const router = useRouter();

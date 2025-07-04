@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { membersApi } from "../api/members-api";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { membersApi } from '../api/members-api';
 import type {
   MemberEntity,
   MemberWithUser,
@@ -8,24 +8,21 @@ import type {
   MemberFilters,
   BulkUpdateMembersData,
   BulkRemoveMembersData,
-} from "../types";
+} from '../types';
 
 // Get current user's member record for a workspace
 export const useCurrentMember = (workspaceId: string) => {
   return useQuery({
-    queryKey: ["currentMember", workspaceId],
+    queryKey: ['currentMember', workspaceId],
     queryFn: () => membersApi.getCurrentMember(workspaceId),
     enabled: !!workspaceId,
   });
 };
 
 // Get all members for a workspace
-export const useGetMembers = (
-  workspaceId: string,
-  filters?: Partial<MemberFilters>
-) => {
+export const useGetMembers = (workspaceId: string, filters?: Partial<MemberFilters>) => {
   return useQuery({
-    queryKey: ["members", workspaceId, filters],
+    queryKey: ['members', workspaceId, filters],
     queryFn: () => membersApi.getMembers(workspaceId, filters),
     enabled: !!workspaceId,
     staleTime: 8 * 60 * 60 * 1000,
@@ -33,12 +30,9 @@ export const useGetMembers = (
 };
 
 // Get all members with user data for a workspace
-export const useGetMembersWithUsers = (
-  workspaceId: string,
-  filters?: Partial<MemberFilters>
-) => {
+export const useGetMembersWithUsers = (workspaceId: string, filters?: Partial<MemberFilters>) => {
   return useQuery({
-    queryKey: ["members", workspaceId, "with-users", filters],
+    queryKey: ['members', workspaceId, 'with-users', filters],
     queryFn: () => membersApi.getMembersWithUsers(workspaceId, filters),
     enabled: !!workspaceId,
   });
@@ -47,7 +41,7 @@ export const useGetMembersWithUsers = (
 // Get a single member
 export const useGetMember = (workspaceId: string, memberId: string) => {
   return useQuery({
-    queryKey: ["member", workspaceId, memberId],
+    queryKey: ['member', workspaceId, memberId],
     queryFn: () => membersApi.getMember(workspaceId, memberId),
     enabled: !!(workspaceId && memberId),
   });
@@ -56,7 +50,7 @@ export const useGetMember = (workspaceId: string, memberId: string) => {
 // Get a single member with user data
 export const useGetMemberWithUser = (workspaceId: string, memberId: string) => {
   return useQuery({
-    queryKey: ["member", workspaceId, memberId, "with-user"],
+    queryKey: ['member', workspaceId, memberId, 'with-user'],
     queryFn: () => membersApi.getMemberWithUser(workspaceId, memberId),
     enabled: !!(workspaceId && memberId),
   });
@@ -65,7 +59,7 @@ export const useGetMemberWithUser = (workspaceId: string, memberId: string) => {
 // Get member statistics
 export const useGetMemberStats = (workspaceId: string) => {
   return useQuery({
-    queryKey: ["memberStats", workspaceId],
+    queryKey: ['memberStats', workspaceId],
     queryFn: () => membersApi.getMemberStats(workspaceId),
     enabled: !!workspaceId,
   });
@@ -88,35 +82,29 @@ export const useUpdateMemberRole = () => {
     onSuccess: (updatedMember, variables) => {
       // Update the specific member cache
       queryClient.setQueryData<MemberEntity>(
-        ["member", variables.workspaceId, variables.memberId],
-        updatedMember
+        ['member', variables.workspaceId, variables.memberId],
+        updatedMember,
       );
 
       // Update the member in the members list
       queryClient.setQueryData<MemberEntity[]>(
-        ["members", variables.workspaceId],
+        ['members', variables.workspaceId],
         (old) =>
-          old?.map((member) =>
-            member.id === variables.memberId ? updatedMember : member
-          ) || []
+          old?.map((member) => (member.id === variables.memberId ? updatedMember : member)) || [],
       );
 
       // Update member with user data caches
       queryClient.setQueryData<MemberWithUser[]>(
-        ["members", variables.workspaceId, "with-users"],
+        ['members', variables.workspaceId, 'with-users'],
         (old) =>
           old?.map((member) =>
-            member.id === variables.memberId
-              ? { ...member, ...updatedMember }
-              : member
-          ) || []
+            member.id === variables.memberId ? { ...member, ...updatedMember } : member,
+          ) || [],
       );
 
       // If this is the current member, update that cache too
-      queryClient.setQueryData<MemberWithUser>(
-        ["currentMember", variables.workspaceId],
-        (old) =>
-          old?.id === variables.memberId ? { ...old, ...updatedMember } : old
+      queryClient.setQueryData<MemberWithUser>(['currentMember', variables.workspaceId], (old) =>
+        old?.id === variables.memberId ? { ...old, ...updatedMember } : old,
       );
     },
   });
@@ -127,33 +115,28 @@ export const useRemoveMember = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      workspaceId,
-      memberId,
-    }: {
-      workspaceId: string;
-      memberId: string;
-    }) => membersApi.removeMember(workspaceId, memberId),
+    mutationFn: ({ workspaceId, memberId }: { workspaceId: string; memberId: string }) =>
+      membersApi.removeMember(workspaceId, memberId),
     onSuccess: (_, variables) => {
       // Remove from all members list caches
       queryClient.setQueryData<MemberEntity[]>(
-        ["members", variables.workspaceId],
-        (old) => old?.filter((member) => member.id !== variables.memberId) || []
+        ['members', variables.workspaceId],
+        (old) => old?.filter((member) => member.id !== variables.memberId) || [],
       );
 
       queryClient.setQueryData<MemberWithUser[]>(
-        ["members", variables.workspaceId, "with-users"],
-        (old) => old?.filter((member) => member.id !== variables.memberId) || []
+        ['members', variables.workspaceId, 'with-users'],
+        (old) => old?.filter((member) => member.id !== variables.memberId) || [],
       );
 
       // Remove the specific member caches
       queryClient.removeQueries({
-        queryKey: ["member", variables.workspaceId, variables.memberId],
+        queryKey: ['member', variables.workspaceId, variables.memberId],
       });
 
       // Invalidate member stats
       queryClient.invalidateQueries({
-        queryKey: ["memberStats", variables.workspaceId],
+        queryKey: ['memberStats', variables.workspaceId],
       });
     },
   });
@@ -164,22 +147,17 @@ export const useInviteMember = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      workspaceId,
-      data,
-    }: {
-      workspaceId: string;
-      data: InviteMemberData;
-    }) => membersApi.inviteMember(workspaceId, data),
+    mutationFn: ({ workspaceId, data }: { workspaceId: string; data: InviteMemberData }) =>
+      membersApi.inviteMember(workspaceId, data),
     onSuccess: (_, variables) => {
       // Invalidate members list to refresh with potential new member
       queryClient.invalidateQueries({
-        queryKey: ["members", variables.workspaceId],
+        queryKey: ['members', variables.workspaceId],
       });
 
       // Invalidate member stats
       queryClient.invalidateQueries({
-        queryKey: ["memberStats", variables.workspaceId],
+        queryKey: ['memberStats', variables.workspaceId],
       });
     },
   });
@@ -190,17 +168,12 @@ export const useBulkUpdateMemberRoles = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      workspaceId,
-      data,
-    }: {
-      workspaceId: string;
-      data: BulkUpdateMembersData;
-    }) => membersApi.bulkUpdateMemberRoles(workspaceId, data),
+    mutationFn: ({ workspaceId, data }: { workspaceId: string; data: BulkUpdateMembersData }) =>
+      membersApi.bulkUpdateMemberRoles(workspaceId, data),
     onSuccess: (_, variables) => {
       // Invalidate all member-related queries for this workspace
       queryClient.invalidateQueries({
-        queryKey: ["members", variables.workspaceId],
+        queryKey: ['members', variables.workspaceId],
       });
     },
   });
@@ -211,22 +184,17 @@ export const useBulkRemoveMembers = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      workspaceId,
-      data,
-    }: {
-      workspaceId: string;
-      data: BulkRemoveMembersData;
-    }) => membersApi.bulkRemoveMembers(workspaceId, data),
+    mutationFn: ({ workspaceId, data }: { workspaceId: string; data: BulkRemoveMembersData }) =>
+      membersApi.bulkRemoveMembers(workspaceId, data),
     onSuccess: (_, variables) => {
       // Invalidate all member-related queries for this workspace
       queryClient.invalidateQueries({
-        queryKey: ["members", variables.workspaceId],
+        queryKey: ['members', variables.workspaceId],
       });
 
       // Invalidate member stats
       queryClient.invalidateQueries({
-        queryKey: ["memberStats", variables.workspaceId],
+        queryKey: ['memberStats', variables.workspaceId],
       });
     },
   });
@@ -241,16 +209,16 @@ export const useLeaveWorkspace = () => {
     onSuccess: (_, workspaceId) => {
       // Clear all workspace-related data
       queryClient.removeQueries({
-        queryKey: ["members", workspaceId],
+        queryKey: ['members', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["currentMember", workspaceId],
+        queryKey: ['currentMember', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["channels", workspaceId],
+        queryKey: ['channels', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["conversations", workspaceId],
+        queryKey: ['conversations', workspaceId],
       });
     },
   });

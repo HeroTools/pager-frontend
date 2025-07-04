@@ -7,8 +7,8 @@ import {
   MessageType,
   Reaction,
   Attachment,
-} from "@/types/database";
-import { UploadedAttachment } from "../file-upload/types";
+} from '@/types/database';
+import { UploadedAttachment } from '../file-upload/types';
 
 // Use the database Message type directly
 export type MessageEntity = Message;
@@ -83,7 +83,7 @@ export interface CreateChannelMessageData {
   attachment_ids?: string[];
   parent_message_id?: string;
   thread_id?: string;
-  message_type?: "direct" | "thread" | "system";
+  message_type?: 'direct' | 'thread' | 'system';
   plain_text?: string;
 }
 
@@ -92,7 +92,7 @@ export interface CreateConversationMessageData {
   attachment_ids?: string[];
   parent_message_id?: string;
   thread_id?: string;
-  message_type?: "direct" | "thread" | "system";
+  message_type?: 'direct' | 'thread' | 'system';
   plain_text?: string;
 }
 
@@ -102,7 +102,7 @@ export interface CreateMessageData {
   attachments?: UploadedAttachment[];
   parent_message_id?: string;
   thread_id?: string;
-  message_type?: "direct" | "thread" | "system";
+  message_type?: 'direct' | 'thread' | 'system';
   plain_text?: string;
 }
 

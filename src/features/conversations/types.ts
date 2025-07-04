@@ -7,8 +7,8 @@ import {
   UpdateEntityInput,
   ApiResponse,
   SendMessageRequest,
-} from "@/types/database";
-import { MessageWithUser } from "../messages/types";
+} from '@/types/database';
+import { MessageWithUser } from '../messages/types';
 
 // Use the database Conversation type directly
 export type ConversationEntity = Conversation;
@@ -32,8 +32,7 @@ export interface CreateConversationResponse extends ConversationEntity {
 }
 
 // Message creation for conversations - based on SendMessageRequest but conversation-specific
-export interface CreateConversationMessageData
-  extends Omit<SendMessageRequest, "channel_id"> {
+export interface CreateConversationMessageData extends Omit<SendMessageRequest, 'channel_id'> {
   conversation_id: string;
 }
 
@@ -48,8 +47,7 @@ export interface AddConversationParticipantData {
 // API Response types using the generic ApiResponse
 export type ConversationResponse = ApiResponse<ConversationEntity>;
 export type ConversationsResponse = ApiResponse<ConversationEntity[]>;
-export type ConversationWithMembersResponse =
-  ApiResponse<ConversationWithMembersList>;
+export type ConversationWithMembersResponse = ApiResponse<ConversationWithMembersList>;
 export type ConversationMessageResponse = ApiResponse<ConversationMessage>;
 export type ConversationMessagesResponse = ApiResponse<ConversationMessage[]>;
 export type ConversationMessageWithRelationsResponse =
@@ -102,8 +100,7 @@ export interface ConversationWithMessagesAndMembers {
 }
 
 // API response for the combined endpoint
-export type ConversationWithMessagesResponse =
-  ApiResponse<ConversationWithMessagesAndMembers>;
+export type ConversationWithMessagesResponse = ApiResponse<ConversationWithMessagesAndMembers>;
 
 // === END NEW TYPES ===
 

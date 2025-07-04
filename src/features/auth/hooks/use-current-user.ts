@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { authApi } from "@/features/auth/api/auth-api";
-import type { CurrentUser } from "@/features/auth/types";
+import { useQuery } from '@tanstack/react-query';
+import { authApi } from '@/features/auth/api/auth-api';
+import type { CurrentUser } from '@/features/auth/types';
 
 export const useCurrentUser = (workspaceId: string) => {
   const {
@@ -8,7 +8,7 @@ export const useCurrentUser = (workspaceId: string) => {
     isLoading,
     error,
   } = useQuery<CurrentUser>({
-    queryKey: ["current-user"],
+    queryKey: ['current-user'],
     queryFn: () => authApi.getCurrentUser(workspaceId),
     retry: false,
     refetchOnWindowFocus: false,

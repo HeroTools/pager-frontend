@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Hash, Lock, Loader } from "lucide-react";
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Hash, Lock, Loader } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   useGetAllAvailableChannels,
   useGetUserChannels,
   useCreateChannelModal,
   useAddChannelMembers,
-} from "@/features/channels";
-import { useCurrentMember } from "@/features/members/hooks/use-members";
-import { useParamIds } from "@/hooks/use-param-ids";
-import { ChannelEntity } from "@/features/channels/types";
+} from '@/features/channels';
+import { useCurrentMember } from '@/features/members/hooks/use-members';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { ChannelEntity } from '@/features/channels/types';
 
 // Extended interface for browse channels with additional API properties
 interface BrowseChannelItem extends ChannelEntity {
@@ -23,7 +23,7 @@ interface BrowseChannelItem extends ChannelEntity {
 }
 
 export default function BrowseChannels() {
-  const [search, setSearch] = useState<string>("");
+  const [search, setSearch] = useState<string>('');
   const [joiningChannelId, setJoiningChannelId] = useState<string | null>(null);
   const { workspaceId } = useParamIds();
   const router = useRouter();
@@ -34,22 +34,21 @@ export default function BrowseChannels() {
   // Fetch all available channels (public + private user is member of)
   const { data: allAvailableChannels = [], isLoading: isLoadingAvailable } =
     useGetAllAvailableChannels(workspaceId);
-  
+
   // Fetch user's channels to ensure we get all private channels they're in
-  const { data: userChannels = [], isLoading: isLoadingUser } =
-    useGetUserChannels(workspaceId);
+  const { data: userChannels = [], isLoading: isLoadingUser } = useGetUserChannels(workspaceId);
 
   // Combine and deduplicate channels
   const combinedChannels = useMemo(() => {
     const channelMap = new Map<string, BrowseChannelItem>();
-    
+
     // Add all available channels first
-    allAvailableChannels.forEach(channel => {
+    allAvailableChannels.forEach((channel) => {
       channelMap.set(channel.id, channel as BrowseChannelItem);
     });
-    
+
     // Add user channels, marking them as member if not already marked
-    userChannels.forEach(channel => {
+    userChannels.forEach((channel) => {
       const existingChannel = channelMap.get(channel.id);
       if (existingChannel) {
         // Update existing channel to ensure is_member is true
@@ -60,12 +59,12 @@ export default function BrowseChannels() {
       } else {
         // Add new channel (this covers private channels not in allAvailable)
         channelMap.set(channel.id, {
-          ...channel as BrowseChannelItem,
+          ...(channel as BrowseChannelItem),
           is_member: true,
         });
       }
     });
-    
+
     return Array.from(channelMap.values());
   }, [allAvailableChannels, userChannels]);
 
@@ -73,30 +72,33 @@ export default function BrowseChannels() {
 
   // Filter by name (case-insensitive)
   const displayedChannels = combinedChannels.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+    c.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleJoinChannel = (channelId: string) => {
     if (!currentMember?.id) {
-      console.error("No current member ID available");
+      console.error('No current member ID available');
       return;
     }
-    
+
     setJoiningChannelId(channelId);
-    addChannelMembers.mutate({
-      workspaceId,
-      channelId,
-      data: {
-        memberIds: [currentMember.id],
+    addChannelMembers.mutate(
+      {
+        workspaceId,
+        channelId,
+        data: {
+          memberIds: [currentMember.id],
+        },
       },
-    }, {
-      onSuccess: () => {
-        setJoiningChannelId(null);
+      {
+        onSuccess: () => {
+          setJoiningChannelId(null);
+        },
+        onError: () => {
+          setJoiningChannelId(null);
+        },
       },
-      onError: () => {
-        setJoiningChannelId(null);
-      },
-    });
+    );
   };
 
   const handleOpenChannel = (channelId: string) => {
@@ -125,9 +127,7 @@ export default function BrowseChannels() {
             <Loader className="mx-auto animate-spin" />
           </div>
         ) : displayedChannels.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">
-            No channels found.
-          </div>
+          <div className="p-8 text-center text-muted-foreground">No channels found.</div>
         ) : (
           <ul>
             {displayedChannels.map((channel) => (
@@ -136,7 +136,7 @@ export default function BrowseChannels() {
                 className="flex items-center gap-4 px-6 py-4 border-b border-border-subtle last:border-b-0 hover:bg-accent transition"
               >
                 <span>
-                  {channel.channel_type === "public" ? (
+                  {channel.channel_type === 'public' ? (
                     <Hash className="size-5 text-muted-foreground" />
                   ) : (
                     <Lock className="size-5 text-muted-foreground" />
@@ -145,18 +145,14 @@ export default function BrowseChannels() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium truncate">
-                      #{channel.name}
-                    </span>
+                    <span className="font-medium truncate">#{channel.name}</span>
                     {channel.is_member && (
-                      <span className="text-xs text-green-600 font-semibold ml-2">
-                        Joined
-                      </span>
+                      <span className="text-xs text-green-600 font-semibold ml-2">Joined</span>
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {channel.member_count} member
-                    {channel.member_count !== 1 ? "s" : ""}
+                    {channel.member_count !== 1 ? 's' : ''}
                     {channel.description && (
                       <>
                         <span className="mx-2">·</span>
@@ -182,7 +178,7 @@ export default function BrowseChannels() {
                       onClick={() => handleJoinChannel(channel.id)}
                       disabled={joiningChannelId === channel.id || !currentMember?.id}
                     >
-                      {joiningChannelId === channel.id ? "Joining..." : "Join"}
+                      {joiningChannelId === channel.id ? 'Joining...' : 'Join'}
                     </Button>
                   )}
                 </div>

@@ -1,25 +1,22 @@
-import { AlertTriangle, Loader, XIcon } from "lucide-react";
-import dynamic from "next/dynamic";
-import { useState } from "react";
-import { toast } from "sonner";
-import { format, parseISO, differenceInMinutes } from "date-fns";
+import { AlertTriangle, Loader, XIcon } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { format, parseISO, differenceInMinutes } from 'date-fns';
 
-import { ChatMessage } from "@/components/chat/message";
-import { Button } from "@/components/ui/button";
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
-import {
-  useMessageOperations,
-  useMessageReplies,
-} from "@/features/messages/hooks/use-messages";
-import { useParamIds } from "@/hooks/use-param-ids";
-import { useUIStore } from "@/store/ui-store";
-import { formatDateLabel, transformMessages } from "../helpers";
-import { useToggleReaction } from "@/features/reactions";
-import { Message } from "@/types/chat";
-import { useMessagesStore } from "@/features/messages/store/messages-store";
-import { UploadedAttachment } from "@/features/file-upload/types";
+import { ChatMessage } from '@/components/chat/message';
+import { Button } from '@/components/ui/button';
+import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
+import { useMessageOperations, useMessageReplies } from '@/features/messages/hooks/use-messages';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { useUIStore } from '@/store/ui-store';
+import { formatDateLabel, transformMessages } from '../helpers';
+import { useToggleReaction } from '@/features/reactions';
+import { Message } from '@/types/chat';
+import { useMessagesStore } from '@/features/messages/store/messages-store';
+import { UploadedAttachment } from '@/features/file-upload/types';
 
-const Editor = dynamic(() => import("@/components/editor/editor"), {
+const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
 });
 
@@ -45,7 +42,7 @@ const ThreadHeader = ({ onClose, title }: ThreadHeaderProps) => (
 
 // Helper function to check if a message ID is temporary/optimistic
 const isOptimisticId = (id: string): boolean => {
-  return id.startsWith("temp-");
+  return id.startsWith('temp-');
 };
 
 export const Thread = ({ onClose }: ThreadProps) => {
@@ -57,54 +54,46 @@ export const Thread = ({ onClose }: ThreadProps) => {
   const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
     workspaceId,
     entityId,
-    type
+    type,
   );
 
   const {
     data = { replies: [] },
     isLoadingThread,
     threadError,
-  } = useMessageReplies(
-    workspaceId,
-    parentMessage?.id,
-    parentMessage?.threadCount || 0,
-    {
-      limit: 50,
-      entity_id: entityId,
-      entity_type: type,
-    }
-  );
+  } = useMessageReplies(workspaceId, parentMessage?.id, parentMessage?.threadCount || 0, {
+    limit: 50,
+    entity_id: entityId,
+    entity_type: type,
+  });
   const toggleReaction = useToggleReaction(workspaceId);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editorKey, setEditorKey] = useState(0);
 
   const isParentOptimistic = parentMessage && isOptimisticId(parentMessage.id);
-  const isWaitingForPersistence =
-    isParentOptimistic && isMessagePending(parentMessage.id);
+  const isWaitingForPersistence = isParentOptimistic && isMessagePending(parentMessage.id);
 
   const replies = transformMessages(data?.replies || [], currentUser);
 
   // Sort replies chronologically (oldest first)
   const sortedReplies = [...replies].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
 
   const groupedMessages = sortedReplies.reduce(
     (groups: Record<string, Message[]>, message: Message) => {
       const messageDate =
-        typeof message.timestamp === "string"
-          ? parseISO(message.timestamp)
-          : message.timestamp;
+        typeof message.timestamp === 'string' ? parseISO(message.timestamp) : message.timestamp;
 
-      const dateKey = format(messageDate, "MMMM d, yyyy");
+      const dateKey = format(messageDate, 'MMMM d, yyyy');
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
       groups[dateKey].push(message);
       return groups;
     },
-    {} as Record<string, Message[]>
+    {} as Record<string, Message[]>,
   );
 
   const handleSubmit = async (content: {
@@ -113,9 +102,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
     plainText: string;
   }) => {
     if (!parentMessage || isWaitingForPersistence) {
-      toast.error(
-        "Please wait for the parent message to save before replying."
-      );
+      toast.error('Please wait for the parent message to save before replying.');
       return;
     }
 
@@ -125,14 +112,14 @@ export const Thread = ({ onClose }: ThreadProps) => {
         attachments: content.attachments,
         parent_message_id: parentMessage.id,
         thread_id: parentMessage.threadId || parentMessage.id,
-        message_type: "thread",
+        message_type: 'thread',
         plain_text: content.plainText,
       });
 
       setEditorKey((prev) => prev + 1);
     } catch (error) {
-      console.error("Failed to send thread reply:", error);
-      toast.error("Failed to send reply. Please try again.");
+      console.error('Failed to send thread reply:', error);
+      toast.error('Failed to send reply. Please try again.');
     }
   };
 
@@ -144,8 +131,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
       });
       setEditingId(null);
     } catch (error) {
-      console.error("Failed to edit message:", error);
-      toast.error("Failed to edit message. Please try again.");
+      console.error('Failed to edit message:', error);
+      toast.error('Failed to edit message. Please try again.');
     }
   };
 
@@ -153,30 +140,24 @@ export const Thread = ({ onClose }: ThreadProps) => {
     try {
       await deleteMessage.mutateAsync(messageId);
     } catch (error) {
-      console.error("Failed to delete message:", error);
-      toast.error("Failed to delete message. Please try again.");
+      console.error('Failed to delete message:', error);
+      toast.error('Failed to delete message. Please try again.');
     }
   };
 
   const handleReaction = async (messageId: string, emoji: string) => {
     try {
-      const message = [parentMessage, ...replies].find(
-        (m) => m?.id === messageId
-      );
-      const existingReaction = message?.reactions?.find(
-        (r) => r.value === emoji
-      );
-      const hasReacted = existingReaction?.users.some(
-        (user) => user.id === currentUser?.id
-      );
+      const message = [parentMessage, ...replies].find((m) => m?.id === messageId);
+      const existingReaction = message?.reactions?.find((r) => r.value === emoji);
+      const hasReacted = existingReaction?.users.some((user) => user.id === currentUser?.id);
       await toggleReaction.mutateAsync({
         messageId,
         emoji,
         currentlyReacted: hasReacted || false,
       });
     } catch (error) {
-      console.error("Failed to react to message:", error);
-      toast.error("Failed to add reaction. Please try again.");
+      console.error('Failed to react to message:', error);
+      toast.error('Failed to add reaction. Please try again.');
     }
   };
 
@@ -202,17 +183,13 @@ export const Thread = ({ onClose }: ThreadProps) => {
           <AlertTriangle className="size-5 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
             {createMessage.isError
-              ? "Failed to save message"
+              ? 'Failed to save message'
               : threadError
-              ? "Failed to load thread"
-              : "Message not available"}
+                ? 'Failed to load thread'
+                : 'Message not available'}
           </p>
           {createMessage.isError && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.location.reload()}
-            >
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
               Refresh page
             </Button>
           )}
@@ -257,11 +234,11 @@ export const Thread = ({ onClose }: ThreadProps) => {
                   {messages.map((message, index) => {
                     const prevMessage = messages[index - 1];
                     const messageTime =
-                      typeof message.timestamp === "string"
+                      typeof message.timestamp === 'string'
                         ? parseISO(message.timestamp)
                         : message.timestamp;
                     const prevMessageTime =
-                      prevMessage && typeof prevMessage.timestamp === "string"
+                      prevMessage && typeof prevMessage.timestamp === 'string'
                         ? parseISO(prevMessage.timestamp)
                         : prevMessage?.timestamp;
 
@@ -269,8 +246,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
                       prevMessage &&
                       prevMessage.authorId === message.authorId &&
                       prevMessageTime &&
-                      differenceInMinutes(messageTime, prevMessageTime) <
-                        TIME_THRESHOLD;
+                      differenceInMinutes(messageTime, prevMessageTime) < TIME_THRESHOLD;
                     return (
                       <ChatMessage
                         key={message.id}
@@ -298,11 +274,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
         <Editor
           workspaceId={workspaceId}
           onSubmit={handleSubmit}
-          placeholder={
-            isWaitingForPersistence
-              ? "Waiting for message to save..."
-              : "Reply..."
-          }
+          placeholder={isWaitingForPersistence ? 'Waiting for message to save...' : 'Reply...'}
           key={editorKey}
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}

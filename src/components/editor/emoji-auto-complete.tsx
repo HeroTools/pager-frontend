@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { Command, CommandList, CommandItem } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
-import emojiMartData from "@emoji-mart/data/sets/15/native.json";
+import { useEffect, useRef, useState } from 'react';
+import { Command, CommandList, CommandItem } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import emojiMartData from '@emoji-mart/data/sets/15/native.json';
 
 type EmojiMartEmoji = {
   id: string;
@@ -16,7 +16,7 @@ interface EmojiAutoCompleteProps {
 }
 
 const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
-  const [emojiQuery, setEmojiQuery] = useState("");
+  const [emojiQuery, setEmojiQuery] = useState('');
   const [showEmojiDropdown, setShowEmojiDropdown] = useState(false);
   const [emojiDropdownIndex, setEmojiDropdownIndex] = useState(0);
   const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number } | null>(null);
@@ -27,9 +27,15 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
   const emojiDropdownIndexRef = useRef(emojiDropdownIndex);
 
   // Keep refs in sync with state
-  useEffect(() => { emojiQueryRef.current = emojiQuery; }, [emojiQuery]);
-  useEffect(() => { showEmojiDropdownRef.current = showEmojiDropdown; }, [showEmojiDropdown]);
-  useEffect(() => { emojiDropdownIndexRef.current = emojiDropdownIndex; }, [emojiDropdownIndex]);
+  useEffect(() => {
+    emojiQueryRef.current = emojiQuery;
+  }, [emojiQuery]);
+  useEffect(() => {
+    showEmojiDropdownRef.current = showEmojiDropdown;
+  }, [showEmojiDropdown]);
+  useEffect(() => {
+    emojiDropdownIndexRef.current = emojiDropdownIndex;
+  }, [emojiDropdownIndex]);
 
   const emojiData = emojiMartData as { emojis: Record<string, any> };
 
@@ -49,7 +55,7 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
         (e) =>
           e.id.includes(q) ||
           (e.name && e.name.toLowerCase().includes(q)) ||
-          (e.keywords && e.keywords.some((k: string) => k.includes(q)))
+          (e.keywords && e.keywords.some((k: string) => k.includes(q))),
       )
       .slice(0, 8);
   };
@@ -95,20 +101,20 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
       if (!showEmojiDropdownRef.current) return;
       const filtered = getFilteredEmojis(emojiQueryRef.current);
       if (filtered.length === 0) return;
-      
-      if (e.key === "ArrowDown") {
+
+      if (e.key === 'ArrowDown') {
         const oldIndex = emojiDropdownIndexRef.current;
         const newIndex = (oldIndex + 1) % filtered.length;
         setEmojiDropdownIndex(newIndex);
         emojiDropdownIndexRef.current = newIndex; // Update ref immediately
         e.preventDefault();
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === 'ArrowUp') {
         const oldIndex = emojiDropdownIndexRef.current;
         const newIndex = (oldIndex - 1 + filtered.length) % filtered.length;
         setEmojiDropdownIndex(newIndex);
         emojiDropdownIndexRef.current = newIndex; // Update ref immediately
         e.preventDefault();
-      } else if (e.key === "Enter" || e.key === "Tab") {
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
         // Insert selected emoji
         const emoji = filtered[emojiDropdownIndexRef.current];
         if (emoji) {
@@ -120,14 +126,14 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
               quill.deleteText(sel.index - match[0].length, match[0].length);
               quill.insertText(sel.index - match[0].length, emoji.skins[0].native);
               setShowEmojiDropdown(false);
-              setEmojiQuery("");
+              setEmojiQuery('');
               setEmojiDropdownIndex(0);
               setDropdownPos(null);
               e.preventDefault();
               e.stopPropagation();
             } else {
               setShowEmojiDropdown(false);
-              setEmojiQuery("");
+              setEmojiQuery('');
               setEmojiDropdownIndex(0);
               setDropdownPos(null);
               e.preventDefault();
@@ -135,9 +141,9 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
             }
           }
         }
-      } else if (e.key === "Escape") {
+      } else if (e.key === 'Escape') {
         setShowEmojiDropdown(false);
-        setEmojiQuery("");
+        setEmojiQuery('');
         setEmojiDropdownIndex(0);
         setDropdownPos(null);
         e.preventDefault();
@@ -146,12 +152,12 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
 
     // Add event listeners
     quill.on('text-change', handleTextChange);
-    quill.root.addEventListener("keydown", handleKeyDown);
+    quill.root.addEventListener('keydown', handleKeyDown);
 
     // Cleanup
     return () => {
       quill.off('text-change', handleTextChange);
-      quill.root.removeEventListener("keydown", handleKeyDown);
+      quill.root.removeEventListener('keydown', handleKeyDown);
     };
   }, [quill]);
 
@@ -172,7 +178,7 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
         quill.deleteText(sel.index - match[0].length, match[0].length);
         quill.insertText(sel.index - match[0].length, emoji.skins[0].native);
         setShowEmojiDropdown(false);
-        setEmojiQuery("");
+        setEmojiQuery('');
         setEmojiDropdownIndex(0);
         setDropdownPos(null);
       }
@@ -188,12 +194,12 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
   return (
     <div
       style={{
-        position: "fixed",
+        position: 'fixed',
         left: dropdownPos.left,
         bottom: `${window.innerHeight - dropdownPos.top - 20}px`,
         zIndex: 100,
         width: 320,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       }}
     >
       <Command>
@@ -202,7 +208,7 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
             <CommandItem
               key={emoji.id}
               onSelect={() => handleEmojiClick(emoji)}
-              className={cn(i === emojiDropdownIndex && "bg-accent text-accent-foreground")}
+              className={cn(i === emojiDropdownIndex && 'bg-accent text-accent-foreground')}
             >
               <span className="mr-2 text-lg">{emoji.skins[0].native}</span> :{emoji.id}:
             </CommandItem>
@@ -213,4 +219,4 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
   );
 };
 
-export default EmojiAutoComplete; 
+export default EmojiAutoComplete;

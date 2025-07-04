@@ -1,13 +1,13 @@
-import { AxiosError } from "axios";
-import { api } from "@/lib/api/axios-client";
-import type { SearchResponse, UseSearchOptions } from "@/features/search/types";
+import { AxiosError } from 'axios';
+import { api } from '@/lib/api/axios-client';
+import type { SearchResponse, UseSearchOptions } from '@/features/search/types';
 
 export const searchApi = {
   async search(
     workspaceId: string,
     query: string,
     options?: UseSearchOptions,
-    requestOptions?: { signal?: AbortSignal }
+    requestOptions?: { signal?: AbortSignal },
   ): Promise<SearchResponse> {
     try {
       const response = await api.post(
@@ -22,23 +22,22 @@ export const searchApi = {
         },
         {
           signal: requestOptions?.signal, // Axios supports AbortSignal
-        }
+        },
       );
 
       return response.data;
     } catch (error) {
       // Handle axios errors
-      if (error.name === "AbortError" || error.code === "ERR_CANCELED") {
-        throw new Error("Request cancelled");
+      if (error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
+        throw new Error('Request cancelled');
       }
 
       if (error instanceof AxiosError) {
-        const errorMessage =
-          error.response?.data?.message || error.message || "Search failed";
+        const errorMessage = error.response?.data?.message || error.message || 'Search failed';
         throw new Error(errorMessage);
       }
 
-      throw new Error("Search failed");
+      throw new Error('Search failed');
     }
   },
 
@@ -50,7 +49,7 @@ export const searchApi = {
       search: async (
         workspaceId: string,
         query: string,
-        options?: UseSearchOptions
+        options?: UseSearchOptions,
       ): Promise<SearchResponse> => {
         // Cancel previous request if still running
         if (currentController) {
@@ -67,12 +66,9 @@ export const searchApi = {
           currentController = null; // Clear on success
           return result;
         } catch (error) {
-          if (
-            error.name === "AbortError" ||
-            error.message === "Request cancelled"
-          ) {
+          if (error.name === 'AbortError' || error.message === 'Request cancelled') {
             // Don't clear controller on abort - let the next request handle it
-            throw new Error("Request cancelled");
+            throw new Error('Request cancelled');
           }
           currentController = null; // Clear on other errors
           throw error;

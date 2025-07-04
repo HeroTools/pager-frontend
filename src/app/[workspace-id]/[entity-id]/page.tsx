@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle } from 'lucide-react';
 
-import ConversationChat from "@/components/chat/conversation-chat";
-import ChannelChat from "@/components/chat/channel-chat";
-import { useParamIds } from "@/hooks/use-param-ids";
+import ConversationChat from '@/components/chat/conversation-chat';
+import ChannelChat from '@/components/chat/channel-chat';
+import { useParamIds } from '@/hooks/use-param-ids';
 
 const ChatPage = () => {
   const { type } = useParamIds();
 
-  if (type === "conversation") {
+  if (type === 'conversation') {
     return (
       <div className="flex flex-col h-full">
         <ConversationChat />
       </div>
     );
-  } else if (type === "channel") {
+  } else if (type === 'channel') {
     return (
       <div className="flex flex-col h-full">
         <ChannelChat />

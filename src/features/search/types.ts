@@ -20,7 +20,7 @@ export interface SearchResult {
   isThread: boolean;
   parentMessageId?: string | null;
   threadSummary?: string | null;
-  contextType: "channel" | "conversation" | "thread";
+  contextType: 'channel' | 'conversation' | 'thread';
   contextMessageIds: string[];
 }
 
@@ -58,7 +58,7 @@ export interface SearchFilters {
     start: Date;
     end: Date;
   };
-  messageType?: "all" | "threads" | "direct" | "channel";
+  messageType?: 'all' | 'threads' | 'direct' | 'channel';
 }
 
 export interface SearchMetrics {

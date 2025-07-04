@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 interface PendingMessage {
   optimisticId: string;
@@ -14,7 +14,7 @@ interface MessagesStoreState {
   pendingMessages: Map<string, PendingMessage>;
   addPendingMessage: (
     optimisticId: string,
-    details: Omit<PendingMessage, "optimisticId" | "timestamp">
+    details: Omit<PendingMessage, 'optimisticId' | 'timestamp'>,
   ) => void;
   removePendingMessage: (optimisticId: string) => void;
   isMessagePending: (optimisticId: string) => boolean;

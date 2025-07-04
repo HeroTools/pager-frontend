@@ -3,8 +3,8 @@ import type {
   WorkspaceWithMembers,
   ApiResponse,
   WorkspaceMemberRole,
-} from "@/types/database";
-import { MemberWithUser } from "@/features/members";
+} from '@/types/database';
+import { MemberWithUser } from '@/features/members';
 
 // Use the database Workspace type directly
 export type WorkspaceEntity = Workspace;
@@ -22,9 +22,7 @@ export interface CreateWorkspaceData {
 export type UpdateWorkspaceData = CreateWorkspaceData;
 
 // Join workspace data
-export type JoinWorkspaceData =
-  | { workspace_id: string }
-  | { invitation_token: string };
+export type JoinWorkspaceData = { workspace_id: string } | { invitation_token: string };
 
 export interface WorkspaceResponseData extends WorkspaceEntity {
   is_member: boolean;
@@ -42,8 +40,7 @@ export interface CreateWorkspaceResponse {
 // API Response types using the generic ApiResponse
 export type WorkspaceResponse = ApiResponse<WorkspaceResponseData>;
 export type WorkspacesResponse = ApiResponse<WorkspaceEntity[]>;
-export type WorkspaceWithMembersResponse =
-  ApiResponse<WorkspaceWithMembersList>;
+export type WorkspaceWithMembersResponse = ApiResponse<WorkspaceWithMembersList>;
 
 // Workspace statistics
 export interface WorkspaceStats {

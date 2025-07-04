@@ -1,11 +1,11 @@
-import { FC, useState } from "react";
+import { FC, useState } from 'react';
 
-import { useGetMembers, MemberWithUser } from "@/features/members";
-import { useParamIds } from "@/hooks/use-param-ids";
-import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
-import MemberSearchSelect from "./member-search-select";
-import { Button } from "./ui/button";
-import type { Channel } from "@/types/chat";
+import { useGetMembers, MemberWithUser } from '@/features/members';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
+import MemberSearchSelect from './member-search-select';
+import { Button } from './ui/button';
+import type { Channel } from '@/types/chat';
 
 interface AddMembersDialogProps {
   isOpen: boolean;
@@ -35,16 +35,12 @@ const AddMembersDialog: FC<AddMembersDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <div className="flex justify-between items-center mb-4">
-          <DialogTitle className="text-xl">
-            Add people to #{channel.name}
-          </DialogTitle>
+          <DialogTitle className="text-xl">Add people to #{channel.name}</DialogTitle>
         </div>
 
         <MemberSearchSelect
           selectedMembers={selectedMembers}
-          onMemberSelect={(member) =>
-            setSelectedMembers((prev) => [...prev, member])
-          }
+          onMemberSelect={(member) => setSelectedMembers((prev) => [...prev, member])}
           onMemberRemove={(memberId) =>
             setSelectedMembers((prev) => prev.filter((m) => m.id !== memberId))
           }
@@ -57,10 +53,7 @@ const AddMembersDialog: FC<AddMembersDialogProps> = ({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={selectedMembers.length === 0}
-          >
+          <Button onClick={handleSubmit} disabled={selectedMembers.length === 0}>
             Add
           </Button>
         </div>

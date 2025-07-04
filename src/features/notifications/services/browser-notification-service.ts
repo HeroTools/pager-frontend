@@ -1,5 +1,5 @@
-import type { NotificationEntity } from "@/features/notifications/types";
-import { getNotificationPreferences } from "@/features/notifications/components/notification-settings";
+import type { NotificationEntity } from '@/features/notifications/types';
+import { getNotificationPreferences } from '@/features/notifications/components/notification-settings';
 
 interface ShowNotificationOptions {
   notification: NotificationEntity;
@@ -14,14 +14,11 @@ class BrowserNotificationService {
 
   private constructor() {
     // Set up global click handler for notifications
-    if (typeof window !== "undefined" && "Notification" in window) {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       // Listen for notification clicks
-      self.addEventListener("notificationclick", (event: any) => {
+      self.addEventListener('notificationclick', (event: any) => {
         const notificationId = event.notification?.tag;
-        if (
-          notificationId &&
-          this.notificationClickHandlers.has(notificationId)
-        ) {
+        if (notificationId && this.notificationClickHandlers.has(notificationId)) {
           const handler = this.notificationClickHandlers.get(notificationId);
           handler?.();
           this.notificationClickHandlers.delete(notificationId);
@@ -57,13 +54,8 @@ class BrowserNotificationService {
 
     // Check quiet hours
     if (preferences.quietHoursEnabled) {
-      if (
-        this.isInQuietHours(
-          preferences.quietHoursStart,
-          preferences.quietHoursEnd
-        )
-      ) {
-        console.log("Notification suppressed due to quiet hours");
+      if (this.isInQuietHours(preferences.quietHoursStart, preferences.quietHoursEnd)) {
+        console.log('Notification suppressed due to quiet hours');
         return;
       }
     }
@@ -71,12 +63,11 @@ class BrowserNotificationService {
     // Check if only mentions/DMs preference is enabled
     if (preferences.onlyMentions) {
       // Check if this is a mention or direct message
-      const isMention =
-        notification.title.includes("@") || notification.message.includes("@");
+      const isMention = notification.title.includes('@') || notification.message.includes('@');
       const isDirectMessage = notification.related_conversation_id != null;
 
       if (!isMention && !isDirectMessage) {
-        console.log("Notification suppressed - only mentions/DMs enabled");
+        console.log('Notification suppressed - only mentions/DMs enabled');
         return;
       }
     }
@@ -88,8 +79,8 @@ class BrowserNotificationService {
       // Build the notification options
       const options: NotificationOptions = {
         body: notification.message,
-        icon: "/favicon.ico", // Update with your app icon
-        badge: "/badge-icon.png", // Update with your badge icon
+        icon: '/favicon.ico', // Update with your app icon
+        badge: '/badge-icon.png', // Update with your badge icon
         tag,
         requireInteraction: false,
         silent: false,
@@ -134,7 +125,7 @@ class BrowserNotificationService {
 
       // Handle notification error
       browserNotification.onerror = (error) => {
-        console.error("Browser notification error:", error);
+        console.error('Browser notification error:', error);
         this.activeNotifications.delete(notification.id);
         this.notificationClickHandlers.delete(tag);
       };
@@ -158,7 +149,7 @@ class BrowserNotificationService {
         this.playNotificationSound();
       }
     } catch (error) {
-      console.error("Error showing browser notification:", error);
+      console.error('Error showing browser notification:', error);
     }
   }
 
@@ -168,8 +159,8 @@ class BrowserNotificationService {
     const currentMinute = now.getMinutes();
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const [endHour, endMinute] = endTime.split(":").map(Number);
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
 
     const startTimeInMinutes = startHour * 60 + startMinute;
     const endTimeInMinutes = endHour * 60 + endMinute;
@@ -177,31 +168,22 @@ class BrowserNotificationService {
     // Handle case where quiet hours span midnight
     if (startTimeInMinutes > endTimeInMinutes) {
       // Quiet hours span midnight (e.g., 22:00 to 08:00)
-      return (
-        currentTimeInMinutes >= startTimeInMinutes ||
-        currentTimeInMinutes < endTimeInMinutes
-      );
+      return currentTimeInMinutes >= startTimeInMinutes || currentTimeInMinutes < endTimeInMinutes;
     } else {
       // Normal case (e.g., 08:00 to 17:00)
-      return (
-        currentTimeInMinutes >= startTimeInMinutes &&
-        currentTimeInMinutes < endTimeInMinutes
-      );
+      return currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes;
     }
   }
 
   private canShowNotifications(): boolean {
     return (
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      Notification.permission === "granted"
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      Notification.permission === 'granted'
     );
   }
 
-  private handleDefaultClick(
-    notification: NotificationEntity,
-    workspaceId: string
-  ): void {
+  private handleDefaultClick(notification: NotificationEntity, workspaceId: string): void {
     // Default click behavior - navigate to the relevant channel/conversation
     const baseUrl = window.location.origin;
 
@@ -218,13 +200,13 @@ class BrowserNotificationService {
   private playNotificationSound(): void {
     try {
       // Create an audio element to play the notification sound
-      const audio = new Audio("/sounds/channel.mp3"); // You'll need to add this file to your public folder
+      const audio = new Audio('/sounds/channel.mp3'); // You'll need to add this file to your public folder
       audio.volume = 0.5; // Set reasonable volume
       audio.play().catch((error) => {
-        console.warn("Could not play notification sound:", error);
+        console.warn('Could not play notification sound:', error);
       });
     } catch (error) {
-      console.warn("Error creating notification sound:", error);
+      console.warn('Error creating notification sound:', error);
     }
   }
 
@@ -253,5 +235,4 @@ class BrowserNotificationService {
   }
 }
 
-export const browserNotificationService =
-  BrowserNotificationService.getInstance();
+export const browserNotificationService = BrowserNotificationService.getInstance();

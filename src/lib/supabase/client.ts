@@ -1,4 +1,4 @@
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from '@supabase/ssr';
 
 export const createClient = () => {
   return createBrowserClient(
@@ -11,35 +11,30 @@ export const createClient = () => {
         detectSessionInUrl: true,
         storage: {
           getItem: (key) => {
-            if (
-              typeof window === "undefined" ||
-              typeof document === "undefined"
-            ) {
+            if (typeof window === 'undefined' || typeof document === 'undefined') {
               return null;
             }
             try {
-              const cookies = document.cookie.split(";");
-              const cookie = cookies.find((c) =>
-                c.trim().startsWith(`${key}=`)
-              );
-              return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
+              const cookies = document.cookie.split(';');
+              const cookie = cookies.find((c) => c.trim().startsWith(`${key}=`));
+              return cookie ? decodeURIComponent(cookie.split('=')[1]) : null;
             } catch (error) {
               console.warn(`Failed to get cookie ${key}:`, error);
               return null;
             }
           },
           setItem: (key, value) => {
-            if (typeof window === "undefined") return;
+            if (typeof window === 'undefined') return;
             try {
               document.cookie = `${key}=${encodeURIComponent(
-                value
+                value,
               )}; path=/; secure; samesite=lax; max-age=2592000`;
             } catch (error) {
               console.warn(`Failed to set cookie ${key}:`, error);
             }
           },
           removeItem: (key) => {
-            if (typeof window === "undefined") return;
+            if (typeof window === 'undefined') return;
             try {
               document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=lax`;
             } catch (error) {
@@ -61,10 +56,10 @@ export const createClient = () => {
       },
       global: {
         headers: {
-          "X-Client-Info": "unowned-frontend",
+          'X-Client-Info': 'unowned-frontend',
         },
       },
-    }
+    },
   );
 };
 

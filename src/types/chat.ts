@@ -1,4 +1,4 @@
-import { Reaction } from "@/features/reactions/types";
+import { Reaction } from '@/features/reactions/types';
 
 export interface Message {
   id: string;
@@ -19,7 +19,7 @@ export interface Author {
   id: string;
   name: string;
   avatar?: string;
-  status: "online" | "away" | "offline";
+  status: 'online' | 'away' | 'offline';
 }
 
 export interface Channel {
@@ -33,8 +33,8 @@ export interface Channel {
 }
 
 export enum ChannelType {
-  PUBLIC = "public",
-  PRIVATE = "private",
+  PUBLIC = 'public',
+  PRIVATE = 'private',
 }
 
 export interface Attachment {

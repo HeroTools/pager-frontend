@@ -1,19 +1,19 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { workspacesApi } from "../api/workspaces-api";
+import { workspacesApi } from '../api/workspaces-api';
 import type {
   WorkspaceEntity,
   WorkspaceWithMembersList,
   CreateWorkspaceData,
   UpdateWorkspaceData,
   WorkspaceInviteInfoResponse,
-} from "../types";
-import type { CurrentUser } from "@/features/auth";
+} from '../types';
+import type { CurrentUser } from '@/features/auth';
 
 // Get all workspaces
 export const useGetWorkspaces = () => {
   return useQuery({
-    queryKey: ["workspaces"],
+    queryKey: ['workspaces'],
     queryFn: () => workspacesApi.getWorkspaces(),
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -25,7 +25,7 @@ export const useGetWorkspaces = () => {
 // Get a single workspace
 export const useGetWorkspace = (id: string) => {
   return useQuery({
-    queryKey: ["workspace", id],
+    queryKey: ['workspace', id],
     queryFn: () => workspacesApi.getWorkspace(id),
     enabled: !!id,
     refetchOnWindowFocus: false,
@@ -38,7 +38,7 @@ export const useGetWorkspace = (id: string) => {
 // Get workspace with members
 export const useGetWorkspaceWithMembers = (id: string) => {
   return useQuery({
-    queryKey: ["workspace", id, "members"],
+    queryKey: ['workspace', id, 'members'],
     queryFn: () => workspacesApi.getAllWorkspaceDataForMember(id),
     enabled: !!id,
   });
@@ -47,7 +47,7 @@ export const useGetWorkspaceWithMembers = (id: string) => {
 // Get workspace statistics
 export const useGetWorkspaceStats = (id: string) => {
   return useQuery({
-    queryKey: ["workspaceStats", id],
+    queryKey: ['workspaceStats', id],
     queryFn: () => workspacesApi.getWorkspaceStats(id),
     enabled: !!id,
   });
@@ -58,12 +58,9 @@ export const useCreateWorkspace = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateWorkspaceData) =>
-      workspacesApi.createWorkspace(data),
+    mutationFn: (data: CreateWorkspaceData) => workspacesApi.createWorkspace(data),
     onSuccess: (newWorkspace) => {
-      const userId = queryClient.getQueryData<CurrentUser>([
-        "current-user",
-      ])?.id;
+      const userId = queryClient.getQueryData<CurrentUser>(['current-user'])?.id;
       if (!userId) return;
       const workspaceEntity: WorkspaceEntity = {
         id: newWorkspace.id,
@@ -75,21 +72,18 @@ export const useCreateWorkspace = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      queryClient.setQueryData<WorkspaceEntity[]>(["workspaces"], (old) => {
+      queryClient.setQueryData<WorkspaceEntity[]>(['workspaces'], (old) => {
         return old ? [...old, workspaceEntity] : [workspaceEntity];
       });
 
-      queryClient.setQueryData<WorkspaceEntity>(
-        ["workspace", newWorkspace.id],
-        {
-          ...workspaceEntity,
-          _isPartial: true,
-        }
-      );
+      queryClient.setQueryData<WorkspaceEntity>(['workspace', newWorkspace.id], {
+        ...workspaceEntity,
+        _isPartial: true,
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: ["workspaces"],
+        queryKey: ['workspaces'],
       });
     },
   });
@@ -105,23 +99,23 @@ export const useUpdateWorkspace = () => {
     onSuccess: (updatedWorkspace) => {
       // Update the specific workspace cache
       queryClient.setQueryData<WorkspaceEntity>(
-        ["workspace", updatedWorkspace.id],
-        updatedWorkspace
+        ['workspace', updatedWorkspace.id],
+        updatedWorkspace,
       );
 
       // Update the workspace in the workspaces list
       queryClient.setQueryData<WorkspaceEntity[]>(
-        ["workspaces"],
+        ['workspaces'],
         (old) =>
           old?.map((workspace) =>
-            workspace.id === updatedWorkspace.id ? updatedWorkspace : workspace
-          ) || []
+            workspace.id === updatedWorkspace.id ? updatedWorkspace : workspace,
+          ) || [],
       );
 
       // Update workspace with members cache
       queryClient.setQueryData<WorkspaceWithMembersList>(
-        ["workspace", updatedWorkspace.id, "members"],
-        (old) => (old ? { ...old, ...updatedWorkspace } : old)
+        ['workspace', updatedWorkspace.id, 'members'],
+        (old) => (old ? { ...old, ...updatedWorkspace } : old),
       );
     },
   });
@@ -136,28 +130,28 @@ export const useDeleteWorkspace = () => {
     onSuccess: (_, workspaceId) => {
       // Remove from workspaces list cache
       queryClient.setQueryData<WorkspaceEntity[]>(
-        ["workspaces"],
-        (old) => old?.filter((workspace) => workspace.id !== workspaceId) || []
+        ['workspaces'],
+        (old) => old?.filter((workspace) => workspace.id !== workspaceId) || [],
       );
 
       // Remove all workspace-related caches
       queryClient.removeQueries({
-        queryKey: ["workspace", workspaceId],
+        queryKey: ['workspace', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["members", workspaceId],
+        queryKey: ['members', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["channels", workspaceId],
+        queryKey: ['channels', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["conversations", workspaceId],
+        queryKey: ['conversations', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["currentMember", workspaceId],
+        queryKey: ['currentMember', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["workspaceStats", workspaceId],
+        queryKey: ['workspaceStats', workspaceId],
       });
     },
   });
@@ -172,25 +166,25 @@ export const useLeaveWorkspace = () => {
     onSuccess: (_, workspaceId) => {
       // Remove from workspaces list
       queryClient.setQueryData<WorkspaceEntity[]>(
-        ["workspaces"],
-        (old) => old?.filter((workspace) => workspace.id !== workspaceId) || []
+        ['workspaces'],
+        (old) => old?.filter((workspace) => workspace.id !== workspaceId) || [],
       );
 
       // Clear all workspace-related data
       queryClient.removeQueries({
-        queryKey: ["workspace", workspaceId],
+        queryKey: ['workspace', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["members", workspaceId],
+        queryKey: ['members', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["channels", workspaceId],
+        queryKey: ['channels', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["conversations", workspaceId],
+        queryKey: ['conversations', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ["currentMember", workspaceId],
+        queryKey: ['currentMember', workspaceId],
       });
     },
   });
@@ -201,9 +195,9 @@ export const useLeaveWorkspace = () => {
  */
 export function useWorkspaceFromInviteToken(token?: string) {
   return useQuery<WorkspaceInviteInfoResponse, Error>({
-    queryKey: ["workspace-invite-info", token],
+    queryKey: ['workspace-invite-info', token],
     queryFn: () => {
-      if (!token) throw new Error("No invite token provided");
+      if (!token) throw new Error('No invite token provided');
       return workspacesApi.getWorkspaceFromInviteToken(token);
     },
     enabled: !!token,

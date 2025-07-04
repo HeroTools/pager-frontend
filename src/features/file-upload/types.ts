@@ -5,12 +5,12 @@ export interface PresignedUrlRequest {
   contentType: string;
   sizeBytes: number;
   filePurpose:
-    | "attachments"
-    | "profile_pictures"
-    | "channel_documents"
-    | "temp_uploads"
-    | "audio_messages"
-    | "video_messages";
+    | 'attachments'
+    | 'profile_pictures'
+    | 'channel_documents'
+    | 'temp_uploads'
+    | 'audio_messages'
+    | 'video_messages';
 }
 
 export interface PresignedUrlResponse {
@@ -39,14 +39,14 @@ export interface ConfirmUploadResponse {
     size_bytes: number;
     uploaded_by: string;
     public_url: string;
-    status: "uploading" | "uploaded" | "failed" | "orphaned";
+    status: 'uploading' | 'uploaded' | 'failed' | 'orphaned';
     file_purpose:
-      | "attachments"
-      | "profile_pictures"
-      | "channel_documents"
-      | "temp_uploads"
-      | "audio_messages"
-      | "video_messages";
+      | 'attachments'
+      | 'profile_pictures'
+      | 'channel_documents'
+      | 'temp_uploads'
+      | 'audio_messages'
+      | 'video_messages';
     created_at: string;
     updated_at: string;
   };
@@ -73,7 +73,7 @@ export interface UploadedAttachment {
   sizeBytes: number;
   publicUrl: string;
   uploadProgress: number;
-  status: "uploading" | "completed" | "error";
+  status: 'uploading' | 'completed' | 'error';
   error?: string;
 }
 

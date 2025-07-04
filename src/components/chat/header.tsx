@@ -1,36 +1,24 @@
-import { FC, useState } from "react";
-import {
-  Hash,
-  Lock,
-  Users,
-  MoreVertical,
-  Settings,
-  LogOut,
-} from "lucide-react";
-import { Channel } from "@/types/chat";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { FC, useState } from 'react';
+import { Hash, Lock, Users, MoreVertical, Settings, LogOut } from 'lucide-react';
+import { Channel } from '@/types/chat';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { ChannelDetailsModal } from "@/components/channel-details-modal";
-import { ChannelMemberData } from "@/features/channels/types";
-import { useRemoveChannelMembers } from "@/features/channels";
-import { useCurrentUser } from "@/features/auth";
-import { useGetMembers } from "@/features/members";
-import { useParamIds } from "@/hooks/use-param-ids";
+} from '@/components/ui/dropdown-menu';
+import { ChannelDetailsModal } from '@/components/channel-details-modal';
+import { ChannelMemberData } from '@/features/channels/types';
+import { useRemoveChannelMembers } from '@/features/channels';
+import { useCurrentUser } from '@/features/auth';
+import { useGetMembers } from '@/features/members';
+import { useParamIds } from '@/hooks/use-param-ids';
 
 interface ChatHeaderProps {
   channel: Channel;
@@ -38,15 +26,9 @@ interface ChatHeaderProps {
   members?: ChannelMemberData[];
 }
 
-export const ChatHeader: FC<ChatHeaderProps> = ({
-  channel,
-  onToggleDetails,
-  members = [],
-}) => {
+export const ChatHeader: FC<ChatHeaderProps> = ({ channel, onToggleDetails, members = [] }) => {
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
-  const [modalInitialTab, setModalInitialTab] = useState<
-    "members" | "settings"
-  >("members");
+  const [modalInitialTab, setModalInitialTab] = useState<'members' | 'settings'>('members');
   const { workspaceId } = useParamIds();
   const removeChannelMembers = useRemoveChannelMembers();
   const { user } = useCurrentUser(workspaceId);
@@ -58,34 +40,34 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   const visibleMembers = members.slice(0, maxAvatars);
   const extraCount = members.length - maxAvatars;
 
-  const openModal = (tab: "members" | "settings" = "members") => {
+  const openModal = (tab: 'members' | 'settings' = 'members') => {
     setModalInitialTab(tab);
     setDetailsModalOpen(true);
   };
 
   const handleLeaveChannel = async () => {
     if (!user) {
-      toast.error("User not found");
+      toast.error('User not found');
       return;
     }
 
     // First find the workspace member for the current user
     const currentWorkspaceMember = workspaceMembers.find(
-      (wm) => wm.id === user.workspace_member_id
+      (wm) => wm.id === user.workspace_member_id,
     );
 
     if (!currentWorkspaceMember) {
-      toast.error("Unable to leave channel - workspace membership not found");
+      toast.error('Unable to leave channel - workspace membership not found');
       return;
     }
 
     // Then find the channel member using the workspace member ID
     const currentChannelMember = members.find(
-      (member) => member.workspace_member_id === currentWorkspaceMember.id
+      (member) => member.workspace_member_id === currentWorkspaceMember.id,
     );
 
     if (!currentChannelMember) {
-      toast.error("Unable to leave channel - channel membership not found");
+      toast.error('Unable to leave channel - channel membership not found');
       return;
     }
 
@@ -97,12 +79,12 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
         isCurrentUserLeaving: true,
       });
 
-      toast.success("Left channel successfully");
+      toast.success('Left channel successfully');
       // Navigate away from the channel
       router.push(`/${workspaceId}`);
     } catch (error) {
-      console.error("Failed to leave channel:", error);
-      toast.error("Failed to leave channel");
+      console.error('Failed to leave channel:', error);
+      toast.error('Failed to leave channel');
     }
   };
 
@@ -114,16 +96,14 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
         ) : (
           <Hash className="w-4 h-4 text-muted-foreground" />
         )}
-        <h2 className="font-semibold text-lg text-foreground">
-          {channel.name}
-        </h2>
+        <h2 className="font-semibold text-lg text-foreground">{channel.name}</h2>
       </div>
 
       <div className="flex items-center gap-3">
         {/* Member Avatars - click to open channel details */}
         <Button
           onClick={() => {
-            setModalInitialTab("members");
+            setModalInitialTab('members');
             setDetailsModalOpen(true);
           }}
           variant="ghost"
@@ -164,7 +144,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem
               onClick={() => {
-                setModalInitialTab("settings");
+                setModalInitialTab('settings');
                 setDetailsModalOpen(true);
               }}
             >
@@ -178,9 +158,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
                 disabled={removeChannelMembers.isPending}
               >
                 <LogOut className="w-4 h-4 mr-2" />
-                {removeChannelMembers.isPending
-                  ? "Leaving..."
-                  : "Leave channel"}
+                {removeChannelMembers.isPending ? 'Leaving...' : 'Leave channel'}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

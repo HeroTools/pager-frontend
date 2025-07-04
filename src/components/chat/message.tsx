@@ -1,6 +1,6 @@
-import { FC, useState } from "react";
-import { formatDistanceToNow } from "date-fns";
-import EmojiPicker from "@/components/emoji-picker";
+import { FC, useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import EmojiPicker from '@/components/emoji-picker';
 import {
   MoreHorizontal,
   MessageSquare,
@@ -13,29 +13,29 @@ import {
   Image as ImageIcon,
   Play,
   Eye,
-} from "lucide-react";
-import { Message, Attachment } from "@/types/chat";
-import { cn } from "@/lib/utils";
-import { getFileIcon } from "@/lib/helpers";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageReactions } from "./message-reactions";
-import { MessageContent } from "./message-content";
-import { useUIStore } from "@/store/ui-store";
-import { MediaViewerModal } from "@/components/media-viewer-modal";
-import { DeleteMessageModal } from "@/components/delete-message-modal";
-import { CurrentUser } from "@/features/auth/types";
-import { useGetMembers } from "@/features/members";
-import { useParamIds } from "@/hooks/use-param-ids";
-import ThreadButton from "./thread-button";
-import Editor from "@/components/editor/editor";
+} from 'lucide-react';
+import { Message, Attachment } from '@/types/chat';
+import { cn } from '@/lib/utils';
+import { getFileIcon } from '@/lib/helpers';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MessageReactions } from './message-reactions';
+import { MessageContent } from './message-content';
+import { useUIStore } from '@/store/ui-store';
+import { MediaViewerModal } from '@/components/media-viewer-modal';
+import { DeleteMessageModal } from '@/components/delete-message-modal';
+import { CurrentUser } from '@/features/auth/types';
+import { useGetMembers } from '@/features/members';
+import { useParamIds } from '@/hooks/use-param-ids';
+import ThreadButton from './thread-button';
+import Editor from '@/components/editor/editor';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { parseMessageContent } from "@/features/messages/helpers";
+} from '@/components/ui/dropdown-menu';
+import { parseMessageContent } from '@/features/messages/helpers';
 
 const ATTACHMENT_SIZES = {
   SINGLE: { maxHeight: 300, maxWidth: 400 },
@@ -65,10 +65,8 @@ const ImageAttachment: FC<{
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  const { maxHeight, maxWidth } = isSingle
-    ? ATTACHMENT_SIZES.SINGLE
-    : ATTACHMENT_SIZES.MULTI;
-  const filename = attachment.originalFilename || "Uploaded image";
+  const { maxHeight, maxWidth } = isSingle ? ATTACHMENT_SIZES.SINGLE : ATTACHMENT_SIZES.MULTI;
+  const filename = attachment.originalFilename || 'Uploaded image';
 
   return (
     <div className="relative group/image flex-shrink-0">
@@ -85,17 +83,17 @@ const ImageAttachment: FC<{
       ) : (
         <img
           src={attachment.publicUrl}
-          alt={filename || "Uploaded image"}
+          alt={filename || 'Uploaded image'}
           className={cn(
-            "rounded-lg cursor-pointer hover:opacity-90 transition-opacity border",
-            fixedHeight ? "object-cover" : "object-contain",
-            !isLoaded && "opacity-0"
+            'rounded-lg cursor-pointer hover:opacity-90 transition-opacity border',
+            fixedHeight ? 'object-cover' : 'object-contain',
+            !isLoaded && 'opacity-0',
           )}
           style={{
-            height: fixedHeight ? `${fixedHeight}px` : "auto",
-            maxHeight: fixedHeight ? "none" : `${maxHeight}px`,
+            height: fixedHeight ? `${fixedHeight}px` : 'auto',
+            maxHeight: fixedHeight ? 'none' : `${maxHeight}px`,
             maxWidth: `${maxWidth}px`,
-            minWidth: fixedHeight ? "120px" : "auto",
+            minWidth: fixedHeight ? '120px' : 'auto',
           }}
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
@@ -110,7 +108,7 @@ const ImageAttachment: FC<{
           className="h-8 w-8 p-0 bg-card/30 hover:bg-card/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
-            window.open(attachment.publicUrl, "_blank");
+            window.open(attachment.publicUrl, '_blank');
           }}
         >
           <Download className="w-4 h-4 text-white" />
@@ -126,27 +124,21 @@ const VideoAttachment: FC<{
   isSingle?: boolean;
   fixedHeight?: number;
 }> = ({ attachment, onOpenMediaViewer, isSingle = false, fixedHeight }) => {
-  const [duration, setDuration] = useState<string>("");
+  const [duration, setDuration] = useState<string>('');
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  const { maxHeight, maxWidth } = isSingle
-    ? ATTACHMENT_SIZES.SINGLE
-    : ATTACHMENT_SIZES.MULTI;
+  const { maxHeight, maxWidth } = isSingle ? ATTACHMENT_SIZES.SINGLE : ATTACHMENT_SIZES.MULTI;
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
-    if (
-      video.duration &&
-      !isNaN(video.duration) &&
-      video.duration !== Infinity
-    ) {
+    if (video.duration && !isNaN(video.duration) && video.duration !== Infinity) {
       setDuration(formatDuration(video.duration));
     }
     setIsLoaded(true);
@@ -158,10 +150,7 @@ const VideoAttachment: FC<{
   };
 
   return (
-    <div
-      className="relative group/video flex-shrink-0 cursor-pointer"
-      onClick={onOpenMediaViewer}
-    >
+    <div className="relative group/video flex-shrink-0 cursor-pointer" onClick={onOpenMediaViewer}>
       {/* Placeholder while loading to prevent layout shift */}
       {!isLoaded && !hasError && (
         <div className="bg-muted rounded-lg flex items-center justify-center min-h-[200px] aspect-video">
@@ -181,15 +170,15 @@ const VideoAttachment: FC<{
         <video
           src={attachment.publicUrl}
           className={cn(
-            "rounded-lg cursor-pointer border",
-            fixedHeight ? "object-cover" : "object-contain",
-            !isLoaded && "opacity-0 absolute inset-0"
+            'rounded-lg cursor-pointer border',
+            fixedHeight ? 'object-cover' : 'object-contain',
+            !isLoaded && 'opacity-0 absolute inset-0',
           )}
           style={{
-            height: fixedHeight ? `${fixedHeight}px` : "auto",
-            maxHeight: fixedHeight ? "none" : `${maxHeight}px`,
+            height: fixedHeight ? `${fixedHeight}px` : 'auto',
+            maxHeight: fixedHeight ? 'none' : `${maxHeight}px`,
             maxWidth: `${maxWidth}px`,
-            minWidth: fixedHeight ? "120px" : "auto",
+            minWidth: fixedHeight ? '120px' : 'auto',
           }}
           preload="metadata"
           onLoadedMetadata={handleLoadedMetadata}
@@ -214,7 +203,7 @@ const VideoAttachment: FC<{
           className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
-            window.open(attachment.publicUrl, "_blank");
+            window.open(attachment.publicUrl, '_blank');
           }}
         >
           <Download className="w-4 h-4 text-white" />
@@ -231,21 +220,14 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
         <Music className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
-            {attachment.originalFilename || "Audio file"}
+            {attachment.originalFilename || 'Audio file'}
           </p>
           {attachment.sizeBytes && (
-            <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.sizeBytes)}
-            </p>
+            <p className="text-xs text-muted-foreground">{formatFileSize(attachment.sizeBytes)}</p>
           )}
         </div>
       </div>
-      <audio
-        src={attachment.publicUrl}
-        className="w-full"
-        controls
-        preload="metadata"
-      >
+      <audio src={attachment.publicUrl} className="w-full" controls preload="metadata">
         Your browser does not support the audio tag.
       </audio>
     </div>
@@ -260,46 +242,41 @@ const DocumentAttachment: FC<{
   const [previewError, setPreviewError] = useState(false);
 
   const getFileColor = (filename: string) => {
-    const extension = filename.split(".").pop()?.toLowerCase();
+    const extension = filename.split('.').pop()?.toLowerCase();
     switch (extension) {
-      case "pdf":
-        return "border-red-200";
-      case "doc":
-      case "docx":
-        return "border-blue-200";
-      case "xls":
-      case "xlsx":
-        return "border-green-200";
-      case "ppt":
-      case "pptx":
-        return "border-orange-200";
+      case 'pdf':
+        return 'border-red-200';
+      case 'doc':
+      case 'docx':
+        return 'border-blue-200';
+      case 'xls':
+      case 'xlsx':
+        return 'border-green-200';
+      case 'ppt':
+      case 'pptx':
+        return 'border-orange-200';
       default:
-        return "border-border";
+        return 'border-border';
     }
   };
 
   const isViewableDocument = (filename: string) => {
-    const extension = filename.split(".").pop()?.toLowerCase();
-    return ["pdf", "doc", "docx", "xls", "xlsx"].includes(extension || "");
+    const extension = filename.split('.').pop()?.toLowerCase();
+    return ['pdf', 'doc', 'docx', 'xls', 'xlsx'].includes(extension || '');
   };
 
   const getPreviewUrl = (attachment: Attachment) => {
-    const extension = attachment.originalFilename
-      ?.split(".")
-      .pop()
-      ?.toLowerCase();
+    const extension = attachment.originalFilename?.split('.').pop()?.toLowerCase();
 
-    if (extension === "pdf") {
+    if (extension === 'pdf') {
       // For PDFs, use simple embedded view
       return `${attachment.publicUrl}#toolbar=0`;
     }
 
-    if (
-      ["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(extension || "")
-    ) {
+    if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension || '')) {
       // Use Microsoft Office Online viewer for thumbnails
       return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-        attachment.publicUrl
+        attachment.publicUrl,
       )}`;
     }
 
@@ -312,26 +289,26 @@ const DocumentAttachment: FC<{
     <div className="relative group/document max-w-sm">
       <div
         className={cn(
-          "rounded-lg border-2 bg-background cursor-pointer hover:shadow-md transition-all overflow-hidden",
-          getFileColor(attachment.originalFilename || "")
+          'rounded-lg border-2 bg-background cursor-pointer hover:shadow-md transition-all overflow-hidden',
+          getFileColor(attachment.originalFilename || ''),
         )}
         onClick={
-          isViewableDocument(attachment.originalFilename || "")
+          isViewableDocument(attachment.originalFilename || '')
             ? onOpenMediaViewer
-            : () => window.open(attachment.publicUrl, "_blank")
+            : () => window.open(attachment.publicUrl, '_blank')
         }
       >
         {/* File info header */}
         <div className="p-3 pb-2">
           <div className="flex items-center gap-2 mb-1">
-            {getFileIcon(attachment.originalFilename || "")}
+            {getFileIcon(attachment.originalFilename || '')}
             <p className="text-sm font-medium truncate flex-1">
-              {attachment.originalFilename || "Document"}
+              {attachment.originalFilename || 'Document'}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground uppercase">
-              {attachment.originalFilename?.split(".").pop() || "FILE"}
+              {attachment.originalFilename?.split('.').pop() || 'FILE'}
             </span>
             {attachment.sizeBytes && (
               <>
@@ -346,30 +323,28 @@ const DocumentAttachment: FC<{
 
         {/* Preview thumbnail underneath */}
         <div className="h-36 bg-muted relative overflow-hidden rounded-b-lg">
-          {previewUrl &&
-          isViewableDocument(attachment.originalFilename || "") &&
-          !previewError ? (
+          {previewUrl && isViewableDocument(attachment.originalFilename || '') && !previewError ? (
             <>
               {!previewLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center bg-muted">
                   <div className="w-8 h-8 opacity-50">
-                    {getFileIcon(attachment.originalFilename || "")}
+                    {getFileIcon(attachment.originalFilename || '')}
                   </div>
                 </div>
               )}
               <iframe
                 src={previewUrl}
                 className={cn(
-                  "w-full h-full border-0 pointer-events-none",
-                  !previewLoaded && "opacity-0"
+                  'w-full h-full border-0 pointer-events-none',
+                  !previewLoaded && 'opacity-0',
                 )}
                 style={
-                  attachment.originalFilename?.toLowerCase().includes(".doc")
+                  attachment.originalFilename?.toLowerCase().includes('.doc')
                     ? {
-                        width: "200%",
-                        height: "200%",
-                        transform: "scale(0.6)",
-                        transformOrigin: "-30px -40px",
+                        width: '200%',
+                        height: '200%',
+                        transform: 'scale(0.6)',
+                        transformOrigin: '-30px -40px',
                       }
                     : undefined
                 }
@@ -380,7 +355,7 @@ const DocumentAttachment: FC<{
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-muted">
               <div className="w-8 h-8 opacity-50">
-                {getFileIcon(attachment.originalFilename || "")}
+                {getFileIcon(attachment.originalFilename || '')}
               </div>
             </div>
           )}
@@ -394,7 +369,7 @@ const DocumentAttachment: FC<{
             className="h-6 w-6 p-0 bg-background/80 hover:bg-background border-0"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(attachment.publicUrl, "_blank");
+              window.open(attachment.publicUrl, '_blank');
             }}
           >
             <Download className="w-3 h-3 text-muted-foreground" />
@@ -409,18 +384,14 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
     <div
       className="bg-muted rounded-lg p-3 max-w-sm hover:bg-muted/80 transition-colors cursor-pointer"
-      onClick={() => window.open(attachment.publicUrl, "_blank")}
+      onClick={() => window.open(attachment.publicUrl, '_blank')}
     >
       <div className="flex items-center gap-3">
         <File className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">
-            {attachment.originalFilename || "File"}
-          </p>
+          <p className="text-sm font-medium truncate">{attachment.originalFilename || 'File'}</p>
           {attachment.sizeBytes && (
-            <p className="text-xs text-muted-foreground">
-              {formatFileSize(attachment.sizeBytes)}
-            </p>
+            <p className="text-xs text-muted-foreground">{formatFileSize(attachment.sizeBytes)}</p>
           )}
         </div>
         <Download className="w-4 h-4 text-muted-foreground" />
@@ -437,12 +408,12 @@ const AttachmentGrid: FC<{
     attachment: Attachment,
     index: number,
     isSingle = false,
-    fixedHeight?: number
+    fixedHeight?: number,
   ) => {
-    const mimeType = attachment.contentType || "";
-    const filename = attachment.originalFilename || "";
+    const mimeType = attachment.contentType || '';
+    const filename = attachment.originalFilename || '';
 
-    if (mimeType.startsWith("image/")) {
+    if (mimeType.startsWith('image/')) {
       return (
         <ImageAttachment
           key={attachment.id}
@@ -454,7 +425,7 @@ const AttachmentGrid: FC<{
       );
     }
 
-    if (mimeType.startsWith("video/")) {
+    if (mimeType.startsWith('video/')) {
       return (
         <VideoAttachment
           key={attachment.id}
@@ -466,15 +437,15 @@ const AttachmentGrid: FC<{
       );
     }
 
-    if (mimeType.startsWith("audio/")) {
+    if (mimeType.startsWith('audio/')) {
       return <AudioAttachment key={attachment.id} attachment={attachment} />;
     }
 
     if (
-      mimeType.includes("pdf") ||
-      mimeType.includes("document") ||
-      mimeType.includes("spreadsheet") ||
-      mimeType.includes("presentation") ||
+      mimeType.includes('pdf') ||
+      mimeType.includes('document') ||
+      mimeType.includes('spreadsheet') ||
+      mimeType.includes('presentation') ||
       filename.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx)$/i)
     ) {
       return (
@@ -494,20 +465,16 @@ const AttachmentGrid: FC<{
   const isSingleAttachment = attachments.length === 1;
 
   // Use fixed height for multi-attachment layout to align all media
-  const fixedHeight = isSingleAttachment
-    ? undefined
-    : ATTACHMENT_SIZES.MULTI.fixedHeight;
+  const fixedHeight = isSingleAttachment ? undefined : ATTACHMENT_SIZES.MULTI.fixedHeight;
 
   return (
     <div className="mt-2">
       {isSingleAttachment ? (
-        <div className="flex justify-start">
-          {renderAttachment(attachments[0], 0, true)}
-        </div>
+        <div className="flex justify-start">{renderAttachment(attachments[0], 0, true)}</div>
       ) : (
         <div className="flex flex-wrap items-start gap-1.5 max-w-5xl">
           {attachments.map((attachment, index) =>
-            renderAttachment(attachment, index, false, fixedHeight)
+            renderAttachment(attachment, index, false, fixedHeight),
           )}
         </div>
       )}
@@ -516,9 +483,9 @@ const AttachmentGrid: FC<{
 };
 
 const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return "0 B";
+  if (bytes === 0) return '0 B';
   const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
+  const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
@@ -538,9 +505,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
 }) => {
   const { workspaceId } = useParamIds();
   const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
-  const [mediaViewerAttachments, setMediaViewerAttachments] = useState<
-    Attachment[]
-  >([]);
+  const [mediaViewerAttachments, setMediaViewerAttachments] = useState<Attachment[]>([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -575,10 +540,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     }
   };
 
-  const handleOpenMediaViewer = (
-    attachments: Attachment[],
-    initialIndex: number
-  ) => {
+  const handleOpenMediaViewer = (attachments: Attachment[], initialIndex: number) => {
     setMediaViewerAttachments(attachments);
     setMediaViewerInitialIndex(initialIndex);
     setIsMediaViewerOpen(true);
@@ -614,7 +576,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       setIsEditing(false);
       setEditingContent(null);
     } catch (error) {
-      console.error("Error updating message:", error);
+      console.error('Error updating message:', error);
     }
   };
 
@@ -626,7 +588,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       await onDelete(message.id);
       setIsDeleteModalOpen(false);
     } catch (error) {
-      console.error("Error deleting message:", error);
+      console.error('Error deleting message:', error);
     } finally {
       setIsDeleting(false);
     }
@@ -640,9 +602,9 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     <>
       <div
         className={cn(
-          "group relative px-4 hover:bg-message-hover transition-colors py-2",
-          isCompact && "-mt-1",
-          isDropdownOpen && "bg-message-hover"
+          'group relative px-4 hover:bg-message-hover transition-colors py-2',
+          isCompact && '-mt-1',
+          isDropdownOpen && 'bg-message-hover',
         )}
       >
         <div className="flex gap-3">
@@ -658,8 +620,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
               {isCompact && (
                 <span className="text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors opacity-0 group-hover:opacity-100">
                   {new Date(message.timestamp).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
+                    hour: '2-digit',
+                    minute: '2-digit',
                   })}
                 </span>
               )}
@@ -678,14 +640,12 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                   })}
                 </span>
                 {message.isEdited && (
-                  <span className="text-xs text-text-subtle leading-tight">
-                    (edited)
-                  </span>
+                  <span className="text-xs text-text-subtle leading-tight">(edited)</span>
                 )}
               </div>
             )}
 
-            <div className={cn("leading-relaxed", !isCompact && "mt-0")}>
+            <div className={cn('leading-relaxed', !isCompact && 'mt-0')}>
               {isEditing ? (
                 <div className="mt-2">
                   <Editor
@@ -730,10 +690,10 @@ export const ChatMessage: FC<ChatMessageProps> = ({
         {!isEditing && (
           <div
             className={cn(
-              "absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity",
+              'absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity',
               isEmojiPickerOpen || isDropdownOpen
-                ? "opacity-100"
-                : "opacity-0 group-hover:opacity-100"
+                ? 'opacity-100'
+                : 'opacity-0 group-hover:opacity-100',
             )}
           >
             <div className="flex items-center">
@@ -742,11 +702,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                 onOpenChange={handleEmojiPickerToggle}
                 onSelect={handleEmojiSelect}
                 trigger={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-                  >
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-sidebar-hover">
                     <Smile className="w-4 h-4" />
                   </Button>
                 }

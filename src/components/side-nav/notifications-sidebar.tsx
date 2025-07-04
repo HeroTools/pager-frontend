@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   X,
   CheckCheck,
@@ -9,28 +9,25 @@ import {
   AtSign,
   AlertTriangle,
   Bell,
-} from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+} from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { useNotifications } from "@/features/notifications/hooks/use-notifications";
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import {
   useMarkAllNotificationsAsRead,
   useMarkNotificationAsRead,
-} from "@/features/notifications/hooks/use-notifications-mutations";
-import type { NotificationEntity } from "@/features/notifications/types";
+} from '@/features/notifications/hooks/use-notifications-mutations';
+import type { NotificationEntity } from '@/features/notifications/types';
 
 interface NotificationsSidebarProps {
   workspaceId: string;
   onClose: () => void;
 }
 
-export const NotificationsSidebar = ({
-  workspaceId,
-  onClose,
-}: NotificationsSidebarProps) => {
+export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSidebarProps) => {
   const router = useRouter();
   const [markingAllAsRead, setMarkingAllAsRead] = useState(false);
 
@@ -49,8 +46,7 @@ export const NotificationsSidebar = ({
   const markAllAsRead = useMarkAllNotificationsAsRead();
   const markAsRead = useMarkNotificationAsRead();
 
-  const allNotifications =
-    notifications?.pages?.flatMap((page) => page.notifications) || [];
+  const allNotifications = notifications?.pages?.flatMap((page) => page.notifications) || [];
   const hasUnread = allNotifications.some((n) => !n.is_read);
 
   const handleMarkAllAsRead = async () => {
@@ -60,7 +56,7 @@ export const NotificationsSidebar = ({
     try {
       await markAllAsRead.mutateAsync(workspaceId);
     } catch (error) {
-      console.error("Failed to mark all as read:", error);
+      console.error('Failed to mark all as read:', error);
     } finally {
       setMarkingAllAsRead(false);
     }
@@ -79,20 +75,20 @@ export const NotificationsSidebar = ({
           workspaceId,
         });
       } catch (error) {
-        console.error("Failed to mark notification as read:", error);
+        console.error('Failed to mark notification as read:', error);
       }
     }
   };
 
-  const getNotificationIcon = (type: NotificationEntity["type"]) => {
+  const getNotificationIcon = (type: NotificationEntity['type']) => {
     switch (type) {
-      case "mention":
+      case 'mention':
         return <AtSign className="size-4" />;
-      case "direct_message":
+      case 'direct_message':
         return <MessageCircle className="size-4" />;
-      case "channel_message":
+      case 'channel_message':
         return <Hash className="size-4" />;
-      case "thread_reply":
+      case 'thread_reply':
         return <MessageCircle className="size-4" />;
       default:
         return <Bell className="size-4" />;
@@ -105,7 +101,7 @@ export const NotificationsSidebar = ({
       if (parsed.ops && Array.isArray(parsed.ops)) {
         return parsed.ops
           .map((op: any) => op.insert)
-          .join("")
+          .join('')
           .trim();
       }
     } catch {
@@ -141,9 +137,7 @@ export const NotificationsSidebar = ({
         </div>
         <div className="flex-1 flex flex-col items-center justify-center p-6">
           <AlertTriangle className="size-8 text-muted-foreground mb-3" />
-          <p className="text-muted-foreground text-center">
-            Failed to load notifications
-          </p>
+          <p className="text-muted-foreground text-center">Failed to load notifications</p>
         </div>
       </div>
     );
@@ -183,9 +177,7 @@ export const NotificationsSidebar = ({
               <CheckCheck className="size-6 text-muted-foreground" />
             </div>
             <h3 className="font-medium text-foreground mb-1">All caught up!</h3>
-            <p className="text-sm text-muted-foreground">
-              No new notifications to show
-            </p>
+            <p className="text-sm text-muted-foreground">No new notifications to show</p>
           </div>
         ) : (
           <div className="divide-y divide-border-subtle">
@@ -194,8 +186,8 @@ export const NotificationsSidebar = ({
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
                 className={cn(
-                  "flex items-start gap-3 p-4 cursor-pointer transition-all duration-150 hover:bg-muted/50 relative",
-                  !notification.is_read && "bg-muted/30"
+                  'flex items-start gap-3 p-4 cursor-pointer transition-all duration-150 hover:bg-muted/50 relative',
+                  !notification.is_read && 'bg-muted/30',
                 )}
               >
                 {!notification.is_read && (
@@ -205,8 +197,8 @@ export const NotificationsSidebar = ({
                 <div className="flex-shrink-0 mt-1">
                   <div
                     className={cn(
-                      "text-muted-foreground transition-colors",
-                      !notification.is_read && "text-foreground"
+                      'text-muted-foreground transition-colors',
+                      !notification.is_read && 'text-foreground',
                     )}
                   >
                     {getNotificationIcon(notification.type)}
@@ -217,8 +209,8 @@ export const NotificationsSidebar = ({
                   <div className="flex items-center gap-2">
                     <h4
                       className={cn(
-                        "text-sm font-medium truncate text-foreground",
-                        !notification.is_read && "font-semibold"
+                        'text-sm font-medium truncate text-foreground',
+                        !notification.is_read && 'font-semibold',
                       )}
                     >
                       {notification.title}
@@ -241,9 +233,7 @@ export const NotificationsSidebar = ({
                     {notification.channel_name && (
                       <>
                         <span>•</span>
-                        <span className="text-muted-foreground">
-                          #{notification.channel_name}
-                        </span>
+                        <span className="text-muted-foreground">#{notification.channel_name}</span>
                       </>
                     )}
                   </div>
@@ -260,9 +250,7 @@ export const NotificationsSidebar = ({
                   disabled={isFetchingNextPage}
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  {isFetchingNextPage ? (
-                    <Loader className="size-4 animate-spin mr-2" />
-                  ) : null}
+                  {isFetchingNextPage ? <Loader className="size-4 animate-spin mr-2" /> : null}
                   Load more
                 </Button>
               </div>
