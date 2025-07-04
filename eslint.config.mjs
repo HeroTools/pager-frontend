@@ -1,23 +1,30 @@
+// eslint.config.mjs
+
 import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
-import { configs as tsConfigs } from 'typescript-eslint';
+import typescriptParser from '@typescript-eslint/parser'; // ✅ actual parser module
 import pluginReact from 'eslint-plugin-react';
 import pluginReactHooks from 'eslint-plugin-react-hooks';
 import pluginNext from '@next/eslint-plugin-next';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 
 const compat = new FlatCompat({
-  baseDirectory: import.meta.url, // enables compatibility with old-style configs
+  baseDirectory: import.meta.url,
   recommendedConfig: js.configs.recommended,
 });
 
 export default [
-  // Apply core Next.js + TS + Prettier rules
-  ...compat.extends('next/core-web-vitals', 'next/typescript', 'prettier'),
+  // 1. Built-in Next.js + TypeScript rules
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
 
+  // 2. Prettier styling overrides
+  eslintConfigPrettier,
+
+  // 3. Custom project-level rules
   {
-    files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
+    files: ['**/*.{js,jsx,ts,tsx,mjs,cjs}'],
     languageOptions: {
-      parser: '@typescript-eslint/parser',
+      parser: typescriptParser, // ✅ parser module, not string
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
@@ -31,23 +38,16 @@ export default [
       '@next/next': pluginNext,
     },
     rules: {
-      // Next.js specific
-      ...pluginNext.configs.recommended.rules,
-      ...pluginNext.configs['core-web-vitals'].rules,
-      // TypeScript ESLint
-      ...tsConfigs.recommended,
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      // React
       'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      // Code hygiene
+      '@next/next/no-html-link-for-pages': 'off',
       'no-console': 'warn',
       'no-debugger': 'warn',
     },
   },
 
-  // (Optional) ignore patterns
+  // 4. Global ignore patterns
   {
     ignores: ['node_modules/', '.next/', 'public/', 'dist/', 'build/'],
   },
