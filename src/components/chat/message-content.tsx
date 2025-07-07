@@ -2,13 +2,12 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
-import { cn } from '@/lib/utils';
 
 interface MessageContentProps {
   content: string;
 }
 
-export const MessageContent: React.FC<MessageContentProps> = ({ content }) => {
+export const MessageContent = ({ content }: MessageContentProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const cleanHtml = useMemo(() => {
@@ -23,9 +22,18 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content }) => {
       encodeHtml: true,
       paragraphTag: 'p',
       classPrefix: 'ql-',
+      inlineStyles: false,
+      multiLineBlockquote: true,
+      multiLineHeader: true,
+      multiLineCodeblock: true,
     });
 
     const dirty = converter.convert();
+    
+    // Debug: log the converted HTML if it contains blockquote
+    if (dirty.includes('blockquote') || dirty.includes('ql-blockquote')) {
+      console.log('Blockquote HTML:', dirty);
+    }
 
     return DOMPurify.sanitize(dirty, {
       USE_PROFILES: { html: true },
@@ -86,8 +94,16 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content }) => {
 
   useEffect(() => {
     if (containerRef.current) {
+      // Highlight code blocks
       containerRef.current.querySelectorAll('pre code').forEach((block) => {
         hljs.highlightElement(block as HTMLElement);
+      });
+
+      // Add target="_blank" to links for new tab opening
+      containerRef.current.querySelectorAll('a').forEach((link) => {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+        link.setAttribute('title', link.href); // Show URL in native tooltip
       });
     }
   }, [cleanHtml]);
@@ -95,37 +111,8 @@ export const MessageContent: React.FC<MessageContentProps> = ({ content }) => {
   return (
     <div
       ref={containerRef}
-      className={cn(
-        'message-content text-text-foreground max-w-none',
-        // Rich text formatting styles
-        '[&_strong]:font-bold [&_b]:font-bold',
-        '[&_em]:italic [&_i]:italic',
-        '[&_u]:underline',
-        '[&_s]:line-through [&_strike]:line-through',
-        // Lists
-        '[&_ul]:list-disc [&_ul]:ml-6 [&_ul]:my-2',
-        '[&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:my-2',
-        '[&_li]:mb-1',
-        // Blockquotes
-        '[&_blockquote]:border-l-4 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-2 [&_blockquote]:bg-muted/30 [&_blockquote]:italic',
-        // Code blocks
-        '[&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-md [&_pre]:my-2 [&_pre]:overflow-x-auto',
-        '[&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono',
-        '[&_pre_code]:bg-transparent [&_pre_code]:p-0',
-        // Links
-        '[&_a]:text-blue-600 [&_a]:underline hover:[&_a]:text-blue-800',
-        // Paragraphs
-        '[&_p]:mb-2 [&_p:last-child]:mb-0'
-      )}
+      className="message-content"
       dangerouslySetInnerHTML={{ __html: cleanHtml }}
-      style={{
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-        fontSize: '14px',
-        lineHeight: '1.42',
-        wordWrap: 'break-word',
-        whiteSpace: 'pre-wrap',
-      }}
     />
   );
 };
