@@ -17,7 +17,7 @@ import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
-import { useDeleteAttachment, useFileUpload } from '@/features/file-upload';
+import { useFileUpload } from '@/features/file-upload';
 import AttachmentPreview from './attachment-preview';
 import { validateFile } from '@/lib/helpers';
 import EmojiPicker from '@/components/emoji-picker';
@@ -38,7 +38,7 @@ interface EditorProps {
   placeholder?: string;
   workspaceId: string;
   onCancel?: () => void;
-  onSubmit: ({ image, body, attachments, plainText }: EditorValue) => Promise<any> | void;
+  onSubmit: ({ image, body, attachments, plainText }: EditorValue) => Promise<void> | void;
   maxFiles?: number;
   maxFileSizeBytes?: number;
 }
@@ -82,10 +82,69 @@ const Editor = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
-  const handleSubmitRef = useRef(handleSubmit);
 
   const { uploadMultipleFiles } = useFileUpload(workspaceId);
-  const deleteAttachment = useDeleteAttachment();
+
+  const handleSubmit = useCallback(async (): Promise<void> => {
+    const quill = quillRef.current;
+    if (!quill) return;
+
+    if (hasUploadsInProgress) {
+      toast.error('Please wait for all attachments to finish uploading.');
+      return;
+    }
+    const failedAttachments = attachments.filter((att) => att.status === 'error');
+    if (failedAttachments.length > 0) {
+      toast.error('Some uploads failed. Please remove failed uploads or try again.');
+      return;
+    }
+
+    const oldContents = quill.getContents();
+    const oldText = quill.getText();
+    const oldImage = image;
+    const oldAttachments = attachments;
+    const body = JSON.stringify(oldContents);
+
+    try {
+      const completedAttachments = attachments.filter((att) => !!att.publicUrl);
+
+      const attachmentsForSubmit: UploadedAttachment[] = completedAttachments.map((att) => ({
+        id: att.id,
+        originalFilename: att.originalFilename,
+        contentType: att.contentType,
+        sizeBytes: att.sizeBytes,
+        publicUrl: att.publicUrl,
+        uploadProgress: att.uploadProgress,
+        status: 'completed' as const,
+      }));
+
+      const result = onSubmitRef.current({
+        image: oldImage,
+        body,
+        attachments: attachmentsForSubmit,
+        plainText: oldText,
+      });
+
+      quill.setText('');
+      quill.setContents([]);
+      setText('');
+      setImage(null);
+      setAttachments([]);
+      activeUploadBatchRef.current = null;
+
+      if (result instanceof Promise) {
+        await result;
+      }
+    } catch (err) {
+      quill.setContents(oldContents);
+      setText(oldText);
+      setImage(oldImage);
+      setAttachments(oldAttachments);
+      console.error('Send failed, rolled back:', err);
+    }
+  }, [hasUploadsInProgress, attachments, image]);
+
+  const handleSubmitRef = useRef(handleSubmit);
 
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
@@ -97,7 +156,7 @@ const Editor = ({
   }, [onSubmit, placeholder, defaultValue, disabled, attachments, handleSubmit]);
 
   const handleFiles = useCallback(
-    async (files: FileList) => {
+    async (files: FileList): Promise<void> => {
       if (!uploadMultipleFiles) {
         toast.error('File upload not configured');
         return;
@@ -156,7 +215,6 @@ const Editor = ({
               );
             }
           },
-          3, // Max concurrent uploads
         );
 
         if (activeUploadBatchRef.current === batchId) {
@@ -203,11 +261,11 @@ const Editor = ({
         }
       }
     },
-    [attachments.length, maxFiles, uploadMultipleFiles],
+    [attachments.length, maxFiles, uploadMultipleFiles, maxFileSizeBytes],
   );
 
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    (e: React.DragEvent): void => {
       e.preventDefault();
       e.stopPropagation();
       setIsDragging(false);
@@ -219,78 +277,19 @@ const Editor = ({
     [handleFiles],
   );
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent): void => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   }, []);
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragLeave = useCallback((e: React.DragEvent): void => {
     e.preventDefault();
     e.stopPropagation();
     if (editorWrapperRef.current && !editorWrapperRef.current.contains(e.relatedTarget as Node)) {
       setIsDragging(false);
     }
   }, []);
-
-  async function handleSubmit() {
-    const quill = quillRef.current;
-    if (!quill) return;
-
-    if (hasUploadsInProgress) {
-      toast.error('Please wait for all attachments to finish uploading.');
-      return;
-    }
-    const failedAttachments = attachments.filter((att) => att.status === 'error');
-    if (failedAttachments.length > 0) {
-      toast.error('Some uploads failed. Please remove failed uploads or try again.');
-      return;
-    }
-
-    const oldContents = quill.getContents();
-    const oldText = quill.getText();
-    const oldImage = image;
-    const oldAttachments = attachments;
-    const body = JSON.stringify(oldContents);
-
-    try {
-      const completedAttachments = attachments.filter((att) => !!att.publicUrl);
-
-      const attachmentsForSubmit: UploadedAttachment[] = completedAttachments.map((att) => ({
-        id: att.id,
-        originalFilename: att.originalFilename,
-        contentType: att.contentType,
-        sizeBytes: att.sizeBytes,
-        publicUrl: att.publicUrl,
-        uploadProgress: att.uploadProgress,
-        status: 'completed' as const,
-      }));
-
-      const result = onSubmitRef.current({
-        image: oldImage,
-        body,
-        attachments: attachmentsForSubmit,
-        plainText: oldText,
-      });
-
-      quill.setText('');
-      quill.setContents([]);
-      setText('');
-      setImage(null);
-      setAttachments([]);
-      activeUploadBatchRef.current = null;
-
-      if (result instanceof Promise) {
-        await result;
-      }
-    } catch (err) {
-      quill.setContents(oldContents);
-      setText(oldText);
-      setImage(oldImage);
-      setAttachments(oldAttachments);
-      console.error('Send failed, rolled back:', err);
-    }
-  }
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -312,10 +311,12 @@ const Editor = ({
           bindings: {
             enterSubmit: {
               key: 'Enter',
-              handler: function (range: any, context: any) {
+              handler: function (): boolean {
                 // If emoji dropdown is open, don't handle enter here - let the emoji component deal with it
                 const emojiDropdownOpen =
-                  quillRef.current && (quillRef.current as any).emojiDropdownOpen;
+                  quillRef.current &&
+                  (quillRef.current as unknown as { emojiDropdownOpen?: boolean })
+                    .emojiDropdownOpen;
                 if (emojiDropdownOpen) {
                   return true; // Let the event bubble up to emoji handler
                 }
@@ -339,9 +340,10 @@ const Editor = ({
             linebreak: {
               key: 'Enter',
               shiftKey: true,
-              handler: function (range: any, context: any) {
+              handler: function (range: unknown): boolean {
                 const quill = quillRef.current!;
-                const index = range ? range.index : quill.getLength();
+                const rangeObj = range as { index?: number } | null;
+                const index = rangeObj?.index ?? quill.getLength();
                 quill.insertText(index, '\n');
                 quill.setSelection(index + 1);
                 return false;
@@ -372,17 +374,17 @@ const Editor = ({
     };
   }, []);
 
-  const handleToolbarToggle = () => {
+  const handleToolbarToggle = useCallback((): void => {
     setIsToolbarVisible((v) => !v);
     const toolbarEl = containerRef.current?.querySelector('.ql-toolbar');
     if (toolbarEl) toolbarEl.classList.toggle('hidden');
-  };
+  }, []);
 
-  const handleEmojiSelect = (emoji: string) => {
+  const handleEmojiSelect = useCallback((emoji: string): void => {
     const quill = quillRef.current;
     const idx = quill?.getSelection()?.index || 0;
     quill?.insertText(idx, emoji);
-  };
+  }, []);
 
   return (
     <div className="flex flex-col">
