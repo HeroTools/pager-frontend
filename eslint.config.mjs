@@ -1,23 +1,24 @@
+// eslint.config.mjs
 import { FlatCompat } from '@eslint/eslintrc';
-import js from '@eslint/js';
+import { fixupConfigRules } from '@eslint/compat';
 import typescriptParser from '@typescript-eslint/parser';
-import pluginReact from 'eslint-plugin-react';
-import pluginReactHooks from 'eslint-plugin-react-hooks';
-import pluginNext from '@next/eslint-plugin-next';
-import eslintConfigPrettier from 'eslint-config-prettier/flat';
 
 const compat = new FlatCompat({
   baseDirectory: import.meta.url,
-  recommendedConfig: js.configs.recommended,
+  recommendedConfig: undefined, // optional
 });
 
+const nextConfigs = fixupConfigRules(
+  compat.config({ extends: ['next/core-web-vitals', 'next/typescript'] }),
+);
+
 const config = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...nextConfigs,
 
-  eslintConfigPrettier,
-
+  // your project code
   {
-    files: ['**/*.{js,jsx,ts,tsx,mjs,cjs}'],
+    files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
+    ignores: ['eslint.config.mjs'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -28,24 +29,25 @@ const config = [
         tsconfigRootDir: '.',
       },
     },
-    plugins: {
-      react: pluginReact,
-      'react-hooks': pluginReactHooks,
-      '@next/next': pluginNext,
-    },
     rules: {
-      'react/react-in-jsx-scope': 'off',
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
-      '@next/next/no-html-link-for-pages': 'off',
       'no-console': 'warn',
       'no-debugger': 'warn',
+      '@typescript-eslint/no-unused-vars': 'off',
+      // add your other rules here
     },
   },
 
+  // config file itself
   {
-    ignores: ['node_modules/', '.next/', 'public/', 'dist/', 'build/'],
+    files: ['eslint.config.mjs'],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
+    },
   },
+
+  // global ignores
+  { ignores: ['node_modules/', '.next/', 'dist/', 'public/', 'build/'] },
 ];
 
 export default config;
