@@ -1,1 +1,1 @@
-export type Id<T extends string> = string & { __brand: T }; 
+export type Id<T extends string> = string & { __brand: T };

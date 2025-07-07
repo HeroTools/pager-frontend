@@ -1,29 +1,26 @@
-import { ChevronDown, ListFilter, SquarePen } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ListFilter, SquarePen } from 'lucide-react';
+import { useState } from 'react';
 
-import { InDevelopmentHint } from "@/components/in-development-hint";
-import { Button } from "@/components/ui/button";
+import { InDevelopmentHint } from '@/components/in-development-hint';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { InviteModal } from "./invite-modal";
-import { PreferenceModal } from "./preference-modal";
-import type { WorkspaceEntity } from "@/features/workspaces/types";
-import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
+} from '@/components/ui/dropdown-menu';
+import { InviteModal } from './invite-modal';
+import { PreferenceModal } from './preference-modal';
+import type { WorkspaceEntity } from '@/features/workspaces/types';
+import { useConversationCreateStore } from '@/features/conversations/store/conversation-create-store';
 
 interface WorkspaceHeaderProps {
   workspace: WorkspaceEntity;
   isAdmin: boolean;
 }
 
-export const WorkspaceHeader = ({
-  workspace,
-  isAdmin,
-}: WorkspaceHeaderProps) => {
+export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) => {
   const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -31,11 +28,7 @@ export const WorkspaceHeader = ({
 
   return (
     <>
-      <InviteModal
-        open={inviteOpen}
-        setOpen={setInviteOpen}
-        name={workspace.name}
-      />
+      <InviteModal open={inviteOpen} setOpen={setInviteOpen} name={workspace.name} />
       <PreferenceModal
         open={preferenceOpen}
         setOpen={setPreferenceOpen}
@@ -60,9 +53,7 @@ export const WorkspaceHeader = ({
               </div>
               <div className="flex flex-col items-start">
                 <p className="font-bold">{workspace.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  Active workspace
-                </p>
+                <p className="text-xs text-muted-foreground">Active workspace</p>
               </div>
             </DropdownMenuItem>
             {isAdmin && (
@@ -86,11 +77,7 @@ export const WorkspaceHeader = ({
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="flex items-center gap-0.5">
-          <Button
-            variant="transparent"
-            size="iconSm"
-            onClick={startConversationCreation}
-          >
+          <Button variant="transparent" size="iconSm" onClick={startConversationCreation}>
             <SquarePen className="size-4" />
           </Button>
         </div>

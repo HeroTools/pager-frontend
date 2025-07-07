@@ -1,16 +1,15 @@
-import api from "@/lib/api/axios-client";
+import api from '@/lib/api/axios-client';
 import type {
-  ChannelEntity,
-  CreateChannelData,
-  UpdateChannelData,
-  ChannelsResponse,
   AddChannelMembersData,
-  UpdateChannelMemberData,
+  ChannelEntity,
   ChannelFilters,
-  ChannelWithMessages,
-  GetChannelMessagesParams,
   ChannelMemberResponse,
-} from "@/features/channels/types";
+  ChannelWithMessages,
+  CreateChannelData,
+  GetChannelMessagesParams,
+  UpdateChannelData,
+  UpdateChannelMemberData,
+} from '@/features/channels/types';
 
 export const channelsApi = {
   /**
@@ -18,36 +17,44 @@ export const channelsApi = {
    */
   getAllAvailableChannels: async (
     workspaceId: string,
-    filters?: Partial<ChannelFilters>
+    filters?: Partial<ChannelFilters>,
   ): Promise<ChannelEntity[]> => {
     const params = new URLSearchParams();
-    if (filters?.channel_type)
-      params.append("channel_type", filters.channel_type);
-    if (filters?.search_query)
-      params.append("search_query", filters.search_query);
-    if (filters?.member_id) params.append("member_id", filters.member_id);
+    if (filters?.channel_type) {
+      params.append('channel_type', filters.channel_type);
+    }
+    if (filters?.search_query) {
+      params.append('search_query', filters.search_query);
+    }
+    if (filters?.member_id) {
+      params.append('member_id', filters.member_id);
+    }
 
-    const queryString = params.toString() ? `?${params.toString()}` : "";
-    const { data: response } = await api.get<ChannelsResponse>(
-      `/workspaces/${workspaceId}/channels/discover/available${queryString}`
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const { data: response } = await api.get<ChannelEntity[]>(
+      `/workspaces/${workspaceId}/channels/discover/available${queryString}`,
     );
     return response || [];
   },
 
   getUserChannels: async (
     workspaceId: string,
-    filters?: Partial<ChannelFilters>
+    filters?: Partial<ChannelFilters>,
   ): Promise<ChannelEntity[]> => {
     const params = new URLSearchParams();
-    if (filters?.channel_type)
-      params.append("channel_type", filters.channel_type);
-    if (filters?.search_query)
-      params.append("search_query", filters.search_query);
-    if (filters?.member_id) params.append("member_id", filters.member_id);
+    if (filters?.channel_type) {
+      params.append('channel_type', filters.channel_type);
+    }
+    if (filters?.search_query) {
+      params.append('search_query', filters.search_query);
+    }
+    if (filters?.member_id) {
+      params.append('member_id', filters.member_id);
+    }
 
-    const queryString = params.toString() ? `?${params.toString()}` : "";
-    const { data: response } = await api.get<ChannelsResponse>(
-      `/workspaces/${workspaceId}/members/me/channels${queryString}`
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const { data: response } = await api.get<ChannelEntity[]>(
+      `/workspaces/${workspaceId}/members/me/channels${queryString}`,
     );
     return response || [];
   },
@@ -55,12 +62,9 @@ export const channelsApi = {
   /**
    * Get a specific channel
    */
-  getChannel: async (
-    workspaceId: string,
-    channelId: string
-  ): Promise<ChannelEntity> => {
+  getChannel: async (workspaceId: string, channelId: string): Promise<ChannelEntity> => {
     const { data: response } = await api.get<ChannelEntity>(
-      `/workspaces/${workspaceId}/channels/${channelId}`
+      `/workspaces/${workspaceId}/channels/${channelId}`,
     );
     return response;
   },
@@ -71,17 +75,21 @@ export const channelsApi = {
   getChannelWithMessages: async (
     workspaceId: string,
     channelId: string,
-    params?: GetChannelMessagesParams
+    params?: GetChannelMessagesParams,
   ): Promise<ChannelWithMessages> => {
     const searchParams = new URLSearchParams();
-    if (params?.limit) searchParams.append("limit", params.limit.toString());
-    if (params?.cursor) searchParams.append("cursor", params.cursor);
-    if (params?.before) searchParams.append("before", params.before);
+    if (params?.limit) {
+      searchParams.append('limit', params.limit.toString());
+    }
+    if (params?.cursor) {
+      searchParams.append('cursor', params.cursor);
+    }
+    if (params?.before) {
+      searchParams.append('before', params.before);
+    }
 
     const qs = searchParams.toString();
-    const url = `/workspaces/${workspaceId}/channels/${channelId}/messages${
-      qs ? `?${qs}` : ""
-    }`;
+    const url = `/workspaces/${workspaceId}/channels/${channelId}/messages${qs ? `?${qs}` : ''}`;
     const { data: response } = await api.get<ChannelWithMessages>(url);
     return response;
   },
@@ -92,7 +100,7 @@ export const channelsApi = {
   createChannel: async (data: CreateChannelData): Promise<ChannelEntity> => {
     const { data: response } = await api.post<ChannelEntity>(
       `/workspaces/${data.workspaceId}/channels`,
-      data
+      data,
     );
     return response;
   },
@@ -103,11 +111,11 @@ export const channelsApi = {
   updateChannel: async (
     workspaceId: string,
     channelId: string,
-    data: UpdateChannelData
+    data: UpdateChannelData,
   ): Promise<{ channelId: string }> => {
     const { data: response } = await api.patch<{ channelId: string }>(
       `/workspaces/${workspaceId}/channels/${channelId}`,
-      data
+      data,
     );
     return response;
   },
@@ -115,10 +123,7 @@ export const channelsApi = {
   /**
    * Delete a channel
    */
-  deleteChannel: async (
-    workspaceId: string,
-    channelId: string
-  ): Promise<void> => {
+  deleteChannel: async (workspaceId: string, channelId: string): Promise<void> => {
     await api.delete(`/workspaces/${workspaceId}/channels/${channelId}`);
   },
 
@@ -128,12 +133,9 @@ export const channelsApi = {
   addChannelMembers: async (
     workspaceId: string,
     channelId: string,
-    data: AddChannelMembersData
+    data: AddChannelMembersData,
   ): Promise<void> => {
-    await api.post(
-      `/workspaces/${workspaceId}/channels/${channelId}/members`,
-      data
-    );
+    await api.post(`/workspaces/${workspaceId}/channels/${channelId}/members`, data);
   },
 
   /**
@@ -143,12 +145,9 @@ export const channelsApi = {
     workspaceId: string,
     channelId: string,
     memberId: string,
-    data: UpdateChannelMemberData
+    data: UpdateChannelMemberData,
   ): Promise<void> => {
-    await api.patch(
-      `/workspaces/${workspaceId}/channels/${channelId}/members/${memberId}`,
-      data
-    );
+    await api.patch(`/workspaces/${workspaceId}/channels/${channelId}/members/${memberId}`, data);
   },
 
   /**
@@ -158,12 +157,11 @@ export const channelsApi = {
   removeChannelMembers: async (
     workspaceId: string,
     channelId: string,
-    channelMemberIds: string[]
+    channelMemberIds: string[],
   ): Promise<void> => {
-    await api.delete(
-      `/workspaces/${workspaceId}/channels/${channelId}/members`,
-      { data: { channelMemberIds } }
-    );
+    await api.delete(`/workspaces/${workspaceId}/channels/${channelId}/members`, {
+      data: { channelMemberIds },
+    });
   },
 
   /**
@@ -172,7 +170,7 @@ export const channelsApi = {
   markChannelAsRead: async (
     workspaceId: string,
     channelId: string,
-    messageId: string
+    messageId: string,
   ): Promise<void> => {
     await api.patch(`/workspaces/${workspaceId}/channels/${channelId}/read`, {
       last_read_message_id: messageId,
@@ -185,12 +183,11 @@ export const channelsApi = {
   updateNotificationSettings: async (
     workspaceId: string,
     channelId: string,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<void> => {
-    await api.patch(
-      `/workspaces/${workspaceId}/channels/${channelId}/notifications`,
-      { notifications_enabled: enabled }
-    );
+    await api.patch(`/workspaces/${workspaceId}/channels/${channelId}/notifications`, {
+      notifications_enabled: enabled,
+    });
   },
 
   /**
@@ -198,10 +195,10 @@ export const channelsApi = {
    */
   getChannelMembers: async (
     workspaceId: string,
-    channelId: string
+    channelId: string,
   ): Promise<ChannelMemberResponse[]> => {
     const { data: response } = await api.get<ChannelMemberResponse[]>(
-      `/workspaces/${workspaceId}/channels/${channelId}/members`
+      `/workspaces/${workspaceId}/channels/${channelId}/members`,
     );
     return response || [];
   },

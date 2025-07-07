@@ -1,19 +1,19 @@
 // /public/sw-notifications.js
 // Service Worker for handling persistent notifications
 
-self.addEventListener("install", function (event) {
-  console.log("Notification service worker installing...");
+self.addEventListener('install', function (event) {
+  console.log('Notification service worker installing...');
   self.skipWaiting();
 });
 
-self.addEventListener("activate", function (event) {
-  console.log("Notification service worker activating...");
+self.addEventListener('activate', function (event) {
+  console.log('Notification service worker activating...');
   event.waitUntil(self.clients.claim());
 });
 
 // Handle notification clicks
-self.addEventListener("notificationclick", function (event) {
-  console.log("Notification click received:", event.notification.data);
+self.addEventListener('notificationclick', function (event) {
+  console.log('Notification click received:', event.notification.data);
 
   event.notification.close();
 
@@ -21,17 +21,17 @@ self.addEventListener("notificationclick", function (event) {
   const { entityType, entityId, workspaceId, notificationId } = data;
 
   // Handle different notification actions
-  if (event.action === "reply") {
+  if (event.action === 'reply') {
     // Open reply interface
     const replyUrl = `/${entityType}s/${entityId}?action=reply&notificationId=${notificationId}`;
     event.waitUntil(clients.openWindow(replyUrl));
-  } else if (event.action === "mark_read") {
+  } else if (event.action === 'mark_read') {
     // Mark as read via API call
     event.waitUntil(
       fetch(`/api/notifications/${notificationId}/read`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ isRead: true }),
       })
@@ -40,32 +40,32 @@ self.addEventListener("notificationclick", function (event) {
           return self.clients.matchAll().then((clientList) => {
             clientList.forEach((client) => {
               client.postMessage({
-                type: "NOTIFICATION_READ",
+                type: 'NOTIFICATION_READ',
                 data: { notificationId, isRead: true },
               });
             });
           });
         })
         .catch((err) => {
-          console.error("Failed to mark notification as read:", err);
-        })
+          console.error('Failed to mark notification as read:', err);
+        }),
     );
   } else {
     // Default action - focus existing window or open new one
     event.waitUntil(
       clients
         .matchAll({
-          type: "window",
+          type: 'window',
           includeUncontrolled: true,
         })
         .then(function (clientList) {
           // Try to find an existing window to focus
           for (let i = 0; i < clientList.length; i++) {
             const client = clientList[i];
-            if (client.url.includes("/") && "focus" in client) {
+            if (client.url.includes('/') && 'focus' in client) {
               // Send message to client about the notification click
               client.postMessage({
-                type: "NOTIFICATION_CLICK",
+                type: 'NOTIFICATION_CLICK',
                 data: data,
               });
               return client.focus();
@@ -74,57 +74,54 @@ self.addEventListener("notificationclick", function (event) {
 
           // No existing window found, open a new one
           if (clients.openWindow) {
-            const targetUrl =
-              entityType && entityId ? `/${entityType}s/${entityId}` : "/";
+            const targetUrl = entityType && entityId ? `/${entityType}s/${entityId}` : '/';
             return clients.openWindow(targetUrl);
           }
-        })
+        }),
     );
   }
 });
 
 // Handle notification close
-self.addEventListener("notificationclose", function (event) {
-  console.log("Notification closed:", event.notification.data);
+self.addEventListener('notificationclose', function (event) {
+  console.log('Notification closed:', event.notification.data);
 
   // Optional: Track notification dismissal analytics
   const data = event.notification.data || {};
   if (data.notificationId) {
     // Could send analytics about notification dismissal
-    console.log("Notification dismissed:", data.notificationId);
+    console.log('Notification dismissed:', data.notificationId);
   }
 });
 
 // Handle background sync (if you want to sync missed notifications)
-self.addEventListener("sync", function (event) {
-  if (event.tag === "sync-notifications") {
+self.addEventListener('sync', function (event) {
+  if (event.tag === 'sync-notifications') {
     event.waitUntil(syncNotifications());
   }
 });
 
 // Handle push messages (for server-sent notifications when app is closed)
-self.addEventListener("push", function (event) {
-  console.log("Push message received:", event);
+self.addEventListener('push', function (event) {
+  console.log('Push message received:', event);
 
   if (event.data) {
     const data = event.data.json();
     const options = {
-      body: data.body || data.message || "New notification",
-      icon: "/icons/chat-notification.png",
-      badge: "/icons/chat-badge.png",
-      tag: data.tag || "general",
+      body: data.body || data.message || 'New notification',
+      icon: '/icons/chat-notification.png',
+      badge: '/icons/chat-badge.png',
+      tag: data.tag || 'general',
       data: data.data || {},
       actions: [
-        { action: "reply", title: "Reply", icon: "/icons/reply.png" },
-        { action: "mark_read", title: "Mark Read", icon: "/icons/check.png" },
+        { action: 'reply', title: 'Reply', icon: '/icons/reply.png' },
+        { action: 'mark_read', title: 'Mark Read', icon: '/icons/check.png' },
       ],
       requireInteraction: false,
       renotify: true,
     };
 
-    event.waitUntil(
-      self.registration.showNotification(data.title || "New Message", options)
-    );
+    event.waitUntil(self.registration.showNotification(data.title || 'New Message', options));
   }
 });
 
@@ -132,10 +129,10 @@ self.addEventListener("push", function (event) {
 async function syncNotifications() {
   try {
     // This would typically fetch missed notifications from your API
-    const response = await fetch("/api/notifications/sync", {
-      method: "POST",
+    const response = await fetch('/api/notifications/sync', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
     });
 
@@ -146,25 +143,25 @@ async function syncNotifications() {
       for (const notification of notifications.missed || []) {
         await self.registration.showNotification(notification.title, {
           body: notification.body,
-          icon: "/icons/chat-notification.png",
-          badge: "/icons/chat-badge.png",
+          icon: '/icons/chat-notification.png',
+          badge: '/icons/chat-badge.png',
           tag: notification.tag,
           data: notification.data,
         });
       }
     }
   } catch (error) {
-    console.error("Failed to sync notifications:", error);
+    console.error('Failed to sync notifications:', error);
   }
 }
 
 // Handle messages from the main thread
-self.addEventListener("message", function (event) {
+self.addEventListener('message', function (event) {
   const { type, data } = event.data;
 
-  if (type === "SKIP_WAITING") {
+  if (type === 'SKIP_WAITING') {
     self.skipWaiting();
-  } else if (type === "SYNC_NOTIFICATIONS") {
+  } else if (type === 'SYNC_NOTIFICATIONS') {
     // Trigger a background sync
     event.waitUntil(syncNotifications());
   }

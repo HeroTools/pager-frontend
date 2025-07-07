@@ -1,36 +1,36 @@
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   AlertTriangle,
   HashIcon,
-  Lock,
   Loader,
+  Lock,
   MessageSquareText,
   SendHorizonal,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { useGetUserChannels } from "@/features/channels/hooks/use-channels-mutations";
-import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
-import { useConversations } from "@/features/conversations";
-import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
-import { useParamIds } from "@/hooks/use-param-ids";
-import { SidebarItem } from "./sidebar-item";
-import { ConversationItem } from "./conversation-member";
-import { WorkspaceHeader } from "./workspace-header";
-import { WorkspaceSection } from "./workspace-section";
-import { useConversationCreateStore } from "@/features/conversations/store/conversation-create-store";
+import { useGetUserChannels } from '@/features/channels/hooks/use-channels-mutations';
+import { useCreateChannelModal } from '@/features/channels/store/use-create-channel-modal';
+import { useConversations } from '@/features/conversations';
+import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { SidebarItem } from './sidebar-item';
+import { ConversationItem } from './conversation-member';
+import { WorkspaceHeader } from './workspace-header';
+import { WorkspaceSection } from './workspace-section';
+import { useConversationCreateStore } from '@/features/conversations/store/conversation-create-store';
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { InviteModal } from "./invite-modal";
-import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
-import { useChannelNotifications } from "@/features/notifications/hooks/use-channel-notifications";
-import { useConversationNotifications } from "@/features/notifications/hooks/use-conversation-notifications";
-import { ChannelType } from "@/types/chat";
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { InviteModal } from './invite-modal';
+import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
+import { useChannelNotifications } from '@/features/notifications/hooks/use-channel-notifications';
+import { useConversationNotifications } from '@/features/notifications/hooks/use-conversation-notifications';
+import { ChannelType } from '@/types/chat';
 
 export const WorkspaceSidebar = () => {
   const router = useRouter();
@@ -41,8 +41,7 @@ export const WorkspaceSidebar = () => {
   const { conversations } = useConversations(workspaceId);
   const { user: currentUser } = useCurrentUser(workspaceId);
   const { hasChannelUnread } = useChannelNotifications(workspaceId);
-  const { getConversationUnreadCount } =
-    useConversationNotifications(workspaceId);
+  const { getConversationUnreadCount } = useConversationNotifications(workspaceId);
 
   const { startConversationCreation } = useConversationCreateStore();
 
@@ -71,32 +70,18 @@ export const WorkspaceSidebar = () => {
     <div className="flex flex-col gap-y-2 h-full">
       <WorkspaceHeader
         workspace={getWorkspace.data}
-        isAdmin={getWorkspace.data.user_role === "admin"}
+        isAdmin={getWorkspace.data.user_role === 'admin'}
       />
       <div className="flex flex-col px-2 mt-3">
         {/* TODO: Implement threads and Drafts & Sent features */}
 
-        <SidebarItem
-          label="Threads"
-          icon={MessageSquareText}
-          id="threads"
-          disabled
-        />
-        <SidebarItem
-          label="Drafts & Sent"
-          icon={SendHorizonal}
-          id="drafts"
-          disabled
-        />
+        <SidebarItem label="Threads" icon={MessageSquareText} id="threads" disabled />
+        <SidebarItem label="Drafts & Sent" icon={SendHorizonal} id="drafts" disabled />
       </div>
       <WorkspaceSection
         label="Channels"
         hint="New channel"
-        onNew={
-          getWorkspace.data?.user_role === "admin"
-            ? () => setOpen(true)
-            : undefined
-        }
+        onNew={getWorkspace.data?.user_role === 'admin' ? () => setOpen(true) : undefined}
       >
         {(getUserChannels.data || [])?.map((item) => (
           <SidebarItem
@@ -104,7 +89,7 @@ export const WorkspaceSidebar = () => {
             label={item.name}
             icon={item.channel_type === ChannelType.PRIVATE ? Lock : HashIcon}
             id={item.id}
-            variant={entityId === item.id ? "active" : "default"}
+            variant={entityId === item.id ? 'active' : 'default'}
             hasUnread={hasChannelUnread(item.id)}
           />
         ))}
@@ -119,9 +104,7 @@ export const WorkspaceSidebar = () => {
               <DropdownMenuItem onClick={() => setOpen(true)}>
                 Create a new channel
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => router.push(`/${workspaceId}/browse-channels`)}
-              >
+              <DropdownMenuItem onClick={() => router.push(`/${workspaceId}/browse-channels`)}>
                 Browse channels
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -137,24 +120,16 @@ export const WorkspaceSidebar = () => {
           <ConversationItem
             key={conversation.id}
             conversation={conversation}
-            variant={entityId === conversation.id ? "active" : "default"}
+            variant={entityId === conversation.id ? 'active' : 'default'}
             hasUnread={getConversationUnreadCount(conversation.id) > 0}
           />
         ))}
-        {currentUser?.role === "admin" && (
+        {currentUser?.role === 'admin' && (
           <>
-            <Button
-              className="mt-2 w-full"
-              variant="ghost"
-              onClick={() => setInviteOpen(true)}
-            >
+            <Button className="mt-2 w-full" variant="ghost" onClick={() => setInviteOpen(true)}>
               + Invite People
             </Button>
-            <InviteModal
-              open={inviteOpen}
-              setOpen={setInviteOpen}
-              name={getWorkspace.data.name}
-            />
+            <InviteModal open={inviteOpen} setOpen={setInviteOpen} name={getWorkspace.data.name} />
           </>
         )}
       </WorkspaceSection>

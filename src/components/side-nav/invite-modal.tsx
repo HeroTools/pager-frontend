@@ -1,6 +1,6 @@
-import { CopyIcon } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { CopyIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogClose,
@@ -8,11 +8,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { useParamIds } from "@/hooks/use-param-ids";
-import { useEffect } from "react";
-import { useInviteLink } from "@/features/auth/hooks/use-auth-mutations";
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { useEffect } from 'react';
+import { useInviteLink } from '@/features/auth/hooks/use-auth-mutations';
 
 interface InviteModalProps {
   open: boolean;
@@ -33,10 +33,12 @@ export const InviteModal = ({ open, name, setOpen }: InviteModalProps) => {
 
   const handleCopy = () => {
     const url = inviteLinkMutation.data?.url;
-    if (!url) return;
+    if (!url) {
+      return;
+    }
     navigator.clipboard
       .writeText(url)
-      .then(() => toast.success("Invite link copied to clipboard!"));
+      .then(() => toast.success('Invite link copied to clipboard!'));
   };
 
   return (
@@ -57,9 +59,7 @@ export const InviteModal = ({ open, name, setOpen }: InviteModalProps) => {
               onClick={handleCopy}
               disabled={inviteLinkMutation.isPending || !inviteLinkMutation.data?.url}
             >
-              {inviteLinkMutation.isPending
-                ? "Generating link..."
-                : "Copy Invite Link"}
+              {inviteLinkMutation.isPending ? 'Generating link...' : 'Copy Invite Link'}
             </Button>
           </div>
         </div>

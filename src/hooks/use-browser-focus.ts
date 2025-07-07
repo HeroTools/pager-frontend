@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseBrowserFocusReturn {
   isFocused: boolean;
@@ -45,7 +45,9 @@ export const useBrowserFocus = (): UseBrowserFocusReturn => {
   }, [handleFocus, handleBlur]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') {
+      return;
+    }
 
     // Initial state
     const initialFocus = document.hasFocus();
@@ -61,29 +63,27 @@ export const useBrowserFocus = (): UseBrowserFocusReturn => {
     }
 
     // Event listeners
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("blur", handleBlur);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Page visibility API fallback
-    window.addEventListener("pageshow", handleFocus);
-    window.addEventListener("pagehide", handleBlur);
+    window.addEventListener('pageshow', handleFocus);
+    window.addEventListener('pagehide', handleBlur);
 
     return () => {
-      window.removeEventListener("focus", handleFocus);
-      window.removeEventListener("blur", handleBlur);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("pageshow", handleFocus);
-      window.removeEventListener("pagehide", handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handleFocus);
+      window.removeEventListener('pagehide', handleBlur);
     };
   }, [handleFocus, handleBlur, handleVisibilityChange]);
 
   // Calculate durations
-  const focusDuration =
-    isFocused && focusStartRef.current ? Date.now() - focusStartRef.current : 0;
+  const focusDuration = isFocused && focusStartRef.current ? Date.now() - focusStartRef.current : 0;
 
-  const blurDuration =
-    !isFocused && blurStartRef.current ? Date.now() - blurStartRef.current : 0;
+  const blurDuration = !isFocused && blurStartRef.current ? Date.now() - blurStartRef.current : 0;
 
   return {
     isFocused,

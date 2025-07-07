@@ -1,11 +1,10 @@
-// lib/api/axios-client.ts
 import axios, {
-  AxiosInstance,
-  AxiosError,
   AxiosHeaders,
-  InternalAxiosRequestConfig,
-} from "axios";
-import { supabase } from "@/lib/supabase/client";
+  type AxiosError,
+  type AxiosInstance,
+  type InternalAxiosRequestConfig,
+} from 'axios';
+import { supabase } from '@/lib/supabase/client';
 
 // ——————— CONFIG ———————
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
@@ -32,17 +31,16 @@ async function refreshAccessToken(): Promise<string | null> {
     error: sessionError,
   } = await supabase.auth.getSession();
   if (sessionError || !session) {
-    console.error("[Auth] getSession failed", sessionError);
+    console.error('[Auth] getSession failed', sessionError);
     return null;
   }
 
   const now = Math.floor(Date.now() / 1000);
   const fiveMin = 5 * 60;
   if (session.expires_at && session.expires_at - now < fiveMin) {
-    const { data: newSession, error: refreshError } =
-      await supabase.auth.refreshSession();
+    const { data: newSession, error: refreshError } = await supabase.auth.refreshSession();
     if (refreshError || !newSession.session) {
-      console.error("[Auth] refreshSession failed", refreshError);
+      console.error('[Auth] refreshSession failed', refreshError);
       return null;
     }
     return newSession.session.access_token;
@@ -55,7 +53,7 @@ async function refreshAccessToken(): Promise<string | null> {
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: REQUEST_TIMEOUT,
-  headers: { "Content-Type": "application/json" },
+  headers: { 'Content-Type': 'application/json' },
 });
 
 // ——————— REQUEST INTERCEPTOR ———————
@@ -77,14 +75,14 @@ api.interceptors.request.use(
     // Wait for refresh to complete (or return existing token)
     const token = await refreshPromise;
     if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
+      headers.set('Authorization', `Bearer ${token}`);
     }
 
     // Assign the AxiosHeaders instance back—TS sees all methods present
     config.headers = headers;
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // ——————— RESPONSE INTERCEPTOR ———————
@@ -112,7 +110,7 @@ api.interceptors.response.use(
           if (newToken) {
             // Build a new AxiosHeaders for the retry
             const retryHeaders = new AxiosHeaders(originalRequest.headers);
-            retryHeaders.set("Authorization", `Bearer ${newToken}`);
+            retryHeaders.set('Authorization', `Bearer ${newToken}`);
             originalRequest.headers = retryHeaders;
             resolve(api(originalRequest));
           } else {
@@ -123,7 +121,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

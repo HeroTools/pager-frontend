@@ -1,7 +1,7 @@
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import { ChevronRight } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import { ChevronRight } from 'lucide-react';
 
 dayjs.extend(relativeTime);
 
@@ -17,10 +17,12 @@ export const ThreadBar = ({
   count,
   image,
   timestamp,
-  name = "Member",
+  name = 'Member',
   onClick,
 }: ThreadBarProps) => {
-  if (!count || !timestamp) return null;
+  if (!count || !timestamp) {
+    return null;
+  }
 
   return (
     <button
@@ -33,7 +35,7 @@ export const ThreadBar = ({
           <AvatarFallback>{name?.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
         <span className="text-xs text-muted-foreground hover:underline font-bold truncate">
-          {count} {count > 1 ? "replies" : "reply"}
+          {count} {count > 1 ? 'replies' : 'reply'}
         </span>
         <span className="text-xs text-muted-foreground truncate group-hover/thread-bar:hidden block">
           Last reply {dayjs(timestamp).fromNow(true)}

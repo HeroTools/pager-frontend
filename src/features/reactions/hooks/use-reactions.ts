@@ -1,9 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { reactionsApi } from "../api/reactions-api";
-import type { Reaction } from "../types";
-import { Message } from "@/types/chat";
-import { toast } from "sonner";
-import { CurrentUser } from "@/features/auth";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { reactionsApi } from '../api/reactions-api';
+import type { Reaction } from '../types';
+import type { Message } from '@/types/chat';
+import { toast } from 'sonner';
+import type { CurrentUser } from '@/features/auth';
+import { authQueryKeys } from '@/features/auth/query-keys';
 
 interface OptimisticUpdateContext {
   previousChannelData?: any[];
@@ -19,39 +20,37 @@ export const useAddReaction = (workspaceId: string) => {
 
   return useMutation({
     mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) =>
-      reactionsApi.toggleReaction("add", workspaceId, messageId, emoji),
+      reactionsApi.toggleReaction('add', workspaceId, messageId, emoji),
 
     onMutate: async ({ messageId, emoji }) => {
       // Cancel outgoing refetches using the correct query key patterns
       await queryClient.cancelQueries({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       await queryClient.cancelQueries({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       await queryClient.cancelQueries({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
 
       // Snapshot the previous values
       const previousChannelData = queryClient.getQueriesData({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       const previousConversationData = queryClient.getQueriesData({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       const previousThreadData = queryClient.getQueriesData({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
-      const currentUser = queryClient.getQueryData([
-        "current-user",
-      ]) as CurrentUser;
+      const currentUser = queryClient.getQueryData<CurrentUser>(authQueryKeys.currentUser());
 
       // Optimistically update all relevant queries
       const updateFunction = (oldData: any) => {
@@ -64,13 +63,10 @@ export const useAddReaction = (workspaceId: string) => {
               ...page,
               messages:
                 page.messages?.map((message: Message) => {
-                  if (message.id !== messageId) return message;
-                  return updateMessageReactions(
-                    message,
-                    emoji,
-                    currentUser,
-                    "add"
-                  );
+                  if (message.id !== messageId) {
+                    return message;
+                  }
+                  return updateMessageReactions(message, emoji, currentUser, 'add');
                 }) || [],
             })),
           };
@@ -79,8 +75,10 @@ export const useAddReaction = (workspaceId: string) => {
           return {
             ...oldData,
             messages: oldData.messages.map((message: Message) => {
-              if (message.id !== messageId) return message;
-              return updateMessageReactions(message, emoji, currentUser, "add");
+              if (message.id !== messageId) {
+                return message;
+              }
+              return updateMessageReactions(message, emoji, currentUser, 'add');
             }),
           };
         }
@@ -89,16 +87,16 @@ export const useAddReaction = (workspaceId: string) => {
 
       // Apply optimistic updates to all matching queries
       queryClient.setQueriesData(
-        { queryKey: ["channel", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['channel', workspaceId], exact: false },
+        updateFunction,
       );
       queryClient.setQueriesData(
-        { queryKey: ["conversation", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['conversation', workspaceId], exact: false },
+        updateFunction,
       );
       queryClient.setQueriesData(
-        { queryKey: ["thread", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['thread', workspaceId], exact: false },
+        updateFunction,
       );
 
       return {
@@ -109,7 +107,7 @@ export const useAddReaction = (workspaceId: string) => {
     },
 
     onError: (error, variables, context) => {
-      console.error("Failed to add reaction:", error);
+      console.error('Failed to add reaction:', error);
 
       // Rollback optimistic updates
       if (context) {
@@ -128,15 +126,15 @@ export const useAddReaction = (workspaceId: string) => {
     onSettled: () => {
       // Refetch to ensure we have the latest data
       queryClient.invalidateQueries({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       queryClient.invalidateQueries({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       queryClient.invalidateQueries({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
     },
@@ -151,39 +149,37 @@ export const useRemoveReaction = (workspaceId: string) => {
 
   return useMutation({
     mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) =>
-      reactionsApi.toggleReaction("remove", workspaceId, messageId, emoji),
+      reactionsApi.toggleReaction('remove', workspaceId, messageId, emoji),
 
     onMutate: async ({ messageId, emoji }) => {
       // Cancel outgoing refetches using the correct query key patterns
       await queryClient.cancelQueries({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       await queryClient.cancelQueries({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       await queryClient.cancelQueries({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
 
       // Snapshot the previous values
       const previousChannelData = queryClient.getQueriesData({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       const previousConversationData = queryClient.getQueriesData({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       const previousThreadData = queryClient.getQueriesData({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
-      const currentUser = queryClient.getQueryData([
-        "current-user",
-      ]) as CurrentUser;
+      const currentUser = queryClient.getQueryData<CurrentUser>(authQueryKeys.currentUser());
 
       // Optimistically update all relevant queries
       const updateFunction = (oldData: any) => {
@@ -196,13 +192,10 @@ export const useRemoveReaction = (workspaceId: string) => {
               ...page,
               messages:
                 page.messages?.map((message: Message) => {
-                  if (message.id !== messageId) return message;
-                  return updateMessageReactions(
-                    message,
-                    emoji,
-                    currentUser,
-                    "remove"
-                  );
+                  if (message.id !== messageId) {
+                    return message;
+                  }
+                  return updateMessageReactions(message, emoji, currentUser, 'remove');
                 }) || [],
             })),
           };
@@ -211,13 +204,10 @@ export const useRemoveReaction = (workspaceId: string) => {
           return {
             ...oldData,
             messages: oldData.messages.map((message: Message) => {
-              if (message.id !== messageId) return message;
-              return updateMessageReactions(
-                message,
-                emoji,
-                currentUser,
-                "remove"
-              );
+              if (message.id !== messageId) {
+                return message;
+              }
+              return updateMessageReactions(message, emoji, currentUser, 'remove');
             }),
           };
         }
@@ -226,16 +216,16 @@ export const useRemoveReaction = (workspaceId: string) => {
 
       // Apply optimistic updates to all matching queries
       queryClient.setQueriesData(
-        { queryKey: ["channel", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['channel', workspaceId], exact: false },
+        updateFunction,
       );
       queryClient.setQueriesData(
-        { queryKey: ["conversation", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['conversation', workspaceId], exact: false },
+        updateFunction,
       );
       queryClient.setQueriesData(
-        { queryKey: ["thread", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['thread', workspaceId], exact: false },
+        updateFunction,
       );
 
       return {
@@ -246,7 +236,7 @@ export const useRemoveReaction = (workspaceId: string) => {
     },
 
     onError: (error, variables, context) => {
-      console.error("Failed to remove reaction:", error);
+      console.error('Failed to remove reaction:', error);
 
       // Rollback optimistic updates
       if (context) {
@@ -265,15 +255,15 @@ export const useRemoveReaction = (workspaceId: string) => {
     onSettled: () => {
       // Refetch to ensure we have the latest data
       queryClient.invalidateQueries({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       queryClient.invalidateQueries({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       queryClient.invalidateQueries({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
     },
@@ -287,17 +277,17 @@ function updateMessageReactions(
   message: Message,
   emoji: string,
   currentUser: CurrentUser,
-  action: "add" | "remove"
+  action: 'add' | 'remove',
 ): Message {
-  if (action === "add") {
+  if (action === 'add') {
     const existingReaction = message?.reactions?.find((r) => r.value === emoji);
 
     if (existingReaction) {
       // Check if user already reacted
-      const userAlreadyReacted = existingReaction.users.some(
-        (u) => u.id === currentUser.id
-      );
-      if (userAlreadyReacted) return message; // Don't add duplicate
+      const userAlreadyReacted = existingReaction.users.some((u) => u.id === currentUser.id);
+      if (userAlreadyReacted) {
+        return message;
+      } // Don't add duplicate
 
       // Add user to existing reaction
       return {
@@ -309,7 +299,7 @@ function updateMessageReactions(
                 count: r.count + 1,
                 users: [...r.users, currentUser], // Fixed: was currentUser.id
               }
-            : r
+            : r,
         ),
       };
     } else {
@@ -333,11 +323,11 @@ function updateMessageReactions(
       ...message,
       reactions: message.reactions
         ?.map((reaction) => {
-          if (reaction.value !== emoji) return reaction;
+          if (reaction.value !== emoji) {
+            return reaction;
+          }
 
-          const updatedUsers = reaction.users.filter(
-            (u) => u.id !== currentUser.id
-          );
+          const updatedUsers = reaction.users.filter((u) => u.id !== currentUser.id);
 
           return {
             ...reaction,
@@ -354,8 +344,8 @@ function updateMessageReactions(
  * Combined hook that intelligently adds or removes reactions
  */
 export const useToggleReaction = (workspaceId: string) => {
-  const addReaction = useReactionMutation(workspaceId, "add");
-  const removeReaction = useReactionMutation(workspaceId, "remove");
+  const addReaction = useReactionMutation(workspaceId, 'add');
+  const removeReaction = useReactionMutation(workspaceId, 'remove');
 
   return useMutation({
     mutationFn: async ({
@@ -379,7 +369,7 @@ export const useToggleReaction = (workspaceId: string) => {
 /**
  * Consolidated hook for reaction mutations with optimistic updates
  */
-const useReactionMutation = (workspaceId: string, action: "add" | "remove") => {
+const useReactionMutation = (workspaceId: string, action: 'add' | 'remove') => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -389,34 +379,41 @@ const useReactionMutation = (workspaceId: string, action: "add" | "remove") => {
     onMutate: async ({ messageId, emoji }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       await queryClient.cancelQueries({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       await queryClient.cancelQueries({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
 
       // Snapshot previous values
       const previousChannelData = queryClient.getQueriesData({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       const previousConversationData = queryClient.getQueriesData({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       const previousThreadData = queryClient.getQueriesData({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
-      const currentUser = queryClient.getQueryData([
-        "current-user",
-      ]) as CurrentUser;
+      const currentUser = queryClient.getQueryData<CurrentUser>(authQueryKeys.currentUser());
+
+      if (!currentUser) {
+        console.error('No current user found for optimistic update');
+        return {
+          previousChannelData,
+          previousConversationData,
+          previousThreadData,
+        } as OptimisticUpdateContext;
+      }
 
       // Optimistic update function
       const updateFunction = (oldData: any) => {
@@ -427,13 +424,10 @@ const useReactionMutation = (workspaceId: string, action: "add" | "remove") => {
               ...page,
               messages:
                 page.messages?.map((message: Message) => {
-                  if (message.id !== messageId) return message;
-                  return updateMessageReactions(
-                    message,
-                    emoji,
-                    currentUser,
-                    action
-                  );
+                  if (message.id !== messageId) {
+                    return message;
+                  }
+                  return updateMessageReactions(message, emoji, currentUser, action);
                 }) || [],
             })),
           };
@@ -441,13 +435,10 @@ const useReactionMutation = (workspaceId: string, action: "add" | "remove") => {
           return {
             ...oldData,
             messages: oldData.messages.map((message: Message) => {
-              if (message.id !== messageId) return message;
-              return updateMessageReactions(
-                message,
-                emoji,
-                currentUser,
-                action
-              );
+              if (message.id !== messageId) {
+                return message;
+              }
+              return updateMessageReactions(message, emoji, currentUser, action);
             }),
           };
         }
@@ -456,16 +447,16 @@ const useReactionMutation = (workspaceId: string, action: "add" | "remove") => {
 
       // Apply optimistic updates
       queryClient.setQueriesData(
-        { queryKey: ["channel", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['channel', workspaceId], exact: false },
+        updateFunction,
       );
       queryClient.setQueriesData(
-        { queryKey: ["conversation", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['conversation', workspaceId], exact: false },
+        updateFunction,
       );
       queryClient.setQueriesData(
-        { queryKey: ["thread", workspaceId], exact: false },
-        updateFunction
+        { queryKey: ['thread', workspaceId], exact: false },
+        updateFunction,
       );
 
       return {
@@ -498,15 +489,15 @@ const useReactionMutation = (workspaceId: string, action: "add" | "remove") => {
     onSettled: () => {
       // Refetch to ensure consistency
       queryClient.invalidateQueries({
-        queryKey: ["channel", workspaceId],
+        queryKey: ['channel', workspaceId],
         exact: false,
       });
       queryClient.invalidateQueries({
-        queryKey: ["conversation", workspaceId],
+        queryKey: ['conversation', workspaceId],
         exact: false,
       });
       queryClient.invalidateQueries({
-        queryKey: ["thread", workspaceId],
+        queryKey: ['thread', workspaceId],
         exact: false,
       });
     },
@@ -519,7 +510,7 @@ const useReactionMutation = (workspaceId: string, action: "add" | "remove") => {
 export const useHasUserReacted = (
   message: Message,
   emoji: string,
-  currentUserId: string
+  currentUserId: string,
 ): boolean => {
   const reaction = message?.reactions?.find((r) => r.value === emoji);
   return reaction?.users.some((u) => u.id === currentUserId) ?? false;

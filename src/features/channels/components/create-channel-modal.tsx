@@ -1,54 +1,47 @@
-import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
-import { useCreateChannel } from "..";
-import { useCreateChannelModal } from "../store/use-create-channel-modal";
-import { toast } from "sonner";
-import { RadioGroup } from "@/components/ui/radio-group";
-import { channelsApi } from "../api/channels-api";
-import { Hash, Lock } from "lucide-react";
-import { useGetMembers } from "@/features/members";
-import AddMembersDialog from "@/components/add-people-to-channel-modal";
-import { ChannelType } from "@/types/chat";
+import { useRouter } from 'next/navigation';
+import { type ChangeEvent, type FormEvent, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { useCreateChannel } from '..';
+import { useCreateChannelModal } from '../store/use-create-channel-modal';
+import { toast } from 'sonner';
+import { RadioGroup } from '@/components/ui/radio-group';
+import { channelsApi } from '../api/channels-api';
+import { Hash, Lock } from 'lucide-react';
+import { useGetMembers } from '@/features/members';
+import AddMembersDialog from '@/components/add-people-to-channel-modal';
+import { ChannelType } from '@/types/chat';
 
 export const CreateChannelModal = () => {
   const router = useRouter();
   const workspaceId = useWorkspaceId();
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState('');
   const [step, setStep] = useState(1);
-  const [channelType, setChannelType] = useState<ChannelType>(
-    ChannelType.PUBLIC
-  );
+  const [channelType, setChannelType] = useState<ChannelType>(ChannelType.PUBLIC);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
-  const [inviteMode, setInviteMode] = useState<"all" | "specific">("specific");
+  const [inviteMode, setInviteMode] = useState<'all' | 'specific'>('specific');
   const [isAddingMembers, setIsAddingMembers] = useState(false);
 
   const { open, setOpen } = useCreateChannelModal();
-  const { data: workspaceMembers = [] } = useGetMembers(workspaceId || "");
+  const { data: workspaceMembers = [] } = useGetMembers(workspaceId || '');
 
   const { mutateAsync, isPending } = useCreateChannel();
 
   const handleClose = () => {
-    setName("");
+    setName('');
     setStep(1);
     setChannelType(ChannelType.PUBLIC);
     setSelectedMemberIds([]);
-    setInviteMode("specific");
+    setInviteMode('specific');
     setIsAddingMembers(false);
     setOpen(false);
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\s+/g, "-").toLowerCase();
+    const value = e.target.value.replace(/\s+/g, '-').toLowerCase();
     setName(value);
   };
 
@@ -63,8 +56,8 @@ export const CreateChannelModal = () => {
   };
 
   const handleFinish = async () => {
-    if (typeof workspaceId !== "string") {
-      toast.error("Workspace ID is required");
+    if (typeof workspaceId !== 'string') {
+      toast.error('Workspace ID is required');
       return;
     }
     mutateAsync({
@@ -75,7 +68,7 @@ export const CreateChannelModal = () => {
       .then(async (channel) => {
         // Add selected members after channel creation
         let memberIdsToAdd = selectedMemberIds;
-        if (inviteMode === "all") {
+        if (inviteMode === 'all') {
           // Add all workspace members except the current user (who is added automatically)
           memberIdsToAdd = workspaceMembers.map((member) => member.id);
         }
@@ -86,18 +79,18 @@ export const CreateChannelModal = () => {
               memberIds: memberIdsToAdd,
             });
           } catch (err) {
-            console.error("Failed to add members:", err);
-            toast.error("Channel created but failed to add some members");
+            console.error('Failed to add members:', err);
+            toast.error('Channel created but failed to add some members');
           }
         }
 
         router.push(`/${workspaceId}/c-${channel.id}`);
         handleClose();
-        toast.success("Channel created");
+        toast.success('Channel created');
       })
       .catch((error) => {
         console.error(error);
-        toast.error("Failed to create channel");
+        toast.error('Failed to create channel');
       });
   };
 
@@ -108,11 +101,11 @@ export const CreateChannelModal = () => {
           <DialogHeader>
             <DialogTitle>
               {step === 1 ? (
-                "Add a channel"
+                'Add a channel'
               ) : (
                 <span className="flex items-center gap-2">
                   Invite people to
-                  {channelType === "public" ? (
+                  {channelType === 'public' ? (
                     <Hash className="size-5 text-muted-foreground" />
                   ) : (
                     <Lock className="size-5 text-muted-foreground" />
@@ -125,14 +118,11 @@ export const CreateChannelModal = () => {
           {step === 1 && (
             <form className="space-y-4" onSubmit={handleNext}>
               <div>
-                <label
-                  htmlFor="channel-name"
-                  className="mb-2 block text-sm font-medium"
-                >
+                <label htmlFor="channel-name" className="mb-2 block text-sm font-medium">
                   Channel name
                 </label>
                 <div className="relative">
-                  {channelType === "public" ? (
+                  {channelType === 'public' ? (
                     <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
                   ) : (
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
@@ -156,11 +146,11 @@ export const CreateChannelModal = () => {
                 <RadioGroup
                   options={[
                     {
-                      label: "Public - Anyone in the workspace can join",
+                      label: 'Public - Anyone in the workspace can join',
                       value: ChannelType.PUBLIC,
                     },
                     {
-                      label: "Private - Only invited people can join",
+                      label: 'Private - Only invited people can join',
                       value: ChannelType.PRIVATE,
                     },
                   ]}
@@ -180,18 +170,18 @@ export const CreateChannelModal = () => {
                 <RadioGroup
                   options={[
                     {
-                      label: "Add all members of the workspace",
-                      value: "all",
+                      label: 'Add all members of the workspace',
+                      value: 'all',
                     },
-                    { label: "Add specific people", value: "specific" },
+                    { label: 'Add specific people', value: 'specific' },
                   ]}
                   value={inviteMode}
-                  onChange={(val) => setInviteMode(val as "all" | "specific")}
+                  onChange={(val) => setInviteMode(val as 'all' | 'specific')}
                   name="invite-mode"
                 />
               </div>
 
-              {inviteMode === "specific" && (
+              {inviteMode === 'specific' && (
                 <div className="space-y-4">
                   <div className="mb-2 text-sm font-medium">
                     Selected members ({selectedMemberIds.length})
@@ -200,25 +190,23 @@ export const CreateChannelModal = () => {
                     {selectedMemberIds.length > 0 ? (
                       <div className="space-y-1">
                         {selectedMemberIds.map((memberId) => {
-                          const member = workspaceMembers.find(
-                            (m) => m.id === memberId
-                          );
-                          if (!member) return null;
+                          const member = workspaceMembers.find((m) => m.id === memberId);
+                          if (!member) {
+                            return null;
+                          }
                           return (
                             <div
                               key={memberId}
                               className="flex items-center justify-between p-2 bg-muted rounded-md"
                             >
-                              <span className="text-sm">
-                                {member.user.name}
-                              </span>
+                              <span className="text-sm">{member.user.name}</span>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={() =>
                                   setSelectedMemberIds((prev) =>
-                                    prev.filter((id) => id !== memberId)
+                                    prev.filter((id) => id !== memberId),
                                   )
                                 }
                               >
@@ -229,9 +217,7 @@ export const CreateChannelModal = () => {
                         })}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">
-                        No members selected
-                      </p>
+                      <p className="text-sm text-muted-foreground">No members selected</p>
                     )}
                     <Button
                       variant="outline"
@@ -245,19 +231,11 @@ export const CreateChannelModal = () => {
               )}
 
               <div className="flex justify-between mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                  disabled={isPending}
-                >
+                <Button variant="outline" onClick={() => setStep(1)} disabled={isPending}>
                   Back
                 </Button>
                 <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={handleFinish}
-                    disabled={isPending}
-                  >
+                  <Button variant="ghost" onClick={handleFinish} disabled={isPending}>
                     Skip for now
                   </Button>
                   <Button onClick={handleFinish} disabled={isPending}>
@@ -274,8 +252,8 @@ export const CreateChannelModal = () => {
         isOpen={isAddingMembers}
         onClose={() => setIsAddingMembers(false)}
         channel={{
-          id: "",
-          name: name,
+          id: '',
+          name,
           isPrivate: channelType === ChannelType.PRIVATE,
           type: channelType,
           memberCount: 0,

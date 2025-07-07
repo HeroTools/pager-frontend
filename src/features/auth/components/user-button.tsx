@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useCurrentUser } from "../hooks/use-current-user";
-import { Loader, LogOutIcon } from "lucide-react";
-import { useSignOut } from "../hooks/use-auth-mutations";
+} from '@/components/ui/dropdown-menu';
+import { useCurrentUser } from '../hooks/use-current-user';
+import { Loader, LogOutIcon } from 'lucide-react';
+import { useSignOut } from '../hooks/use-auth-mutations';
 
 export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
   const { user, isLoading } = useCurrentUser(workspaceId);
@@ -32,11 +32,7 @@ export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="outline-none relative cursor-pointer">
         <Avatar className="rounded-md size-10 hover:opacity-75 transition">
-          <AvatarImage
-            className="rounded-md"
-            alt={user.name}
-            src={user.image}
-          />
+          <AvatarImage className="rounded-md" alt={user.name} src={user.image} />
           <AvatarFallback className="rounded-md">
             {user.name!.charAt(0).toUpperCase()}
           </AvatarFallback>

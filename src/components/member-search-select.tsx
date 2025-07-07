@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
-import { X } from "lucide-react";
-import { MemberWithUser } from "@/features/members/types";
+import React, { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
+import type { MemberWithUser } from '@/features/members/types';
 
 interface MemberSearchSelectProps {
   selectedMembers: MemberWithUser[];
@@ -16,10 +16,10 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
   onMemberSelect,
   onMemberRemove,
   availableMembers,
-  placeholder = "Search for people...",
+  placeholder = 'Search for people...',
   existingMemberIds = [],
 }) => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [filteredMembers, setFilteredMembers] = useState<MemberWithUser[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,9 +31,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
         (member) =>
           !selectedMembers.find((selected) => selected.id === member.id) &&
           (member.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            member.user.email
-              ?.toLowerCase()
-              .includes(searchQuery.toLowerCase()))
+            member.user.email?.toLowerCase().includes(searchQuery.toLowerCase())),
       );
       setFilteredMembers(filtered);
       setIsOpen(true);
@@ -45,35 +43,32 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleMemberSelect = (member: MemberWithUser) => {
     onMemberSelect(member);
-    setSearchQuery("");
+    setSearchQuery('');
     setIsOpen(false);
     inputRef.current?.focus();
   };
 
   const getStatusColor = (status?: string) => {
     switch (status) {
-      case "online":
-        return "bg-text-success";
-      case "away":
-        return "bg-text-warning";
-      case "offline":
-        return "bg-muted-foreground";
+      case 'online':
+        return 'bg-text-success';
+      case 'away':
+        return 'bg-text-warning';
+      case 'offline':
+        return 'bg-muted-foreground';
       default:
-        return "bg-muted-foreground";
+        return 'bg-muted-foreground';
     }
   };
 
@@ -89,20 +84,17 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
               {member.user?.image ? (
                 <img
                   src={member.user.image}
-                  alt={member.user.name || "User"}
+                  alt={member.user.name || 'User'}
                   className="w-5 h-5 rounded-full"
                 />
               ) : (
                 <div className="w-5 h-5 rounded-full bg-muted-foreground flex items-center justify-center text-xs font-medium text-message-hover">
-                  {member.user?.name?.charAt(0).toUpperCase() || "U"}
+                  {member.user?.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
               )}
             </span>
             <span>{member.user.name}</span>
-            <button
-              onClick={() => onMemberRemove(member.id)}
-              className="ml-1 cursor-pointer"
-            >
+            <button onClick={() => onMemberRemove(member.id)} className="ml-1 cursor-pointer">
               <X className="w-3 h-3" />
             </button>
           </div>
@@ -114,9 +106,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={
-              selectedMembers.length === 0 ? placeholder : "Add more people..."
-            }
+            placeholder={selectedMembers.length === 0 ? placeholder : 'Add more people...'}
             className="w-full bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground file:border-0 file:bg-transparent file:text-sm file:font-medium"
             onFocus={() => {
               if (searchQuery.trim() && filteredMembers.length > 0) {
@@ -131,7 +121,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
         <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border-subtle rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
           {filteredMembers.map((member) => {
             const isExistingMember = existingMemberIds.includes(member.id);
-            
+
             return (
               <button
                 key={member.id}
@@ -146,12 +136,12 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
                     {member.user?.image ? (
                       <img
                         src={member.user.image}
-                        alt={member.user.name || "User"}
+                        alt={member.user.name || 'User'}
                         className="w-8 h-8 rounded-full"
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-medium text-secondary-foreground">
-                        {member.user?.name?.charAt(0).toUpperCase() || "U"}
+                        {member.user?.name?.charAt(0).toUpperCase() || 'U'}
                       </div>
                     )}
                   </span>
@@ -165,9 +155,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {member.user?.email}
-                  </div>
+                  <div className="text-xs text-muted-foreground">{member.user?.email}</div>
                 </div>
               </button>
             );

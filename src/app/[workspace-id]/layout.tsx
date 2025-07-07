@@ -1,25 +1,21 @@
-"use client";
+'use client';
 
-import { ReactNode, useEffect, useState } from "react";
-import { Bell, X } from "lucide-react";
+import { useEffect, useState, type ReactNode } from 'react';
+import { Bell, X } from 'lucide-react';
 
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import { Thread } from "@/features/messages/component/thread";
-import { Sidebar } from "@/components/side-nav/sidebar";
-import { Toolbar } from "./toolbar";
-import { WorkspaceSidebar } from "@/components/side-nav/workspace-sidebar";
-import { NotificationsSidebar } from "@/components/side-nav/notifications-sidebar";
-import { useUIStore } from "@/store/ui-store";
-import { useRealtimeNotifications } from "@/features/notifications/hooks/use-realtime-notifications";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
-import { useCurrentUser } from "@/features/auth";
-import { useNotificationPermissions } from "@/features/notifications/hooks/use-notification-permissions";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { Thread } from '@/features/messages/component/thread';
+import { Sidebar } from '@/components/side-nav/sidebar';
+import { Toolbar } from './toolbar';
+import { WorkspaceSidebar } from '@/components/side-nav/workspace-sidebar';
+import { NotificationsSidebar } from '@/components/side-nav/notifications-sidebar';
+import { useUIStore } from '@/store/ui-store';
+import { useRealtimeNotifications } from '@/features/notifications/hooks/use-realtime-notifications';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { useCurrentUser } from '@/features/auth';
+import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;
@@ -39,47 +35,43 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
 
   useRealtimeNotifications({
-    workspaceMemberId: user?.workspace_member_id || "",
-    workspaceId: workspaceId || "",
+    workspaceMemberId: user?.workspace_member_id || '',
+    workspaceId: workspaceId || '',
     enabled: !!user?.workspace_member_id && !!workspaceId,
   });
 
-  const {
-    permission,
-    requestPermission,
-    isSupported,
-    hasAskedBefore,
-    setHasAskedBefore,
-  } = useNotificationPermissions();
+  const { permission, requestPermission, isSupported, hasAskedBefore, setHasAskedBefore } =
+    useNotificationPermissions();
 
   useEffect(() => {
+    let timer: NodeJS.Timeout | undefined;
+
     // Show permission banner if:
     // 1. Notifications are supported
     // 2. Permission is "default" (not yet asked)
     // 3. We haven't asked before in this session
     // 4. User is logged in
-    if (
-      isSupported &&
-      permission === "default" &&
-      !hasAskedBefore &&
-      user?.workspace_member_id
-    ) {
+    if (isSupported && permission === 'default' && !hasAskedBefore && user?.workspace_member_id) {
       // Show banner after a short delay to not overwhelm the user
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         setShowPermissionBanner(true);
       }, 5000);
-
-      return () => clearTimeout(timer);
     }
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
   }, [isSupported, permission, hasAskedBefore, user]);
 
   const handleEnableNotifications = async () => {
     const result = await requestPermission();
     setShowPermissionBanner(false);
 
-    if (result === "granted") {
+    if (result === 'granted') {
       // You could show a success toast here
-      console.log("Browser notifications enabled!");
+      console.log('Browser notifications enabled!');
     }
   };
 
@@ -103,15 +95,9 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
             <Bell className="h-4 w-4" />
             <AlertTitle>Enable Desktop Notifications</AlertTitle>
             <AlertDescription className="flex items-center justify-between">
-              <span>
-                Get notified when you receive messages while away from the app
-              </span>
+              <span>Get notified when you receive messages while away from the app</span>
               <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleDismissBanner}
-                >
+                <Button size="sm" variant="outline" onClick={handleDismissBanner}>
                   Not now
                 </Button>
                 <Button size="sm" onClick={handleEnableNotifications}>
@@ -132,16 +118,10 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
 
       <div className="flex h-[calc(100vh-40px)]">
         <Sidebar />
-        <ResizablePanelGroup
-          direction="horizontal"
-          autoSaveId="wck-workspace-layout"
-        >
+        <ResizablePanelGroup direction="horizontal" autoSaveId="wck-workspace-layout">
           <ResizablePanel defaultSize={26} minSize={11}>
             {isNotificationsPanelOpen && workspaceId ? (
-              <NotificationsSidebar
-                workspaceId={workspaceId}
-                onClose={handleCloseNotifications}
-              />
+              <NotificationsSidebar workspaceId={workspaceId} onClose={handleCloseNotifications} />
             ) : (
               <WorkspaceSidebar />
             )}

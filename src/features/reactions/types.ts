@@ -1,8 +1,13 @@
+export interface User {
+  id: string;
+  name: string;
+}
+
 export interface Reaction {
   id: string;
   value: string;
   count: number;
-  users: { id: string; name: string }[];
+  users: User[];
 }
 
 export interface AddReactionData {

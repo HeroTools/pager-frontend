@@ -1,8 +1,8 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useGetWorkspaces } from "@/features/workspaces/hooks/use-workspaces";
-import type { WorkspaceEntity } from "@/features/workspaces/types";
-import { workspacesApi } from "../api/workspaces-api";
+import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { useGetWorkspaces } from '@/features/workspaces/hooks/use-workspaces';
+import type { WorkspaceEntity } from '@/features/workspaces/types';
+import { workspacesApi } from '../api/workspaces-api';
 
 /**
  * Hook that integrates auth state with workspace management
@@ -15,7 +15,7 @@ export const useWorkspaceAuthIntegration = () => {
 
   // Get the current workspace from URL or cache
   const getCurrentWorkspaceId = (): string | null => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
       const match = pathname.match(/\/workspace\/([^\/]+)/);
       return match ? match[1] : null;
@@ -26,7 +26,7 @@ export const useWorkspaceAuthIntegration = () => {
   // Navigate to appropriate workspace based on available workspaces
   const navigateToWorkspace = (preferredWorkspaceId?: string) => {
     if (workspaces.length === 0) {
-      router.push("/onboarding/create-workspace");
+      router.push('/onboarding/create-workspace');
       return;
     }
 
@@ -36,33 +36,32 @@ export const useWorkspaceAuthIntegration = () => {
     }
 
     // Check if preferred workspace exists
-    if (
-      preferredWorkspaceId &&
-      workspaces.find((w) => w.id === preferredWorkspaceId)
-    ) {
+    if (preferredWorkspaceId && workspaces.find((w) => w.id === preferredWorkspaceId)) {
       router.push(`/${preferredWorkspaceId}`);
       return;
     }
 
     // Find user's owned workspace or first workspace
-    const ownedWorkspace = workspaces.find((w) => w.role === "owner");
+    const ownedWorkspace = workspaces.find((w) => w.role === 'owner');
     const targetWorkspace = ownedWorkspace || workspaces[0];
 
     if (targetWorkspace) {
       router.push(`/${targetWorkspace.id}`);
     } else {
-      router.push("/workspaces");
+      router.push('/workspaces');
     }
   };
 
   // Update workspace access tracking
   const trackWorkspaceAccess = (workspaceId: string) => {
-    queryClient.setQueryData<WorkspaceEntity[]>(["workspaces"], (old) => {
-      if (!old) return old;
+    queryClient.setQueryData<WorkspaceEntity[]>(['workspaces'], (old) => {
+      if (!old) {
+        return old;
+      }
       return old.map((workspace) =>
         workspace.id === workspaceId
           ? { ...workspace, last_accessed_at: new Date().toISOString() }
-          : workspace
+          : workspace,
       );
     });
   };
@@ -79,9 +78,7 @@ export const useWorkspaceAuthIntegration = () => {
   };
 
   // Get workspaces by role
-  const getWorkspacesByRole = (
-    role: "owner" | "admin" | "member" | "guest"
-  ) => {
+  const getWorkspacesByRole = (role: 'owner' | 'admin' | 'member' | 'guest') => {
     return workspaces.filter((w) => w.role === role);
   };
 
@@ -111,13 +108,10 @@ export const useWorkspaceSwitcher = () => {
       trackWorkspaceAccess(workspaceId);
 
       // Prefetch workspace data if not already cached
-      const cachedWorkspace = queryClient.getQueryData<WorkspaceEntity>([
-        "workspace",
-        workspaceId,
-      ]);
+      const cachedWorkspace = queryClient.getQueryData<WorkspaceEntity>(['workspace', workspaceId]);
       if (!cachedWorkspace) {
         await queryClient.prefetchQuery({
-          queryKey: ["workspace", workspaceId],
+          queryKey: ['workspace', workspaceId],
           queryFn: () => workspacesApi.getWorkspace(workspaceId),
         });
       }
@@ -127,7 +121,7 @@ export const useWorkspaceSwitcher = () => {
 
       return true;
     } catch (error) {
-      console.error("Failed to switch workspace:", error);
+      console.error('Failed to switch workspace:', error);
       return false;
     }
   };
@@ -140,19 +134,13 @@ export const useWorkspaceSwitcher = () => {
 /**
  * Hook for workspace-aware authentication checks
  */
-export const useWorkspaceAuth = (
-  requiredRole?: "owner" | "admin" | "member" | "guest"
-) => {
+export const useWorkspaceAuth = (requiredRole?: 'owner' | 'admin' | 'member' | 'guest') => {
   const { getCurrentWorkspaceId, hasWorkspaceAccess, getWorkspaceRole } =
     useWorkspaceAuthIntegration();
 
   const currentWorkspaceId = getCurrentWorkspaceId();
-  const hasAccess = currentWorkspaceId
-    ? hasWorkspaceAccess(currentWorkspaceId)
-    : false;
-  const userRole = currentWorkspaceId
-    ? getWorkspaceRole(currentWorkspaceId)
-    : null;
+  const hasAccess = currentWorkspaceId ? hasWorkspaceAccess(currentWorkspaceId) : false;
+  const userRole = currentWorkspaceId ? getWorkspaceRole(currentWorkspaceId) : null;
 
   // Role hierarchy: owner > admin > member > guest
   const roleHierarchy = { owner: 4, admin: 3, member: 2, guest: 1 };
@@ -160,8 +148,7 @@ export const useWorkspaceAuth = (
   const hasRequiredRole =
     !requiredRole || !userRole
       ? false
-      : roleHierarchy[userRole as keyof typeof roleHierarchy] >=
-        roleHierarchy[requiredRole];
+      : roleHierarchy[userRole as keyof typeof roleHierarchy] >= roleHierarchy[requiredRole];
 
   return {
     currentWorkspaceId,

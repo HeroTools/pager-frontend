@@ -1,23 +1,21 @@
-import api from "@/lib/api/axios-client";
-import {
+import api from '@/lib/api/axios-client';
+import type {
   ConfirmUploadRequest,
   ConfirmUploadResponse,
   DeleteAttachmentRequest,
+  DeleteAttachmentResponse,
   PresignedUrlRequest,
   PresignedUrlResponse,
-  DeleteAttachmentResponse,
-} from "../types";
+} from '../types';
 
 export const uploadApi = {
   /**
    * Request a presigned URL for file upload
    */
-  getPresignedUrl: async (
-    request: PresignedUrlRequest
-  ): Promise<PresignedUrlResponse> => {
+  getPresignedUrl: async (request: PresignedUrlRequest): Promise<PresignedUrlResponse> => {
     const { data } = await api.post<PresignedUrlResponse>(
       `/workspaces/${request.workspaceId}/attachments/generate/presigned-url`,
-      request
+      request,
     );
     return data;
   },
@@ -25,12 +23,10 @@ export const uploadApi = {
   /**
    * Confirm upload completion
    */
-  confirmUpload: async (
-    request: ConfirmUploadRequest
-  ): Promise<ConfirmUploadResponse> => {
+  confirmUpload: async (request: ConfirmUploadRequest): Promise<ConfirmUploadResponse> => {
     const { data } = await api.post<ConfirmUploadResponse>(
       `/workspaces/${request.workspaceId}/attachments/${request.attachmentId}/confirm`,
-      request
+      request,
     );
     return data;
   },
@@ -38,11 +34,9 @@ export const uploadApi = {
   /**
    * Delete an attachment
    */
-  deleteAttachment: async (
-    request: DeleteAttachmentRequest
-  ): Promise<DeleteAttachmentResponse> => {
+  deleteAttachment: async (request: DeleteAttachmentRequest): Promise<DeleteAttachmentResponse> => {
     const { data } = await api.delete<DeleteAttachmentResponse>(
-      `/workspaces/${request.workspaceId}/attachments/${request.attachmentId}`
+      `/workspaces/${request.workspaceId}/attachments/${request.attachmentId}`,
     );
     return data;
   },
