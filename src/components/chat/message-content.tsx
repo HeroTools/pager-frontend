@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
+import { createRoot } from 'react-dom/client';
+import { Hint } from '@/components/hint';
 
 interface MessageContentProps {
   content: string;
@@ -15,12 +17,6 @@ export const MessageContent = ({ content }: MessageContentProps) => {
     if (node.tagName === 'A') {
       node.setAttribute('target', '_blank');
       node.setAttribute('rel', 'noopener noreferrer');
-      
-      // Ensure the title shows the actual URL
-      const url = node.getAttribute('href');
-      if (url) {
-        node.setAttribute('title', url);
-      }
     }
   });
 
@@ -60,7 +56,6 @@ export const MessageContent = ({ content }: MessageContentProps) => {
           return {
             target: '_blank',
             rel: 'noopener noreferrer',
-            title: href,
           };
         },
       },
@@ -121,7 +116,6 @@ export const MessageContent = ({ content }: MessageContentProps) => {
         'data-*',
         'colspan',
         'rowspan',
-        'title',
       ],
       ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|xxx):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
       ADD_ATTR: ['target', 'rel'], // Ensure these attributes are always kept
@@ -137,36 +131,59 @@ export const MessageContent = ({ content }: MessageContentProps) => {
 
       // Add click handler to ensure links always open in new tab
       containerRef.current.querySelectorAll('a').forEach((link) => {
-        // Remove any existing click handlers
-        const newLink = link.cloneNode(true) as HTMLAnchorElement;
-        link.parentNode?.replaceChild(newLink, link);
-        
-        newLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          const href = newLink.getAttribute('href');
-          if (href) {
-            window.open(href, '_blank', 'noopener,noreferrer');
-          }
-        });
-
         // Get the actual URL (either from href or text content)
-        let url = newLink.href || newLink.textContent?.trim() || '';
+        let url = link.href || link.textContent?.trim() || '';
         
         // If URL is from text and doesn't have a protocol, add https
         if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('mailto:')) {
           url = `https://${url}`;
         }
 
-        // Set the title to the actual URL, not the display text
-        newLink.setAttribute('title', url);
-        
         // If no href but has text that looks like a URL, add it
-        if (!newLink.href) {
-          const text = newLink.textContent?.trim();
+        if (!link.href) {
+          const text = link.textContent?.trim();
           if (text && (text.startsWith('http') || text.includes('.'))) {
-            newLink.setAttribute('href', url);
+            link.setAttribute('href', url);
           }
         }
+
+        // Create a wrapper for the link content
+        const wrapper = document.createElement('span');
+        wrapper.style.display = 'inline-block'; // Ensure the wrapper doesn't break layout
+        
+        // Move the link's content to the wrapper
+        while (link.firstChild) {
+          wrapper.appendChild(link.firstChild);
+        }
+
+        // Create a React root and render the Hint component
+        const root = createRoot(wrapper);
+        root.render(
+          <Hint 
+            label={url} 
+            side="top" 
+            align="center"
+            children={
+              <span 
+                className="inline-block"
+                dangerouslySetInnerHTML={{ __html: wrapper.innerHTML }}
+              />
+            }
+          />
+        );
+
+        // Replace link content with the wrapper
+        link.innerHTML = '';
+        link.appendChild(wrapper);
+
+        // Add click handler
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const href = link.getAttribute('href');
+          if (href) {
+            window.open(href, '_blank', 'noopener,noreferrer');
+          }
+        });
       });
     }
   }, [cleanHtml]);
