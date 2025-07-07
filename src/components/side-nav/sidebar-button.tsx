@@ -1,5 +1,5 @@
-import { LucideIcon } from 'lucide-react';
-import { IconType } from 'react-icons/lib';
+import type { LucideIcon } from 'lucide-react';
+import type { IconType } from 'react-icons/lib';
 import { NotificationBadge } from '@/components/notification-badge';
 import { cn } from '@/lib/utils';
 

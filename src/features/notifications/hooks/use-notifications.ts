@@ -1,4 +1,4 @@
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/features/notifications/api/notifications-api';
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
 import type { NotificationsResponse } from '@/features/notifications/types';

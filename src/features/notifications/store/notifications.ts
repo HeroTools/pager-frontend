@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { soundManager } from '@/features/notifications/lib/sound-manager';
 import { tabBadgeManager } from '@/features/notifications/lib/tab-badge-manager';
-import { NotificationData } from '../types';
+import type { NotificationData } from '../types';
 
 interface NotificationStore {
   notifications: NotificationData[];
@@ -29,7 +29,9 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     // Prevent duplicates
     const exists = notifications.some((n) => n.id === notification.id);
-    if (exists) return;
+    if (exists) {
+      return;
+    }
 
     set((state) => {
       const newUnreadCount = notification.is_read ? state.unreadCount : state.unreadCount + 1;

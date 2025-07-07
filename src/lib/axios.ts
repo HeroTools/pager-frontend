@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { supabase } from './supabase/client';
 
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -17,7 +17,9 @@ interface SupabaseAuthError {
 }
 
 const getCookie = (name: string): string | null => {
-  if (typeof document === 'undefined') return null;
+  if (typeof document === 'undefined') {
+    return null;
+  }
 
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -28,7 +30,9 @@ const getCookie = (name: string): string | null => {
 };
 
 const setCookie = (name: string, value: string, days: number = 7): void => {
-  if (typeof document === 'undefined') return;
+  if (typeof document === 'undefined') {
+    return;
+  }
 
   const expires = new Date();
   expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
@@ -36,7 +40,9 @@ const setCookie = (name: string, value: string, days: number = 7): void => {
 };
 
 const removeCookie = (name: string): void => {
-  if (typeof document === 'undefined') return;
+  if (typeof document === 'undefined') {
+    return;
+  }
 
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
 };

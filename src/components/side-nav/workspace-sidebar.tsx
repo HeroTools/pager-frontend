@@ -3,8 +3,8 @@ import { useRouter } from 'next/navigation';
 import {
   AlertTriangle,
   HashIcon,
-  Lock,
   Loader,
+  Lock,
   MessageSquareText,
   SendHorizonal,
 } from 'lucide-react';
@@ -21,9 +21,9 @@ import { WorkspaceSection } from './workspace-section';
 import { useConversationCreateStore } from '@/features/conversations/store/conversation-create-store';
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { InviteModal } from './invite-modal';

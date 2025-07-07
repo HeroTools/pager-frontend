@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { conversationsApi } from '../api/conversations-api';
-import { ConversationEntity } from '../types';
+import type { ConversationEntity } from '../types';
 
 export function useGetConversation(workspaceId: string, conversationId: string) {
   const qc = useQueryClient();

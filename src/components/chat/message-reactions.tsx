@@ -1,8 +1,8 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Reaction } from '@/features/reactions/types';
+import type { Reaction } from '@/features/reactions/types';
 
 interface MessageReactionsProps {
   reactions: Reaction[];
@@ -15,15 +15,21 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
   onReaction,
   currentUserId,
 }) => {
-  if (!reactions || reactions.length === 0) return null;
+  if (!reactions || reactions.length === 0) {
+    return null;
+  }
 
   const ReactionTooltipContent: FC<{
     reaction: Reaction;
     currentUserId: string;
   }> = ({ reaction, currentUserId }) => {
     const sortedUsers = [...reaction.users].sort((a, b) => {
-      if (a.id === currentUserId) return -1;
-      if (b.id === currentUserId) return 1;
+      if (a.id === currentUserId) {
+        return -1;
+      }
+      if (b.id === currentUserId) {
+        return 1;
+      }
       return a.name.localeCompare(b.name);
     });
 
@@ -51,7 +57,7 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
         return `${names.slice(0, 2).join(', ')} and ${names.length - 2 + remainingCount} others`;
       }
 
-      return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+      return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
     };
 
     return (
@@ -75,7 +81,7 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
           const hasUserReacted = reaction.users.some((user) => user.id === currentUserId);
 
           return (
-            <Tooltip key={reaction.id + '-tooltip' + currentUserId}>
+            <Tooltip key={`${reaction.id}-tooltip${currentUserId}`}>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"

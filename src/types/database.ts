@@ -1,6 +1,6 @@
 export type MessageType = 'text' | 'file' | 'system' | 'bot' | 'thread_reply';
 export type ChannelMemberRole = 'admin' | 'member';
-export type WorkspaceMemberRole = 'admin' | 'member';
+export type WorkspaceMemberRole = 'admin' | 'member' | 'owner';
 export type InviteType = 'workspace' | 'channel';
 export type InviteStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
 export type NotificationType =

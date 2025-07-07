@@ -1,6 +1,7 @@
-import { FC, useCallback, useEffect, useRef, useState, UIEvent } from 'react';
+import type { FC } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { Message, Channel, Attachment } from '@/types/chat';
+import type { Channel, Message } from '@/types/chat';
 import { ChatHeader } from './header';
 import { ChatMessageList } from './message-list';
 import Editor from '@/components/editor/editor';
@@ -8,7 +9,7 @@ import { useParamIds } from '@/hooks/use-param-ids';
 import type { ChannelMemberData } from '@/features/channels';
 import type { UploadedAttachment } from '@/features/file-upload';
 import type { CurrentUser } from '@/features/auth';
-import { MediaViewerModal } from '@/components/media-viewer-modal';
+// import { MediaViewerModal } from '@/components/media-viewer-modal';
 
 interface ChatProps {
   channel: Channel;
@@ -27,9 +28,7 @@ interface ChatProps {
   }) => void;
   onEditMessage?: (messageId: string, newContent: string) => void;
   onDeleteMessage?: (messageId: string) => void;
-  onReplyToMessage?: (messageId: string) => void;
   onReactToMessage?: (messageId: string, emoji: string) => void;
-  onToggleChannelDetails?: () => void;
   typingUsers?: { id: string; name: string; avatar?: string }[];
   onInputChange?: (value: string) => void;
   onTypingSubmit?: () => void;
@@ -45,22 +44,16 @@ export const Chat: FC<ChatProps> = ({
   onSendMessage,
   onEditMessage,
   onDeleteMessage,
-  onReplyToMessage,
   onReactToMessage,
-  onToggleChannelDetails,
   onLoadMore,
   hasMoreMessages,
   isLoadingMore,
-  typingUsers,
-  onInputChange,
-  onTypingSubmit,
   members,
 }) => {
   const { workspaceId } = useParamIds();
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
-  const [mediaViewerAttachments, setMediaViewerAttachments] = useState<Attachment[]>([]);
-  const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
+  // const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
+  // const [mediaViewerAttachments, setMediaViewerAttachments] = useState<Attachment[]>([]);
+  // const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
 
@@ -74,48 +67,55 @@ export const Chat: FC<ChatProps> = ({
   };
 
   const handleEditMessage = (messageId: string, newContent: string) => {
-    setEditingMessageId(messageId);
     onEditMessage?.(messageId, newContent);
   };
 
-  const handleOpenMediaViewer = (message: Message, attachmentIndex: number) => {
-    // Get all viewable attachments (images, videos, and documents)
-    const viewableAttachments = message.attachments.filter((attachment) => {
-      const mimeType = attachment.contentType || '';
-      const filename = attachment.originalFilename || '';
-      const extension = filename.split('.').pop()?.toLowerCase();
+  // const handleOpenMediaViewer = (message: Message, attachmentIndex: number) => {
+  //   // Get all viewable attachments (images, videos, and documents)
+  //   const viewableAttachments = message.attachments.filter((attachment) => {
+  //     const mimeType = attachment.contentType || '';
+  //     const filename = attachment.originalFilename || '';
+  //     const extension = filename.split('.').pop()?.toLowerCase();
 
-      return (
-        attachment.contentType?.startsWith('image/') ||
-        attachment.contentType?.startsWith('video/') ||
-        mimeType.includes('pdf') ||
-        mimeType.includes('document') ||
-        mimeType.includes('spreadsheet') ||
-        mimeType.includes('presentation') ||
-        ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension || '')
-      );
-    });
+  //     return (
+  //       attachment.contentType?.startsWith('image/') ||
+  //       attachment.contentType?.startsWith('video/') ||
+  //       mimeType.includes('pdf') ||
+  //       mimeType.includes('document') ||
+  //       mimeType.includes('spreadsheet') ||
+  //       mimeType.includes('presentation') ||
+  //       ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension || '')
+  //     );
+  //   });
 
-    if (viewableAttachments.length > 0) {
-      setMediaViewerAttachments(viewableAttachments);
-      setMediaViewerInitialIndex(attachmentIndex);
-      setIsMediaViewerOpen(true);
-    }
-  };
+  //   if (viewableAttachments.length > 0) {
+  //     setMediaViewerAttachments(viewableAttachments);
+  //     setMediaViewerInitialIndex(attachmentIndex);
+  //     setIsMediaViewerOpen(true);
+  //   }
+  // };
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const c = messagesContainerRef.current;
-    if (c) c.scrollTo({ top: c.scrollHeight, behavior });
+    if (c) {
+      c.scrollTo({ top: c.scrollHeight, behavior });
+    }
   }, []);
 
   useEffect(() => {
-    if (shouldScrollToBottom) scrollToBottom();
+    if (shouldScrollToBottom) {
+      scrollToBottom();
+    }
   }, [messages, shouldScrollToBottom, scrollToBottom]);
 
   useEffect(() => {
-    if (!shouldScrollToBottom) return;
+    if (!shouldScrollToBottom) {
+      return;
+    }
     const c = messagesContainerRef.current;
-    if (!c || typeof ResizeObserver === 'undefined') return;
+    if (!c || typeof ResizeObserver === 'undefined') {
+      return;
+    }
 
     const ro = new ResizeObserver(() => {
       scrollToBottom('auto');
@@ -125,9 +125,13 @@ export const Chat: FC<ChatProps> = ({
   }, [messages, shouldScrollToBottom, scrollToBottom]);
 
   useEffect(() => {
-    if (!shouldScrollToBottom) return;
+    if (!shouldScrollToBottom) {
+      return;
+    }
     const c = messagesContainerRef.current;
-    if (!c) return;
+    if (!c) {
+      return;
+    }
 
     const imgs = Array.from(c.querySelectorAll('img'));
 
@@ -136,7 +140,9 @@ export const Chat: FC<ChatProps> = ({
     };
 
     imgs.forEach((img) => {
-      if (!img.complete) img.addEventListener('load', onImgLoad);
+      if (!img.complete) {
+        img.addEventListener('load', onImgLoad);
+      }
     });
 
     return () => {
@@ -144,27 +150,26 @@ export const Chat: FC<ChatProps> = ({
     };
   }, [messages, shouldScrollToBottom]);
 
-  const handleScroll = useCallback(
-    (e: UIEvent<HTMLDivElement>) => {
-      if (!messagesContainerRef.current) return;
-      const c = messagesContainerRef.current!;
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) {
+      return;
+    }
+    const c = messagesContainerRef.current!;
 
-      if (c.scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
-        const prevH = c.scrollHeight;
-        setShouldScrollToBottom(false);
-        onLoadMore();
-        setTimeout(() => {
-          c.scrollTop = c.scrollHeight - prevH;
-        }, 100);
-      }
-      setShouldScrollToBottom(c.scrollTop + c.clientHeight >= c.scrollHeight - 100);
-    },
-    [hasMoreMessages, isLoadingMore, onLoadMore],
-  );
+    if (c.scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
+      const prevH = c.scrollHeight;
+      setShouldScrollToBottom(false);
+      onLoadMore();
+      setTimeout(() => {
+        c.scrollTop = c.scrollHeight - prevH;
+      }, 100);
+    }
+    setShouldScrollToBottom(c.scrollTop + c.clientHeight >= c.scrollHeight - 100);
+  }, [hasMoreMessages, isLoadingMore, onLoadMore]);
 
   return (
     <div className="flex flex-col h-full">
-      <ChatHeader channel={channel} onToggleDetails={onToggleChannelDetails} members={members} />
+      <ChatHeader channel={channel} members={members} />
 
       <ChatMessageList
         messages={messages}
@@ -172,7 +177,6 @@ export const Chat: FC<ChatProps> = ({
         isLoading={isLoading}
         onEdit={handleEditMessage}
         onDelete={onDeleteMessage}
-        onReply={onReplyToMessage}
         onReaction={onReactToMessage}
         containerRef={messagesContainerRef}
         onScroll={handleScroll}
@@ -189,12 +193,12 @@ export const Chat: FC<ChatProps> = ({
         />
       </div>
 
-      <MediaViewerModal
+      {/* <MediaViewerModal
         isOpen={isMediaViewerOpen}
         onClose={() => setIsMediaViewerOpen(false)}
         attachments={mediaViewerAttachments}
         initialIndex={mediaViewerInitialIndex}
-      />
+      /> */}
     </div>
   );
 };

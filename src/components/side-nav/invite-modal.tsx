@@ -33,7 +33,9 @@ export const InviteModal = ({ open, name, setOpen }: InviteModalProps) => {
 
   const handleCopy = () => {
     const url = inviteLinkMutation.data?.url;
-    if (!url) return;
+    if (!url) {
+      return;
+    }
     navigator.clipboard
       .writeText(url)
       .then(() => toast.success('Invite link copied to clipboard!'));

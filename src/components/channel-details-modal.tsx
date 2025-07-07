@@ -1,42 +1,44 @@
-import { FC, useState, useMemo, useEffect } from 'react';
+import type { FC } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Users,
-  Settings,
-  Lock,
+  Edit,
+  Globe,
   Hash,
-  Search,
+  Lock,
+  MoreVertical,
   Plus,
+  Save,
+  Search,
+  Settings,
+  Trash2,
+  Users,
+  UserSearch,
   X,
   XCircle,
-  MoreVertical,
-  UserSearch,
-  Trash2,
-  Edit,
-  Save,
-  Globe,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
-import { Channel, ChannelType } from '@/types/chat';
+import type { Channel } from '@/types/chat';
+import { ChannelType } from '@/types/chat';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  useRemoveChannelMembers,
+  type ChannelMemberData,
   useAddChannelMembers,
   useDeleteChannel,
+  useRemoveChannelMembers,
   useUpdateChannel,
-  type ChannelMemberData,
 } from '@/features/channels';
 import { useGetMembers } from '@/features/members';
 import { useCurrentUser } from '@/features/auth';
@@ -97,7 +99,9 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   }, [isOpen, initialTab, channel.name, channel.type]);
 
   const filteredMembers = useMemo(() => {
-    if (!searchQuery) return channelMembers;
+    if (!searchQuery) {
+      return channelMembers;
+    }
     const query = searchQuery.toLowerCase();
     return channelMembers.filter((member) => {
       const workspaceMember = workspaceMembers.find((wm) => wm.id === member.workspace_member_id);
@@ -146,11 +150,15 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   }, [channelMembers]);
 
   const isChannelAdmin = useMemo(() => {
-    if (!user) return false;
+    if (!user) {
+      return false;
+    }
 
     const currentWorkspaceMember = workspaceMembers.find((wm) => wm.user.id === user.id);
 
-    if (!currentWorkspaceMember) return false;
+    if (!currentWorkspaceMember) {
+      return false;
+    }
 
     const currentChannelMember = channelMembers.find(
       (member) => member.workspace_member_id === currentWorkspaceMember.id,
@@ -161,7 +169,9 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
 
   const handleDeleteChannel = async () => {
     const confirmed = await confirmDelete();
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       await deleteChannel.mutateAsync({
@@ -345,7 +355,9 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                         const workspaceMember = workspaceMembers.find(
                           (wm) => wm.id === member.workspace_member_id,
                         );
-                        if (!workspaceMember) return null;
+                        if (!workspaceMember) {
+                          return null;
+                        }
 
                         return (
                           <div
@@ -436,8 +448,12 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                           className="max-w-md"
                           placeholder="Enter channel name"
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveName();
-                            if (e.key === 'Escape') handleCancelEdit('name');
+                            if (e.key === 'Enter') {
+                              handleSaveName();
+                            }
+                            if (e.key === 'Escape') {
+                              handleCancelEdit('name');
+                            }
                           }}
                         />
                         <Button
@@ -511,25 +527,23 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                         </Button>
                       </>
                     ) : (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsEditingType(true)}
-                          disabled={!isChannelAdmin}
-                        >
-                          {channel.isPrivate ? (
-                            <>
-                              <Lock className="h-4 w-4 mr-2" />
-                              Private
-                            </>
-                          ) : (
-                            <>
-                              <Globe className="h-4 w-4 mr-2" />
-                              Public
-                            </>
-                          )}
-                        </Button>
-                      </>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsEditingType(true)}
+                        disabled={!isChannelAdmin}
+                      >
+                        {channel.isPrivate ? (
+                          <>
+                            <Lock className="h-4 w-4 mr-2" />
+                            Private
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="h-4 w-4 mr-2" />
+                            Public
+                          </>
+                        )}
+                      </Button>
                     )}
                   </div>
                 </div>

@@ -1,6 +1,7 @@
-import { FC, useMemo } from 'react';
-import { Message } from '@/types/chat';
-import { MemberWithUser } from '@/features/members';
+import type { FC } from 'react';
+import { useMemo } from 'react';
+import type { Message } from '@/types/chat';
+import type { MemberWithUser } from '@/features/members';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChevronRight } from 'lucide-react';
 import { useUIStore } from '@/store/ui-store';

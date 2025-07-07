@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { NotificationData } from '../types';
+import type { FC } from 'react';
+import type { NotificationData } from '../types';
 
 interface NotificationItemProps {
   notification: NotificationData;
@@ -31,7 +31,7 @@ const NotificationItem: FC<NotificationItemProps> = ({ notification, onClick, ic
 
             <div className="flex items-center gap-1 flex-shrink-0">
               <span className="text-xs text-muted-foreground">{timeAgo}</span>
-              {!notification.is_read && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+              {!notification.is_read && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
             </div>
           </div>
 

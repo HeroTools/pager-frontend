@@ -1,4 +1,4 @@
-import { File, FileText, Archive } from 'lucide-react';
+import { Archive, File, FileText } from 'lucide-react';
 
 export const getFileIcon = (filename: string) => {
   const extension = filename.split('.').pop()?.toLowerCase();

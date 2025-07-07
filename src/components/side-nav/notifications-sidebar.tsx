@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  X,
+  AlertTriangle,
+  AtSign,
+  Bell,
   CheckCheck,
+  Hash,
   Loader,
   MessageCircle,
-  Hash,
-  AtSign,
-  AlertTriangle,
-  Bell,
+  X,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -50,7 +50,9 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
   const hasUnread = allNotifications.some((n) => !n.is_read);
 
   const handleMarkAllAsRead = async () => {
-    if (!hasUnread) return;
+    if (!hasUnread) {
+      return;
+    }
 
     setMarkingAllAsRead(true);
     try {

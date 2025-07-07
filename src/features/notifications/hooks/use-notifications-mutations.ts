@@ -1,13 +1,12 @@
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { notificationsApi } from '@/features/notifications/api/notifications-api';
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
 import type {
-  MarkNotificationReadResponse,
   MarkAllNotificationsReadResponse,
-  NotificationsResponse,
+  MarkNotificationReadResponse,
   NotificationEntity,
+  NotificationsResponse,
 } from '@/features/notifications/types';
-import type { InfiniteData } from '@tanstack/react-query';
 
 type NotificationsInfiniteData = InfiniteData<NotificationsResponse, string | null>;
 
@@ -62,7 +61,9 @@ export function useMarkNotificationAsRead() {
       const updatePages = (
         data?: NotificationsInfiniteData,
       ): NotificationsInfiniteData | undefined => {
-        if (!data) return data;
+        if (!data) {
+          return data;
+        }
 
         return {
           ...data,
@@ -88,7 +89,9 @@ export function useMarkNotificationAsRead() {
       const removeFromUnreadPages = (
         data?: NotificationsInfiniteData,
       ): NotificationsInfiniteData | undefined => {
-        if (!data) return data;
+        if (!data) {
+          return data;
+        }
 
         return {
           ...data,
@@ -182,7 +185,9 @@ export function useMarkAllNotificationsAsRead() {
       const markAllRead = (
         data?: NotificationsInfiniteData,
       ): NotificationsInfiniteData | undefined => {
-        if (!data) return data;
+        if (!data) {
+          return data;
+        }
 
         return {
           ...data,
@@ -201,7 +206,9 @@ export function useMarkAllNotificationsAsRead() {
       const clearUnreadPages = (
         data?: NotificationsInfiniteData,
       ): NotificationsInfiniteData | undefined => {
-        if (!data) return data;
+        if (!data) {
+          return data;
+        }
 
         return {
           ...data,

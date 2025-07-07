@@ -1,12 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import {
-  useFileUpload,
-  useDeleteAttachment,
-  UploadProgress,
-} from '@/features/file-upload/hooks/use-upload';
+import React, { useCallback, useState } from 'react';
+import type { UploadProgress } from '@/features/file-upload/hooks/use-upload';
+import { useDeleteAttachment, useFileUpload } from '@/features/file-upload/hooks/use-upload';
 import { v4 as uuidv4 } from 'uuid';
 import { X } from 'lucide-react';
-import { UploadedAttachment } from '../types';
+import type { UploadedAttachment } from '../types';
 
 interface AttachmentUploaderProps {
   workspaceId: string;
@@ -146,7 +143,9 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
 
   const removeAttachment = async (attachmentId: string) => {
     const attachment = attachments.find((att) => att.id === attachmentId);
-    if (!attachment) return;
+    if (!attachment) {
+      return;
+    }
 
     // If the attachment was successfully uploaded, delete it from the server
     if (attachment.status === 'completed' && !attachmentId.startsWith('temp-')) {
@@ -189,11 +188,13 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
   }, []);
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   return (

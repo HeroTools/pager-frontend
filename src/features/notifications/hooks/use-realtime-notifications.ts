@@ -1,20 +1,19 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import type { InfiniteData } from '@tanstack/react-query';
 
 import {
   notificationsRealtimeHandler,
   type RealtimeHandler,
 } from '@/lib/realtime/realtime-handler';
-import { supabase } from '@/lib/supabase/client';
+import type { supabase } from '@/lib/supabase/client';
 import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
 import { useFocusNotificationManager } from '@/features/notifications/hooks/use-focus-notification-manager';
 import {
-  useNotificationPermissions,
   type NotificationPermissionState,
+  useNotificationPermissions,
 } from '@/features/notifications/hooks/use-notification-permissions';
 import { useNotificationContext } from '@/features/notifications/hooks/use-notification-context';
 import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
@@ -179,7 +178,9 @@ export const useRealtimeNotifications = ({
             };
           }
           const exists = old.pages[0].notifications.some((n) => n.id === notification.id);
-          if (exists) return old;
+          if (exists) {
+            return old;
+          }
           const first = old.pages[0];
           const updatedFirst: NotificationsResponse = {
             ...first,
@@ -211,7 +212,9 @@ export const useRealtimeNotifications = ({
                 };
               }
               const exists = old.pages[0].notifications.some((n) => n.id === notification.id);
-              if (exists) return old;
+              if (exists) {
+                return old;
+              }
               const first = old.pages[0];
               const updatedFirst: NotificationsResponse = {
                 ...first,
@@ -249,10 +252,14 @@ export const useRealtimeNotifications = ({
       try {
         const { notificationId, isRead } = payload;
 
-        if (isRead) browserNotificationService.closeNotification(notificationId);
+        if (isRead) {
+          browserNotificationService.closeNotification(notificationId);
+        }
 
         queryClient.setQueryData<NotificationsInfiniteData>(getNotificationsQueryKey(), (old) => {
-          if (!old?.pages?.length) return old;
+          if (!old?.pages?.length) {
+            return old;
+          }
           const newPages = old.pages.map(
             (page): NotificationsResponse => ({
               ...page,
@@ -274,7 +281,9 @@ export const useRealtimeNotifications = ({
           queryClient.setQueryData<NotificationsInfiniteData>(
             getUnreadNotificationsQueryKey(),
             (old) => {
-              if (!old?.pages?.length) return old;
+              if (!old?.pages?.length) {
+                return old;
+              }
               const newPages = old.pages.map(
                 (page): NotificationsResponse => ({
                   ...page,
@@ -306,7 +315,9 @@ export const useRealtimeNotifications = ({
       const now = new Date().toISOString();
 
       queryClient.setQueryData<NotificationsInfiniteData>(getNotificationsQueryKey(), (old) => {
-        if (!old?.pages?.length) return old;
+        if (!old?.pages?.length) {
+          return old;
+        }
         const newPages = old.pages.map(
           (page): NotificationsResponse => ({
             ...page,
@@ -324,7 +335,9 @@ export const useRealtimeNotifications = ({
       queryClient.setQueryData<NotificationsInfiniteData>(
         getUnreadNotificationsQueryKey(),
         (old) => {
-          if (!old?.pages?.length) return old;
+          if (!old?.pages?.length) {
+            return old;
+          }
           const newPages = old.pages.map(
             (page): NotificationsResponse => ({
               ...page,
@@ -354,7 +367,9 @@ export const useRealtimeNotifications = ({
   }, [handleNewNotification, handleNotificationRead, handleAllNotificationsRead]);
 
   useEffect(() => {
-    if (!enabled || !workspaceMemberId || !workspaceId) return;
+    if (!enabled || !workspaceMemberId || !workspaceId) {
+      return;
+    }
 
     const now = Date.now();
     const FIVE_MINUTES = 5 * 60 * 1000;

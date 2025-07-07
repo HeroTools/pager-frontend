@@ -1,22 +1,16 @@
-import { Smile, SendHorizontal, CaseSensitive, Paperclip } from 'lucide-react';
-import Quill, { QuillOptions } from 'quill';
-import { Delta, Op } from 'quill/core';
+import { CaseSensitive, Paperclip, SendHorizontal, Smile } from 'lucide-react';
+import type { QuillOptions } from 'quill';
+import Quill from 'quill';
+import type { Delta, Op } from 'quill/core';
 import hljs from 'highlight.js';
-import {
-  RefObject,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  useCallback,
-} from 'react';
+import type { RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
+import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
 import { useFileUpload } from '@/features/file-upload';
 import AttachmentPreview from './attachment-preview';
 import { validateFile } from '@/lib/helpers';
@@ -87,7 +81,9 @@ const Editor = ({
 
   const handleSubmit = useCallback(async (): Promise<void> => {
     const quill = quillRef.current;
-    if (!quill) return;
+    if (!quill) {
+      return;
+    }
 
     if (hasUploadsInProgress) {
       toast.error('Please wait for all attachments to finish uploading.');
@@ -221,7 +217,9 @@ const Editor = ({
           setAttachments((prev) => {
             const updatedAttachments: ManagedAttachment[] = prev.map((att) => {
               const originalFileIndex = fileIds.indexOf(att.id);
-              if (originalFileIndex === -1) return att;
+              if (originalFileIndex === -1) {
+                return att;
+              }
 
               const result = results[originalFileIndex];
 
@@ -292,7 +290,9 @@ const Editor = ({
   }, []);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) {
+      return;
+    }
     const container = containerRef.current;
     const editorDiv = document.createElement('div');
     container.appendChild(editorDiv);
@@ -311,7 +311,7 @@ const Editor = ({
           bindings: {
             enterSubmit: {
               key: 'Enter',
-              handler: function (): boolean {
+              handler(): boolean {
                 // If emoji dropdown is open, don't handle enter here - let the emoji component deal with it
                 const emojiDropdownOpen =
                   quillRef.current &&
@@ -340,7 +340,7 @@ const Editor = ({
             linebreak: {
               key: 'Enter',
               shiftKey: true,
-              handler: function (range: unknown): boolean {
+              handler(range: unknown): boolean {
                 const quill = quillRef.current!;
                 const rangeObj = range as { index?: number } | null;
                 const index = rangeObj?.index ?? quill.getLength();
@@ -357,7 +357,9 @@ const Editor = ({
     const quill = new Quill(editorDiv, options);
     quillRef.current = quill;
     quill.focus();
-    if (innerRef) innerRef.current = quill;
+    if (innerRef) {
+      innerRef.current = quill;
+    }
 
     quill.setContents(defaultValueRef.current);
     setText(quill.getText());
@@ -370,14 +372,18 @@ const Editor = ({
       quill.off(Quill.events.TEXT_CHANGE);
       container.innerHTML = '';
       quillRef.current = null;
-      if (innerRef) innerRef.current = null;
+      if (innerRef) {
+        innerRef.current = null;
+      }
     };
   }, []);
 
   const handleToolbarToggle = useCallback((): void => {
     setIsToolbarVisible((v) => !v);
     const toolbarEl = containerRef.current?.querySelector('.ql-toolbar');
-    if (toolbarEl) toolbarEl.classList.toggle('hidden');
+    if (toolbarEl) {
+      toolbarEl.classList.toggle('hidden');
+    }
   }, []);
 
   const handleEmojiSelect = useCallback((emoji: string): void => {
@@ -426,7 +432,7 @@ const Editor = ({
           </div>
         )}
 
-        <div ref={containerRef} className="h-full ql-custom max-h-80 overflow-y-auto"></div>
+        <div ref={containerRef} className="h-full ql-custom max-h-80 overflow-y-auto" />
 
         {/* Attachment previews */}
         {attachments.length > 0 && (

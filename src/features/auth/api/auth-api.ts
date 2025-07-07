@@ -1,46 +1,48 @@
 import api from '@/lib/api/axios-client';
 import { supabase } from '@/lib/supabase/client';
 import type {
-  SignUpData,
-  SignInData,
-  UpdateProfileData,
-  UpdatePasswordData,
+  ApiAuthResponse,
   AuthResponse,
-  EnhancedAuthResponse,
-  UserPreferences,
-  InviteLinkResponse,
   CurrentUser,
+  InviteLinkResponse,
+  SignInData,
+  SignUpData,
+  UpdatePasswordData,
+  UpdateProfileData,
+  UserPreferences,
 } from '@/features/auth/types';
-import { User } from '@supabase/supabase-js';
+import type { AuthSession, User } from '@supabase/supabase-js';
 
 export const authApi = {
   /**
    * Sign up a new user
    */
-  signUp: async (data: SignUpData): Promise<EnhancedAuthResponse> => {
-    const { data: response } = await api.post<EnhancedAuthResponse>('/auth/sign-up', data);
-
-    console.log(response);
+  signUp: async (data: SignUpData): Promise<AuthResponse> => {
+    const { data: response } = await api.post<ApiAuthResponse>('/auth/sign-up', data);
 
     // Store session from Lambda response if provided
-    if (response.session) {
-      await supabase.auth.setSession(response.session);
+    if (response.data.session) {
+      await supabase.auth.setSession({
+        access_token: response.data.session.access_token,
+        refresh_token: response.data.session.refresh_token,
+      });
     }
 
-    return response;
+    return response.data;
   },
 
   /**
    * Sign in an existing user
    */
   signIn: async (data: SignInData): Promise<AuthResponse> => {
-    const { data: response } = await api.post<EnhancedAuthResponse>('/auth/sign-in', data);
-
-    console.log('Sign in response:', response);
+    const { data: response } = await api.post<ApiAuthResponse>('/auth/sign-in', data);
 
     // Store session from Lambda response
     if (response.data.session) {
-      await supabase.auth.setSession(response.data.session);
+      await supabase.auth.setSession({
+        access_token: response.data.session.access_token,
+        refresh_token: response.data.session.refresh_token,
+      });
     }
 
     return response.data;
@@ -64,9 +66,9 @@ export const authApi = {
   /**
    * Refresh the current session token
    */
-  refreshToken: async (refreshToken: string) => {
-    const { data: response } = await api.post<{ session: string }>('/auth/refresh', {
-      refresh_token: refreshToken,
+  refreshToken: async (refresh_token: string) => {
+    const { data: response } = await api.post<{ session: AuthSession }>('/auth/refresh', {
+      refresh_token,
     });
 
     // Update local session
@@ -107,10 +109,10 @@ export const authApi = {
   /**
    * Reset password with token
    */
-  resetPassword: async (token: string, newPassword: string) => {
+  resetPassword: async (token: string, new_password: string) => {
     const { data: response } = await api.post('/auth/reset-password', {
       token,
-      new_password: newPassword,
+      new_password,
     });
     return response;
   },
@@ -118,8 +120,8 @@ export const authApi = {
   /**
    * Get current user from Lambda/database
    */
-  getCurrentUser: async (workspaceId: string): Promise<CurrentUser> => {
-    const { data: response } = await api.get<CurrentUser>(`/auth/user?workspaceId=${workspaceId}`);
+  getCurrentUser: async (workspace_id: string): Promise<CurrentUser> => {
+    const { data: response } = await api.get<CurrentUser>(`/auth/user?workspaceId=${workspace_id}`);
     return response;
   },
 
@@ -131,7 +133,9 @@ export const authApi = {
       data: { session },
       error,
     } = await supabase.auth.getSession();
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     return session;
   },
 
@@ -174,10 +178,10 @@ export const authApi = {
   /**
    * Get workspace invite link
    */
-  getInviteLink: async (workspaceId: string): Promise<InviteLinkResponse> => {
+  getInviteLink: async (workspace_id: string): Promise<InviteLinkResponse> => {
     const { data: response } = await api.post<{ success: boolean; data: InviteLinkResponse }>(
       '/auth/invite-link',
-      { workspaceId },
+      { workspace_id },
     );
     return response.data;
   },

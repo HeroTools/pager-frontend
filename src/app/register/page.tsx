@@ -1,30 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader } from 'lucide-react';
 import Image from 'next/image';
 import { SignUpCard } from '@/features/auth/components/sign-up-card';
 import { useWorkspaceFromInviteToken } from '@/features/workspaces/hooks/use-workspaces';
+import { useAuthStore } from '@/features/auth/stores/auth-store';
 
-const RegisterPage = () => {
+const RegisterContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const invitation = searchParams.get('invitation');
+  const invitation = searchParams.get('invitation') as string;
   const [step, setStep] = useState<'signup' | 'joining' | 'joined'>('signup');
-  const [joinedWorkspaceId, setJoinedWorkspaceId] = useState<string | null>(null);
+  const { setFlow } = useAuthStore();
 
-  // Fetch workspace info from invite token
   const {
     data: inviteInfo,
     isLoading: inviteLoading,
     error: inviteError,
   } = useWorkspaceFromInviteToken(invitation || undefined);
 
-  // Callback for after successful registration
   const handleRegisterSuccess = (workspaceId?: string) => {
     setStep('joined');
-    setJoinedWorkspaceId(workspaceId || null);
     if (workspaceId) {
       setTimeout(() => router.replace(`/${workspaceId}`), 1500);
     } else {
@@ -36,7 +34,6 @@ const RegisterPage = () => {
     <div className="h-full flex flex-col gap-y-8 items-center justify-center p-8 rounded-lg shadow-sm bg-background">
       <Image src="/logo.svg" width={60} height={60} alt="Logo" />
       <div className="flex flex-col gap-y-4 items-center justify-center max-w-md">
-        {/* Workspace info from invite token */}
         {inviteLoading ? (
           <Loader className="size-6 animate-spin text-muted-foreground" />
         ) : inviteError ? (
@@ -73,6 +70,7 @@ const RegisterPage = () => {
               hideSignInLink
               inviteToken={invitation || undefined}
               onSuccess={handleRegisterSuccess}
+              setFlow={setFlow}
             />
           </div>
         )}
@@ -83,6 +81,20 @@ const RegisterPage = () => {
         )}
       </div>
     </div>
+  );
+};
+
+const RegisterPage = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-full flex items-center justify-center">
+          <Loader className="size-6 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <RegisterContent />
+    </Suspense>
   );
 };
 

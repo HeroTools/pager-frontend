@@ -1,20 +1,21 @@
-import { FC, useState } from 'react';
-import { Hash, Lock, Users, MoreVertical, Settings, LogOut } from 'lucide-react';
-import { Channel } from '@/types/chat';
+import type { FC } from 'react';
+import { useState } from 'react';
+import { Hash, Lock, LogOut, MoreVertical, Settings, Users } from 'lucide-react';
+import type { Channel } from '@/types/chat';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ChannelDetailsModal } from '@/components/channel-details-modal';
-import { ChannelMemberData } from '@/features/channels/types';
+import type { ChannelMemberData } from '@/features/channels/types';
 import { useRemoveChannelMembers } from '@/features/channels';
 import { useCurrentUser } from '@/features/auth';
 import { useGetMembers } from '@/features/members';
@@ -22,11 +23,10 @@ import { useParamIds } from '@/hooks/use-param-ids';
 
 interface ChatHeaderProps {
   channel: Channel;
-  onToggleDetails?: () => void;
   members?: ChannelMemberData[];
 }
 
-export const ChatHeader: FC<ChatHeaderProps> = ({ channel, onToggleDetails, members = [] }) => {
+export const ChatHeader: FC<ChatHeaderProps> = ({ channel, members = [] }) => {
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<'members' | 'settings'>('members');
   const { workspaceId } = useParamIds();
@@ -39,11 +39,6 @@ export const ChatHeader: FC<ChatHeaderProps> = ({ channel, onToggleDetails, memb
   const maxAvatars = 4;
   const visibleMembers = members.slice(0, maxAvatars);
   const extraCount = members.length - maxAvatars;
-
-  const openModal = (tab: 'members' | 'settings' = 'members') => {
-    setModalInitialTab(tab);
-    setDetailsModalOpen(true);
-  };
 
   const handleLeaveChannel = async () => {
     if (!user) {

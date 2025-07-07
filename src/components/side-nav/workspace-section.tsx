@@ -1,5 +1,5 @@
-import { PlusIcon, ChevronDown } from 'lucide-react';
-import { ReactNode } from 'react';
+import { ChevronDown, PlusIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useToggle } from 'react-use';
 import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';

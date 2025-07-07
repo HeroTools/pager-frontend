@@ -1,15 +1,17 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { channelsApi } from '../api/channels-api';
 import type {
-  ChannelEntity,
-  CreateChannelData,
-  UpdateChannelData,
-  ChannelFilters,
   AddChannelMembersData,
-  UpdateChannelMemberData,
-  GetChannelMessagesParams,
+  ChannelEntity,
+  ChannelFilters,
+  CreateChannelData,
   MutateCreateChannelContext,
+  RemoveChannelMembersParams,
+  UpdateChannelData,
+  UpdateChannelMemberData,
 } from '../types';
+import type { ChannelMember } from '@/types/database';
+import { channelsQueryKeys } from '../query-keys';
 
 // Get all public and joined channels for a workspace for the user
 export const useGetAllAvailableChannels = (
@@ -17,7 +19,7 @@ export const useGetAllAvailableChannels = (
   filters?: Partial<ChannelFilters>,
 ) => {
   return useQuery({
-    queryKey: ['channels', workspaceId, filters],
+    queryKey: channelsQueryKeys.channels(workspaceId, filters),
     queryFn: () => channelsApi.getAllAvailableChannels(workspaceId, filters),
     enabled: !!workspaceId,
     staleTime: 10 * 60 * 60 * 1000,
@@ -27,7 +29,7 @@ export const useGetAllAvailableChannels = (
 // Get all channels the user belongs to
 export const useGetUserChannels = (workspaceId: string, filters?: Partial<ChannelFilters>) => {
   return useQuery({
-    queryKey: ['user-channels', workspaceId, filters],
+    queryKey: channelsQueryKeys.userChannels(workspaceId, filters),
     queryFn: () => channelsApi.getUserChannels(workspaceId, filters),
     enabled: !!workspaceId,
     staleTime: 10 * 60 * 60 * 1000,
@@ -38,7 +40,7 @@ export function useGetChannel(workspaceId: string, channelId: string) {
   const qc = useQueryClient();
 
   return useQuery<ChannelEntity>({
-    queryKey: ['channel', workspaceId, channelId],
+    queryKey: channelsQueryKeys.channel(workspaceId, channelId),
     queryFn: () => channelsApi.getChannel(workspaceId, channelId),
     enabled: !!workspaceId && !!channelId,
     // 1. Seed from your list cache
@@ -51,28 +53,13 @@ export function useGetChannel(workspaceId: string, channelId: string) {
   });
 }
 
-// Get a channel with its messages
-export const useGetChannelWithMessages = (
-  workspaceId: string,
-  channelId: string,
-  params?: GetChannelMessagesParams,
-) => {
-  return useQuery({
-    queryKey: ['channel', workspaceId, channelId, 'messages', params],
-    queryFn: () => channelsApi.getChannelWithMessages(workspaceId, channelId, params),
-    enabled: !!(workspaceId && channelId),
-    staleTime: 2 * 60 * 60 * 1000, // Consider data fresh for 2 hours
-    gcTime: 2 * 60 * 60 * 1000, // Keep in cache for 2 hours
-  });
-};
-
 export const useGetChannelWithMessagesInfinite = (
   workspaceId: string,
   channelId: string,
   limit: number = 50,
 ) => {
   return useInfiniteQuery({
-    queryKey: ['channel', workspaceId, channelId, 'messages', 'infinite'],
+    queryKey: channelsQueryKeys.channelMessagesInfinite(workspaceId, channelId),
     queryFn: ({ pageParam }) =>
       channelsApi.getChannelWithMessages(workspaceId, channelId, {
         limit,
@@ -105,48 +92,41 @@ export const useCreateChannel = () => {
   return useMutation<ChannelEntity, Error, CreateChannelData, MutateCreateChannelContext>({
     mutationFn: (data: CreateChannelData) => channelsApi.createChannel(data),
 
-    onMutate: async (variables) => {
-      // Cancel outgoing refetches
+    onMutate: async (variables): Promise<MutateCreateChannelContext> => {
       await queryClient.cancelQueries({
-        queryKey: ['user-channels', variables.workspaceId, null],
+        queryKey: channelsQueryKeys.userChannels(variables.workspaceId),
       });
 
-      // Snapshot previous value
-      const previousChannels = queryClient.getQueryData<ChannelEntity[]>([
-        'user-channels',
-        variables.workspaceId,
-        null,
-      ]);
+      const previousChannels = queryClient.getQueryData<ChannelEntity[]>(
+        channelsQueryKeys.userChannels(variables.workspaceId),
+      );
 
       return {
         workspaceId: variables.workspaceId,
-        previousChannels,
+        previousChannels: previousChannels || undefined,
       };
     },
 
-    onSuccess: (newChannel, variables, context) => {
-      // Update cache with the new channel
+    onSuccess: (newChannel, variables) => {
       queryClient.setQueryData<ChannelEntity[]>(
-        ['user-channels', variables.workspaceId, null],
+        channelsQueryKeys.userChannels(variables.workspaceId),
         (old) => (old ? [...old, newChannel] : [newChannel]),
       );
     },
 
-    onError: (error, variables, context) => {
-      // Rollback on error
+    onError: (_, variables, context) => {
       if (context?.previousChannels) {
         queryClient.setQueryData<ChannelEntity[]>(
-          ['user-channels', variables.workspaceId, null],
+          channelsQueryKeys.userChannels(variables.workspaceId),
           context.previousChannels,
         );
       }
     },
 
-    onSettled: (data, error, variables, context) => {
-      // Always refetch to ensure consistency
+    onSettled: (_data, _error, _variables, context) => {
       if (context?.workspaceId) {
         queryClient.invalidateQueries({
-          queryKey: ['user-channels', context.workspaceId, null],
+          queryKey: channelsQueryKeys.userChannels(context.workspaceId),
         });
       }
     },
@@ -169,29 +149,29 @@ export const useUpdateChannel = () => {
     mutationFn: ({ workspaceId, channelId, data }) =>
       channelsApi.updateChannel(workspaceId, channelId, data),
 
-    onSuccess: (response, variables) => {
+    onSuccess: (_, variables) => {
       // Invalidate related queries to refetch fresh data
       queryClient.invalidateQueries({
-        queryKey: ['channel', variables.workspaceId, variables.channelId],
+        queryKey: channelsQueryKeys.channel(variables.workspaceId, variables.channelId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['channels', variables.workspaceId],
+        queryKey: channelsQueryKeys.channels(variables.workspaceId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['user-channels', variables.workspaceId],
+        queryKey: channelsQueryKeys.userChannels(variables.workspaceId),
       });
     },
 
-    onError: (error, variables) => {
+    onError: (_, variables) => {
       // Invalidate related queries on error to ensure consistency
       queryClient.invalidateQueries({
-        queryKey: ['channel', variables.workspaceId, variables.channelId],
+        queryKey: channelsQueryKeys.channel(variables.workspaceId, variables.channelId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['channels', variables.workspaceId],
+        queryKey: channelsQueryKeys.channels(variables.workspaceId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['user-channels', variables.workspaceId],
+        queryKey: channelsQueryKeys.userChannels(variables.workspaceId),
       });
     },
   });
@@ -207,27 +187,27 @@ export const useDeleteChannel = () => {
     onSuccess: (_, variables) => {
       // Remove from channels list cache
       queryClient.setQueryData<ChannelEntity[]>(
-        ['channels', variables.workspaceId],
+        channelsQueryKeys.channels(variables.workspaceId),
         (old) => old?.filter((channel) => channel.id !== variables.channelId) || [],
       );
 
       // Remove from user channels cache
       queryClient.setQueryData<ChannelEntity[]>(
-        ['user-channels', variables.workspaceId, null],
+        channelsQueryKeys.userChannels(variables.workspaceId),
         (old) => old?.filter((channel) => channel.id !== variables.channelId) || [],
       );
 
       // Remove all related channel caches
       queryClient.removeQueries({
-        queryKey: ['channel', variables.workspaceId, variables.channelId],
+        queryKey: channelsQueryKeys.channel(variables.workspaceId, variables.channelId),
       });
 
       // Invalidate all channel-related queries for this workspace
       queryClient.invalidateQueries({
-        queryKey: ['channels', variables.workspaceId],
+        queryKey: channelsQueryKeys.channels(variables.workspaceId),
       });
       queryClient.invalidateQueries({
-        queryKey: ['user-channels', variables.workspaceId],
+        queryKey: channelsQueryKeys.userChannels(variables.workspaceId),
       });
     },
   });
@@ -252,17 +232,17 @@ export const useAddChannelMembers = () => {
     onSuccess: (_, variables) => {
       // Invalidate channel with members to refresh member list
       queryClient.invalidateQueries({
-        queryKey: ['channel', variables.workspaceId, variables.channelId, 'members'],
+        queryKey: channelsQueryKeys.channelMembers(variables.workspaceId, variables.channelId),
       });
 
       // Invalidate all channels queries to refresh membership status
       queryClient.invalidateQueries({
-        queryKey: ['channels', variables.workspaceId],
+        queryKey: channelsQueryKeys.channels(variables.workspaceId),
       });
 
       // Invalidate user channels to refresh sidebar
       queryClient.invalidateQueries({
-        queryKey: ['user-channels', variables.workspaceId],
+        queryKey: channelsQueryKeys.userChannels(variables.workspaceId),
       });
     },
   });
@@ -287,7 +267,7 @@ export const useUpdateChannelMember = () => {
     onSuccess: (_, variables) => {
       // Invalidate channel with members to refresh member list
       queryClient.invalidateQueries({
-        queryKey: ['channel', variables.workspaceId, variables.channelId, 'members'],
+        queryKey: channelsQueryKeys.channelMembers(variables.workspaceId, variables.channelId),
       });
     },
   });
@@ -298,60 +278,47 @@ export const useRemoveChannelMembers = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      workspaceId,
-      channelId,
-      channelMemberIds,
-      isCurrentUserLeaving,
-    }: {
-      workspaceId: string;
-      channelId: string;
-      channelMemberIds: string[];
-      isCurrentUserLeaving?: boolean;
-    }) => channelsApi.removeChannelMembers(workspaceId, channelId, channelMemberIds),
-    onMutate: async ({ workspaceId, channelId, channelMemberIds }) => {
-      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+    mutationFn: ({ workspaceId, channelId, channelMemberIds }: RemoveChannelMembersParams) =>
+      channelsApi.removeChannelMembers(workspaceId, channelId, channelMemberIds),
+
+    onMutate: async ({ workspaceId, channelId, channelMemberIds, isCurrentUserLeaving }) => {
       await queryClient.cancelQueries({
-        queryKey: ['channel', workspaceId, channelId, 'members'],
+        queryKey: channelsQueryKeys.channelMembers(workspaceId, channelId),
       });
 
-      // Snapshot the previous value
-      const previousMembers = queryClient.getQueryData([
-        'channel',
-        workspaceId,
-        channelId,
-        'members',
-      ]);
-
-      // Optimistically update to the new value
-      queryClient.setQueryData(['channel', workspaceId, channelId, 'members'], (old: any) =>
-        old?.filter((member: any) => !channelMemberIds.includes(member.id)),
+      const previousMembers = queryClient.getQueryData<ChannelMember[]>(
+        channelsQueryKeys.channelMembers(workspaceId, channelId),
       );
 
-      // Return context for rollback
-      return { previousMembers };
-    },
-    onError: (err, { workspaceId, channelId }, context) => {
-      // Rollback optimistic update on error
-      queryClient.setQueryData(
-        ['channel', workspaceId, channelId, 'members'],
-        context?.previousMembers,
+      queryClient.setQueryData<ChannelMember[]>(
+        channelsQueryKeys.channelMembers(workspaceId, channelId),
+        (old) => old?.filter((member) => !channelMemberIds.includes(member.id)) ?? [],
       );
+
+      return { previousMembers, isCurrentUserLeaving };
     },
-    onSuccess: (_, { workspaceId, channelId, isCurrentUserLeaving }) => {
-      // Only remove channel from user's cache if current user is leaving
-      if (isCurrentUserLeaving) {
-        queryClient.setQueryData<ChannelEntity[]>(
-          ['user-channels', workspaceId, null],
-          (old: ChannelEntity[] | undefined) =>
-            old?.filter((channel) => channel.id !== channelId) || [],
+
+    onError: (_, { workspaceId, channelId }, context) => {
+      if (context?.previousMembers) {
+        queryClient.setQueryData(
+          channelsQueryKeys.channelMembers(workspaceId, channelId),
+          context.previousMembers,
         );
       }
     },
+
+    onSuccess: (_, { workspaceId, channelId, isCurrentUserLeaving }) => {
+      if (isCurrentUserLeaving) {
+        queryClient.setQueryData<ChannelEntity[]>(
+          ['user-channels', workspaceId, null],
+          (old) => old?.filter((channel) => channel.id !== channelId) ?? [],
+        );
+      }
+    },
+
     onSettled: (_, __, { workspaceId, channelId }) => {
-      // Invalidate related queries to ensure consistency
       queryClient.invalidateQueries({
-        queryKey: ['channel', workspaceId, channelId, 'members'],
+        queryKey: channelsQueryKeys.channelMembers(workspaceId, channelId),
       });
       queryClient.invalidateQueries({
         queryKey: ['user-channels', workspaceId],
@@ -380,7 +347,7 @@ export const useMarkChannelAsRead = () => {
     onSuccess: (_, variables) => {
       // Invalidate channel with members to update read status
       queryClient.invalidateQueries({
-        queryKey: ['channel', variables.workspaceId, variables.channelId, 'members'],
+        queryKey: channelsQueryKeys.channelMembers(variables.workspaceId, variables.channelId),
       });
     },
   });
@@ -403,7 +370,7 @@ export const useUpdateNotificationSettings = () => {
     onSuccess: (_, variables) => {
       // Invalidate channel with members to update notification settings
       queryClient.invalidateQueries({
-        queryKey: ['channel', variables.workspaceId, variables.channelId, 'members'],
+        queryKey: channelsQueryKeys.channelMembers(variables.workspaceId, variables.channelId),
       });
     },
   });
@@ -412,7 +379,7 @@ export const useUpdateNotificationSettings = () => {
 // Get channel members
 export const useGetChannelMembers = (workspaceId: string, channelId: string) => {
   return useQuery({
-    queryKey: ['channel', workspaceId, channelId, 'members'],
+    queryKey: channelsQueryKeys.channelMembers(workspaceId, channelId),
     queryFn: () => channelsApi.getChannelMembers(workspaceId, channelId),
     enabled: !!(workspaceId && channelId),
     staleTime: 1000 * 60 * 5, // 5 minutes

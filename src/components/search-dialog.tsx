@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Filter, X, Clock, TrendingUp, Sparkles, ExternalLink } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Clock, ExternalLink, Filter, Search, Sparkles, TrendingUp, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from 'use-debounce';
 
@@ -19,8 +19,8 @@ import {
 
 import { useSearch } from '@/features/search/hooks/use-search';
 import { useGetAllAvailableChannels } from '@/features/channels/hooks/use-channels-mutations';
-import { SearchUtils, SearchHistory } from '@/features/search/utils';
-import type { SearchResult, SearchFilters } from '@/features/search/types';
+import { SearchHistory, SearchUtils } from '@/features/search/utils';
+import type { SearchFilters, SearchResult } from '@/features/search/types';
 
 interface SearchDialogProps {
   open: boolean;
@@ -154,15 +154,22 @@ export const SearchDialog = ({
 
   const { data: channels } = useGetAllAvailableChannels(workspaceId);
 
-  const searchOptions = useMemo(
-    () => ({
+  const searchOptions = useMemo(() => {
+    const options: any = {
       includeThreads: filters.messageType !== 'direct',
-      channelId: filters.channelId,
-      conversationId: filters.conversationId,
       limit: 20,
-    }),
-    [filters],
-  );
+    };
+
+    if (filters.channelId) {
+      options.channelId = filters.channelId;
+    }
+
+    if (filters.conversationId) {
+      options.conversationId = filters.conversationId;
+    }
+
+    return options;
+  }, [filters]);
 
   const {
     data: searchData,
@@ -282,7 +289,7 @@ export const SearchDialog = ({
                   onValueChange={(value) =>
                     setFilters((prev) => ({
                       ...prev,
-                      channelId: value || undefined,
+                      channelId: value,
                     }))
                   }
                 >
@@ -369,7 +376,9 @@ export const SearchDialog = ({
 
             {debouncedQuery && !isLoading && !hasResults && !error && (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">No results found for "{debouncedQuery}"</p>
+                <p className="text-muted-foreground">
+                  No results found for &quot;{debouncedQuery}&quot;
+                </p>
               </div>
             )}
 

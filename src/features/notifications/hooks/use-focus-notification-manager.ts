@@ -1,11 +1,10 @@
-import { useEffect, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect } from 'react';
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useMarkNotificationAsRead } from '@/features/notifications/hooks/use-notifications-mutations';
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
 import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
 import { useNotificationContext } from '@/features/notifications/hooks/use-notification-context';
 import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
-import type { InfiniteData } from '@tanstack/react-query';
 
 type NotificationsInfiniteData = InfiniteData<NotificationsResponse, string | undefined>;
 
@@ -16,7 +15,9 @@ export const useFocusNotificationManager = () => {
     useNotificationContext();
 
   const markCurrentEntityNotificationsAsRead = useCallback(async () => {
-    if (!isFocused || !currentEntityId || !workspaceId) return;
+    if (!isFocused || !currentEntityId || !workspaceId) {
+      return;
+    }
 
     try {
       // Get all notifications from cache
@@ -24,7 +25,9 @@ export const useFocusNotificationManager = () => {
         notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
       );
 
-      if (!notificationsData?.pages) return;
+      if (!notificationsData?.pages) {
+        return;
+      }
 
       // Get all notifications from all pages
       const allNotifications: NotificationEntity[] = [];
@@ -80,7 +83,9 @@ export const useFocusNotificationManager = () => {
 
   // Also mark notifications as read when new ones arrive and we're focused
   useEffect(() => {
-    if (!isFocused || !workspaceId) return;
+    if (!isFocused || !workspaceId) {
+      return;
+    }
 
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (

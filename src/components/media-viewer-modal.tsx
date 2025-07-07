@@ -1,17 +1,18 @@
-import { FC, useState, useEffect, useCallback } from 'react';
+import type { FC } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  Download,
   ChevronLeft,
   ChevronRight,
+  Download,
+  ExternalLink,
   RotateCcw,
   ZoomIn,
   ZoomOut,
-  ExternalLink,
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Attachment } from '@/types/chat';
+import type { Attachment } from '@/types/chat';
 import { cn } from '@/lib/utils';
 
 interface MediaViewerModalProps {
@@ -40,7 +41,9 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
 
   // Document type detection
   const getDocumentType = (attachment: Attachment | undefined) => {
-    if (!attachment) return null;
+    if (!attachment) {
+      return null;
+    }
 
     const mimeType = attachment.contentType || '';
     const filename = attachment.originalFilename || '';
@@ -76,7 +79,9 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
   }, [isOpen, initialIndex]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
@@ -91,17 +96,25 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           break;
         case 'r':
         case 'R':
-          if (isImage) rotate();
+          if (isImage) {
+            rotate();
+          }
           break;
         case '+':
         case '=':
-          if (isImage) zoomIn();
+          if (isImage) {
+            zoomIn();
+          }
           break;
         case '-':
-          if (isImage) zoomOut();
+          if (isImage) {
+            zoomOut();
+          }
           break;
         case '0':
-          if (isImage) resetZoom();
+          if (isImage) {
+            resetZoom();
+          }
           break;
       }
     };
@@ -154,7 +167,9 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
   };
 
   const getDocumentViewer = () => {
-    if (!currentAttachment || !isDocument) return null;
+    if (!currentAttachment || !isDocument) {
+      return null;
+    }
 
     const viewerUrl = (() => {
       switch (documentType) {
@@ -172,7 +187,9 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
       }
     })();
 
-    if (!viewerUrl) return null;
+    if (!viewerUrl) {
+      return null;
+    }
 
     if (documentType === 'pdf') {
       return (
@@ -202,7 +219,9 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
     );
   };
 
-  if (!currentAttachment) return null;
+  if (!currentAttachment) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

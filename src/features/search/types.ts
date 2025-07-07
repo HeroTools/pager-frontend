@@ -54,10 +54,7 @@ export interface SearchFilters {
   channelId?: string;
   conversationId?: string;
   authorId?: string;
-  dateRange?: {
-    start: Date;
-    end: Date;
-  };
+  dateRange?: { start: Date; end: Date };
   messageType?: 'all' | 'threads' | 'direct' | 'channel';
 }
 

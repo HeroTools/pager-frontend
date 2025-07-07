@@ -22,7 +22,9 @@ class TabBadgeManager {
   }
 
   private setupVisibilityHandlers() {
-    if (typeof document === 'undefined') return;
+    if (typeof document === 'undefined') {
+      return;
+    }
 
     document.addEventListener('visibilitychange', () => {
       this.isPageVisible = !document.hidden;
@@ -47,7 +49,9 @@ class TabBadgeManager {
   }
 
   private updateTitle() {
-    if (!this.isInitialized || typeof document === 'undefined') return;
+    if (!this.isInitialized || typeof document === 'undefined') {
+      return;
+    }
 
     try {
       if (this.unreadCount > 0 && !this.isPageVisible) {

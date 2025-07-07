@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { messageRealtimeHandler, RealtimeHandler } from '@/lib/realtime/realtime-handler';
-import { supabase } from '@/lib/supabase/client';
+
+import { messageRealtimeHandler, type RealtimeHandler } from '@/lib/realtime/realtime-handler';
+import type { supabase } from '@/lib/supabase/client';
 import type { ConversationWithMessagesAndMembers } from '../types';
 import type { MessageWithUser } from '@/features/messages/types';
 
@@ -61,10 +62,14 @@ export const useRealtimeConversation = ({
   const updateParentThreadMetadata = useCallback(
     (threadMsg: MessageWithUser) => {
       const parentId = threadMsg.parent_message_id;
-      if (!parentId) return;
+      if (!parentId) {
+        return;
+      }
 
       queryClient.setQueryData<InfiniteQueryData>(getConversationQueryKey(), (old) => {
-        if (!old?.pages?.length) return old;
+        if (!old?.pages?.length) {
+          return old;
+        }
         const newPages = old.pages.map((page) => ({
           ...page,
           messages: page.messages.map((msg) => {
@@ -94,7 +99,9 @@ export const useRealtimeConversation = ({
   const updateThreadCache = useCallback(
     (threadMsg: MessageWithUser) => {
       const parentId = threadMsg.parent_message_id;
-      if (!parentId) return;
+      if (!parentId) {
+        return;
+      }
 
       const threadKey = getThreadQueryKey(parentId);
 
@@ -122,7 +129,9 @@ export const useRealtimeConversation = ({
               pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
             };
           }
-          if (old.replies.some((r) => r.id === threadMsg.id)) return old;
+          if (old.replies.some((r) => r.id === threadMsg.id)) {
+            return old;
+          }
           return {
             ...old,
             replies: [...old.replies, threadMsg],
@@ -142,7 +151,9 @@ export const useRealtimeConversation = ({
     (payload: any) => {
       try {
         const msg = payload.message as MessageWithUser;
-        if (msg.user?.id === currentUserId) return;
+        if (msg.user?.id === currentUserId) {
+          return;
+        }
 
         const now = Date.now();
         const DUPLICATE_WINDOW = 10 * 1000; // 10s
@@ -175,6 +186,7 @@ export const useRealtimeConversation = ({
                       workspace_id: workspaceId,
                       created_at: new Date().toISOString(),
                       updated_at: new Date().toISOString(),
+                      ...old?.pages?.[0]?.conversation,
                     },
                     messages: [msg],
                     members: [],
@@ -188,7 +200,9 @@ export const useRealtimeConversation = ({
                 pageParams: [undefined],
               };
             }
-            if (old.pages.some((p) => p.messages.some((m) => m.id === msg.id))) return old;
+            if (old.pages.some((p) => p.messages.some((m) => m.id === msg.id))) {
+              return old;
+            }
             const first = old.pages[0];
             const updatedFirst = {
               ...first,
@@ -227,7 +241,9 @@ export const useRealtimeConversation = ({
         if (isThread) {
           const threadKey = getThreadQueryKey(parent_message_id);
           queryClient.setQueryData<ThreadQueryData>(threadKey, (old) => {
-            if (!old) return old;
+            if (!old) {
+              return old;
+            }
             return {
               ...old,
               replies: old.replies.map((r) =>
@@ -245,7 +261,9 @@ export const useRealtimeConversation = ({
           });
         } else {
           queryClient.setQueryData<InfiniteQueryData>(getConversationQueryKey(), (old) => {
-            if (!old?.pages?.length) return old;
+            if (!old?.pages?.length) {
+              return old;
+            }
             const newPages = old.pages.map((page) => ({
               ...page,
               messages: page.messages.map((m) =>
@@ -278,7 +296,9 @@ export const useRealtimeConversation = ({
         if (parentId) {
           // Update reply count for parent, and remove from thread replies
           queryClient.setQueryData<InfiniteQueryData>(getConversationQueryKey(), (old) => {
-            if (!old?.pages?.length) return old;
+            if (!old?.pages?.length) {
+              return old;
+            }
             const newPages = old.pages.map((page) => ({
               ...page,
               messages: page.messages.map((m) =>
@@ -294,7 +314,9 @@ export const useRealtimeConversation = ({
           });
           const threadKey = getThreadQueryKey(parentId);
           queryClient.setQueryData<ThreadQueryData>(threadKey, (old) => {
-            if (!old) return old;
+            if (!old) {
+              return old;
+            }
             return {
               ...old,
               replies: old.replies.filter((r) => r.id !== deletedId),
@@ -306,7 +328,9 @@ export const useRealtimeConversation = ({
           });
         } else {
           queryClient.setQueryData<InfiniteQueryData>(getConversationQueryKey(), (old) => {
-            if (!old?.pages?.length) return old;
+            if (!old?.pages?.length) {
+              return old;
+            }
             const newPages = old.pages.map((page) => ({
               ...page,
               messages: page.messages.filter((m) => m.id !== deletedId),
@@ -332,7 +356,9 @@ export const useRealtimeConversation = ({
 
   // --- Setup and cleanup the realtime handler ---
   useEffect(() => {
-    if (!enabled || !workspaceId || !conversationId || !currentUserId) return;
+    if (!enabled || !workspaceId || !conversationId || !currentUserId) {
+      return;
+    }
 
     setConnectionStatus('CONNECTING');
     const handler = messageRealtimeHandler;

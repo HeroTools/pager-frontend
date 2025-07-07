@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseBrowserFocusReturn {
   isFocused: boolean;
@@ -45,7 +45,9 @@ export const useBrowserFocus = (): UseBrowserFocusReturn => {
   }, [handleFocus, handleBlur]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
 
     // Initial state
     const initialFocus = document.hasFocus();

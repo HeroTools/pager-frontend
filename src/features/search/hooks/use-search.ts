@@ -1,5 +1,6 @@
-import { useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
+import { useEffect } from 'react';
+
 import { searchApi } from '@/features/search/api/search-api';
 import type { SearchResponse, UseSearchOptions } from '@/features/search/types';
 
@@ -10,21 +11,8 @@ export function useSearch(
   queryOptions?: UseQueryOptions<SearchResponse, Error, SearchResponse>,
 ) {
   const queryClient = useQueryClient();
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
     if (query?.trim() && workspaceId && query.length >= 2) {
       queryClient.cancelQueries({
         queryKey: ['search', workspaceId],
@@ -36,15 +24,11 @@ export function useSearch(
   return useQuery<SearchResponse, Error>({
     queryKey: ['search', workspaceId, query, options],
     queryFn: async ({ signal }) => {
-      abortControllerRef.current = new AbortController();
-
       try {
-        const result = await searchApi.search(workspaceId, query, options, {
-          signal: signal || abortControllerRef.current.signal,
-        });
+        const result = await searchApi.search(workspaceId, query, options, { signal });
         return result;
       } catch (error) {
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           throw new Error('Request cancelled');
         }
         throw error;
@@ -54,8 +38,12 @@ export function useSearch(
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: (failureCount, error) => {
-      if (error.message === 'Request cancelled') return false;
-      if (error.message?.includes('429')) return failureCount < 2;
+      if (error instanceof Error && error.message === 'Request cancelled') {
+        return false;
+      }
+      if (error instanceof Error && error.message?.includes('429')) {
+        return failureCount < 2;
+      }
       return failureCount < 3;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),

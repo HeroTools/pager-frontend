@@ -1,16 +1,16 @@
 import api from '@/lib/api/axios-client';
 import type {
+  BulkRemoveMembersData,
+  BulkUpdateMembersData,
+  InviteMemberData,
   MemberEntity,
-  MemberWithUser,
+  MemberFilters,
   MemberResponse,
   MembersResponse,
-  MembersWithUsersResponse,
-  UpdateMemberRoleData,
-  InviteMemberData,
-  MemberFilters,
-  BulkUpdateMembersData,
-  BulkRemoveMembersData,
   MemberStats,
+  MembersWithUsersResponse,
+  MemberWithUser,
+  UpdateMemberRoleData,
 } from '../types';
 
 export const membersApi = {
@@ -22,13 +22,18 @@ export const membersApi = {
     filters?: Partial<MemberFilters>,
   ): Promise<MemberWithUser[]> => {
     const params = new URLSearchParams();
-    if (filters?.role) params.append('role', filters.role);
-    if (filters?.search_query) params.append('search_query', filters.search_query);
-    if (filters?.active_only !== undefined)
+    if (filters?.role) {
+      params.append('role', filters.role);
+    }
+    if (filters?.search_query) {
+      params.append('search_query', filters.search_query);
+    }
+    if (filters?.active_only !== undefined) {
       params.append('active_only', filters.active_only.toString());
+    }
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const { data: response } = await api.get<MembersResponse>(
+    const { data: response } = await api.get<MemberWithUser[]>(
       `/workspaces/${workspaceId}/members${queryString}`,
     );
     return response;
@@ -42,14 +47,19 @@ export const membersApi = {
     filters?: Partial<MemberFilters>,
   ): Promise<MemberWithUser[]> => {
     const params = new URLSearchParams();
-    if (filters?.role) params.append('role', filters.role);
-    if (filters?.search_query) params.append('search_query', filters.search_query);
-    if (filters?.active_only !== undefined)
+    if (filters?.role) {
+      params.append('role', filters.role);
+    }
+    if (filters?.search_query) {
+      params.append('search_query', filters.search_query);
+    }
+    if (filters?.active_only !== undefined) {
       params.append('active_only', filters.active_only.toString());
+    }
     params.append('include_users', 'true');
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const { data: response } = await api.get<MembersWithUsersResponse>(
+    const { data: response } = await api.get<MemberWithUser[]>(
       `/workspaces/${workspaceId}/members${queryString}`,
     );
     return response;
@@ -58,8 +68,8 @@ export const membersApi = {
   /**
    * Get a specific member
    */
-  getMember: async (workspaceId: string, memberId: string): Promise<MemberEntity> => {
-    const { data: response } = await api.get<MemberResponse>(
+  getMember: async (workspaceId: string, memberId: string): Promise<MemberWithUser> => {
+    const { data: response } = await api.get<MemberWithUser>(
       `/workspaces/${workspaceId}/members/${memberId}`,
     );
     return response;
@@ -69,20 +79,20 @@ export const membersApi = {
    * Get a specific member with user data
    */
   getMemberWithUser: async (workspaceId: string, memberId: string): Promise<MemberWithUser> => {
-    const { data: response } = await api.get<MemberResponse>(
+    const { data: response } = await api.get<MemberWithUser>(
       `/workspaces/${workspaceId}/members/${memberId}?include_user=true`,
     );
-    return response as MemberWithUser;
+    return response;
   },
 
   /**
    * Get current user's member record for a workspace
    */
   getCurrentMember: async (workspaceId: string): Promise<MemberWithUser> => {
-    const { data: response } = await api.get<MemberResponse>(
+    const { data: response } = await api.get<MemberWithUser>(
       `/workspaces/${workspaceId}/members/me/current`,
     );
-    return response as MemberWithUser;
+    return response;
   },
 
   /**
@@ -91,13 +101,13 @@ export const membersApi = {
   updateMemberRole: async (
     workspaceId: string,
     memberId: string,
-    data: UpdateMemberRoleData,
-  ): Promise<MemberEntity> => {
-    const { data: response } = await api.patch<MemberResponse>(
+    role: string,
+  ): Promise<MemberWithUser> => {
+    const { data: response } = await api.patch<MemberWithUser>(
       `/workspaces/${workspaceId}/members/${memberId}`,
-      data,
+      { role },
     );
-    return response.data;
+    return response;
   },
 
   /**

@@ -1,10 +1,9 @@
 import { useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useMarkNotificationAsRead } from '@/features/notifications/hooks/use-notifications-mutations';
 import { notificationsApi } from '@/features/notifications/api/notifications-api';
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
-import type { NotificationsResponse, NotificationEntity } from '@/features/notifications/types';
-import type { InfiniteData } from '@tanstack/react-query';
+import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
 
 type NotificationsInfiniteData = InfiniteData<NotificationsResponse, string | undefined>;
 
@@ -20,7 +19,9 @@ export const useMarkEntityNotificationsRead = () => {
           notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
         );
 
-        if (!notificationsData?.pages?.length) return { markedCount: 0 };
+        if (!notificationsData?.pages?.length) {
+          return { markedCount: 0 };
+        }
 
         // Collect all notifications from all pages
         const allNotifications: NotificationEntity[] = [];
@@ -30,7 +31,9 @@ export const useMarkEntityNotificationsRead = () => {
 
         // Filter notifications for this specific entity that are unread
         const entityNotificationsToMarkAsRead = allNotifications.filter((notification) => {
-          if (notification.is_read) return false;
+          if (notification.is_read) {
+            return false;
+          }
 
           if (entityType === 'channel') {
             return notification.related_channel_id === entityId;
@@ -75,7 +78,9 @@ export const useMarkEntityNotificationsRead = () => {
         queryClient.setQueryData<NotificationsInfiniteData>(
           notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
           (old) => {
-            if (!old?.pages?.length) return old;
+            if (!old?.pages?.length) {
+              return old;
+            }
 
             const newPages = old.pages.map((page) => ({
               ...page,
@@ -99,7 +104,9 @@ export const useMarkEntityNotificationsRead = () => {
         queryClient.setQueryData<NotificationsInfiniteData>(
           notificationKeys.unread(workspaceId),
           (old) => {
-            if (!old?.pages?.length) return old;
+            if (!old?.pages?.length) {
+              return old;
+            }
 
             const newPages = old.pages.map((page) => ({
               ...page,

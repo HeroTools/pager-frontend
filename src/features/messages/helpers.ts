@@ -1,10 +1,10 @@
-import { Attachment, Author, Message } from '@/types/chat';
+import type { Attachment, Author, Message } from '@/types/chat';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
-import { CurrentUser } from '@/features/auth';
+import type { CurrentUser } from '@/features/auth';
 import { useUIStore } from '@/store/ui-store';
 import type { MessageWithUser, QuillDelta, QuillOp } from './types';
-import { Reaction, User } from '../reactions/types';
-import { Attachment as AttachmentType } from '@/types/database';
+import type { Reaction, User } from '../reactions/types';
+import type { Attachment as AttachmentType } from '@/types/database';
 
 export const transformMessages = (
   messagesData: MessageWithUser[],

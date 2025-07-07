@@ -1,5 +1,9 @@
-// lib/api/axios-client.ts
-import axios, { AxiosInstance, AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosHeaders,
+  type AxiosError,
+  type AxiosInstance,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import { supabase } from '@/lib/supabase/client';
 
 // ——————— CONFIG ———————

@@ -1,6 +1,6 @@
-import { X, Loader2, PlayIcon, FileIcon } from 'lucide-react';
+import { FileIcon, Loader2, PlayIcon, X } from 'lucide-react';
 
-import { useDeleteAttachment, type ManagedAttachment } from '@/features/file-upload';
+import { type ManagedAttachment, useDeleteAttachment } from '@/features/file-upload';
 
 const AttachmentPreview = ({
   attachment,
@@ -11,7 +11,9 @@ const AttachmentPreview = ({
   attachment: ManagedAttachment;
   attachments: ManagedAttachment[];
   workspaceId: string;
-  setAttachments: (attachments: ManagedAttachment[]) => void;
+  setAttachments: (
+    attachments: ManagedAttachment[] | ((prev: ManagedAttachment[]) => ManagedAttachment[]),
+  ) => void;
 }) => {
   const isImage = attachment.contentType?.startsWith('image/');
   const isVideo = attachment.contentType?.startsWith('video/');
@@ -24,7 +26,9 @@ const AttachmentPreview = ({
     console.log('Removing attachment', attachmentId);
 
     const attachment = attachments.find((att) => att.id === attachmentId);
-    if (!attachment) return;
+    if (!attachment) {
+      return;
+    }
 
     if (attachment.status === 'completed' && !attachmentId.startsWith('upload-')) {
       try {

@@ -1,19 +1,20 @@
-import { FC, useState } from 'react';
+import type { FC } from 'react';
+import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import EmojiPicker from '@/components/emoji-picker';
 import {
-  MoreHorizontal,
-  MessageSquare,
-  Smile,
-  Edit,
-  Trash2,
   Download,
+  Edit,
   File,
-  Music,
   Image as ImageIcon,
+  MessageSquare,
+  MoreHorizontal,
+  Music,
   Play,
+  Smile,
+  Trash2,
 } from 'lucide-react';
-import { Message, Attachment } from '@/types/chat';
+import type { Attachment, Message } from '@/types/chat';
 import { cn } from '@/lib/utils';
 import { getFileIcon } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ import { MessageContent } from './message-content';
 import { useUIStore } from '@/store/ui-store';
 import { MediaViewerModal } from '@/components/media-viewer-modal';
 import { DeleteMessageModal } from '@/components/delete-message-modal';
-import { CurrentUser } from '@/features/auth/types';
+import type { CurrentUser } from '@/features/auth/types';
 import { useGetMembers } from '@/features/members';
 import { useParamIds } from '@/hooks/use-param-ids';
 import ThreadButton from './thread-button';
@@ -35,7 +36,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { parseMessageContent } from '@/features/messages/helpers';
-import { QuillDelta } from '@/features/messages/types';
+import type { QuillDelta } from '@/features/messages/types';
+import type { Delta, Op } from 'quill';
 
 const ATTACHMENT_SIZES = {
   SINGLE: { maxHeight: 300, maxWidth: 400 },
@@ -52,7 +54,6 @@ interface ChatMessageProps {
   isInThread?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
-  onReply?: (messageId: string) => void;
   onReaction: (messageId: string, emoji: string) => void;
 }
 
@@ -460,7 +461,9 @@ const AttachmentGrid: FC<{
     return <GenericAttachment key={attachment.id} attachment={attachment} />;
   };
 
-  if (attachments.length === 0) return null;
+  if (attachments.length === 0) {
+    return null;
+  }
 
   const isSingleAttachment = attachments.length === 1;
 
@@ -483,7 +486,9 @@ const AttachmentGrid: FC<{
 };
 
 const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {
+    return '0 B';
+  }
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -568,7 +573,9 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     plainText: string;
   }) => {
     const { body, plainText } = editorValue;
-    if (!onEdit || !plainText.trim()) return;
+    if (!onEdit || !plainText.trim()) {
+      return;
+    }
 
     try {
       await onEdit(message.id, body);
@@ -580,7 +587,9 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   };
 
   const handleDeleteConfirm = async () => {
-    if (!onDelete) return;
+    if (!onDelete) {
+      return;
+    }
 
     setIsDeleting(true);
     try {
@@ -649,7 +658,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                 <div className="mt-2">
                   <Editor
                     variant="update"
-                    defaultValue={editingContent}
+                    defaultValue={editingContent as Delta | Op[] | undefined}
                     workspaceId={workspaceId}
                     onSubmit={handleEditSave}
                     onCancel={handleEditCancel}

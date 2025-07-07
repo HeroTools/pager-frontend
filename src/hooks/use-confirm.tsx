@@ -1,12 +1,12 @@
-import { JSX, useState } from 'react';
+import { useState, type JSX } from 'react';
 
 import {
   Dialog,
-  DialogHeader,
   DialogContent,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 

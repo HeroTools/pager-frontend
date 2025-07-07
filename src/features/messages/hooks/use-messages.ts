@@ -1,17 +1,17 @@
-import { useRef, useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { InfiniteData } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 
 import { messagesApi } from '../api/messages-api';
 import type {
-  MessageWithUser,
-  CreateMessageData,
   CreateChannelMessageData,
   CreateConversationMessageData,
+  CreateMessageData,
   MessageThread,
+  MessageWithUser,
 } from '../types';
-import { UploadedAttachment } from '@/features/file-upload/types';
+import type { UploadedAttachment } from '@/features/file-upload/types';
+import { authQueryKeys } from '@/features/auth/query-keys';
 
 interface UpdateMessageData {
   body?: string;
@@ -127,7 +127,7 @@ export const useCreateChannelMessage = (workspaceId: string, channelId: string) 
           ? queryClient.getQueryData<ThreadData>(threadQueryKey)
           : undefined;
 
-      const currentUser = queryClient.getQueryData<CurrentUser>(['current-user']);
+      const currentUser = queryClient.getQueryData<CurrentUser>(authQueryKeys.currentUser());
 
       if (!currentUser) {
         console.error('No current user found for optimistic update');
@@ -222,7 +222,9 @@ export const useCreateChannelMessage = (workspaceId: string, channelId: string) 
         }
 
         queryClient.setQueryData<MessagesInfiniteData>(queryKey, (old) => {
-          if (!old?.pages?.length) return old;
+          if (!old?.pages?.length) {
+            return old;
+          }
 
           const updatedPages = old.pages.map((page) => ({
             ...page,
@@ -309,7 +311,9 @@ export const useCreateChannelMessage = (workspaceId: string, channelId: string) 
 
       if (context?.optimisticId && realMessage) {
         queryClient.setQueryData<MessagesInfiniteData>(queryKey, (old) => {
-          if (!old?.pages?.length) return old;
+          if (!old?.pages?.length) {
+            return old;
+          }
 
           const newPages = old.pages.map((page) => ({
             ...page,
@@ -324,7 +328,9 @@ export const useCreateChannelMessage = (workspaceId: string, channelId: string) 
         if (isThreadMessage && threadParentId) {
           const threadQueryKey = getThreadQueryKey(threadParentId);
           queryClient.setQueryData<ThreadData>(threadQueryKey, (old) => {
-            if (!old?.replies) return old;
+            if (!old?.replies) {
+              return old;
+            }
 
             return {
               ...old,
@@ -338,7 +344,9 @@ export const useCreateChannelMessage = (workspaceId: string, channelId: string) 
 
           if (realMessage.parent_message_id) {
             queryClient.setQueryData<MessagesInfiniteData>(queryKey, (old) => {
-              if (!old?.pages?.length) return old;
+              if (!old?.pages?.length) {
+                return old;
+              }
 
               const updatedPages = old.pages.map((page) => ({
                 ...page,
@@ -463,7 +471,7 @@ export const useCreateConversationMessage = (workspaceId: string, conversationId
           ? queryClient.getQueryData<ThreadData>(threadQueryKey)
           : undefined;
 
-      const currentUser = queryClient.getQueryData<CurrentUser>(['current-user']);
+      const currentUser = queryClient.getQueryData<CurrentUser>(authQueryKeys.currentUser());
 
       if (!currentUser) {
         console.error('No current user found for optimistic update');
@@ -558,7 +566,9 @@ export const useCreateConversationMessage = (workspaceId: string, conversationId
         }
 
         queryClient.setQueryData<MessagesInfiniteData>(queryKey, (old) => {
-          if (!old?.pages?.length) return old;
+          if (!old?.pages?.length) {
+            return old;
+          }
 
           const updatedPages = old.pages.map((page) => ({
             ...page,
@@ -645,7 +655,9 @@ export const useCreateConversationMessage = (workspaceId: string, conversationId
 
       if (context?.optimisticId && realMessage) {
         queryClient.setQueryData<MessagesInfiniteData>(queryKey, (old) => {
-          if (!old?.pages?.length) return old;
+          if (!old?.pages?.length) {
+            return old;
+          }
 
           const newPages = old.pages.map((page) => ({
             ...page,
@@ -660,7 +672,9 @@ export const useCreateConversationMessage = (workspaceId: string, conversationId
         if (isThreadMessage && threadParentId) {
           const threadQueryKey = getThreadQueryKey(threadParentId);
           queryClient.setQueryData<ThreadData>(threadQueryKey, (old) => {
-            if (!old?.replies) return old;
+            if (!old?.replies) {
+              return old;
+            }
 
             return {
               ...old,
@@ -674,7 +688,9 @@ export const useCreateConversationMessage = (workspaceId: string, conversationId
 
           if (realMessage.parent_message_id) {
             queryClient.setQueryData<MessagesInfiniteData>(queryKey, (old) => {
-              if (!old?.pages?.length) return old;
+              if (!old?.pages?.length) {
+                return old;
+              }
 
               const updatedPages = old.pages.map((page) => ({
                 ...page,

@@ -1,6 +1,8 @@
-import { FC, useState } from 'react';
+import type { FC } from 'react';
+import { useState } from 'react';
 
-import { useGetMembers, MemberWithUser } from '@/features/members';
+import type { MemberWithUser } from '@/features/members';
+import { useGetMembers } from '@/features/members';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 import MemberSearchSelect from './member-search-select';

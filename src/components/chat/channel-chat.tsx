@@ -1,20 +1,21 @@
 'use client';
 
 import { AlertTriangle, Loader } from 'lucide-react';
-import { useMemo, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { Chat } from '@/components/chat/chat';
+import type { ChannelEntity } from '@/features/channels';
 import {
+  type ChannelMemberData,
   useGetChannel,
+  useGetChannelMembers,
   useGetChannelWithMessagesInfinite,
   useRealtimeChannel,
-  useGetChannelMembers,
-  type ChannelMemberData,
 } from '@/features/channels';
 import { useGetMembers } from '@/features/members';
 import { useMessageOperations } from '@/features/messages';
 import { useCurrentUser } from '@/features/auth';
-import { ChannelType, type Channel } from '@/types/chat';
+import { type Channel, ChannelType } from '@/types/chat';
 import { useParamIds } from '@/hooks/use-param-ids';
 import type { UploadedAttachment } from '@/features/file-upload';
 import type { WorkspaceMember } from '@/types/database';
@@ -54,7 +55,7 @@ const ChannelChat = () => {
 
   const { data: workspaceMembers } = useGetMembers(workspaceId);
 
-  const { isConnected, connectionStatus } = useRealtimeChannel({
+  useRealtimeChannel({
     workspaceId,
     channelId,
     currentUserId: currentUser?.id,
@@ -70,20 +71,22 @@ const ChannelChat = () => {
   const toggleReaction = useToggleReaction(workspaceId);
 
   const transformChannel = useCallback(
-    (channelData: any): Channel => ({
+    (channelData: ChannelEntity): Channel => ({
       id: channelData.id,
       name: channelData.name,
       description: channelData.description,
       isPrivate: channelData.channel_type === ChannelType.PRIVATE,
-      type: channelData.channel_type,
+      type: channelData.channel_type as ChannelType,
       memberCount: channelData.members?.length || 0,
-      isDefault: channelData.is_default,
+      isDefault: channelData.is_default || false,
     }),
     [],
   );
 
   const members = useMemo(() => {
-    if (!channelMembersResponse || !workspaceMembers) return [];
+    if (!channelMembersResponse || !workspaceMembers) {
+      return [];
+    }
 
     return channelMembersResponse
       .map((channelMember) => {
@@ -91,7 +94,9 @@ const ChannelChat = () => {
           (wm: WorkspaceMember) => wm.id === channelMember.workspace_member_id,
         );
 
-        if (!workspaceMember?.user) return null;
+        if (!workspaceMember?.user) {
+          return null;
+        }
 
         return {
           id: channelMember.channel_member_id,
@@ -177,7 +182,13 @@ const ChannelChat = () => {
         _optimisticId: optimisticId,
       });
 
-      updateSelectedMessageIfNeeded(optimisticId, transformMessages([message], currentUser)[0]);
+      const transformedMessage = transformMessages([message], currentUser)[0];
+
+      if (!transformedMessage) {
+        throw new Error('Failed to transform message');
+      }
+
+      updateSelectedMessageIfNeeded(optimisticId, transformedMessage);
 
       removePendingMessage(optimisticId);
       console.log('Message sent successfully');
@@ -211,7 +222,7 @@ const ChannelChat = () => {
       // Check if user already reacted with this emoji
       const message = allMessages.find((msg) => msg.id === messageId);
       const existingReaction = message?.reactions?.find((r) => r.value === emoji);
-      const hasReacted = existingReaction?.users.some((user: any) => user.id === currentUser?.id);
+      const hasReacted = existingReaction?.users.some((user) => user.id === currentUser?.id);
 
       await toggleReaction.mutateAsync({
         messageId,
@@ -220,19 +231,6 @@ const ChannelChat = () => {
       });
     } catch (error) {
       console.error('Failed to react to message:', error);
-    }
-  };
-
-  const handleReplyToMessage = async (messageId: string, replyContent: string) => {
-    try {
-      await createMessage.mutateAsync({
-        body: replyContent,
-        parent_message_id: messageId,
-        message_type: 'thread',
-      });
-      console.log('Reply sent successfully');
-    } catch (error) {
-      console.error('Failed to reply to message:', error);
     }
   };
 
@@ -254,7 +252,6 @@ const ChannelChat = () => {
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
-        onReplyToMessage={handleReplyToMessage}
         onReactToMessage={handleReactToMessage}
         onLoadMore={handleLoadMore}
         hasMoreMessages={hasNextPage}

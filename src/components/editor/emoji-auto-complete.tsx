@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Command, CommandList, CommandItem } from '@/components/ui/command';
+import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import emojiMartData from '@emoji-mart/data/sets/15/native.json';
 
@@ -41,14 +41,18 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
 
   // Helper: get Quill root offset relative to the page
   const getQuillRootOffset = () => {
-    if (!containerRef.current) return { left: 0, top: 0 };
+    if (!containerRef.current) {
+      return { left: 0, top: 0 };
+    }
     const rect = containerRef.current.getBoundingClientRect();
     return { left: rect.left + window.scrollX, top: rect.top + window.scrollY };
   };
 
   // Helper: filter emojis
   const getFilteredEmojis = (query: string): EmojiMartEmoji[] => {
-    if (!query) return [];
+    if (!query) {
+      return [];
+    }
     const q = query.toLowerCase();
     return Object.values(emojiData.emojis)
       .filter(
@@ -62,7 +66,9 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
 
   // Set up event listeners when quill instance changes
   useEffect(() => {
-    if (!quill) return;
+    if (!quill) {
+      return;
+    }
 
     const handleTextChange = () => {
       const sel = quill.getSelection();
@@ -98,9 +104,13 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!showEmojiDropdownRef.current) return;
+      if (!showEmojiDropdownRef.current) {
+        return;
+      }
       const filtered = getFilteredEmojis(emojiQueryRef.current);
-      if (filtered.length === 0) return;
+      if (filtered.length === 0) {
+        return;
+      }
 
       if (e.key === 'ArrowDown') {
         const oldIndex = emojiDropdownIndexRef.current;
@@ -124,7 +134,7 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
             const match = textBefore.match(/:([a-zA-Z0-9_+-]{2,})(?:\n)?$/);
             if (match) {
               quill.deleteText(sel.index - match[0].length, match[0].length);
-              quill.insertText(sel.index - match[0].length, emoji.skins[0].native);
+              quill.insertText(sel.index - match[0].length, emoji.skins[0]?.native);
               setShowEmojiDropdown(false);
               setEmojiQuery('');
               setEmojiDropdownIndex(0);
@@ -169,14 +179,16 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
   }, [showEmojiDropdown, quill]);
 
   const handleEmojiClick = (emoji: EmojiMartEmoji) => {
-    if (!quill) return;
+    if (!quill) {
+      return;
+    }
     const sel = quill.getSelection();
     if (sel) {
       const textBefore = quill.getText(0, sel.index);
       const match = textBefore.match(/:([a-zA-Z0-9_+-]{2,})(?:\n)?$/);
       if (match) {
         quill.deleteText(sel.index - match[0].length, match[0].length);
-        quill.insertText(sel.index - match[0].length, emoji.skins[0].native);
+        quill.insertText(sel.index - match[0].length, emoji.skins[0]?.native);
         setShowEmojiDropdown(false);
         setEmojiQuery('');
         setEmojiDropdownIndex(0);
@@ -210,7 +222,7 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
               onSelect={() => handleEmojiClick(emoji)}
               className={cn(i === emojiDropdownIndex && 'bg-accent text-accent-foreground')}
             >
-              <span className="mr-2 text-lg">{emoji.skins[0].native}</span> :{emoji.id}:
+              <span className="mr-2 text-lg">{emoji.skins[0]?.native}</span> :{emoji.id}:
             </CommandItem>
           ))}
         </CommandList>

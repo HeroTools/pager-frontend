@@ -1,9 +1,9 @@
 import api from '@/lib/api/axios-client';
-import {
+import type {
+  MarkAllNotificationsReadResponse,
+  MarkNotificationReadResponse,
   NotificationFilters,
   NotificationsResponse,
-  MarkNotificationReadResponse,
-  MarkAllNotificationsReadResponse,
 } from '../types';
 
 export const notificationsApi = {

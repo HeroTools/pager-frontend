@@ -1,4 +1,4 @@
-import { Message } from '@/types/chat';
+import type { Message } from '@/types/chat';
 import { create } from 'zustand';
 
 interface UIState {
