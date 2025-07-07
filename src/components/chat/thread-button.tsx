@@ -17,7 +17,7 @@ const ThreadButton: FC<{ message: Message; members: MemberWithUser[] }> = ({
     () => getThreadMembers(message.threadParticipants!, members),
     [message.threadParticipants, members],
   );
-  const { setThreadOpen } = useUIStore();
+  const { setThreadOpen, setProfilePanelOpen } = useUIStore();
 
   if (!message.threadCount || message.threadCount === 0) {
     return null;
@@ -36,7 +36,14 @@ const ThreadButton: FC<{ message: Message; members: MemberWithUser[] }> = ({
     >
       <div className="flex gap-1">
         {displayedMembers.map((member) => (
-          <Avatar key={member.id} className="w-5 h-5 ring-2 ring-card-foreground">
+          <Avatar 
+            key={member.id} 
+            className="w-5 h-5 ring-2 ring-card-foreground cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent thread from opening
+              setProfilePanelOpen(member.id);
+            }}
+          >
             <AvatarImage src={member.user.image} />
             <AvatarFallback className="text-sm">
               {member.user.name.charAt(0).toUpperCase()}
