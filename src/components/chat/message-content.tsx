@@ -1,109 +1,115 @@
+'use client';
+
 import React, { useEffect, useMemo, useRef } from 'react';
+import parse, {
+  domToReact,
+  HTMLReactParserOptions,
+  Element as HtmlElement,
+  DOMNode,
+} from 'html-react-parser';
 import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
+import { Hint } from '@/components/hint';
+
+interface QuillDeltaOp {
+  insert?: string;
+  attributes?: {
+    link?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface QuillDelta {
+  ops: QuillDeltaOp[];
+}
 
 interface MessageContentProps {
   content: string;
 }
 
-export const MessageContent: React.FC<MessageContentProps> = ({ content }) => {
+export const MessageContent = ({ content }: MessageContentProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const cleanHtml = useMemo(() => {
-    let delta;
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.tagName === 'A') {
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+
+  const cleanHtml = useMemo((): string => {
+    let delta: QuillDelta;
     try {
-      delta = JSON.parse(content);
+      delta = JSON.parse(content) as QuillDelta;
     } catch {
-      return DOMPurify.sanitize(`<p>${content}</p>`);
+      const hasBlockElements = /<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table|tr|td|th)[^>]*>/i.test(
+        content,
+      );
+
+      if (hasBlockElements) {
+        return DOMPurify.sanitize(content);
+      } else {
+        return DOMPurify.sanitize(`<p>${content}</p>`);
+      }
     }
 
-    const converter = new QuillDeltaToHtmlConverter(delta.ops, {
+    const normalized = delta.ops.map((op) => {
+      if (op.attributes?.link) {
+        let url = String(op.attributes.link);
+        if (!/^https?:\/\//.test(url) && !url.startsWith('mailto:')) {
+          url = `https://${url}`;
+        }
+        op.attributes.link = url;
+      }
+      return op;
+    });
+
+    const converter = new QuillDeltaToHtmlConverter(normalized, {
       encodeHtml: true,
       paragraphTag: 'p',
+      linkTarget: '_blank',
       classPrefix: 'ql-',
+      inlineStyles: false,
+      multiLineCodeblock: true,
+      multiLineHeader: true,
+      multiLineBlockquote: true,
+      allowBackgroundClasses: true,
     });
 
     const dirty = converter.convert();
-
-    return DOMPurify.sanitize(dirty, {
-      USE_PROFILES: { html: true },
-      ALLOWED_TAGS: [
-        'p',
-        'div',
-        'span',
-        'br',
-        'strong',
-        'b',
-        'em',
-        'i',
-        'u',
-        's',
-        'strike',
-        'a',
-        'ul',
-        'ol',
-        'li',
-        'blockquote',
-        'pre',
-        'code',
-        'h1',
-        'h2',
-        'h3',
-        'h4',
-        'h5',
-        'h6',
-        'img',
-        'video',
-        'audio',
-        'table',
-        'thead',
-        'tbody',
-        'tr',
-        'th',
-        'td',
-        'sub',
-        'sup',
-      ],
-      ALLOWED_ATTR: [
-        'href',
-        'target',
-        'rel',
-        'class',
-        'id',
-        'src',
-        'alt',
-        'width',
-        'height',
-        'style',
-        'data-*',
-        'colspan',
-        'rowspan',
-      ],
-    });
+    return DOMPurify.sanitize(dirty);
   }, [content]);
 
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(block as HTMLElement);
-      });
-    }
+  const parsedContent = useMemo(() => {
+    const options: HTMLReactParserOptions = {
+      replace: (node) => {
+        if (node.type === 'tag' && (node as HtmlElement).name === 'a') {
+          const el = node as HtmlElement;
+          const href = el.attribs.href || el.attribs.src || '';
+          return (
+            <Hint key={href + Math.random()} label={href} side="top" align="center">
+              <a {...el.attribs}>{domToReact(el.children as DOMNode[], options)}</a>
+            </Hint>
+          );
+        }
+        return undefined;
+      },
+    };
+    return parse(cleanHtml, options);
   }, [cleanHtml]);
 
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current
+      .querySelectorAll('pre code')
+      .forEach((block) => hljs.highlightElement(block as HTMLElement));
+  }, [parsedContent]);
+
   return (
-    <div
-      ref={containerRef}
-      className="message-content text-text-foreground"
-      dangerouslySetInnerHTML={{ __html: cleanHtml }}
-      style={{
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-        fontSize: '14px',
-        lineHeight: '1.42',
-        wordWrap: 'break-word',
-        whiteSpace: 'pre-wrap',
-      }}
-    />
+    <div ref={containerRef} className="message-content">
+      {parsedContent}
+    </div>
   );
 };
