@@ -116,9 +116,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
         </Button>
       </div>
 
-      {/* Profile Content */}
       <div className="flex flex-col p-6 space-y-6">
-        {/* Profile Image */}
         <div className="flex justify-center">
           <Avatar className="size-48 rounded-2xl">
             <AvatarImage
@@ -131,12 +129,10 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
           </Avatar>
         </div>
 
-        {/* Name and Role */}
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-foreground">{member.user.name}</h1>
         </div>
 
-        {/* Status */}
         <div className="flex items-center gap-2">
           {(() => {
             const status = member.status || 'offline';
