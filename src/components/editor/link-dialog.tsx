@@ -18,12 +18,12 @@ interface LinkDialogProps {
   initialUrl?: string;
 }
 
-export const LinkDialog = ({ 
-  isOpen, 
-  onClose, 
-  onSave, 
-  selectedText = '', 
-  initialUrl = '' 
+export const LinkDialog = ({
+  isOpen,
+  onClose,
+  onSave,
+  selectedText = '',
+  initialUrl = '',
 }: LinkDialogProps) => {
   const [text, setText] = useState(selectedText);
   const [url, setUrl] = useState(initialUrl);
@@ -51,7 +51,7 @@ export const LinkDialog = ({
         <DialogHeader>
           <DialogTitle>Add link</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="link-text">Text</Label>
@@ -62,7 +62,7 @@ export const LinkDialog = ({
               placeholder="Link text"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="link-url">Link</Label>
             <Input
@@ -86,4 +86,4 @@ export const LinkDialog = ({
       </DialogContent>
     </Dialog>
   );
-}; 
+};

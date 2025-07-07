@@ -1,9 +1,29 @@
+'use client';
+
 import React, { useEffect, useMemo, useRef } from 'react';
+import parse, {
+  domToReact,
+  HTMLReactParserOptions,
+  Element as HtmlElement,
+  DOMNode,
+} from 'html-react-parser';
 import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
-import { createRoot } from 'react-dom/client';
 import { Hint } from '@/components/hint';
+
+interface QuillDeltaOp {
+  insert?: string;
+  attributes?: {
+    link?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface QuillDelta {
+  ops: QuillDeltaOp[];
+}
 
 interface MessageContentProps {
   content: string;
@@ -12,178 +32,84 @@ interface MessageContentProps {
 export const MessageContent = ({ content }: MessageContentProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  DOMPurify.addHook('afterSanitizeAttributes', function(node) {
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     if (node.tagName === 'A') {
       node.setAttribute('target', '_blank');
       node.setAttribute('rel', 'noopener noreferrer');
     }
   });
 
-  const cleanHtml = useMemo(() => {
-    let delta;
+  const cleanHtml = useMemo((): string => {
+    let delta: QuillDelta;
     try {
-      delta = JSON.parse(content);
+      delta = JSON.parse(content) as QuillDelta;
     } catch {
-      return DOMPurify.sanitize(`<p>${content}</p>`);
+      const hasBlockElements = /<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table|tr|td|th)[^>]*>/i.test(
+        content,
+      );
+
+      if (hasBlockElements) {
+        return DOMPurify.sanitize(content);
+      } else {
+        return DOMPurify.sanitize(`<p>${content}</p>`);
+      }
     }
 
-    // Normalize URLs in delta before conversion
-    const normalizedOps = delta.ops.map((op: any) => {
-      if (op.attributes && op.attributes.link) {
-        const url = op.attributes.link;
-        if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('mailto:')) {
-          op.attributes.link = `https://${url}`;
+    const normalized = delta.ops.map((op) => {
+      if (op.attributes?.link) {
+        let url = String(op.attributes.link);
+        if (!/^https?:\/\//.test(url) && !url.startsWith('mailto:')) {
+          url = `https://${url}`;
         }
+        op.attributes.link = url;
       }
       return op;
     });
 
-    const converter = new QuillDeltaToHtmlConverter(normalizedOps, {
+    const converter = new QuillDeltaToHtmlConverter(normalized, {
       encodeHtml: true,
       paragraphTag: 'p',
+      linkTarget: '_blank',
       classPrefix: 'ql-',
       inlineStyles: false,
-      multiLineBlockquote: true,
-      multiLineHeader: true,
       multiLineCodeblock: true,
-      linkTarget: '_blank',
+      multiLineHeader: true,
+      multiLineBlockquote: true,
       allowBackgroundClasses: true,
-      customTagAttributes: {
-        a: (op: any) => {
-          const href = op.attributes?.link || '';
-          return {
-            target: '_blank',
-            rel: 'noopener noreferrer',
-          };
-        },
-      },
     });
 
     const dirty = converter.convert();
-
-    return DOMPurify.sanitize(dirty, {
-      USE_PROFILES: { html: true },
-      ALLOWED_TAGS: [
-        'p',
-        'div',
-        'span',
-        'br',
-        'strong',
-        'b',
-        'em',
-        'i',
-        'u',
-        's',
-        'strike',
-        'a',
-        'ul',
-        'ol',
-        'li',
-        'blockquote',
-        'pre',
-        'code',
-        'h1',
-        'h2',
-        'h3',
-        'h4',
-        'h5',
-        'h6',
-        'img',
-        'video',
-        'audio',
-        'table',
-        'thead',
-        'tbody',
-        'tr',
-        'th',
-        'td',
-        'sub',
-        'sup',
-      ],
-      ALLOWED_ATTR: [
-        'href',
-        'target',
-        'rel',
-        'class',
-        'id',
-        'src',
-        'alt',
-        'width',
-        'height',
-        'style',
-        'data-*',
-        'colspan',
-        'rowspan',
-      ],
-      ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|xxx):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-      ADD_ATTR: ['target', 'rel'], 
-    });
+    return DOMPurify.sanitize(dirty);
   }, [content]);
 
-  useEffect(() => {
-    if (containerRef.current) {
-      
-      containerRef.current.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(block as HTMLElement);
-      });
-
-      // Add click handler to ensure links always open in new tab
-      containerRef.current.querySelectorAll('a').forEach((link) => {
-        
-        let url = link.href || link.textContent?.trim() || '';
-        
-        if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('mailto:')) {
-          url = `https://${url}`;
+  const parsedContent = useMemo(() => {
+    const options: HTMLReactParserOptions = {
+      replace: (node) => {
+        if (node.type === 'tag' && (node as HtmlElement).name === 'a') {
+          const el = node as HtmlElement;
+          const href = el.attribs.href || el.attribs.src || '';
+          return (
+            <Hint key={href + Math.random()} label={href} side="top" align="center">
+              <a {...el.attribs}>{domToReact(el.children as DOMNode[], options)}</a>
+            </Hint>
+          );
         }
-
-        if (!link.href) {
-          const text = link.textContent?.trim();
-          if (text && (text.startsWith('http') || text.includes('.'))) {
-            link.setAttribute('href', url);
-          }
-        }
-
-        const wrapper = document.createElement('span');
-        wrapper.style.display = 'inline-block'; 
-        
-        while (link.firstChild) {
-          wrapper.appendChild(link.firstChild);
-        }
-
-        const root = createRoot(wrapper);
-        root.render(
-          <Hint 
-            label={url} 
-            side="top" 
-            align="center"
-            children={
-              <span 
-                className="inline-block"
-                dangerouslySetInnerHTML={{ __html: wrapper.innerHTML }}
-              />
-            }
-          />
-        );
-
-        link.innerHTML = '';
-        link.appendChild(wrapper);
-
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          const href = link.getAttribute('href');
-          if (href) {
-            window.open(href, '_blank', 'noopener,noreferrer');
-          }
-        });
-      });
-    }
+        return undefined;
+      },
+    };
+    return parse(cleanHtml, options);
   }, [cleanHtml]);
 
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current
+      .querySelectorAll('pre code')
+      .forEach((block) => hljs.highlightElement(block as HTMLElement));
+  }, [parsedContent]);
+
   return (
-    <div
-      ref={containerRef}
-      className="message-content"
-      dangerouslySetInnerHTML={{ __html: cleanHtml }}
-    />
+    <div ref={containerRef} className="message-content">
+      {parsedContent}
+    </div>
   );
 };

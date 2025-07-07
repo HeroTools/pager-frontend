@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 interface HintProps {
   label: string;
@@ -13,17 +13,15 @@ interface HintProps {
 
 export const Hint = ({ children, label, align, side }: HintProps) => {
   return (
-    <TooltipProvider>
-      <Tooltip delayDuration={50}>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent
-          side={side}
-          align={align}
-          className="bg-primary text-primary-foreground border border-primary/5"
-        >
-          <p className="font-medium text-xs">{label}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip delayDuration={50}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent
+        side={side}
+        align={align}
+        className="bg-primary text-primary-foreground border border-primary/5"
+      >
+        <p className="font-medium text-xs">{label}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 };

@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Reaction } from '@/features/reactions/types';
 
 interface MessageReactionsProps {
@@ -75,46 +75,44 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
   };
 
   return (
-    <TooltipProvider delayDuration={500}>
-      <div className="flex flex-wrap gap-1 mt-1">
-        {reactions.map((reaction) => {
-          const hasUserReacted = reaction.users.some((user) => user.id === currentUserId);
+    <div className="flex flex-wrap gap-1 mt-1">
+      {reactions.map((reaction) => {
+        const hasUserReacted = reaction.users.some((user) => user.id === currentUserId);
 
-          return (
-            <Tooltip key={`${reaction.id}-tooltip${currentUserId}`}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    'h-6 px-2 py-0 text-xs rounded-full border transition-all duration-200',
-                    hasUserReacted
-                      ? [
-                          'bg-interactive-active border-interactive-active-border text-interactive-active-text',
-                          'hover:bg-interactive-active-hover hover:border-interactive-active-border-hover',
-                        ]
-                      : [
-                          'bg-interactive-inactive border-interactive-inactive-border text-interactive-inactive-text',
-                          'hover:bg-interactive-inactive-hover hover:border-interactive-inactive-border-hover hover:text-interactive-inactive-text-hover',
-                        ],
-                  )}
-                  onClick={() => onReaction(reaction.value)}
-                >
-                  <span className="mr-1">{reaction.value}</span>
-                  <span className="font-medium">{reaction.count}</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                className={cn('p-0 border shadow-lg max-w-none', 'bg-popover border-border')}
-                sideOffset={8}
+        return (
+          <Tooltip key={`${reaction.id}-tooltip${currentUserId}`}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'h-6 px-2 py-0 text-xs rounded-full border transition-all duration-200',
+                  hasUserReacted
+                    ? [
+                        'bg-interactive-active border-interactive-active-border text-interactive-active-text',
+                        'hover:bg-interactive-active-hover hover:border-interactive-active-border-hover',
+                      ]
+                    : [
+                        'bg-interactive-inactive border-interactive-inactive-border text-interactive-inactive-text',
+                        'hover:bg-interactive-inactive-hover hover:border-interactive-inactive-border-hover hover:text-interactive-inactive-text-hover',
+                      ],
+                )}
+                onClick={() => onReaction(reaction.value)}
               >
-                <ReactionTooltipContent reaction={reaction} currentUserId={currentUserId} />
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
-      </div>
-    </TooltipProvider>
+                <span className="mr-1">{reaction.value}</span>
+                <span className="font-medium">{reaction.count}</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent
+              side="top"
+              className={cn('p-0 border shadow-lg max-w-none', 'bg-popover border-border')}
+              sideOffset={8}
+            >
+              <ReactionTooltipContent reaction={reaction} currentUserId={currentUserId} />
+            </TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
   );
 };
