@@ -44,6 +44,7 @@ import { useGetMembers } from '@/features/members';
 import { useCurrentUser } from '@/features/auth';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { useConfirm } from '@/hooks/use-confirm';
+import { useUIStore } from '@/store/ui-store';
 import AddMembersDialog from './add-people-to-channel-modal';
 import RemoveConfirmation from './remove-member-from-channel-modal';
 
@@ -69,6 +70,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   const updateChannel = useUpdateChannel();
   const { user } = useCurrentUser(workspaceId);
   const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
+  const { setProfilePanelOpen } = useUIStore();
   const router = useRouter();
 
   const [ConfirmDeleteDialog, confirmDelete] = useConfirm(
@@ -366,7 +368,13 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                           >
                             <div className="flex items-center gap-3">
                               <div className="relative">
-                                <Avatar className="h-10 w-10">
+                                <Avatar 
+                                  className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => {
+                                    setProfilePanelOpen(workspaceMember.id);
+                                    onClose();
+                                  }}
+                                >
                                   {workspaceMember.user.image ? (
                                     <AvatarImage
                                       src={workspaceMember.user.image}
@@ -381,7 +389,12 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <p className="font-medium">{workspaceMember.user.name}</p>
+                                  <p 
+                                    className="font-medium cursor-pointer hover:underline"
+                                    onClick={() => setProfilePanelOpen(workspaceMember.id)}
+                                  >
+                                    {workspaceMember.user.name}
+                                  </p>
                                   {member.role === 'admin' && (
                                     <span className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
                                       Admin
