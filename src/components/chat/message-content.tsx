@@ -12,7 +12,6 @@ interface MessageContentProps {
 export const MessageContent = ({ content }: MessageContentProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Configure DOMPurify to force target="_blank" on all links
   DOMPurify.addHook('afterSanitizeAttributes', function(node) {
     if (node.tagName === 'A') {
       node.setAttribute('target', '_blank');
@@ -32,7 +31,6 @@ export const MessageContent = ({ content }: MessageContentProps) => {
     const normalizedOps = delta.ops.map((op: any) => {
       if (op.attributes && op.attributes.link) {
         const url = op.attributes.link;
-        // Add protocol if missing and not a mailto link
         if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('mailto:')) {
           op.attributes.link = `https://${url}`;
         }
@@ -118,28 +116,26 @@ export const MessageContent = ({ content }: MessageContentProps) => {
         'rowspan',
       ],
       ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|xxx):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-      ADD_ATTR: ['target', 'rel'], // Ensure these attributes are always kept
+      ADD_ATTR: ['target', 'rel'], 
     });
   }, [content]);
 
   useEffect(() => {
     if (containerRef.current) {
-      // Highlight code blocks
+      
       containerRef.current.querySelectorAll('pre code').forEach((block) => {
         hljs.highlightElement(block as HTMLElement);
       });
 
       // Add click handler to ensure links always open in new tab
       containerRef.current.querySelectorAll('a').forEach((link) => {
-        // Get the actual URL (either from href or text content)
+        
         let url = link.href || link.textContent?.trim() || '';
         
-        // If URL is from text and doesn't have a protocol, add https
         if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('mailto:')) {
           url = `https://${url}`;
         }
 
-        // If no href but has text that looks like a URL, add it
         if (!link.href) {
           const text = link.textContent?.trim();
           if (text && (text.startsWith('http') || text.includes('.'))) {
@@ -147,16 +143,13 @@ export const MessageContent = ({ content }: MessageContentProps) => {
           }
         }
 
-        // Create a wrapper for the link content
         const wrapper = document.createElement('span');
-        wrapper.style.display = 'inline-block'; // Ensure the wrapper doesn't break layout
+        wrapper.style.display = 'inline-block'; 
         
-        // Move the link's content to the wrapper
         while (link.firstChild) {
           wrapper.appendChild(link.firstChild);
         }
 
-        // Create a React root and render the Hint component
         const root = createRoot(wrapper);
         root.render(
           <Hint 
@@ -172,11 +165,9 @@ export const MessageContent = ({ content }: MessageContentProps) => {
           />
         );
 
-        // Replace link content with the wrapper
         link.innerHTML = '';
         link.appendChild(wrapper);
 
-        // Add click handler
         link.addEventListener('click', (e) => {
           e.preventDefault();
           const href = link.getAttribute('href');

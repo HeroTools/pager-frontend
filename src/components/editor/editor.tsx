@@ -415,12 +415,10 @@ const Editor = ({
 
     const { index, length } = linkSelection;
     
-    // If there's selected text, replace it with the link
     if (length > 0) {
       quill.deleteText(index, length);
       quill.insertText(index, text, 'link', url);
     } else {
-      // No selection, just insert the link text
       quill.insertText(index, text, 'link', url);
     }
     
