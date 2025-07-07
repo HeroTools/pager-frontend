@@ -1,15 +1,10 @@
-import {
-  Channel,
-  CreateEntityInput,
-  UpdateEntityInput,
-  ApiResponse,
-  ChannelType,
-  Attachment,
-} from '@/types/database';
-import { MessageWithUser } from '../messages/types';
+import type { ApiResponse, Channel, ChannelMember, ChannelType } from '@/types/database';
+import type { MessageWithUser } from '../messages/types';
 
 // Use the database Channel type directly
-export type ChannelEntity = Channel;
+export interface ChannelEntity extends Channel {
+  members?: ChannelMember[];
+}
 
 // Channel member response from API
 export interface ChannelMemberResponse {
@@ -44,7 +39,6 @@ export interface UpdateChannelData {
 
 // Channel-specific API response types using the generic ApiResponse
 export type ChannelResponse = ApiResponse<ChannelEntity>;
-export type ChannelsResponse = ApiResponse<ChannelEntity[]>;
 
 // Channel member management types
 export interface AddChannelMembersData {
@@ -120,13 +114,20 @@ export interface ChannelWithMessages {
 export type ChannelWithMessagesResponse = ApiResponse<ChannelWithMessages>;
 
 export interface GetChannelMessagesParams {
-  limit?: number;
-  cursor?: string;
-  before?: string;
+  limit?: number | undefined;
+  cursor?: string | undefined;
+  before?: string | undefined;
 }
 
 export interface MutateCreateChannelContext {
   workspaceId: string;
   channelId?: string;
-  previousChannels?: ChannelEntity[];
+  previousChannels?: ChannelEntity[] | undefined;
+}
+
+export interface RemoveChannelMembersParams {
+  workspaceId: string;
+  channelId: string;
+  channelMemberIds: string[];
+  isCurrentUserLeaving?: boolean;
 }

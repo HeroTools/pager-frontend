@@ -67,7 +67,9 @@ export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModal
 
   const handleRemoveWorkspace = async () => {
     const ok = await confirm();
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     if (!workspaceId) {
       toast.error('Workspace ID not found.');
       return;

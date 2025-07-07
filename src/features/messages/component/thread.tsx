@@ -2,7 +2,7 @@ import { AlertTriangle, Loader, XIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { format, parseISO, differenceInMinutes } from 'date-fns';
+import { differenceInMinutes, format, parseISO } from 'date-fns';
 
 import { ChatMessage } from '@/components/chat/message';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,9 @@ import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/store/ui-store';
 import { formatDateLabel, transformMessages } from '../helpers';
 import { useToggleReaction } from '@/features/reactions';
-import { Message } from '@/types/chat';
+import type { Message } from '@/types/chat';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
-import { UploadedAttachment } from '@/features/file-upload/types';
+import type { UploadedAttachment } from '@/features/file-upload/types';
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
@@ -206,7 +206,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
             <ChatMessage
               message={parentMessage}
               currentUser={currentUser!}
-              showAvatar={true}
+              showAvatar
               isCompact={false}
               onEdit={handleEdit}
               onDelete={handleDelete}
@@ -249,7 +249,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
                         key={message.id}
                         message={message}
                         currentUser={currentUser!}
-                        showAvatar={true}
+                        showAvatar
                         isCompact={isCompact}
                         onEdit={handleEdit}
                         onDelete={handleDelete}

@@ -1,27 +1,26 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { TriangleAlert, CheckCircle } from 'lucide-react';
+import { CheckCircle, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
-import { createClient, supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-import { SignInFlow } from '../types';
-import { authApi } from '@/features/auth/api/auth-api';
+import type { AuthFlow } from '../stores/auth-store';
 import { useSignUp } from '@/features/auth';
 
 interface SignUpCardProps {
   onSuccess?: (workspaceId?: string) => void;
-  setState: (state: SignInFlow) => void;
+  setFlow: (flow: AuthFlow) => void;
   hideSignInLink?: boolean;
-  inviteToken?: string;
+  inviteToken?: string | undefined;
 }
 
 export const SignUpCard = ({
   onSuccess,
-  setState,
+  setFlow,
   hideSignInLink = false,
   inviteToken,
 }: SignUpCardProps) => {
@@ -65,36 +64,38 @@ export const SignUpCard = ({
           return;
         }
 
-        if (response.session) {
-          await supabase.auth.setSession(response.session);
-        }
+        // Session is already set by the auth API, no need to set it manually
 
         if (onSuccess) {
-          onSuccess(response.workspace?.id);
-        } else if (response.workspace?.id) {
-          router.push(`/${response.workspace.id}`);
-          router.refresh();
+          // Use default_workspace_id or first workspace ID
+          const workspaceId = response.default_workspace_id || response.workspaces?.[0]?.id;
+          onSuccess(workspaceId);
         } else {
-          router.push('/');
+          // Smart routing based on workspaces
+          if (response.workspaces && response.workspaces.length > 0) {
+            const targetWorkspaceId = response.default_workspace_id || response.workspaces[0]?.id;
+            router.push(`/${targetWorkspaceId}`);
+          } else {
+            // No workspaces - redirect to home which will handle onboarding
+            router.push('/');
+          }
           router.refresh();
         }
       } catch (err: any) {
-        const error: any = err;
-        if (error instanceof Error) {
-          setError(error.message);
-        } else if (error && typeof error === 'object' && 'response' in error) {
-          const response: any = error.response;
-          if (response && response.data) {
-            const data: any = response.data;
-            if (data.error) {
-              setError(data.error);
-            } else {
-              setError('Something went wrong. Please try again.');
-            }
-          } else {
-            setError('Something went wrong. Please try again.');
-          }
+        console.error('Sign up error:', err);
+
+        // Handle different error formats
+        if (err?.response?.data?.error) {
+          // API error response
+          setError(err.response.data.error);
+        } else if (err?.message) {
+          // Standard error object
+          setError(err.message);
+        } else if (typeof err === 'string') {
+          // String error
+          setError(err);
         } else {
+          // Unknown error format
           setError('Something went wrong. Please try again.');
         }
       } finally {
@@ -104,7 +105,9 @@ export const SignUpCard = ({
   );
 
   const handleResendEmail = async () => {
-    if (!userEmail) return;
+    if (!userEmail) {
+      return;
+    }
 
     setSigningUp(true);
     setError('');
@@ -138,7 +141,7 @@ export const SignUpCard = ({
           </div>
           <CardTitle>Check your email</CardTitle>
           <CardDescription>
-            We've sent a confirmation link to <strong>{userEmail}</strong>
+            We&apos;ve sent a confirmation link to <strong>{userEmail}</strong>
           </CardDescription>
         </CardHeader>
         {error && (
@@ -149,8 +152,8 @@ export const SignUpCard = ({
         )}
         <CardContent className="space-y-4 px-0 pb-0 text-center">
           <p className="text-sm text-muted-foreground">
-            Click the link in the email to verify your account. If you don't see it, check your spam
-            folder.
+            Click the link in the email to verify your account. If you don&apos;t see it, check your
+            spam folder.
           </p>
           <div className="space-y-2">
             <Button
@@ -165,7 +168,12 @@ export const SignUpCard = ({
           {!hideSignInLink && (
             <p className="text-xs text-muted-foreground">
               Already have an account?{' '}
-              <span className="text-primary hover:underline cursor-pointer">Sign in</span>
+              <span
+                onClick={() => setFlow('signIn')}
+                className="text-primary hover:underline cursor-pointer"
+              >
+                Sign in
+              </span>
             </p>
           )}
         </CardContent>
@@ -248,7 +256,7 @@ export const SignUpCard = ({
           <p className="text-xs text-muted-foreground">
             Already have an account?{' '}
             <span
-              onClick={() => setState('signIn')}
+              onClick={() => setFlow('signIn')}
               className="text-primary hover:underline cursor-pointer"
             >
               Sign in

@@ -1,15 +1,14 @@
 import api from '@/lib/api/axios-client';
 import type {
-  ChannelEntity,
-  CreateChannelData,
-  UpdateChannelData,
-  ChannelsResponse,
   AddChannelMembersData,
-  UpdateChannelMemberData,
+  ChannelEntity,
   ChannelFilters,
-  ChannelWithMessages,
-  GetChannelMessagesParams,
   ChannelMemberResponse,
+  ChannelWithMessages,
+  CreateChannelData,
+  GetChannelMessagesParams,
+  UpdateChannelData,
+  UpdateChannelMemberData,
 } from '@/features/channels/types';
 
 export const channelsApi = {
@@ -21,12 +20,18 @@ export const channelsApi = {
     filters?: Partial<ChannelFilters>,
   ): Promise<ChannelEntity[]> => {
     const params = new URLSearchParams();
-    if (filters?.channel_type) params.append('channel_type', filters.channel_type);
-    if (filters?.search_query) params.append('search_query', filters.search_query);
-    if (filters?.member_id) params.append('member_id', filters.member_id);
+    if (filters?.channel_type) {
+      params.append('channel_type', filters.channel_type);
+    }
+    if (filters?.search_query) {
+      params.append('search_query', filters.search_query);
+    }
+    if (filters?.member_id) {
+      params.append('member_id', filters.member_id);
+    }
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const { data: response } = await api.get<ChannelsResponse>(
+    const { data: response } = await api.get<ChannelEntity[]>(
       `/workspaces/${workspaceId}/channels/discover/available${queryString}`,
     );
     return response || [];
@@ -37,12 +42,18 @@ export const channelsApi = {
     filters?: Partial<ChannelFilters>,
   ): Promise<ChannelEntity[]> => {
     const params = new URLSearchParams();
-    if (filters?.channel_type) params.append('channel_type', filters.channel_type);
-    if (filters?.search_query) params.append('search_query', filters.search_query);
-    if (filters?.member_id) params.append('member_id', filters.member_id);
+    if (filters?.channel_type) {
+      params.append('channel_type', filters.channel_type);
+    }
+    if (filters?.search_query) {
+      params.append('search_query', filters.search_query);
+    }
+    if (filters?.member_id) {
+      params.append('member_id', filters.member_id);
+    }
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const { data: response } = await api.get<ChannelsResponse>(
+    const { data: response } = await api.get<ChannelEntity[]>(
       `/workspaces/${workspaceId}/members/me/channels${queryString}`,
     );
     return response || [];
@@ -67,9 +78,15 @@ export const channelsApi = {
     params?: GetChannelMessagesParams,
   ): Promise<ChannelWithMessages> => {
     const searchParams = new URLSearchParams();
-    if (params?.limit) searchParams.append('limit', params.limit.toString());
-    if (params?.cursor) searchParams.append('cursor', params.cursor);
-    if (params?.before) searchParams.append('before', params.before);
+    if (params?.limit) {
+      searchParams.append('limit', params.limit.toString());
+    }
+    if (params?.cursor) {
+      searchParams.append('cursor', params.cursor);
+    }
+    if (params?.before) {
+      searchParams.append('before', params.before);
+    }
 
     const qs = searchParams.toString();
     const url = `/workspaces/${workspaceId}/channels/${channelId}/messages${qs ? `?${qs}` : ''}`;

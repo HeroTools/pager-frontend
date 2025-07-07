@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ConfirmUploadRequest, DeleteAttachmentRequest, PresignedUrlRequest } from '../types';
+import type { ConfirmUploadRequest, DeleteAttachmentRequest, PresignedUrlRequest } from '../types';
 import { uploadApi } from '../api/upload-api';
 
 export interface UploadProgress {

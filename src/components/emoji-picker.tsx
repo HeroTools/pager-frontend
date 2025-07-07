@@ -1,10 +1,11 @@
-import React, { useState, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import React, { useState } from 'react';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 import { useTheme } from 'next-themes';
 import { Smile } from 'lucide-react';
 
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 
 interface EmojiData {

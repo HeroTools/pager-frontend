@@ -85,7 +85,7 @@ class BrowserNotificationService {
 
     if (preferences.onlyMentions) {
       const isMention = notification.title.includes('@') || notification.message.includes('@');
-      const isDirectMessage = notification.related_conversation_id != null;
+      const isDirectMessage = notification.related_conversation_id !== null;
 
       if (!isMention && !isDirectMessage) {
         console.log('Notification suppressed - only mentions/DMs enabled');
@@ -176,6 +176,16 @@ class BrowserNotificationService {
       return false;
     }
 
+    if (
+      startTimeParts[0] === undefined ||
+      startTimeParts[1] === undefined ||
+      endTimeParts[0] === undefined ||
+      endTimeParts[1] === undefined
+    ) {
+      console.warn('Invalid time format for quiet hours');
+      return false;
+    }
+
     const startHour = parseInt(startTimeParts[0], 10);
     const startMinute = parseInt(startTimeParts[1], 10);
     const endHour = parseInt(endTimeParts[0], 10);
@@ -205,7 +215,9 @@ class BrowserNotificationService {
   }
 
   private handleDefaultClick(notification: NotificationEntity, workspaceId: string): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
 
     const baseUrl = window.location.origin;
 
@@ -219,7 +231,9 @@ class BrowserNotificationService {
   }
 
   private playNotificationSound(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
 
     try {
       const audio = new Audio('/sounds/channel.mp3');

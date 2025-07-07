@@ -3,14 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TriangleAlert } from 'lucide-react';
-import { SignInFlow } from '../types';
 import { useSignIn } from '@/features/auth';
+import { AuthFlow } from '@/features/auth/stores/auth-store';
 
 interface SignInCardProps {
-  setState: (state: SignInFlow) => void;
+  setFlow: (flow: AuthFlow) => void;
 }
 
-export const SignInCard = ({ setState }: SignInCardProps) => {
+export const SignInCard = ({ setFlow }: SignInCardProps) => {
   const signIn = useSignIn();
 
   const form = useForm({
@@ -82,7 +82,7 @@ export const SignInCard = ({ setState }: SignInCardProps) => {
           Don&apos;t have an account?{' '}
           <span
             className="text-primary hover:underline cursor-pointer"
-            onClick={() => setState('signUp')}
+            onClick={() => setFlow('signUp')}
           >
             Sign up
           </span>

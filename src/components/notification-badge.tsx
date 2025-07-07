@@ -12,7 +12,9 @@ export const NotificationBadge = ({
   show = count > 0,
   className,
 }: NotificationBadgeProps) => {
-  if (!show) return null;
+  if (!show) {
+    return null;
+  }
 
   return (
     <Badge

@@ -20,7 +20,9 @@ export const ThreadBar = ({
   name = 'Member',
   onClick,
 }: ThreadBarProps) => {
-  if (!count || !timestamp) return null;
+  if (!count || !timestamp) {
+    return null;
+  }
 
   return (
     <button

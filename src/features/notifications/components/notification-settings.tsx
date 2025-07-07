@@ -1,5 +1,5 @@
 import { Bell, Chrome, Settings } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
 import { Button } from '@/components/ui/button';
@@ -271,10 +271,14 @@ export const NotificationSettings = () => {
 export type { NotificationPreferences };
 
 export const getNotificationPreferences = (): NotificationPreferences => {
-  if (typeof window === 'undefined') return DEFAULT_PREFERENCES;
+  if (typeof window === 'undefined') {
+    return DEFAULT_PREFERENCES;
+  }
 
   const saved = localStorage.getItem('notification_preferences');
-  if (!saved) return DEFAULT_PREFERENCES;
+  if (!saved) {
+    return DEFAULT_PREFERENCES;
+  }
 
   try {
     return JSON.parse(saved);

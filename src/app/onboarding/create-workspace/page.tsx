@@ -1,27 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, FormProvider } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import {
   Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
 } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
@@ -102,7 +102,9 @@ export default function CreateWorkspacePage() {
   function WorkspaceNameStep() {
     const handleNext = async (): Promise<void> => {
       const valid = await workspaceForm.trigger();
-      if (valid) setStep(1);
+      if (valid) {
+        setStep(1);
+      }
     };
 
     return (
@@ -226,7 +228,9 @@ export default function CreateWorkspacePage() {
   function InviteTeammatesStep() {
     const handleCopy = (): void => {
       const url = inviteLinkMutation.data?.url;
-      if (!url) return;
+      if (!url) {
+        return;
+      }
       navigator.clipboard
         .writeText(url)
         .then(() => toast.success('Invite link copied to clipboard!'));
@@ -285,7 +289,7 @@ export default function CreateWorkspacePage() {
         ) : (
           <Card className="max-w-md mx-auto w-full">
             <CardContent className="flex flex-col items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
               <p className="text-muted-foreground">Generating invite link...</p>
             </CardContent>
           </Card>

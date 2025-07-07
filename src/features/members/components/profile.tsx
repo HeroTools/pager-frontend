@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useConfirm } from '@/hooks/use-confirm';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { useGetMember, useUpdateMemberRole, useRemoveMember } from '..';
+import { useGetMember, useRemoveMember, useUpdateMemberRole } from '..';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +42,9 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
 
   const handleRemove = async () => {
     const ok = await confirmRemove();
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     removeMember
       .mutateAsync({
         workspaceId,
@@ -60,7 +62,9 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
 
   const handleLeave = async () => {
     const ok = await confirmLeave();
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     removeMember
       .mutateAsync({
         workspaceId,
@@ -78,7 +82,9 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
 
   const handleRoleChange = async (role: 'admin' | 'member') => {
     const ok = await confirmChangeRole();
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     updateMemberRole
       .mutateAsync({
         workspaceId,

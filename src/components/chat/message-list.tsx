@@ -1,11 +1,12 @@
-import { FC, Fragment, RefObject, UIEvent, useRef } from 'react';
+import type { FC, RefObject, UIEvent } from 'react';
+import { Fragment, useRef } from 'react';
 import { differenceInMinutes, isSameDay, parseISO } from 'date-fns';
 
-import { Message } from '@/types/chat';
+import type { Message } from '@/types/chat';
 import { ChatMessage } from './message';
 import { useUIStore } from '@/store/ui-store';
 import { cn } from '@/lib/utils';
-import { CurrentUser } from '@/features/auth';
+import type { CurrentUser } from '@/features/auth';
 
 interface ChatMessageListProps {
   messages: Message[];
@@ -13,9 +14,8 @@ interface ChatMessageListProps {
   isLoading?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
-  onReply?: (messageId: string) => void;
   onReaction?: (messageId: string, emoji: string) => void;
-  containerRef?: RefObject<HTMLDivElement>;
+  containerRef?: RefObject<HTMLDivElement | null>;
   onScroll?: (e: UIEvent<HTMLDivElement>) => void;
 }
 
@@ -27,7 +27,6 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
   isLoading = false,
   onEdit,
   onDelete,
-  onReply,
   onReaction,
   containerRef,
   onScroll,
@@ -48,7 +47,9 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
   };
 
   const shouldShowDateDivider = (message: Message, index: number) => {
-    if (index === 0) return true;
+    if (index === 0) {
+      return true;
+    }
     const prevMessage = messages[index - 1];
     return !isSameDay(new Date(prevMessage.timestamp), new Date(message.timestamp));
   };
@@ -97,7 +98,6 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
                   isCompact={isCompact}
                   onEdit={onEdit}
                   onDelete={onDelete}
-                  onReply={onReply}
                   onReaction={onReaction || (() => {})}
                 />
               </Fragment>

@@ -55,7 +55,9 @@ export const useWorkspaceAuthIntegration = () => {
   // Update workspace access tracking
   const trackWorkspaceAccess = (workspaceId: string) => {
     queryClient.setQueryData<WorkspaceEntity[]>(['workspaces'], (old) => {
-      if (!old) return old;
+      if (!old) {
+        return old;
+      }
       return old.map((workspace) =>
         workspace.id === workspaceId
           ? { ...workspace, last_accessed_at: new Date().toISOString() }

@@ -1,7 +1,7 @@
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Users } from 'lucide-react';
-import { FormEvent } from 'react';
+import type { FormEvent } from 'react';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
@@ -31,8 +31,12 @@ export const CreateConversationModal = () => {
   };
 
   const getConversationTitle = () => {
-    if (selectedMembers.length === 0) return 'New chat';
-    if (selectedMembers.length === 1) return `Chat with ${selectedMembers[0].user.name}`;
+    if (selectedMembers.length === 0) {
+      return 'New chat';
+    }
+    if (selectedMembers.length === 1) {
+      return `Chat with ${selectedMembers[0].user.name}`;
+    }
     if (selectedMembers.length === 2) {
       return `${selectedMembers[0].user.name}, ${selectedMembers[1].user.name}`;
     }

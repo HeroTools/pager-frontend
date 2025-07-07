@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { FC, HTMLAttributes } from 'react';
+import type { FC, HTMLAttributes } from 'react';
 
 type TypographyProps = {
   variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p';

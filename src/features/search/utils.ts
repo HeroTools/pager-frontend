@@ -1,4 +1,4 @@
-import { SearchFilters, SearchHistoryItem, SearchResult } from './types';
+import type { SearchFilters, SearchHistoryItem, SearchResult } from './types';
 
 // Search utilities
 export class SearchUtils {
@@ -31,7 +31,9 @@ export class SearchUtils {
   }
 
   static highlightText(text: string, query: string): string {
-    if (!query.trim()) return text;
+    if (!query.trim()) {
+      return text;
+    }
 
     const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     return text.replace(
@@ -174,7 +176,9 @@ export class SearchHistory {
   static get(workspaceId?: string): SearchHistoryItem[] {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
-      if (!stored) return [];
+      if (!stored) {
+        return [];
+      }
 
       const history = JSON.parse(stored) as SearchHistoryItem[];
       return workspaceId ? history.filter((item) => item.workspaceId === workspaceId) : history;

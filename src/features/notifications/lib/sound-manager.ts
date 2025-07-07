@@ -25,7 +25,9 @@ class NotificationSoundManager {
   }
 
   private setupUserInteractionListener() {
-    if (typeof document === 'undefined') return;
+    if (typeof document === 'undefined') {
+      return;
+    }
 
     const initAudioContext = () => {
       this.initializeAudioContext();
@@ -43,7 +45,9 @@ class NotificationSoundManager {
   }
 
   private initializeAudioContext() {
-    if (this.isAudioContextReady || typeof AudioContext === 'undefined') return;
+    if (this.isAudioContextReady || typeof AudioContext === 'undefined') {
+      return;
+    }
 
     try {
       this.audioContext = new AudioContext();
@@ -60,7 +64,9 @@ class NotificationSoundManager {
   }
 
   private async loadSounds() {
-    if (typeof Audio === 'undefined') return;
+    if (typeof Audio === 'undefined') {
+      return;
+    }
 
     const soundFiles = {
       mention: '/sounds/mention.mp3', // Higher pitch for mentions
@@ -111,7 +117,9 @@ class NotificationSoundManager {
   }
 
   private loadPreferences() {
-    if (typeof localStorage === 'undefined') return;
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
 
     try {
       const enabled = localStorage.getItem('notifications-sound-enabled');

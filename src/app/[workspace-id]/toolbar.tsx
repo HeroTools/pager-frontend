@@ -1,6 +1,6 @@
-import { Search, Hash, Sparkles, Loader2 } from 'lucide-react';
+import { Hash, Loader2, Search, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDebounce } from 'use-debounce';
 
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 
 import { useGetAllAvailableChannels } from '@/features/channels/hooks/use-channels-mutations';
 import { useGetMembers } from '@/features/members/hooks/use-members';
-import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useSearch } from '@/features/search/hooks/use-search';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -41,7 +40,9 @@ const AIAnswerSection = ({
       const target = e.target as HTMLElement;
       if (target.classList.contains('citation-link')) {
         const messageId = target.getAttribute('data-message-id');
-        if (messageId) onReferenceClick(messageId);
+        if (messageId) {
+          onReferenceClick(messageId);
+        }
       }
     },
     [onReferenceClick],
@@ -83,13 +84,17 @@ export const Toolbar = () => {
 
   // Always filter channels/members locally
   const filteredChannels = useMemo(() => {
-    if (!inputValue.trim() || !channels) return channels?.slice(0, 5) || [];
+    if (!inputValue.trim() || !channels) {
+      return channels?.slice(0, 5) || [];
+    }
     const query = inputValue.toLowerCase();
     return channels.filter((channel) => channel.name.toLowerCase().includes(query)).slice(0, 5);
   }, [channels, inputValue]);
 
   const filteredMembers = useMemo(() => {
-    if (!inputValue.trim() || !members) return members?.slice(0, 5) || [];
+    if (!inputValue.trim() || !members) {
+      return members?.slice(0, 5) || [];
+    }
     const query = inputValue.toLowerCase();
     return members.filter((member) => member.user.name.toLowerCase().includes(query)).slice(0, 5);
   }, [members, inputValue]);
@@ -119,7 +124,9 @@ export const Toolbar = () => {
 
   // Reset input on dialog close
   useEffect(() => {
-    if (!open) setInputValue('');
+    if (!open) {
+      setInputValue('');
+    }
   }, [open]);
 
   // Keyboard shortcut handler
@@ -137,7 +144,9 @@ export const Toolbar = () => {
   const uniqueResults = useMemo(() => {
     const seen = new Set();
     return (searchData?.results || []).filter((r) => {
-      if (seen.has(r.messageId)) return false;
+      if (seen.has(r.messageId)) {
+        return false;
+      }
       seen.add(r.messageId);
       return true;
     });
@@ -151,7 +160,7 @@ export const Toolbar = () => {
   console.log(hasAnswer, 'hasAnswer');
   console.log(isSearching && shouldSearchMessages, 'isSearching && shouldSearchMessages');
 
-  const Section = ({ title, children }) =>
+  const Section = ({ title, children }: any) =>
     children && Array.isArray(children) && children.length > 0 ? (
       <div className="mb-3">
         <div className="text-xs font-semibold text-muted-foreground mb-1 px-2">{title}</div>

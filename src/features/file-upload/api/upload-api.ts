@@ -1,11 +1,11 @@
 import api from '@/lib/api/axios-client';
-import {
+import type {
   ConfirmUploadRequest,
   ConfirmUploadResponse,
   DeleteAttachmentRequest,
+  DeleteAttachmentResponse,
   PresignedUrlRequest,
   PresignedUrlResponse,
-  DeleteAttachmentResponse,
 } from '../types';
 
 export const uploadApi = {

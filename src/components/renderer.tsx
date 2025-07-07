@@ -10,7 +10,9 @@ const Renderer = ({ value }: RendererProps) => {
   const rendereRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!rendereRef.current) return;
+    if (!rendereRef.current) {
+      return;
+    }
 
     const container = rendereRef.current;
 
@@ -35,7 +37,9 @@ const Renderer = ({ value }: RendererProps) => {
     };
   }, [value]);
 
-  if (isEmpty) return null;
+  if (isEmpty) {
+    return null;
+  }
 
   return <div ref={rendereRef} className="ql-editor ql-renderer" />;
 };

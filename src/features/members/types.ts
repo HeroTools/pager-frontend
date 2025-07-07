@@ -1,8 +1,8 @@
-import {
-  User,
-  WorkspaceMember,
-  Workspace,
+import type {
   ApiResponse,
+  User,
+  Workspace,
+  WorkspaceMember,
   WorkspaceMemberRole,
 } from '@/types/database';
 

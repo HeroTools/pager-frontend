@@ -1,4 +1,4 @@
-import { Reaction } from '@/features/reactions/types';
+import type { Reaction } from '@/features/reactions/types';
 
 export interface Message {
   id: string;
@@ -11,7 +11,7 @@ export interface Message {
   threadCount?: number;
   threadParticipants?: string[];
   threadId?: string;
-  threadLastReplyAt?: string;
+  threadLastReplyAt?: string | undefined;
   isEdited?: boolean;
 }
 
@@ -25,7 +25,7 @@ export interface Author {
 export interface Channel {
   id: string;
   name: string;
-  description?: string;
+  description?: string | undefined;
   isPrivate: boolean;
   type: ChannelType;
   memberCount?: number;

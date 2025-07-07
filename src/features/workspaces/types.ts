@@ -1,13 +1,16 @@
 import type {
-  Workspace,
-  WorkspaceWithMembers,
   ApiResponse,
+  Workspace,
   WorkspaceMemberRole,
+  WorkspaceWithMembers,
 } from '@/types/database';
-import { MemberWithUser } from '@/features/members';
+import type { MemberWithUser } from '@/features/members';
 
 // Use the database Workspace type directly
-export type WorkspaceEntity = Workspace;
+export interface WorkspaceEntity extends Workspace {
+  user_role: WorkspaceMemberRole;
+  is_owner: boolean;
+}
 
 // Extended workspace type with members
 export type WorkspaceWithMembersList = WorkspaceWithMembers;
@@ -37,25 +40,12 @@ export interface CreateWorkspaceResponse {
   message: string;
 }
 
-// API Response types using the generic ApiResponse
-export type WorkspaceResponse = ApiResponse<WorkspaceResponseData>;
-export type WorkspacesResponse = ApiResponse<WorkspaceEntity[]>;
-export type WorkspaceWithMembersResponse = ApiResponse<WorkspaceWithMembersList>;
-
 // Workspace statistics
 export interface WorkspaceStats {
   total_members: number;
   total_channels: number;
   total_messages: number;
   active_members_today: number;
-}
-
-// UI-specific types
-export interface WorkspaceListItem extends WorkspaceEntity {
-  member_count?: number;
-  unread_count?: number;
-  user_role?: WorkspaceMemberRole;
-  last_activity_at?: string;
 }
 
 // Types for get-from-invite-token API

@@ -9,7 +9,9 @@ export const useNotificationContext = () => {
 
   const isNotificationForCurrentEntity = useCallback(
     (notification: NotificationEntity): boolean => {
-      if (!currentEntityId) return false;
+      if (!currentEntityId) {
+        return false;
+      }
 
       if (currentEntityType === 'channel') {
         return notification.related_channel_id === currentEntityId;
@@ -47,7 +49,9 @@ export const useNotificationContext = () => {
 
   const getNotificationsToMarkAsRead = useCallback(
     (notifications: NotificationEntity[]): string[] => {
-      if (!isFocused || !currentEntityId) return [];
+      if (!isFocused || !currentEntityId) {
+        return [];
+      }
 
       return notifications
         .filter(

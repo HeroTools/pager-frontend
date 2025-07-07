@@ -5,7 +5,9 @@ interface ThumbnailProps {
 }
 
 export const Thumbnail = ({ url }: ThumbnailProps) => {
-  if (!url) return null;
+  if (!url) {
+    return null;
+  }
 
   return (
     <Dialog>

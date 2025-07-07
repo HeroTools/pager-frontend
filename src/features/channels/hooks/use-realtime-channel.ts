@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { messageRealtimeHandler, RealtimeHandler } from '@/lib/realtime/realtime-handler'; // Assumed path
-import { supabase } from '@/lib/supabase/client'; // Assumed path
-import type { ChannelWithMessages } from '../types'; // Assumed path
-import type { MessageWithUser } from '@/features/messages/types'; // Assumed path
+import { messageRealtimeHandler, type RealtimeHandler } from '@/lib/realtime/realtime-handler';
+import type { supabase } from '@/lib/supabase/client';
+import type { ChannelWithMessages } from '../types';
+import type { MessageWithUser } from '@/features/messages/types';
 
 // It's better to define a more descriptive status set
 type ConnectionStatus = 'CONNECTING' | 'SUBSCRIBED' | 'RECONNECTING' | 'CLOSED' | 'ERROR';
@@ -11,7 +11,7 @@ type ConnectionStatus = 'CONNECTING' | 'SUBSCRIBED' | 'RECONNECTING' | 'CLOSED' 
 interface UseRealtimeChannelProps {
   workspaceId: string;
   channelId: string;
-  currentUserId?: string;
+  currentUserId: string | undefined;
   enabled?: boolean;
 }
 
@@ -64,10 +64,14 @@ export const useRealtimeChannel = ({
   const updateParentThreadMetadata = useCallback(
     (threadMessage: MessageWithUser) => {
       const parentMessageId = threadMessage.parent_message_id;
-      if (!parentMessageId) return;
+      if (!parentMessageId) {
+        return;
+      }
 
       queryClient.setQueryData<InfiniteQueryData>(getChannelQueryKey(), (old) => {
-        if (!old?.pages?.length) return old;
+        if (!old?.pages?.length) {
+          return old;
+        }
         const newPages = old.pages.map((page) => ({
           ...page,
           messages: page.messages.map((msg) => {
@@ -99,7 +103,9 @@ export const useRealtimeChannel = ({
   const updateThreadCache = useCallback(
     (threadMessage: MessageWithUser) => {
       const parentMessageId = threadMessage.parent_message_id;
-      if (!parentMessageId) return;
+      if (!parentMessageId) {
+        return;
+      }
 
       const threadKey = getThreadQueryKey(parentMessageId);
 
@@ -128,7 +134,9 @@ export const useRealtimeChannel = ({
             };
           }
           const messageExists = old.replies.some((reply) => reply.id === threadMessage.id);
-          if (messageExists) return old;
+          if (messageExists) {
+            return old;
+          }
           return {
             ...old,
             replies: [...old.replies, threadMessage],
@@ -148,7 +156,9 @@ export const useRealtimeChannel = ({
     (payload: any) => {
       try {
         const message = payload.message as MessageWithUser;
-        if (message.user?.id === currentUserId) return;
+        if (message.user?.id === currentUserId) {
+          return;
+        }
 
         const now = Date.now();
         const DUPLICATE_WINDOW = 10 * 1000; // 10s
@@ -192,7 +202,9 @@ export const useRealtimeChannel = ({
               };
             }
             const exists = old.pages.some((page) => page.messages.some((m) => m.id === message.id));
-            if (exists) return old;
+            if (exists) {
+              return old;
+            }
             const newPages = [...old.pages];
             newPages[0] = {
               ...newPages[0],
@@ -231,7 +243,9 @@ export const useRealtimeChannel = ({
         if (isThread) {
           const threadKey = getThreadQueryKey(parent_message_id);
           queryClient.setQueryData<ThreadQueryData>(threadKey, (old) => {
-            if (!old) return old;
+            if (!old) {
+              return old;
+            }
             return {
               ...old,
               replies: old.replies.map((r) =>
@@ -249,7 +263,9 @@ export const useRealtimeChannel = ({
           });
         } else {
           queryClient.setQueryData<InfiniteQueryData>(getChannelQueryKey(), (old) => {
-            if (!old?.pages?.length) return old;
+            if (!old?.pages?.length) {
+              return old;
+            }
             const newPages = old.pages.map((page) => ({
               ...page,
               messages: page.messages.map((m) =>
@@ -284,7 +300,9 @@ export const useRealtimeChannel = ({
         if (parentId) {
           const threadKey = getThreadQueryKey(parentId);
           queryClient.setQueryData<ThreadQueryData>(threadKey, (old) => {
-            if (!old) return old;
+            if (!old) {
+              return old;
+            }
             return {
               ...old,
               replies: old.replies.filter((r) => r.id !== deletedId),
@@ -296,7 +314,9 @@ export const useRealtimeChannel = ({
           });
         } else {
           queryClient.setQueryData<InfiniteQueryData>(getChannelQueryKey(), (old) => {
-            if (!old?.pages?.length) return old;
+            if (!old?.pages?.length) {
+              return old;
+            }
             const newPages = old.pages.map((page) => ({
               ...page,
               messages: page.messages.filter((m) => m.id !== deletedId),

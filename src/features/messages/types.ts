@@ -1,11 +1,11 @@
-import {
-  Message,
-  MessageWithRelations,
+import type {
   ApiResponse,
-  MessageType,
   Attachment,
+  Message,
+  MessageType,
+  MessageWithRelations,
 } from '@/types/database';
-import { UploadedAttachment } from '../file-upload/types';
+import type { UploadedAttachment } from '../file-upload/types';
 
 // Use the database Message type directly
 export type MessageEntity = Message;
@@ -53,8 +53,6 @@ export interface MessageThread {
   reply_count: number;
   last_reply_at?: string;
 }
-
-export type MessageThreadResponse = ApiResponse<MessageThread>;
 
 // Message reaction types
 export interface AddReactionData {
@@ -142,8 +140,6 @@ export interface MessageWithUser {
   }>;
   _isOptimistic?: boolean;
 }
-
-export type MessageWithUserResponse = ApiResponse<MessageWithUser>;
 
 export interface QuillDelta {
   ops: QuillOp[];

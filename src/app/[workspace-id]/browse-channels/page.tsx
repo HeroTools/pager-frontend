@@ -2,18 +2,18 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Hash, Lock, Loader } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { Hash, Loader, Lock } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  useAddChannelMembers,
+  useCreateChannelModal,
   useGetAllAvailableChannels,
   useGetUserChannels,
-  useCreateChannelModal,
-  useAddChannelMembers,
 } from '@/features/channels';
 import { useCurrentMember } from '@/features/members/hooks/use-members';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { ChannelEntity } from '@/features/channels/types';
+import type { ChannelEntity } from '@/features/channels/types';
 
 // Extended interface for browse channels with additional API properties
 interface BrowseChannelItem extends ChannelEntity {

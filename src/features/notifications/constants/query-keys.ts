@@ -1,4 +1,4 @@
-import { NotificationFilters } from '../types';
+import type { NotificationFilters } from '../types';
 
 export const notificationKeys = {
   all: ['notifications'] as const,

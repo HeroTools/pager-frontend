@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import { MemberWithUser } from '@/features/members/types';
+import type { MemberWithUser } from '@/features/members/types';
 
 interface MemberSearchSelectProps {
   selectedMembers: MemberWithUser[];

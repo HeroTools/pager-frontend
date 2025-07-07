@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Bell, X } from 'lucide-react';
 
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
@@ -44,6 +44,8 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     useNotificationPermissions();
 
   useEffect(() => {
+    let timer: NodeJS.Timeout | undefined;
+
     // Show permission banner if:
     // 1. Notifications are supported
     // 2. Permission is "default" (not yet asked)
@@ -51,12 +53,16 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     // 4. User is logged in
     if (isSupported && permission === 'default' && !hasAskedBefore && user?.workspace_member_id) {
       // Show banner after a short delay to not overwhelm the user
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         setShowPermissionBanner(true);
       }, 5000);
-
-      return () => clearTimeout(timer);
     }
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
   }, [isSupported, permission, hasAskedBefore, user]);
 
   const handleEnableNotifications = async () => {

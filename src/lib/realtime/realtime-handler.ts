@@ -98,7 +98,9 @@ export class RealtimeHandler<T extends SupabaseClient> {
   }
 
   public start(): () => void {
-    if (this.started) return () => {};
+    if (this.started) {
+      return () => {};
+    }
 
     this.started = true;
     this.resubscribeToAllChannels();
@@ -149,7 +151,9 @@ export class RealtimeHandler<T extends SupabaseClient> {
 
   private resubscribeToChannel(topic: Topic): void {
     const factory = this.channelFactories.get(topic);
-    if (!factory) return; // Channel was likely removed
+    if (!factory) {
+      return;
+    } // Channel was likely removed
 
     this.unsubscribeFromChannel(topic);
     const channel = this.createChannel(factory);
@@ -157,7 +161,9 @@ export class RealtimeHandler<T extends SupabaseClient> {
   }
 
   private async subscribeToChannel(channel: RealtimeChannel): Promise<void> {
-    if (['joined', 'joining'].includes(channel.state)) return;
+    if (['joined', 'joining'].includes(channel.state)) {
+      return;
+    }
 
     try {
       await this.refreshSessionIfNeeded();
@@ -264,7 +270,9 @@ export class RealtimeHandler<T extends SupabaseClient> {
   };
 
   private handleVisibilityChange = (): void => {
-    if (typeof document === 'undefined') return;
+    if (typeof document === 'undefined') {
+      return;
+    }
 
     if (document.hidden) {
       this.inactiveTabTimer = setTimeout(() => {

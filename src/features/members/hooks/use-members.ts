@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { membersApi } from '../api/members-api';
 import type {
+  BulkRemoveMembersData,
+  BulkUpdateMembersData,
+  InviteMemberData,
   MemberEntity,
+  MemberFilters,
   MemberWithUser,
   UpdateMemberRoleData,
-  InviteMemberData,
-  MemberFilters,
-  BulkUpdateMembersData,
-  BulkRemoveMembersData,
 } from '../types';
 
 // Get current user's member record for a workspace
@@ -73,12 +73,12 @@ export const useUpdateMemberRole = () => {
     mutationFn: ({
       workspaceId,
       memberId,
-      data,
+      role,
     }: {
       workspaceId: string;
       memberId: string;
-      data: UpdateMemberRoleData;
-    }) => membersApi.updateMemberRole(workspaceId, memberId, data),
+      role: string;
+    }) => membersApi.updateMemberRole(workspaceId, memberId, role),
     onSuccess: (updatedMember, variables) => {
       // Update the specific member cache
       queryClient.setQueryData<MemberEntity>(

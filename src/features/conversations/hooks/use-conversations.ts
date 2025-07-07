@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { conversationsApi } from '../api/conversations-api';
-import type { ConversationEntity, CreateConversationData, ConversationFilters } from '../types';
+import type { ConversationEntity, ConversationFilters, CreateConversationData } from '../types';
 
 export const useConversations = (workspaceId: string, filters?: Partial<ConversationFilters>) => {
   const queryClient = useQueryClient();

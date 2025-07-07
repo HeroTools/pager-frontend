@@ -1,17 +1,21 @@
 // features/conversations/types.ts
-import {
+import type {
+  ApiResponse,
   Conversation,
   ConversationWithMembers,
   Message,
   MessageWithRelations,
-  UpdateEntityInput,
-  ApiResponse,
   SendMessageRequest,
 } from '@/types/database';
-import { MessageWithUser } from '../messages/types';
+import type { MessageWithUser } from '../messages/types';
 
 // Use the database Conversation type directly
-export type ConversationEntity = Conversation;
+export interface ConversationEntity extends Conversation {
+  members: ConversationMemberWithDetails[];
+  member_count: number;
+  other_members: ConversationMemberWithDetails[];
+  is_group_conversation: boolean;
+}
 
 // Extended conversation type with members and messages
 export type ConversationWithMembersList = ConversationWithMembers;
@@ -36,9 +40,6 @@ export interface CreateConversationMessageData extends Omit<SendMessageRequest, 
   conversation_id: string;
 }
 
-// Update message data
-export type UpdateConversationMessageData = UpdateEntityInput<Message>;
-
 // Add/remove participants
 export interface AddConversationParticipantData {
   workspace_member_id: string;
@@ -46,7 +47,6 @@ export interface AddConversationParticipantData {
 
 // API Response types using the generic ApiResponse
 export type ConversationResponse = ApiResponse<ConversationEntity>;
-export type ConversationsResponse = ApiResponse<ConversationEntity[]>;
 export type ConversationWithMembersResponse = ApiResponse<ConversationWithMembersList>;
 export type ConversationMessageResponse = ApiResponse<ConversationMessage>;
 export type ConversationMessagesResponse = ApiResponse<ConversationMessage[]>;
@@ -60,6 +60,35 @@ export interface GetConversationMessagesParams {
   limit?: number;
   cursor?: string;
   before?: string;
+}
+
+export interface GetConversations {
+  id: string;
+  workspace_id: string;
+  created_at: string;
+  updated_at: string;
+  members: ConversationMemberWithDetails[];
+  member_count: number;
+  other_members: ConversationMemberWithDetails[];
+  is_group_conversation: boolean;
+}
+
+export interface ConversationMemberWithDetails {
+  id: string;
+  joined_at: string;
+  left_at: string | null;
+  is_hidden: boolean;
+  workspace_member: {
+    id: string;
+    role: string;
+    user: User;
+  };
+}
+
+export interface User {
+  id: string;
+  name: string;
+  image: string | null;
 }
 
 // User status information

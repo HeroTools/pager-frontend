@@ -1,4 +1,4 @@
-import { MemberWithUser } from '@/features/members/types';
+import type { MemberWithUser } from '@/features/members/types';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
@@ -88,8 +88,12 @@ export const useConversationCreateStore = create<ConversationCreateStoreState>()
       getConversationTitle: () => {
         const { selectedMembers } = get();
 
-        if (selectedMembers.length === 0) return 'New message';
-        if (selectedMembers.length === 1) return selectedMembers[0].user.name;
+        if (selectedMembers.length === 0) {
+          return 'New message';
+        }
+        if (selectedMembers.length === 1) {
+          return selectedMembers[0].user.name;
+        }
         if (selectedMembers.length === 2) {
           return `${selectedMembers[0].user.name}, ${selectedMembers[1].user.name}`;
         }

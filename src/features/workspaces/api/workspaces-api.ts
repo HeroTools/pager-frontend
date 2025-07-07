@@ -1,15 +1,12 @@
 import api from '@/lib/api/axios-client';
 import type {
-  WorkspaceEntity,
-  WorkspaceWithMembersList,
   CreateWorkspaceData,
   UpdateWorkspaceData,
-  WorkspaceResponse,
-  WorkspacesResponse,
-  WorkspaceWithMembersResponse,
-  WorkspaceStats,
-  WorkspaceResponseData,
+  WorkspaceEntity,
   WorkspaceInviteInfoResponse,
+  WorkspaceResponseData,
+  WorkspaceStats,
+  WorkspaceWithMembersList,
 } from '../types';
 
 export const workspacesApi = {
@@ -17,7 +14,7 @@ export const workspacesApi = {
    * Get all workspaces for current user
    */
   getWorkspaces: async (): Promise<WorkspaceEntity[]> => {
-    const { data: response } = await api.get<WorkspacesResponse>(`/workspaces`);
+    const { data: response } = await api.get<WorkspaceEntity[]>(`/workspaces`);
     return response || [];
   },
 
@@ -25,7 +22,7 @@ export const workspacesApi = {
    * Get workspace by ID
    */
   getWorkspace: async (id: string): Promise<WorkspaceResponseData> => {
-    const { data: response } = await api.get<WorkspaceResponse>(
+    const { data: response } = await api.get<{ workspace: WorkspaceResponseData }>(
       `/workspaces/${id}?include_details=false`,
     );
     return response?.workspace;
@@ -35,7 +32,7 @@ export const workspacesApi = {
    * Get workspace with members
    */
   getAllWorkspaceDataForMember: async (id: string): Promise<WorkspaceWithMembersList> => {
-    const { data: response } = await api.get<WorkspaceWithMembersResponse>(
+    const { data: response } = await api.get<WorkspaceWithMembersList>(
       `/workspaces/${id}?include_details=true`,
     );
     return response;
@@ -53,7 +50,7 @@ export const workspacesApi = {
    * Update workspace
    */
   updateWorkspace: async (id: string, data: UpdateWorkspaceData): Promise<WorkspaceEntity> => {
-    const { data: response } = await api.patch<WorkspaceResponse>(`/workspaces/${id}`, data);
+    const { data: response } = await api.patch<WorkspaceEntity>(`/workspaces/${id}`, data);
     return response;
   },
 

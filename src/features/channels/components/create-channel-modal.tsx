@@ -1,5 +1,5 @@
 import { useRouter } from 'next/navigation';
-import { ChangeEvent, FormEvent, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -191,7 +191,9 @@ export const CreateChannelModal = () => {
                       <div className="space-y-1">
                         {selectedMemberIds.map((memberId) => {
                           const member = workspaceMembers.find((m) => m.id === memberId);
-                          if (!member) return null;
+                          if (!member) {
+                            return null;
+                          }
                           return (
                             <div
                               key={memberId}
@@ -251,7 +253,7 @@ export const CreateChannelModal = () => {
         onClose={() => setIsAddingMembers(false)}
         channel={{
           id: '',
-          name: name,
+          name,
           isPrivate: channelType === ChannelType.PRIVATE,
           type: channelType,
           memberCount: 0,
