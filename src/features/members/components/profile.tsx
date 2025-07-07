@@ -78,33 +78,29 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
     }
 
     // First, try to find an existing 1-on-1 conversation with this user
-    const existingConversation = conversations.find(conversation => {
-      // Only check 1-on-1 conversations (not group conversations)
+    const existingConversation = conversations.find((conversation) => {
       if (conversation.is_group_conversation) {
         return false;
       }
-      // Check if this conversation has exactly 2 members and one of them is the target member (by workspace_member.id)
-      return conversation.members.length === 2 && 
-        conversation.members.some(m => m.workspace_member.id === member.id);
+      return (
+        conversation.members.length === 2 &&
+        conversation.members.some((m) => m.workspace_member.id === member.id)
+      );
     });
 
     if (existingConversation) {
-      // Navigate to existing conversation
       router.push(`/${workspaceId}/d-${existingConversation.id}`);
       onClose();
     } else {
-      // Create new conversation directly
       try {
         const newConversation = await createConversation.mutateAsync({
           participantMemberIds: [member.id],
         });
-        
-        // Navigate to the new conversation
+
         router.push(`/${workspaceId}/d-${newConversation.id}`);
         onClose();
         toast.success('Conversation created');
       } catch (error) {
-        console.error('Failed to create conversation:', error);
         toast.error('Failed to create conversation');
       }
     }

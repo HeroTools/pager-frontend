@@ -618,12 +618,11 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       >
         <div className="flex gap-3">
           {showAvatar && !isCompact ? (
-            <Avatar 
+            <Avatar
               className="w-9 h-9 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => {
-                // Find the workspace member ID for this user
                 const workspaceMember = getMembers.data?.find(
-                  (member) => member.user.id === message.author.id
+                  (member) => member.user.id === message.author.id,
                 );
                 if (workspaceMember) {
                   setProfilePanelOpen(workspaceMember.id);
@@ -651,12 +650,11 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           <div className="flex-1 min-w-0">
             {!isCompact && (
               <div className="flex items-baseline gap-2 mb-0.5">
-                <span 
+                <span
                   className="font-semibold text-foreground hover:underline cursor-pointer leading-tight"
                   onClick={() => {
-                    // Find the workspace member ID for this user
                     const workspaceMember = getMembers.data?.find(
-                      (member) => member.user.id === message.author.id
+                      (member) => member.user.id === message.author.id,
                     );
                     if (workspaceMember) {
                       setProfilePanelOpen(workspaceMember.id);
