@@ -1,15 +1,10 @@
-import {
-  Channel,
-  CreateEntityInput,
-  UpdateEntityInput,
-  ApiResponse,
-  ChannelType,
-  Attachment,
-} from "@/types/database";
-import { MessageWithUser } from "../messages/types";
+import type { ApiResponse, Channel, ChannelMember, ChannelType } from '@/types/database';
+import type { MessageWithUser } from '../messages/types';
 
 // Use the database Channel type directly
-export type ChannelEntity = Channel;
+export interface ChannelEntity extends Channel {
+  members?: ChannelMember[];
+}
 
 // Channel member response from API
 export interface ChannelMemberResponse {
@@ -22,7 +17,7 @@ export interface ChannelMemberData {
   id: string;
   name: string;
   avatar?: string;
-  role?: "admin" | "member";
+  role?: 'admin' | 'member';
   workspace_member_id: string;
   email: string;
 }
@@ -44,7 +39,6 @@ export interface UpdateChannelData {
 
 // Channel-specific API response types using the generic ApiResponse
 export type ChannelResponse = ApiResponse<ChannelEntity>;
-export type ChannelsResponse = ApiResponse<ChannelEntity[]>;
 
 // Channel member management types
 export interface AddChannelMembersData {
@@ -52,7 +46,7 @@ export interface AddChannelMembersData {
 }
 
 export interface UpdateChannelMemberData {
-  role?: "admin" | "member";
+  role?: 'admin' | 'member';
   notifications_enabled?: boolean;
 }
 
@@ -69,7 +63,7 @@ export interface ChannelListItem extends ChannelEntity {
   unread_count?: number;
   last_message_at?: string;
   is_member?: boolean;
-  member_role?: "admin" | "member";
+  member_role?: 'admin' | 'member';
 }
 
 // Form data types for UI components
@@ -82,7 +76,7 @@ export interface ChannelFormData {
 // Channel invitation types
 export interface ChannelInviteData {
   email: string;
-  role?: "admin" | "member";
+  role?: 'admin' | 'member';
 }
 
 export interface ChannelMemberWithUser {
@@ -120,13 +114,20 @@ export interface ChannelWithMessages {
 export type ChannelWithMessagesResponse = ApiResponse<ChannelWithMessages>;
 
 export interface GetChannelMessagesParams {
-  limit?: number;
-  cursor?: string;
-  before?: string;
+  limit?: number | undefined;
+  cursor?: string | undefined;
+  before?: string | undefined;
 }
 
 export interface MutateCreateChannelContext {
   workspaceId: string;
   channelId?: string;
-  previousChannels?: ChannelEntity[];
+  previousChannels?: ChannelEntity[] | undefined;
+}
+
+export interface RemoveChannelMembersParams {
+  workspaceId: string;
+  channelId: string;
+  channelMemberIds: string[];
+  isCurrentUserLeaving?: boolean;
 }

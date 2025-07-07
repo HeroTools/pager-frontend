@@ -1,24 +1,21 @@
-import api from "@/lib/api/axios-client";
+import api from '@/lib/api/axios-client';
 import type {
-  MessageEntity,
-  MessageWithAllRelations,
   ChannelMessage,
   ChannelMessageWithRelations,
   CreateChannelMessageData,
-  UpdateMessageData,
-  MessageResponse,
-  MessagesResponse,
-  MessageWithRelationsResponse,
-  MessagesWithRelationsResponse,
-  MessageThreadResponse,
-  MessageSearchResponse,
-  MessageFilters,
-  AddReactionData,
-  MessageThread,
-  MessageWithUser,
-  MessageWithUserResponse,
   CreateConversationMessageData,
-} from "../types";
+  MessageEntity,
+  MessageFilters,
+  MessageResponse,
+  MessageSearchResponse,
+  MessagesResponse,
+  MessagesWithRelationsResponse,
+  MessageThread,
+  MessageWithAllRelations,
+  MessageWithRelationsResponse,
+  MessageWithUser,
+  UpdateMessageData,
+} from '../types';
 
 export const messagesApi = {
   /**
@@ -27,27 +24,38 @@ export const messagesApi = {
   getChannelMessages: async (
     workspaceId: string,
     channelId: string,
-    filters?: Partial<MessageFilters>
+    filters?: Partial<MessageFilters>,
   ): Promise<{
     messages: ChannelMessage[];
     has_more: boolean;
     next_cursor?: string;
   }> => {
     const params = new URLSearchParams();
-    if (filters?.before) params.append("before", filters.before);
-    if (filters?.after) params.append("after", filters.after);
-    if (filters?.limit) params.append("limit", filters.limit.toString());
-    if (filters?.search_query)
-      params.append("search_query", filters.search_query);
-    if (filters?.message_type)
-      params.append("message_type", filters.message_type);
-    if (filters?.has_attachments !== undefined)
-      params.append("has_attachments", filters.has_attachments.toString());
-    if (filters?.user_id) params.append("user_id", filters.user_id);
+    if (filters?.before) {
+      params.append('before', filters.before);
+    }
+    if (filters?.after) {
+      params.append('after', filters.after);
+    }
+    if (filters?.limit) {
+      params.append('limit', filters.limit.toString());
+    }
+    if (filters?.search_query) {
+      params.append('search_query', filters.search_query);
+    }
+    if (filters?.message_type) {
+      params.append('message_type', filters.message_type);
+    }
+    if (filters?.has_attachments !== undefined) {
+      params.append('has_attachments', filters.has_attachments.toString());
+    }
+    if (filters?.user_id) {
+      params.append('user_id', filters.user_id);
+    }
 
-    const qs = params.toString() ? `?${params.toString()}` : "";
+    const qs = params.toString() ? `?${params.toString()}` : '';
     const { data: response } = await api.get<MessagesResponse>(
-      `/workspaces/${workspaceId}/channels/${channelId}/messages${qs}`
+      `/workspaces/${workspaceId}/channels/${channelId}/messages${qs}`,
     );
     return response.data as {
       messages: ChannelMessage[];
@@ -62,28 +70,39 @@ export const messagesApi = {
   getChannelMessagesWithRelations: async (
     workspaceId: string,
     channelId: string,
-    filters?: Partial<MessageFilters>
+    filters?: Partial<MessageFilters>,
   ): Promise<{
     messages: ChannelMessageWithRelations[];
     has_more: boolean;
     next_cursor?: string;
   }> => {
     const params = new URLSearchParams();
-    if (filters?.before) params.append("before", filters.before);
-    if (filters?.after) params.append("after", filters.after);
-    if (filters?.limit) params.append("limit", filters.limit.toString());
-    if (filters?.search_query)
-      params.append("search_query", filters.search_query);
-    if (filters?.message_type)
-      params.append("message_type", filters.message_type);
-    if (filters?.has_attachments !== undefined)
-      params.append("has_attachments", filters.has_attachments.toString());
-    if (filters?.user_id) params.append("user_id", filters.user_id);
-    params.append("include_relations", "true");
+    if (filters?.before) {
+      params.append('before', filters.before);
+    }
+    if (filters?.after) {
+      params.append('after', filters.after);
+    }
+    if (filters?.limit) {
+      params.append('limit', filters.limit.toString());
+    }
+    if (filters?.search_query) {
+      params.append('search_query', filters.search_query);
+    }
+    if (filters?.message_type) {
+      params.append('message_type', filters.message_type);
+    }
+    if (filters?.has_attachments !== undefined) {
+      params.append('has_attachments', filters.has_attachments.toString());
+    }
+    if (filters?.user_id) {
+      params.append('user_id', filters.user_id);
+    }
+    params.append('include_relations', 'true');
 
-    const qs = params.toString() ? `?${params.toString()}` : "";
+    const qs = params.toString() ? `?${params.toString()}` : '';
     const { data: response } = await api.get<MessagesWithRelationsResponse>(
-      `/workspaces/${workspaceId}/channels/${channelId}/messages${qs}`
+      `/workspaces/${workspaceId}/channels/${channelId}/messages${qs}`,
     );
     return response.data as {
       messages: ChannelMessageWithRelations[];
@@ -95,12 +114,9 @@ export const messagesApi = {
   /**
    * Get a specific message
    */
-  getMessage: async (
-    workspaceId: string,
-    messageId: string
-  ): Promise<MessageEntity> => {
+  getMessage: async (workspaceId: string, messageId: string): Promise<MessageEntity> => {
     const { data: response } = await api.get<MessageResponse>(
-      `/workspaces/${workspaceId}/messages/${messageId}`
+      `/workspaces/${workspaceId}/messages/${messageId}`,
     );
     return response.data;
   },
@@ -110,10 +126,10 @@ export const messagesApi = {
    */
   getMessageWithRelations: async (
     workspaceId: string,
-    messageId: string
+    messageId: string,
   ): Promise<MessageWithAllRelations> => {
     const { data: response } = await api.get<MessageWithRelationsResponse>(
-      `/workspaces/${workspaceId}/messages/${messageId}?include_relations=true`
+      `/workspaces/${workspaceId}/messages/${messageId}?include_relations=true`,
     );
     return response.data;
   },
@@ -124,11 +140,11 @@ export const messagesApi = {
   createChannelMessage: async (
     workspaceId: string,
     channelId: string,
-    data: CreateChannelMessageData
+    data: CreateChannelMessageData,
   ): Promise<MessageWithUser> => {
-    const { data: response } = await api.post<MessageWithUserResponse>(
+    const { data: response } = await api.post<MessageWithUser>(
       `/workspaces/${workspaceId}/channels/${channelId}/messages`,
-      data
+      data,
     );
     return response;
   },
@@ -139,11 +155,11 @@ export const messagesApi = {
   createConversationMessage: async (
     workspaceId: string,
     conversationId: string,
-    data: CreateConversationMessageData
+    data: CreateConversationMessageData,
   ): Promise<MessageWithUser> => {
-    const { data: response } = await api.post<MessageWithUserResponse>(
+    const { data: response } = await api.post<MessageWithUser>(
       `/workspaces/${workspaceId}/conversations/${conversationId}/messages`,
-      data
+      data,
     );
     return response;
   },
@@ -153,7 +169,7 @@ export const messagesApi = {
    */
   sendTypingIndicator: async (
     endpoint: string,
-    data: { is_typing: boolean }
+    data: { is_typing: boolean },
   ): Promise<{ message: string; timestamp: string }> => {
     const { data: response } = await api.post<{
       message: string;
@@ -168,22 +184,19 @@ export const messagesApi = {
   updateMessage: async (
     workspaceId: string,
     messageId: string,
-    data: UpdateMessageData
-  ): Promise<MessageEntity> => {
-    const { data: response } = await api.put<MessageResponse>(
+    data: UpdateMessageData,
+  ): Promise<{ messageId: string; updatedAt: string }> => {
+    const { data: response } = await api.put<{ messageId: string; updatedAt: string }>(
       `/workspaces/${workspaceId}/messages/${messageId}`,
-      data
+      data,
     );
-    return response.data;
+    return response;
   },
 
   /**
    * Delete a message (soft delete)
    */
-  deleteMessage: async (
-    workspaceId: string,
-    messageId: string
-  ): Promise<void> => {
+  deleteMessage: async (workspaceId: string, messageId: string): Promise<void> => {
     await api.delete(`/workspaces/${workspaceId}/messages/${messageId}`);
   },
 
@@ -202,23 +215,32 @@ export const messagesApi = {
       cursor?: string;
       before?: string;
       after?: string;
-      entity_type?: "channel" | "conversation";
+      entity_type?: 'channel' | 'conversation';
       entity_id?: string;
       include_reactions?: string;
       include_attachments?: string;
     };
   }): Promise<MessageThread> => {
     const appendedParams = new URLSearchParams();
-    if (params?.before) appendedParams.append("before", params.before);
-    if (params?.after) appendedParams.append("after", params.after);
-    if (params?.limit) appendedParams.append("limit", params.limit.toString());
-    if (params?.entity_type)
-      appendedParams.append("entity_type", params.entity_type);
-    if (params?.entity_id) appendedParams.append("entity_id", params.entity_id);
+    if (params?.before) {
+      appendedParams.append('before', params.before);
+    }
+    if (params?.after) {
+      appendedParams.append('after', params.after);
+    }
+    if (params?.limit) {
+      appendedParams.append('limit', params.limit.toString());
+    }
+    if (params?.entity_type) {
+      appendedParams.append('entity_type', params.entity_type);
+    }
+    if (params?.entity_id) {
+      appendedParams.append('entity_id', params.entity_id);
+    }
 
-    const qs = appendedParams.toString() ? `?${appendedParams.toString()}` : "";
-    const { data: response } = await api.get<MessageThreadResponse>(
-      `/workspaces/${workspaceId}/messages/${messageId}/replies${qs}`
+    const qs = appendedParams.toString() ? `?${appendedParams.toString()}` : '';
+    const { data: response } = await api.get<MessageThread>(
+      `/workspaces/${workspaceId}/messages/${messageId}/replies${qs}`,
     );
 
     return response;
@@ -230,11 +252,11 @@ export const messagesApi = {
   replyToMessage: async (
     workspaceId: string,
     parentMessageId: string,
-    data: Omit<CreateChannelMessageData, "parent_message_id">
+    data: Omit<CreateChannelMessageData, 'parent_message_id'>,
   ): Promise<MessageEntity> => {
     const { data: response } = await api.post<MessageResponse>(
       `/workspaces/${workspaceId}/messages/${parentMessageId}/replies`,
-      data
+      data,
     );
     return response.data;
   },
@@ -245,21 +267,29 @@ export const messagesApi = {
   searchMessages: async (
     workspaceId: string,
     query: string,
-    filters?: Partial<MessageFilters>
-  ): Promise<MessageSearchResponse["data"]> => {
+    filters?: Partial<MessageFilters>,
+  ): Promise<MessageSearchResponse['data']> => {
     const params = new URLSearchParams();
-    params.append("q", query);
-    if (filters?.channel_id) params.append("channel_id", filters.channel_id);
-    if (filters?.conversation_id)
-      params.append("conversation_id", filters.conversation_id);
-    if (filters?.message_type)
-      params.append("message_type", filters.message_type);
-    if (filters?.user_id) params.append("user_id", filters.user_id);
-    if (filters?.limit) params.append("limit", filters.limit.toString());
+    params.append('q', query);
+    if (filters?.channel_id) {
+      params.append('channel_id', filters.channel_id);
+    }
+    if (filters?.conversation_id) {
+      params.append('conversation_id', filters.conversation_id);
+    }
+    if (filters?.message_type) {
+      params.append('message_type', filters.message_type);
+    }
+    if (filters?.user_id) {
+      params.append('user_id', filters.user_id);
+    }
+    if (filters?.limit) {
+      params.append('limit', filters.limit.toString());
+    }
 
-    const qs = params.toString() ? `?${params.toString()}` : "";
+    const qs = params.toString() ? `?${params.toString()}` : '';
     const { data: response } = await api.get<MessageSearchResponse>(
-      `/workspaces/${workspaceId}/messages/search${qs}`
+      `/workspaces/${workspaceId}/messages/search${qs}`,
     );
     return response.data;
   },

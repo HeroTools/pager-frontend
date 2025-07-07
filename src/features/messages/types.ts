@@ -1,14 +1,11 @@
-import {
-  Message,
-  MessageWithRelations,
-  UpdateEntityInput,
+import type {
   ApiResponse,
-  SendMessageRequest,
-  MessageType,
-  Reaction,
   Attachment,
-} from "@/types/database";
-import { UploadedAttachment } from "../file-upload/types";
+  Message,
+  MessageType,
+  MessageWithRelations,
+} from '@/types/database';
+import type { UploadedAttachment } from '../file-upload/types';
 
 // Use the database Message type directly
 export type MessageEntity = Message;
@@ -57,8 +54,6 @@ export interface MessageThread {
   last_reply_at?: string;
 }
 
-export type MessageThreadResponse = ApiResponse<MessageThread>;
-
 // Message reaction types
 export interface AddReactionData {
   value: string; // emoji or reaction identifier
@@ -83,7 +78,7 @@ export interface CreateChannelMessageData {
   attachment_ids?: string[];
   parent_message_id?: string;
   thread_id?: string;
-  message_type?: "direct" | "thread" | "system";
+  message_type?: 'direct' | 'thread' | 'system';
   plain_text?: string;
 }
 
@@ -92,7 +87,7 @@ export interface CreateConversationMessageData {
   attachment_ids?: string[];
   parent_message_id?: string;
   thread_id?: string;
-  message_type?: "direct" | "thread" | "system";
+  message_type?: 'direct' | 'thread' | 'system';
   plain_text?: string;
 }
 
@@ -102,7 +97,7 @@ export interface CreateMessageData {
   attachments?: UploadedAttachment[];
   parent_message_id?: string;
   thread_id?: string;
-  message_type?: "direct" | "thread" | "system";
+  message_type?: 'direct' | 'thread' | 'system';
   plain_text?: string;
 }
 
@@ -115,7 +110,7 @@ export interface MessageWithUser {
   body: string;
   workspace_member_id: string;
   workspace_id: string;
-  channel_id: string;
+  channel_id: string | null;
   conversation_id: string | null;
   parent_message_id: string | null;
   thread_id: string | null;
@@ -146,15 +141,13 @@ export interface MessageWithUser {
   _isOptimistic?: boolean;
 }
 
-export type MessageWithUserResponse = ApiResponse<MessageWithUser>;
-
 export interface QuillDelta {
   ops: QuillOp[];
 }
 
 export interface QuillOp {
-  insert?: string | Record<string, any>;
+  insert?: string | Record<string, unknown>;
   retain?: number;
   delete?: number;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }

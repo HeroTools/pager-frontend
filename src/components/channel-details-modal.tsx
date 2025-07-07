@@ -1,56 +1,58 @@
-import { FC, useState, useMemo, useEffect } from "react";
+import type { FC } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Users,
-  Settings,
-  Lock,
+  Edit,
+  Globe,
   Hash,
-  Search,
+  Lock,
+  MoreVertical,
   Plus,
+  Save,
+  Search,
+  Settings,
+  Trash2,
+  Users,
+  UserSearch,
   X,
   XCircle,
-  MoreVertical,
-  UserSearch,
-  Trash2,
-  Edit,
-  Save,
-  Globe,
-} from "lucide-react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
-import { Channel, ChannelType } from "@/types/chat";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Channel } from '@/types/chat';
+import { ChannelType } from '@/types/chat';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
-  useRemoveChannelMembers,
+  type ChannelMemberData,
   useAddChannelMembers,
   useDeleteChannel,
+  useRemoveChannelMembers,
   useUpdateChannel,
-  type ChannelMemberData,
-} from "@/features/channels";
-import { useGetMembers } from "@/features/members";
-import { useCurrentUser } from "@/features/auth";
-import { useParamIds } from "@/hooks/use-param-ids";
-import { useConfirm } from "@/hooks/use-confirm";
-import AddMembersDialog from "./add-people-to-channel-modal";
-import RemoveConfirmation from "./remove-member-from-channel-modal";
+} from '@/features/channels';
+import { useGetMembers } from '@/features/members';
+import { useCurrentUser } from '@/features/auth';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { useConfirm } from '@/hooks/use-confirm';
+import AddMembersDialog from './add-people-to-channel-modal';
+import RemoveConfirmation from './remove-member-from-channel-modal';
 
 interface ChannelDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   channel: Channel;
   members?: ChannelMemberData[];
-  initialTab?: "members" | "settings";
+  initialTab?: 'members' | 'settings';
 }
 
 export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
@@ -58,7 +60,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   onClose,
   channel,
   members: channelMembers = [],
-  initialTab = "members",
+  initialTab = 'members',
 }) => {
   const { workspaceId } = useParamIds();
   const removeChannelMembers = useRemoveChannelMembers();
@@ -70,14 +72,12 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   const router = useRouter();
 
   const [ConfirmDeleteDialog, confirmDelete] = useConfirm(
-    "Delete Channel",
-    `Are you sure you want to delete #${channel.name}? This action cannot be undone and will permanently delete all messages in this channel.`
+    'Delete Channel',
+    `Are you sure you want to delete #${channel.name}? This action cannot be undone and will permanently delete all messages in this channel.`,
   );
 
-  const [activeTab, setActiveTab] = useState<"members" | "settings">(
-    initialTab
-  );
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<'members' | 'settings'>(initialTab);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isAddingMembers, setIsAddingMembers] = useState(false);
   const [removeConfirmation, setRemoveConfirmation] = useState<{
     isOpen: boolean;
@@ -99,12 +99,12 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   }, [isOpen, initialTab, channel.name, channel.type]);
 
   const filteredMembers = useMemo(() => {
-    if (!searchQuery) return channelMembers;
+    if (!searchQuery) {
+      return channelMembers;
+    }
     const query = searchQuery.toLowerCase();
     return channelMembers.filter((member) => {
-      const workspaceMember = workspaceMembers.find(
-        (wm) => wm.id === member.workspace_member_id
-      );
+      const workspaceMember = workspaceMembers.find((wm) => wm.id === member.workspace_member_id);
       return (
         workspaceMember?.user.name.toLowerCase().includes(query) ||
         workspaceMember?.user.email?.toLowerCase().includes(query)
@@ -121,10 +121,10 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
       });
 
       setIsAddingMembers(false);
-      toast.success("Members added to channel");
+      toast.success('Members added to channel');
     } catch (error) {
-      console.error("Failed to add members:", error);
-      toast.error("Failed to add members to channel");
+      console.error('Failed to add members:', error);
+      toast.error('Failed to add members to channel');
     }
   };
 
@@ -138,10 +138,10 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
       });
 
       setRemoveConfirmation({ isOpen: false });
-      toast.success("Member removed from channel");
+      toast.success('Member removed from channel');
     } catch (error) {
-      console.error("Failed to remove member:", error);
-      toast.error("Failed to remove member from channel");
+      console.error('Failed to remove member:', error);
+      toast.error('Failed to remove member from channel');
     }
   };
 
@@ -150,24 +150,28 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   }, [channelMembers]);
 
   const isChannelAdmin = useMemo(() => {
-    if (!user) return false;
+    if (!user) {
+      return false;
+    }
 
-    const currentWorkspaceMember = workspaceMembers.find(
-      (wm) => wm.user.id === user.id
-    );
+    const currentWorkspaceMember = workspaceMembers.find((wm) => wm.user.id === user.id);
 
-    if (!currentWorkspaceMember) return false;
+    if (!currentWorkspaceMember) {
+      return false;
+    }
 
     const currentChannelMember = channelMembers.find(
-      (member) => member.workspace_member_id === currentWorkspaceMember.id
+      (member) => member.workspace_member_id === currentWorkspaceMember.id,
     );
 
-    return currentChannelMember?.role === "admin";
+    return currentChannelMember?.role === 'admin';
   }, [user, workspaceMembers, channelMembers]);
 
   const handleDeleteChannel = async () => {
     const confirmed = await confirmDelete();
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       await deleteChannel.mutateAsync({
@@ -175,38 +179,34 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
         channelId: channel.id,
       });
 
-      toast.success("Channel deleted successfully");
+      toast.success('Channel deleted successfully');
       onClose();
       router.push(`/${workspaceId}`);
     } catch (error) {
-      console.error("Failed to delete channel:", error);
-      toast.error(
-        "Failed to delete channel. You must be a channel admin to delete this channel."
-      );
+      console.error('Failed to delete channel:', error);
+      toast.error('Failed to delete channel. You must be a channel admin to delete this channel.');
     }
   };
 
   const handleLeaveChannel = async () => {
     if (!user) {
-      toast.error("User not found");
+      toast.error('User not found');
       return;
     }
 
-    const currentWorkspaceMember = workspaceMembers.find(
-      (wm) => wm.user.id === user.id
-    );
+    const currentWorkspaceMember = workspaceMembers.find((wm) => wm.user.id === user.id);
 
     if (!currentWorkspaceMember) {
-      toast.error("Unable to leave channel - workspace membership not found");
+      toast.error('Unable to leave channel - workspace membership not found');
       return;
     }
 
     const currentChannelMember = channelMembers.find(
-      (member) => member.workspace_member_id === currentWorkspaceMember.id
+      (member) => member.workspace_member_id === currentWorkspaceMember.id,
     );
 
     if (!currentChannelMember) {
-      toast.error("Unable to leave channel - channel membership not found");
+      toast.error('Unable to leave channel - channel membership not found');
       return;
     }
 
@@ -218,12 +218,12 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
         isCurrentUserLeaving: true,
       });
 
-      toast.success("Left channel successfully");
+      toast.success('Left channel successfully');
       onClose();
       router.push(`/${workspaceId}`);
     } catch (error) {
-      console.error("Failed to leave channel:", error);
-      toast.error("Failed to leave channel");
+      console.error('Failed to leave channel:', error);
+      toast.error('Failed to leave channel');
     }
   };
 
@@ -234,7 +234,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
     }
 
     if (!editedName.trim()) {
-      toast.error("Channel name cannot be empty");
+      toast.error('Channel name cannot be empty');
       return;
     }
 
@@ -246,10 +246,10 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
       });
 
       setIsEditingName(false);
-      toast.success("Channel name updated successfully");
+      toast.success('Channel name updated successfully');
     } catch (error) {
-      console.error("Failed to update channel name:", error);
-      toast.error("Failed to update channel name");
+      console.error('Failed to update channel name:', error);
+      toast.error('Failed to update channel name');
       setEditedName(channel.name);
     }
   };
@@ -268,16 +268,16 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
       });
 
       setIsEditingType(false);
-      toast.success("Channel type updated successfully");
+      toast.success('Channel type updated successfully');
     } catch (error) {
-      console.error("Failed to update channel type:", error);
-      toast.error("Failed to update channel type");
+      console.error('Failed to update channel type:', error);
+      toast.error('Failed to update channel type');
       setEditedType(channel.type);
     }
   };
 
-  const handleCancelEdit = (type: "name" | "type") => {
-    if (type === "name") {
+  const handleCancelEdit = (type: 'name' | 'type') => {
+    if (type === 'name') {
       setEditedName(channel.name);
       setIsEditingName(false);
     } else {
@@ -292,44 +292,29 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
         <DialogContent className="max-w-2xl w-full h-[80vh] flex flex-col p-0 overflow-hidden">
           <div className="p-6 pb-0">
             <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
-              {channel.isPrivate ? (
-                <Lock className="w-5 h-5" />
-              ) : (
-                <Hash className="w-5 h-5" />
-              )}
+              {channel.isPrivate ? <Lock className="w-5 h-5" /> : <Hash className="w-5 h-5" />}
               {channel.name}
             </DialogTitle>
           </div>
 
           <Tabs
             value={activeTab}
-            onValueChange={(value) =>
-              setActiveTab(value as "members" | "settings")
-            }
+            onValueChange={(value) => setActiveTab(value as 'members' | 'settings')}
             className="flex-1 flex flex-col h-full"
           >
             <div className="px-6">
               <TabsList className="w-full grid grid-cols-2">
-                <TabsTrigger
-                  value="members"
-                  className="flex items-center gap-2"
-                >
-                  <Users className="w-4 h-4" /> Members{" "}
+                <TabsTrigger value="members" className="flex items-center gap-2">
+                  <Users className="w-4 h-4" /> Members{' '}
                   {channelMembers.length > 0 && `(${channelMembers.length})`}
                 </TabsTrigger>
-                <TabsTrigger
-                  value="settings"
-                  className="flex items-center gap-2"
-                >
+                <TabsTrigger value="settings" className="flex items-center gap-2">
                   <Settings className="w-4 h-4" /> Settings
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent
-              value="members"
-              className="flex-1 overflow-hidden flex flex-col mt-0"
-            >
+            <TabsContent value="members" className="flex-1 overflow-hidden flex flex-col mt-0">
               <div className="p-6 pt-4 space-y-4">
                 <div className="flex items-center justify-between gap-7">
                   <div className="relative flex-1">
@@ -345,7 +330,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setSearchQuery("")}
+                        onClick={() => setSearchQuery('')}
                         className="absolute right-1 top-1/2 -translate-y-1/2"
                       >
                         <X className="h-4 w-4" />
@@ -368,9 +353,11 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                     {filteredMembers.length > 0 ? (
                       filteredMembers.map((member) => {
                         const workspaceMember = workspaceMembers.find(
-                          (wm) => wm.id === member.workspace_member_id
+                          (wm) => wm.id === member.workspace_member_id,
                         );
-                        if (!workspaceMember) return null;
+                        if (!workspaceMember) {
+                          return null;
+                        }
 
                         return (
                           <div
@@ -387,25 +374,22 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                                     />
                                   ) : (
                                     <AvatarFallback>
-                                      {workspaceMember.user.name?.[0]?.toUpperCase() ||
-                                        "U"}
+                                      {workspaceMember.user.name?.[0]?.toUpperCase() || 'U'}
                                     </AvatarFallback>
                                   )}
                                 </Avatar>
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <p className="font-medium">
-                                    {workspaceMember.user.name}
-                                  </p>
-                                  {member.role === "admin" && (
+                                  <p className="font-medium">{workspaceMember.user.name}</p>
+                                  {member.role === 'admin' && (
                                     <span className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
                                       Admin
                                     </span>
                                   )}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                  {workspaceMember.user.email || "Member"}
+                                  {workspaceMember.user.email || 'Member'}
                                 </p>
                               </div>
                             </div>
@@ -440,13 +424,8 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                     ) : (
                       <div className="text-center py-12">
                         <UserSearch className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                        <p className="text-muted-foreground font-medium mb-4">
-                          No members found
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsAddingMembers(true)}
-                        >
+                        <p className="text-muted-foreground font-medium mb-4">No members found</p>
+                        <Button variant="outline" onClick={() => setIsAddingMembers(true)}>
                           Invite member
                         </Button>
                       </div>
@@ -456,10 +435,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
               </div>
             </TabsContent>
 
-            <TabsContent
-              value="settings"
-              className="flex-1 overflow-y-auto mt-0"
-            >
+            <TabsContent value="settings" className="flex-1 overflow-y-auto mt-0">
               <div className="p-6 space-y-6">
                 <div className="space-y-2">
                   <h3 className="font-medium">Channel Name</h3>
@@ -472,8 +448,12 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                           className="max-w-md"
                           placeholder="Enter channel name"
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSaveName();
-                            if (e.key === "Escape") handleCancelEdit("name");
+                            if (e.key === 'Enter') {
+                              handleSaveName();
+                            }
+                            if (e.key === 'Escape') {
+                              handleCancelEdit('name');
+                            }
                           }}
                         />
                         <Button
@@ -487,7 +467,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleCancelEdit("name")}
+                          onClick={() => handleCancelEdit('name')}
                           disabled={updateChannel.isPending}
                         >
                           <X className="h-4 w-4" />
@@ -495,11 +475,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                       </>
                     ) : (
                       <>
-                        <Input
-                          value={channel.name}
-                          className="max-w-md"
-                          readOnly
-                        />
+                        <Input value={channel.name} className="max-w-md" readOnly />
                         <Button
                           variant="outline"
                           onClick={() => setIsEditingName(true)}
@@ -518,17 +494,15 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                     <div className="flex-1 max-w-md">
                       <p className="text-sm text-muted-foreground">
                         {channel.isPrivate
-                          ? "Private channels can only be viewed or joined by invitation."
-                          : "Everyone in the workspace can view and join this channel."}
+                          ? 'Private channels can only be viewed or joined by invitation.'
+                          : 'Everyone in the workspace can view and join this channel.'}
                       </p>
                     </div>
                     {isEditingType ? (
                       <>
                         <select
                           value={editedType}
-                          onChange={(e) =>
-                            setEditedType(e.target.value as ChannelType)
-                          }
+                          onChange={(e) => setEditedType(e.target.value as ChannelType)}
                           className="px-3 py-2 border border-input bg-background rounded-md text-sm"
                           disabled={updateChannel.isPending}
                         >
@@ -546,32 +520,30 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleCancelEdit("type")}
+                          onClick={() => handleCancelEdit('type')}
                           disabled={updateChannel.isPending}
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </>
                     ) : (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsEditingType(true)}
-                          disabled={!isChannelAdmin}
-                        >
-                          {channel.isPrivate ? (
-                            <>
-                              <Lock className="h-4 w-4 mr-2" />
-                              Private
-                            </>
-                          ) : (
-                            <>
-                              <Globe className="h-4 w-4 mr-2" />
-                              Public
-                            </>
-                          )}
-                        </Button>
-                      </>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsEditingType(true)}
+                        disabled={!isChannelAdmin}
+                      >
+                        {channel.isPrivate ? (
+                          <>
+                            <Lock className="h-4 w-4 mr-2" />
+                            Private
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="h-4 w-4 mr-2" />
+                            Public
+                          </>
+                        )}
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -579,14 +551,12 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                 <div className="pt-4 border-t space-y-3">
                   {isChannelAdmin && (
                     <div className="space-y-2">
-                      <h3 className="font-medium text-destructive">
-                        Danger Zone
-                      </h3>
+                      <h3 className="font-medium text-destructive">Danger Zone</h3>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 max-w-md">
                           <p className="text-sm text-muted-foreground">
-                            Permanently delete this channel and all its
-                            messages. This action cannot be undone.
+                            Permanently delete this channel and all its messages. This action cannot
+                            be undone.
                           </p>
                         </div>
                         <Button
@@ -596,9 +566,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                           disabled={deleteChannel.isPending}
                         >
                           <Trash2 className="h-4 w-4" />
-                          {deleteChannel.isPending
-                            ? "Deleting..."
-                            : "Delete Channel"}
+                          {deleteChannel.isPending ? 'Deleting...' : 'Delete Channel'}
                         </Button>
                       </div>
                     </div>
@@ -612,9 +580,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                       disabled={removeChannelMembers.isPending}
                     >
                       <XCircle className="h-4 w-4" />
-                      {removeChannelMembers.isPending
-                        ? "Leaving..."
-                        : "Leave Channel"}
+                      {removeChannelMembers.isPending ? 'Leaving...' : 'Leave Channel'}
                     </Button>
                   )}
                 </div>
@@ -636,11 +602,10 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
         isOpen={removeConfirmation.isOpen}
         onClose={() => setRemoveConfirmation({ isOpen: false })}
         onConfirm={() =>
-          removeConfirmation.memberId &&
-          handleRemoveMember(removeConfirmation.memberId)
+          removeConfirmation.memberId && handleRemoveMember(removeConfirmation.memberId)
         }
         channelName={channel.name}
-        memberName={removeConfirmation.memberName || ""}
+        memberName={removeConfirmation.memberName || ''}
         isPrivate={channel.isPrivate}
       />
 

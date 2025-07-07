@@ -1,69 +1,89 @@
-import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
-import { REALTIME_SUBSCRIBE_STATES } from "@supabase/realtime-js";
-import { supabase } from "@/lib/supabase/client";
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
+import { REALTIME_SUBSCRIBE_STATES } from '@supabase/realtime-js';
+import { supabase } from '@/lib/supabase/client';
 
 export type Topic = string;
+
 export type ChannelFactory<T extends SupabaseClient = SupabaseClient> = (
-  supabase: T
+  supabase: T,
 ) => RealtimeChannel;
-export type RealtimeChannelFactories<
-  T extends SupabaseClient = SupabaseClient
-> = Map<Topic, ChannelFactory<T>>;
+
+export type RealtimeChannelFactories<T extends SupabaseClient = SupabaseClient> = Map<
+  Topic,
+  ChannelFactory<T>
+>;
+
 export type RealtimeChannels = Map<Topic, RealtimeChannel>;
 
-export type RealtimeHandlerConfig = {
+export interface RealtimeHandlerConfig {
   inactiveTabTimeoutSeconds?: number;
-};
+}
 
-export type SubscriptionEventCallbacks = {
+export interface SubscriptionEventCallbacks {
   onSubscribe?: (channel: RealtimeChannel) => void;
   onClose?: (channel: RealtimeChannel) => void;
   onTimeout?: (channel: RealtimeChannel) => void;
   onError?: (channel: RealtimeChannel, err: Error) => void;
-};
-export type SubscriptionEventCallbacksMap = Map<
-  Topic,
-  SubscriptionEventCallbacks
->;
+}
 
-const isTokenExpiredError = (err: Error): boolean =>
-  err.message?.includes("token has expired");
+export type SubscriptionEventCallbacksMap = Map<Topic, SubscriptionEventCallbacks>;
+
+type SubscribeStatus = `${REALTIME_SUBSCRIBE_STATES}`;
+
+interface AuthSession {
+  access_token?: string;
+}
+
+interface AuthData {
+  session?: AuthSession | null;
+}
+
+interface AuthResponse {
+  data: AuthData;
+  error: Error | null;
+}
+
+const isTokenExpiredError = (err: Error): boolean => {
+  return err.message?.includes('token has expired') ?? false;
+};
 
 export class RealtimeHandler<T extends SupabaseClient> {
-  private inactiveTabTimeoutSeconds = 600; // 10 minutes
-  private supabaseClient: T;
+  private readonly inactiveTabTimeoutSeconds: number;
+  private readonly supabaseClient: T;
 
-  private channelFactories: RealtimeChannelFactories<T> = new Map();
-  private channels: RealtimeChannels = new Map();
-  private subscriptionEventCallbacks: SubscriptionEventCallbacksMap = new Map();
-  private retryCounts: Map<Topic, number> = new Map();
+  private readonly channelFactories: RealtimeChannelFactories<T> = new Map();
+  private readonly channels: RealtimeChannels = new Map();
+  private readonly subscriptionEventCallbacks: SubscriptionEventCallbacksMap = new Map();
+  private readonly retryCounts: Map<Topic, number> = new Map();
+
   private inactiveTabTimer?: ReturnType<typeof setTimeout>;
   private started = false;
 
   constructor(supabaseClient: T, config?: RealtimeHandlerConfig) {
     this.supabaseClient = supabaseClient;
-    if (config?.inactiveTabTimeoutSeconds) {
-      this.inactiveTabTimeoutSeconds = config.inactiveTabTimeoutSeconds;
-    }
+    this.inactiveTabTimeoutSeconds = config?.inactiveTabTimeoutSeconds ?? 600; // 10 minutes default
   }
 
   public addChannel(
     factory: ChannelFactory<T>,
-    callbacks?: SubscriptionEventCallbacks
+    callbacks?: SubscriptionEventCallbacks,
   ): () => void {
-    // Create a temporary channel to get the topic, which is the key for all maps
     const { topic } = factory(this.supabaseClient);
 
     if (this.channelFactories.has(topic)) {
       this.unsubscribeFromChannel(topic);
     }
+
     this.channelFactories.set(topic, factory);
+
     if (callbacks) {
       this.subscriptionEventCallbacks.set(topic, callbacks);
     }
+
     if (this.started) {
       this.scheduleResubscribe(topic, 0);
     }
+
     return () => this.removeChannel(topic);
   }
 
@@ -78,22 +98,35 @@ export class RealtimeHandler<T extends SupabaseClient> {
   }
 
   public start(): () => void {
-    if (this.started) return () => {};
+    if (this.started) {
+      return () => {};
+    }
 
     this.started = true;
     this.resubscribeToAllChannels();
 
     const removeVisibilityListener = this.addOnVisibilityChangeListener();
-    window.addEventListener("online", this.handleOnline);
-    window.addEventListener("offline", this.handleOffline);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', this.handleOnline);
+      window.addEventListener('offline', this.handleOffline);
+    }
 
     return () => {
       removeVisibilityListener();
-      window.removeEventListener("online", this.handleOnline);
-      window.removeEventListener("offline", this.handleOffline);
+
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', this.handleOnline);
+        window.removeEventListener('offline', this.handleOffline);
+      }
+
       this.unsubscribeFromAllChannels();
       this.channelFactories.clear();
-      if (this.inactiveTabTimer) clearTimeout(this.inactiveTabTimer);
+
+      if (this.inactiveTabTimer) {
+        clearTimeout(this.inactiveTabTimer);
+      }
+
       this.started = false;
     };
   }
@@ -107,40 +140,43 @@ export class RealtimeHandler<T extends SupabaseClient> {
   private scheduleResubscribe(topic: Topic, attempt: number): void {
     const backoff = Math.min(30000, 2 ** attempt * 1000); // Max 30s
     const jitter = backoff * 0.1 * (Math.random() * 2 - 1); // +/- 10% jitter
-    const delay = backoff + jitter;
+    const delay = Math.max(0, backoff + jitter);
 
     this.retryCounts.set(topic, attempt + 1);
-    setTimeout(() => this.resubscribeToChannel(topic), delay);
+
+    setTimeout(() => {
+      this.resubscribeToChannel(topic);
+    }, delay);
   }
 
   private resubscribeToChannel(topic: Topic): void {
     const factory = this.channelFactories.get(topic);
-    if (!factory) return; // Channel was likely removed
+    if (!factory) {
+      return;
+    } // Channel was likely removed
 
-    // Ensure old channel is gone before creating a new one
     this.unsubscribeFromChannel(topic);
     const channel = this.createChannel(factory);
     this.subscribeToChannel(channel);
   }
 
-  private async subscribeToChannel(channel: RealtimeChannel) {
-    if (["joined", "joining"].includes(channel.state)) return;
+  private async subscribeToChannel(channel: RealtimeChannel): Promise<void> {
+    if (['joined', 'joining'].includes(channel.state)) {
+      return;
+    }
 
     try {
       await this.refreshSessionIfNeeded();
-      channel.subscribe((status, err) =>
-        this.handleStateChange(channel, status, err)
-      );
+
+      channel.subscribe((status: SubscribeStatus, err?: Error) => {
+        this.handleStateChange(channel, status, err);
+      });
     } catch (error) {
-      console.error(
-        `[RealtimeHandler] Error on subscribe for ${channel.topic}:`,
-        error
-      );
-      this.handleStateChange(
-        channel,
-        REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR,
-        error as Error
-      );
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[RealtimeHandler] Error on subscribe for ${channel.topic}:`, errorMessage);
+
+      const subscribeError = error instanceof Error ? error : new Error(errorMessage);
+      this.handleStateChange(channel, REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, subscribeError);
     }
   }
 
@@ -164,18 +200,14 @@ export class RealtimeHandler<T extends SupabaseClient> {
     }
   }
 
-  private handleStateChange(
-    channel: RealtimeChannel,
-    status: `${REALTIME_SUBSCRIBE_STATES}`,
-    err?: Error
-  ): void {
+  private handleStateChange(channel: RealtimeChannel, status: SubscribeStatus, err?: Error): void {
     const { topic } = channel;
     const callbacks = this.subscriptionEventCallbacks.get(topic);
     const attempt = this.retryCounts.get(topic) ?? 0;
 
     switch (status) {
       case REALTIME_SUBSCRIBE_STATES.SUBSCRIBED:
-        this.retryCounts.set(topic, 0); // Reset retry count on success
+        this.retryCounts.set(topic, 0);
         callbacks?.onSubscribe?.(channel);
         break;
 
@@ -189,50 +221,78 @@ export class RealtimeHandler<T extends SupabaseClient> {
         break;
 
       case REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR:
-        callbacks?.onError?.(channel, err!);
-        // 🐛 BUG FIX: Unsubscribe regardless of tab visibility to allow for proper reconnection.
+        if (err) {
+          callbacks?.onError?.(channel, err);
+        }
+
         this.unsubscribeFromChannel(topic);
-        // If tab is visible or error is recoverable, attempt to reconnect.
-        if (!document.hidden || (err && isTokenExpiredError(err))) {
+
+        if (typeof document !== 'undefined') {
+          if (!document.hidden || (err && isTokenExpiredError(err))) {
+            this.scheduleResubscribe(topic, attempt);
+          }
+        } else {
+          // Fallback for non-browser environments
           this.scheduleResubscribe(topic, attempt);
         }
         break;
     }
   }
 
-  private async refreshSessionIfNeeded() {
-    const { data, error } = await this.supabaseClient.auth.getSession();
-    if (error) throw error;
-    const token = data.session?.access_token;
-    if (!token) throw new Error("No session");
+  private async refreshSessionIfNeeded(): Promise<void> {
+    const response = (await this.supabaseClient.auth.getSession()) as AuthResponse;
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    const token = response.data.session?.access_token;
+    if (!token) {
+      throw new Error('No session');
+    }
+
     if (this.supabaseClient.realtime.accessTokenValue !== token) {
       await this.supabaseClient.realtime.setAuth(token);
     }
   }
 
-  // --- Event Listeners ---
   private addOnVisibilityChangeListener = (): (() => void) => {
-    const handler = () => this.handleVisibilityChange();
-    document.addEventListener("visibilitychange", handler);
-    return () => document.removeEventListener("visibilitychange", handler);
+    if (typeof document === 'undefined') {
+      return () => {}; // No-op for non-browser environments
+    }
+
+    const handler = (): void => {
+      this.handleVisibilityChange();
+    };
+
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
   };
 
   private handleVisibilityChange = (): void => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
     if (document.hidden) {
       this.inactiveTabTimer = setTimeout(() => {
         this.unsubscribeFromAllChannels();
       }, this.inactiveTabTimeoutSeconds * 1000);
     } else {
-      if (this.inactiveTabTimer) clearTimeout(this.inactiveTabTimer);
+      if (this.inactiveTabTimer) {
+        clearTimeout(this.inactiveTabTimer);
+      }
       this.resubscribeToAllChannels();
     }
   };
 
-  private handleOnline = (): void => this.resubscribeToAllChannels();
+  private handleOnline = (): void => {
+    this.resubscribeToAllChannels();
+  };
+
   private handleOffline = (): void => {
-    // You could optionally call the onError callback for all channels here
     console.warn(
-      "[RealtimeHandler] Network is offline. Will attempt to reconnect when back online."
+      '[RealtimeHandler] Network is offline. Will attempt to reconnect when back online.',
     );
   };
 }

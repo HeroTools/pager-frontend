@@ -1,10 +1,29 @@
-import type { NotificationEntity } from "@/features/notifications/types";
-import { getNotificationPreferences } from "@/features/notifications/components/notification-settings";
+import type { NotificationEntity } from '@/features/notifications/types';
+import { getNotificationPreferences } from '@/features/notifications/components/notification-settings';
 
 interface ShowNotificationOptions {
   notification: NotificationEntity;
   workspaceId: string;
   onClickCallback?: () => void;
+}
+
+interface NotificationPreferences {
+  desktopEnabled: boolean;
+  soundEnabled: boolean;
+  quietHoursEnabled: boolean;
+  quietHoursStart: string;
+  quietHoursEnd: string;
+  onlyMentions: boolean;
+}
+
+interface ExtendedNotificationOptions extends NotificationOptions {
+  data?: {
+    notificationId: string;
+    workspaceId: string;
+    channelId?: string;
+    conversationId?: string;
+    timestamp: string;
+  };
 }
 
 class BrowserNotificationService {
@@ -13,20 +32,25 @@ class BrowserNotificationService {
   private notificationClickHandlers: Map<string, () => void> = new Map();
 
   private constructor() {
-    // Set up global click handler for notifications
-    if (typeof window !== "undefined" && "Notification" in window) {
-      // Listen for notification clicks
-      self.addEventListener("notificationclick", (event: any) => {
-        const notificationId = event.notification?.tag;
-        if (
-          notificationId &&
-          this.notificationClickHandlers.has(notificationId)
-        ) {
-          const handler = this.notificationClickHandlers.get(notificationId);
-          handler?.();
-          this.notificationClickHandlers.delete(notificationId);
-        }
-      });
+    this.setupNotificationClickListener();
+  }
+
+  private setupNotificationClickListener(): void {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event: MessageEvent) => {
+          if (event.data?.type === 'NOTIFICATION_CLICK') {
+            const notificationId = event.data.notificationId as string;
+            if (notificationId && this.notificationClickHandlers.has(notificationId)) {
+              const handler = this.notificationClickHandlers.get(notificationId);
+              if (handler) {
+                handler();
+                this.notificationClickHandlers.delete(notificationId);
+              }
+            }
+          }
+        });
+      }
     }
   }
 
@@ -42,109 +66,86 @@ class BrowserNotificationService {
     workspaceId,
     onClickCallback,
   }: ShowNotificationOptions): Promise<void> {
-    // Check if notifications are supported and granted
     if (!this.canShowNotifications()) {
       return;
     }
 
-    // Check user preferences
-    const preferences = getNotificationPreferences();
+    const preferences = getNotificationPreferences() as NotificationPreferences;
 
-    // Check if desktop notifications are enabled in preferences
     if (!preferences.desktopEnabled) {
       return;
     }
 
-    // Check quiet hours
     if (preferences.quietHoursEnabled) {
-      if (
-        this.isInQuietHours(
-          preferences.quietHoursStart,
-          preferences.quietHoursEnd
-        )
-      ) {
-        console.log("Notification suppressed due to quiet hours");
+      if (this.isInQuietHours(preferences.quietHoursStart, preferences.quietHoursEnd)) {
+        console.log('Notification suppressed due to quiet hours');
         return;
       }
     }
 
-    // Check if only mentions/DMs preference is enabled
     if (preferences.onlyMentions) {
-      // Check if this is a mention or direct message
-      const isMention =
-        notification.title.includes("@") || notification.message.includes("@");
-      const isDirectMessage = notification.related_conversation_id != null;
+      const isMention = notification.title.includes('@') || notification.message.includes('@');
+      const isDirectMessage = notification.related_conversation_id !== null;
 
       if (!isMention && !isDirectMessage) {
-        console.log("Notification suppressed - only mentions/DMs enabled");
+        console.log('Notification suppressed - only mentions/DMs enabled');
         return;
       }
     }
 
     try {
-      // Create a unique tag for this notification
       const tag = `notification-${notification.id}`;
 
-      // Build the notification options
-      const options: NotificationOptions = {
+      const options: ExtendedNotificationOptions = {
         body: notification.message,
-        icon: "/favicon.ico", // Update with your app icon
-        badge: "/badge-icon.png", // Update with your badge icon
+        icon: '/favicon.ico',
+        badge: '/badge-icon.png',
         tag,
         requireInteraction: false,
         silent: false,
-        // renotify: false,
         data: {
           notificationId: notification.id,
           workspaceId,
-          channelId: notification.related_channel_id,
-          conversationId: notification.related_conversation_id,
+          channelId: notification.related_channel_id || undefined,
+          conversationId: notification.related_conversation_id || undefined,
           timestamp: new Date().toISOString(),
         },
       };
 
-      // Create the browser notification
       const browserNotification = new Notification(notification.title, options);
 
-      // Store the notification instance
       this.activeNotifications.set(notification.id, browserNotification);
 
-      // Handle notification click
-      browserNotification.onclick = () => {
-        // Focus the window
-        window.focus();
+      browserNotification.onclick = (): void => {
+        if (typeof window !== 'undefined') {
+          window.focus();
+        }
 
-        // Navigate to the relevant channel/conversation if needed
         if (onClickCallback) {
           onClickCallback();
         } else {
           this.handleDefaultClick(notification, workspaceId);
         }
 
-        // Close the notification
         browserNotification.close();
         this.activeNotifications.delete(notification.id);
       };
 
-      // Handle notification close
-      browserNotification.onclose = () => {
+      browserNotification.onclose = (): void => {
         this.activeNotifications.delete(notification.id);
         this.notificationClickHandlers.delete(tag);
       };
 
-      // Handle notification error
-      browserNotification.onerror = (error) => {
-        console.error("Browser notification error:", error);
+      browserNotification.onerror = (event: Event): void => {
+        console.error('Browser notification error:', event);
         this.activeNotifications.delete(notification.id);
         this.notificationClickHandlers.delete(tag);
       };
 
-      // Store click handler if provided
       if (onClickCallback) {
         this.notificationClickHandlers.set(tag, onClickCallback);
       }
 
-      // Auto-close notification after 10 seconds
       setTimeout(() => {
         if (this.activeNotifications.has(notification.id)) {
           browserNotification.close();
@@ -153,12 +154,11 @@ class BrowserNotificationService {
         }
       }, 10000);
 
-      // Play notification sound if enabled
       if (preferences.soundEnabled) {
         this.playNotificationSound();
       }
     } catch (error) {
-      console.error("Error showing browser notification:", error);
+      console.error('Error showing browser notification:', error);
     }
   }
 
@@ -168,41 +168,57 @@ class BrowserNotificationService {
     const currentMinute = now.getMinutes();
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const [endHour, endMinute] = endTime.split(":").map(Number);
+    const startTimeParts = startTime.split(':');
+    const endTimeParts = endTime.split(':');
+
+    if (startTimeParts.length !== 2 || endTimeParts.length !== 2) {
+      console.warn('Invalid time format for quiet hours');
+      return false;
+    }
+
+    if (
+      startTimeParts[0] === undefined ||
+      startTimeParts[1] === undefined ||
+      endTimeParts[0] === undefined ||
+      endTimeParts[1] === undefined
+    ) {
+      console.warn('Invalid time format for quiet hours');
+      return false;
+    }
+
+    const startHour = parseInt(startTimeParts[0], 10);
+    const startMinute = parseInt(startTimeParts[1], 10);
+    const endHour = parseInt(endTimeParts[0], 10);
+    const endMinute = parseInt(endTimeParts[1], 10);
+
+    if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute)) {
+      console.warn('Invalid numeric values in quiet hours time');
+      return false;
+    }
 
     const startTimeInMinutes = startHour * 60 + startMinute;
     const endTimeInMinutes = endHour * 60 + endMinute;
 
-    // Handle case where quiet hours span midnight
     if (startTimeInMinutes > endTimeInMinutes) {
-      // Quiet hours span midnight (e.g., 22:00 to 08:00)
-      return (
-        currentTimeInMinutes >= startTimeInMinutes ||
-        currentTimeInMinutes < endTimeInMinutes
-      );
+      return currentTimeInMinutes >= startTimeInMinutes || currentTimeInMinutes < endTimeInMinutes;
     } else {
-      // Normal case (e.g., 08:00 to 17:00)
-      return (
-        currentTimeInMinutes >= startTimeInMinutes &&
-        currentTimeInMinutes < endTimeInMinutes
-      );
+      return currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes;
     }
   }
 
   private canShowNotifications(): boolean {
     return (
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      Notification.permission === "granted"
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      Notification.permission === 'granted'
     );
   }
 
-  private handleDefaultClick(
-    notification: NotificationEntity,
-    workspaceId: string
-  ): void {
-    // Default click behavior - navigate to the relevant channel/conversation
+  private handleDefaultClick(notification: NotificationEntity, workspaceId: string): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const baseUrl = window.location.origin;
 
     if (notification.related_channel_id) {
@@ -210,21 +226,25 @@ class BrowserNotificationService {
     } else if (notification.related_conversation_id) {
       window.location.href = `${baseUrl}/workspace/${workspaceId}/member/${notification.related_conversation_id}`;
     } else {
-      // Just focus the window if no specific destination
       window.focus();
     }
   }
 
   private playNotificationSound(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
-      // Create an audio element to play the notification sound
-      const audio = new Audio("/sounds/channel.mp3"); // You'll need to add this file to your public folder
-      audio.volume = 0.5; // Set reasonable volume
-      audio.play().catch((error) => {
-        console.warn("Could not play notification sound:", error);
+      const audio = new Audio('/sounds/channel.mp3');
+      audio.volume = 0.5;
+      audio.play().catch((error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.warn('Could not play notification sound:', errorMessage);
       });
     } catch (error) {
-      console.warn("Error creating notification sound:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.warn('Error creating notification sound:', errorMessage);
     }
   }
 
@@ -253,5 +273,4 @@ class BrowserNotificationService {
   }
 }
 
-export const browserNotificationService =
-  BrowserNotificationService.getInstance();
+export const browserNotificationService = BrowserNotificationService.getInstance();

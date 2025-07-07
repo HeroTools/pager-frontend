@@ -1,6 +1,6 @@
 export interface NotificationData {
   id: string;
-  type: "mention" | "direct_message" | "channel_message" | "thread_reply";
+  type: 'mention' | 'direct_message' | 'channel_message' | 'thread_reply';
   title: string;
   message: string;
   is_read: boolean;
@@ -16,7 +16,7 @@ export interface NotificationEntity {
   workspace_member_id: string;
   sender_workspace_member_id: string;
   workspace_id: string;
-  type: "mention" | "direct_message" | "channel_message" | "thread_reply";
+  type: 'mention' | 'direct_message' | 'channel_message' | 'thread_reply';
   title: string;
   message: string;
   is_read: boolean;

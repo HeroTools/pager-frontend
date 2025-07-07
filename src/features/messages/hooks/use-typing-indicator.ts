@@ -1,6 +1,6 @@
-import { useCallback, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { messagesApi } from "../api/messages-api";
+import { useCallback, useRef } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { messagesApi } from '../api/messages-api';
 
 interface UseTypingIndicatorProps {
   workspaceId: string;
@@ -29,7 +29,7 @@ export const useTypingIndicator = ({
       return messagesApi.sendTypingIndicator(endpoint, { is_typing: isTyping });
     },
     onError: (error) => {
-      console.error("Failed to send typing indicator:", error);
+      console.error('Failed to send typing indicator:', error);
     },
   });
 
@@ -81,7 +81,7 @@ export const useTypingIndicator = ({
         stopTyping();
       }
     },
-    [startTyping, stopTyping]
+    [startTyping, stopTyping],
   );
 
   // Handle form submit (call this when message is sent)

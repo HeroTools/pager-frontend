@@ -1,21 +1,16 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { SignInFlow } from "../types";
-import { SignInCard } from "./sign-in-card";
-import { SignUpCard } from "./sign-up-card";
+import { SignInCard } from './sign-in-card';
+import { SignUpCard } from './sign-up-card';
+import { useAuthStore } from '@/features/auth/stores/auth-store';
 
 export const AuthScreen = () => {
-  const [state, setState] = useState<SignInFlow>("signIn");
+  const { flow, setFlow } = useAuthStore();
 
   return (
     <div className="h-full flex items-center justify-center bg-secondary">
       <div className="md:h-auto md:w-[420px]">
-        {state === "signIn" ? (
-          <SignInCard setState={setState} />
-        ) : (
-          <SignUpCard setState={setState} />
-        )}
+        {flow === 'signIn' ? <SignInCard setFlow={setFlow} /> : <SignUpCard setFlow={setFlow} />}
       </div>
     </div>
   );

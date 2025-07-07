@@ -1,5 +1,5 @@
-import { FC } from "react";
-import { NotificationData } from "../types";
+import type { FC } from 'react';
+import type { NotificationData } from '../types';
 
 interface NotificationItemProps {
   notification: NotificationData;
@@ -8,17 +8,12 @@ interface NotificationItemProps {
   timeAgo: string;
 }
 
-const NotificationItem: FC<NotificationItemProps> = ({
-  notification,
-  onClick,
-  icon,
-  timeAgo,
-}) => {
+const NotificationItem: FC<NotificationItemProps> = ({ notification, onClick, icon, timeAgo }) => {
   return (
     <button
       onClick={onClick}
       className={`w-full p-3 text-left hover:bg-accent transition-colors ${
-        !notification.is_read ? "bg-blue-50 dark:bg-blue-950/20" : ""
+        !notification.is_read ? 'bg-blue-50 dark:bg-blue-950/20' : ''
       }`}
     >
       <div className="flex gap-3">
@@ -28,9 +23,7 @@ const NotificationItem: FC<NotificationItemProps> = ({
           <div className="flex items-start justify-between gap-2">
             <p
               className={`text-sm font-medium leading-tight ${
-                !notification.is_read
-                  ? "text-foreground"
-                  : "text-muted-foreground"
+                !notification.is_read ? 'text-foreground' : 'text-muted-foreground'
               }`}
             >
               {notification.title}
@@ -38,15 +31,11 @@ const NotificationItem: FC<NotificationItemProps> = ({
 
             <div className="flex items-center gap-1 flex-shrink-0">
               <span className="text-xs text-muted-foreground">{timeAgo}</span>
-              {!notification.is_read && (
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              )}
+              {!notification.is_read && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-            {notification.message}
-          </p>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{notification.message}</p>
         </div>
       </div>
     </button>

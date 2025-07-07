@@ -1,8 +1,16 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { authApi } from "../api/auth-api";
-import { AuthError, EnhancedAuthResponse, SignInData, InviteLinkResponse } from "../types";
-import { WorkspaceEntity } from "@/features/workspaces/types";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { authApi } from '../api/auth-api';
+import type {
+  AuthError,
+  AuthResponse,
+  CurrentUser,
+  InviteLinkResponse,
+  SignInData,
+} from '../types';
+import type { WorkspaceEntity } from '@/features/workspaces/types';
+import { authQueryKeys } from '../query-keys';
+import { workspacesQueryKeys } from '@/features/workspaces/query-keys';
 
 export const useSignUp = () => {
   const router = useRouter();
@@ -10,24 +18,24 @@ export const useSignUp = () => {
 
   return useMutation({
     mutationFn: authApi.signUp,
-    onSuccess: (data: EnhancedAuthResponse) => {
+    onSuccess: (data: AuthResponse) => {
       // Cache user data
       if (data.user) {
-        queryClient.setQueryData(["user"], data.user);
+        queryClient.setQueryData(authQueryKeys.currentUser(), data.user);
       }
 
       // Cache profile data if available
       if (data.profile) {
-        queryClient.setQueryData(["userProfile"], data.profile);
+        queryClient.setQueryData(authQueryKeys.userProfile(), data.profile);
       }
 
       // Cache workspaces data
       if (data.workspaces) {
-        queryClient.setQueryData(["workspaces"], data.workspaces);
+        queryClient.setQueryData(workspacesQueryKeys.workspaces(), data.workspaces);
 
         // Cache individual workspace data for faster navigation
         data.workspaces.forEach((workspace) => {
-          queryClient.setQueryData(["workspace", workspace.id], workspace);
+          queryClient.setQueryData(workspacesQueryKeys.workspace(workspace.id), workspace);
         });
       }
 
@@ -35,8 +43,8 @@ export const useSignUp = () => {
       handlePostSignInRouting(data, router);
     },
     onError: (error: AuthError) => {
-      console.error("Sign up failed:", error);
-      router.push("/auth");
+      console.error('Sign up failed:', error);
+      router.push('/auth');
     },
   });
 };
@@ -45,26 +53,26 @@ export const useSignIn = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  return useMutation<EnhancedAuthResponse, AuthError, SignInData>({
+  return useMutation<AuthResponse, AuthError, SignInData>({
     mutationFn: authApi.signIn,
-    onSuccess: (data: EnhancedAuthResponse) => {
+    onSuccess: (data: AuthResponse) => {
       // Cache user data
       if (data.user) {
-        queryClient.setQueryData(["user"], data.user);
+        queryClient.setQueryData(authQueryKeys.currentUser(), data.user);
       }
 
       // Cache profile data if available
       if (data.profile) {
-        queryClient.setQueryData(["userProfile"], data.profile);
+        queryClient.setQueryData(authQueryKeys.userProfile(), data.profile);
       }
 
       // Cache workspaces data
       if (data.workspaces) {
-        queryClient.setQueryData(["workspaces"], data.workspaces);
+        queryClient.setQueryData(workspacesQueryKeys.workspaces(), data.workspaces);
 
         // Cache individual workspace data for faster navigation
         data.workspaces.forEach((workspace) => {
-          queryClient.setQueryData(["workspace", workspace.id], workspace);
+          queryClient.setQueryData(workspacesQueryKeys.workspace(workspace.id), workspace);
         });
       }
 
@@ -72,39 +80,36 @@ export const useSignIn = () => {
       handlePostSignInRouting(data, router);
     },
     onError: (error: AuthError) => {
-      console.error("Sign in failed:", error);
-      router.push("/auth");
+      console.error('Sign in failed:', error);
+      router.push('/auth');
     },
   });
 };
 
 // Helper function to handle routing logic
-function handlePostSignInRouting(
-  data: EnhancedAuthResponse,
-  router: ReturnType<typeof useRouter>
-): void {
-  const { workspaces, defaultWorkspaceId } = data;
+function handlePostSignInRouting(data: AuthResponse, router: ReturnType<typeof useRouter>): void {
+  const { workspaces, default_workspace_id } = data;
 
   if (!workspaces || workspaces.length === 0) {
     // No workspaces - redirect to onboarding
-    router.push("/onboarding/create-workspace");
+    router.push('/onboarding/create-workspace');
     return;
   }
 
-  if (workspaces.length === 1) {
+  if (workspaces && workspaces.length === 1) {
     // Single workspace - go directly there
-    router.push(`/${workspaces[0].id}`);
+    router.push(`/${workspaces[0]?.id}`);
     return;
   }
 
-  if (defaultWorkspaceId) {
+  if (default_workspace_id) {
     // Multiple workspaces with a default - go to default
-    router.push(`/${defaultWorkspaceId}`);
+    router.push(`/${default_workspace_id}`);
     return;
   }
 
   // Multiple workspaces, no clear default - show selection
-  router.push("/workspaces");
+  router.push('/workspaces');
 }
 
 export const useSignOut = () => {
@@ -116,18 +121,18 @@ export const useSignOut = () => {
     onSuccess: () => {
       // Clear all cached data on sign out
       queryClient.clear();
-      router.push("/auth");
+      router.push('/auth');
     },
     onError: () => {
-      router.push("/auth");
+      router.push('/auth');
     },
   });
 };
 
 export const useRefreshToken = () => {
   return useMutation({
-    mutationFn: ({ refreshToken }: { refreshToken: string }) =>
-      authApi.refreshToken(refreshToken),
+    mutationFn: ({ refresh_token }: { refresh_token: string }) =>
+      authApi.refreshToken(refresh_token),
   });
 };
 
@@ -154,61 +159,63 @@ export const useSwitchWorkspace = () => {
   const router = useRouter();
 
   return useMutation<void, AuthError, string>({
-    mutationFn: async (workspaceId: string) => {
+    mutationFn: async (workspace_id: string) => {
       // Update user's last workspace preference
-      await authApi.updateUserPreferences({ last_workspace_id: workspaceId });
+      await authApi.updateUserPreferences({ last_workspace_id: workspace_id });
     },
-    onSuccess: (_, workspaceId) => {
+    onSuccess: (_, workspace_id) => {
       // Update cached user profile (if you have a profile cache)
-      const currentProfile = queryClient.getQueryData(["userProfile"]);
-      if (currentProfile) {
-        queryClient.setQueryData(["userProfile"], {
-          ...currentProfile,
-          last_workspace_id: workspaceId,
+      const currentUser = queryClient.getQueryData<CurrentUser>(authQueryKeys.currentUser());
+      if (currentUser) {
+        queryClient.setQueryData(authQueryKeys.currentUser(), {
+          ...currentUser,
+          last_workspace_id: workspace_id,
         });
       }
 
       // Update the specific workspace in your workspaces cache to reflect it as "last used"
-      queryClient.setQueryData<WorkspaceEntity[]>(["workspaces"], (old) => {
-        if (!old) return old;
+      queryClient.setQueryData<WorkspaceEntity[]>(workspacesQueryKeys.workspaces(), (old) => {
+        if (!old) {
+          return old;
+        }
         return old.map((workspace) =>
-          workspace.id === workspaceId
+          workspace.id === workspace_id
             ? { ...workspace, last_accessed_at: new Date().toISOString() }
-            : workspace
+            : workspace,
         );
       });
 
       // Invalidate workspace-specific caches to ensure fresh data
       queryClient.invalidateQueries({
-        queryKey: ["workspace", workspaceId],
+        queryKey: workspacesQueryKeys.workspace(workspace_id),
       });
       queryClient.invalidateQueries({
-        queryKey: ["members", workspaceId],
+        queryKey: ['members', workspace_id],
       });
       queryClient.invalidateQueries({
-        queryKey: ["channels", workspaceId],
+        queryKey: ['channels', workspace_id],
       });
       queryClient.invalidateQueries({
-        queryKey: ["conversations", workspaceId],
+        queryKey: ['conversations', workspace_id],
       });
       queryClient.invalidateQueries({
-        queryKey: ["currentMember", workspaceId],
+        queryKey: ['currentMember', workspace_id],
       });
       queryClient.invalidateQueries({
-        queryKey: ["notifications", workspaceId],
+        queryKey: ['notifications', workspace_id],
       });
 
       // Navigate to the workspace
-      router.push(`/${workspaceId}`);
+      router.push(`/${workspace_id}`);
     },
     onError: (error) => {
-      console.error("Failed to switch workspace:", error);
+      console.error('Failed to switch workspace:', error);
     },
   });
 };
 
 export const useInviteLink = () => {
   return useMutation<InviteLinkResponse, Error, string>({
-    mutationFn: (workspaceId: string) => authApi.getInviteLink(workspaceId),
+    mutationFn: (workspace_id: string) => authApi.getInviteLink(workspace_id),
   });
 };

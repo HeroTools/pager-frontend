@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useNotifications } from "./use-notifications";
+import { useMemo } from 'react';
+import { useNotifications } from './use-notifications';
 
 export function useConversationNotifications(workspaceId: string) {
   const { data: notifications } = useNotifications({
@@ -27,10 +27,7 @@ export function useConversationNotifications(workspaceId: string) {
   };
 
   const getTotalDMUnreadCount = (): number => {
-    return Object.values(conversationCounts).reduce(
-      (sum, count) => sum + count,
-      0
-    );
+    return Object.values(conversationCounts).reduce((sum, count) => sum + count, 0);
   };
 
   return {

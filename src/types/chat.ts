@@ -1,4 +1,4 @@
-import { Reaction } from "@/features/reactions/types";
+import type { Reaction } from '@/features/reactions/types';
 
 export interface Message {
   id: string;
@@ -11,7 +11,7 @@ export interface Message {
   threadCount?: number;
   threadParticipants?: string[];
   threadId?: string;
-  threadLastReplyAt?: string;
+  threadLastReplyAt?: string | undefined;
   isEdited?: boolean;
 }
 
@@ -19,13 +19,13 @@ export interface Author {
   id: string;
   name: string;
   avatar?: string;
-  status: "online" | "away" | "offline";
+  status: 'online' | 'away' | 'offline';
 }
 
 export interface Channel {
   id: string;
   name: string;
-  description?: string;
+  description?: string | undefined;
   isPrivate: boolean;
   type: ChannelType;
   memberCount?: number;
@@ -33,8 +33,8 @@ export interface Channel {
 }
 
 export enum ChannelType {
-  PUBLIC = "public",
-  PRIVATE = "private",
+  PUBLIC = 'public',
+  PRIVATE = 'private',
 }
 
 export interface Attachment {

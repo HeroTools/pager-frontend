@@ -1,23 +1,20 @@
-import api from "@/lib/api/axios-client";
+import api from '@/lib/api/axios-client';
 import type {
-  WorkspaceEntity,
-  WorkspaceWithMembersList,
   CreateWorkspaceData,
   UpdateWorkspaceData,
-  WorkspaceResponse,
-  WorkspacesResponse,
-  WorkspaceWithMembersResponse,
-  WorkspaceStats,
-  WorkspaceResponseData,
+  WorkspaceEntity,
   WorkspaceInviteInfoResponse,
-} from "../types";
+  WorkspaceResponseData,
+  WorkspaceStats,
+  WorkspaceWithMembersList,
+} from '../types';
 
 export const workspacesApi = {
   /**
    * Get all workspaces for current user
    */
   getWorkspaces: async (): Promise<WorkspaceEntity[]> => {
-    const { data: response } = await api.get<WorkspacesResponse>(`/workspaces`);
+    const { data: response } = await api.get<WorkspaceEntity[]>(`/workspaces`);
     return response || [];
   },
 
@@ -25,8 +22,8 @@ export const workspacesApi = {
    * Get workspace by ID
    */
   getWorkspace: async (id: string): Promise<WorkspaceResponseData> => {
-    const { data: response } = await api.get<WorkspaceResponse>(
-      `/workspaces/${id}?include_details=false`
+    const { data: response } = await api.get<{ workspace: WorkspaceResponseData }>(
+      `/workspaces/${id}?include_details=false`,
     );
     return response?.workspace;
   },
@@ -34,11 +31,9 @@ export const workspacesApi = {
   /**
    * Get workspace with members
    */
-  getAllWorkspaceDataForMember: async (
-    id: string
-  ): Promise<WorkspaceWithMembersList> => {
-    const { data: response } = await api.get<WorkspaceWithMembersResponse>(
-      `/workspaces/${id}?include_details=true`
+  getAllWorkspaceDataForMember: async (id: string): Promise<WorkspaceWithMembersList> => {
+    const { data: response } = await api.get<WorkspaceWithMembersList>(
+      `/workspaces/${id}?include_details=true`,
     );
     return response;
   },
@@ -46,27 +41,16 @@ export const workspacesApi = {
   /**
    * Create new workspace
    */
-  createWorkspace: async (
-    data: CreateWorkspaceData
-  ): Promise<WorkspaceEntity> => {
-    const { data: response } = await api.post<WorkspaceEntity>(
-      "/workspaces",
-      data
-    );
+  createWorkspace: async (data: CreateWorkspaceData): Promise<WorkspaceEntity> => {
+    const { data: response } = await api.post<WorkspaceEntity>('/workspaces', data);
     return response;
   },
 
   /**
    * Update workspace
    */
-  updateWorkspace: async (
-    id: string,
-    data: UpdateWorkspaceData
-  ): Promise<WorkspaceEntity> => {
-    const { data: response } = await api.patch<WorkspaceResponse>(
-      `/workspaces/${id}`,
-      data
-    );
+  updateWorkspace: async (id: string, data: UpdateWorkspaceData): Promise<WorkspaceEntity> => {
+    const { data: response } = await api.patch<WorkspaceEntity>(`/workspaces/${id}`, data);
     return response;
   },
 
@@ -81,9 +65,7 @@ export const workspacesApi = {
    * Get workspace statistics
    */
   getWorkspaceStats: async (id: string): Promise<WorkspaceStats> => {
-    const { data: response } = await api.get<{ data: WorkspaceStats }>(
-      `/workspaces/${id}/stats`
-    );
+    const { data: response } = await api.get<{ data: WorkspaceStats }>(`/workspaces/${id}/stats`);
     return response.data;
   },
 
@@ -97,11 +79,9 @@ export const workspacesApi = {
   /**
    * Get workspace info from invite token
    */
-  getWorkspaceFromInviteToken: async (
-    token: string
-  ): Promise<WorkspaceInviteInfoResponse> => {
+  getWorkspaceFromInviteToken: async (token: string): Promise<WorkspaceInviteInfoResponse> => {
     const { data: response } = await api.get<WorkspaceInviteInfoResponse>(
-      `/workspaces/invite-token?token=${token}`
+      `/workspaces/invite-token?token=${token}`,
     );
     return response;
   },

@@ -1,28 +1,18 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { conversationsApi } from "../api/conversations-api";
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { conversationsApi } from '../api/conversations-api';
 
 export const useGetConversationWithMessagesInfinite = (
   workspaceId: string,
   conversationId: string,
-  limit: number = 50
+  limit: number = 50,
 ) => {
   const infiniteQuery = useInfiniteQuery({
-    queryKey: [
-      "conversation",
-      workspaceId,
-      conversationId,
-      "messages",
-      "infinite",
-    ],
+    queryKey: ['conversation', workspaceId, conversationId, 'messages', 'infinite'],
     queryFn: ({ pageParam }) =>
-      conversationsApi.getConversationWithMessages(
-        workspaceId,
-        conversationId,
-        {
-          limit,
-          cursor: pageParam,
-        }
-      ),
+      conversationsApi.getConversationWithMessages(workspaceId, conversationId, {
+        limit,
+        cursor: pageParam,
+      }),
     enabled: !!workspaceId && !!conversationId,
     getNextPageParam: (lastPage) => {
       const pagination = lastPage?.pagination;

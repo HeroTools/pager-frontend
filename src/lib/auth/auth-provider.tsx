@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../supabase/client";
-import { Session, User } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
+import { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '../supabase/client';
+import type { Session, User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   session: Session | null;
@@ -32,8 +32,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
-        router.push("/auth");
+      if (event === 'SIGNED_OUT') {
+        router.push('/auth');
       }
       setSession(session);
       setUser(session?.user ?? null);
@@ -48,12 +48,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       setUser(null);
       setSession(null);
-      router.push("/auth");
+      router.push('/auth');
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error('Sign out error:', error);
     }
   };
 
@@ -63,13 +65,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: { session },
         error,
       } = await supabase.auth.refreshSession();
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       if (session) {
         setUser(session.user);
         setSession(session);
       }
     } catch (error) {
-      console.error("Refresh error:", error);
+      console.error('Refresh error:', error);
       await signOut();
     }
   };
@@ -92,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }

@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { Loader, TriangleAlert } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { Loader, TriangleAlert } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo } from 'react';
 
-import { useGetUserChannels } from "@/features/channels/hooks/use-channels-mutations";
-import { useCreateChannelModal } from "@/features/channels/store/use-create-channel-modal";
-import { useCurrentMember } from "@/features/members/hooks/use-members";
-import { useGetWorkspace } from "@/features/workspaces/hooks/use-workspaces";
-import { useWorkspaceId } from "@/hooks/use-workspace-id";
+import { useGetUserChannels } from '@/features/channels/hooks/use-channels-mutations';
+import { useCreateChannelModal } from '@/features/channels/store/use-create-channel-modal';
+import { useCurrentMember } from '@/features/members/hooks/use-members';
+import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
 
 const WorkspaceIdPage = () => {
   const router = useRouter();
@@ -37,7 +37,7 @@ const WorkspaceIdPage = () => {
   const isAdmin = useMemo(() => {
     // This depends on your member API structure - update based on what your API returns
     // If your member API returns the member directly:
-    return currentMember?.role === "admin";
+    return currentMember?.role === 'admin';
 
     // If your member API still returns nested data like before, keep the old structure:
     // return currentMember?.data?.data?.member?.role === "admin";
@@ -56,17 +56,7 @@ const WorkspaceIdPage = () => {
     } else if (!open && isAdmin) {
       setOpen(true);
     }
-  }, [
-    isLoading,
-    workspace,
-    currentMember,
-    isAdmin,
-    channelId,
-    open,
-    setOpen,
-    router,
-    workspaceId,
-  ]);
+  }, [isLoading, workspace, currentMember, isAdmin, channelId, open, setOpen, router, workspaceId]);
 
   if (isLoading) {
     return (
@@ -81,7 +71,7 @@ const WorkspaceIdPage = () => {
       <div className="h-full flex-1 flex items-center justify-center flex-col gap-2">
         <TriangleAlert className="size-6 text-muted-foreground" />
         <span className="text-sm text-muted-foreground">
-          {hasError ? "Error loading workspace" : "Workspace not found"}
+          {hasError ? 'Error loading workspace' : 'Workspace not found'}
         </span>
       </div>
     );

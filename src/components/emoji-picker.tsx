@@ -1,14 +1,21 @@
-import React, { useState, ReactNode } from "react";
-import Picker from "@emoji-mart/react";
-import data from "@emoji-mart/data";
-import { useTheme } from "next-themes";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Smile } from "lucide-react";
+import type { ReactNode } from 'react';
+import React, { useState } from 'react';
+import Picker from '@emoji-mart/react';
+import data from '@emoji-mart/data';
+import { useTheme } from 'next-themes';
+import { Smile } from 'lucide-react';
+
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+
+interface EmojiData {
+  id: string;
+  name: string;
+  native: string;
+  unified: string;
+  keywords: string[];
+  shortcodes: string;
+}
 
 interface EmojiPickerProps {
   onSelect: (emoji: string) => void;
@@ -17,31 +24,28 @@ interface EmojiPickerProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const EmojiPicker: React.FC<EmojiPickerProps> = ({
-  onSelect,
-  trigger,
-  open,
-  onOpenChange,
-}) => {
-  const { systemTheme } = useTheme();
-  const [internalOpen, setInternalOpen] = useState(false);
-  const isControlled =
-    typeof open === "boolean" && typeof onOpenChange === "function";
-  const popoverOpen = isControlled ? open! : internalOpen;
-  const setOpen = (val: boolean) => {
-    if (isControlled) {
-      onOpenChange!(val);
+const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, trigger, open, onOpenChange }) => {
+  const { resolvedTheme } = useTheme();
+  const [internalOpen, setInternalOpen] = useState<boolean>(false);
+
+  const isControlled = open !== undefined && onOpenChange !== undefined;
+  const popoverOpen = isControlled ? open : internalOpen;
+
+  const setOpen = (val: boolean): void => {
+    if (isControlled && onOpenChange) {
+      onOpenChange(val);
     } else {
       setInternalOpen(val);
     }
   };
 
+  const handleEmojiSelect = (emoji: EmojiData): void => {
+    onSelect(emoji.native);
+    setOpen(false);
+  };
+
   const defaultTrigger = (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-8 w-8 p-0 hover:bg-sidebar-hover"
-    >
+    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-sidebar-hover">
       <Smile className="w-4 h-4" />
     </Button>
   );
@@ -57,11 +61,8 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
       >
         <Picker
           data={data}
-          onEmojiSelect={(emoji: any) => {
-            onSelect(emoji.native);
-            setOpen(false);
-          }}
-          theme={systemTheme === "dark" ? "dark" : "light"}
+          onEmojiSelect={handleEmojiSelect}
+          theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
           set="native"
           previewPosition="none"
           skinTonePosition="none"
