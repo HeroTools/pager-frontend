@@ -56,7 +56,9 @@ const Editor = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isToolbarVisible, setIsToolbarVisible] = useState(true);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
-  const [linkSelection, setLinkSelection] = useState<{ index: number; length: number } | null>(null);
+  const [linkSelection, setLinkSelection] = useState<{ index: number; length: number } | null>(
+    null,
+  );
   const [selectedText, setSelectedText] = useState('');
 
   const isEmpty = useMemo(
@@ -313,7 +315,7 @@ const Editor = ({
             [{ list: 'ordered' }, { list: 'bullet' }, 'link'],
           ],
           handlers: {
-            link: function() {
+            link: function () {
               const range = this.quill.getSelection();
               if (range) {
                 const selectedText = this.quill.getText(range.index, range.length);
@@ -321,8 +323,8 @@ const Editor = ({
                 setSelectedText(selectedText);
                 setIsLinkDialogOpen(true);
               }
-            }
-          }
+            },
+          },
         },
         keyboard: {
           bindings: {
@@ -409,23 +411,25 @@ const Editor = ({
     quill?.insertText(idx, emoji);
   }, []);
 
-  const handleLinkSave = useCallback((text: string, url: string): void => {
-    const quill = quillRef.current;
-    if (!quill || !linkSelection) return;
+  const handleLinkSave = useCallback(
+    (text: string, url: string): void => {
+      const quill = quillRef.current;
+      if (!quill || !linkSelection) return;
 
-    const { index, length } = linkSelection;
-    
-    if (length > 0) {
-      quill.deleteText(index, length);
-      quill.insertText(index, text, 'link', url);
-    } else {
-      quill.insertText(index, text, 'link', url);
-    }
-    
-    // Clear selection and close dialog
-    setLinkSelection(null);
-    setIsLinkDialogOpen(false);
-  }, [linkSelection]);
+      const { index, length } = linkSelection;
+
+      if (length > 0) {
+        quill.deleteText(index, length);
+        quill.insertText(index, text, 'link', url);
+      } else {
+        quill.insertText(index, text, 'link', url);
+      }
+
+      setLinkSelection(null);
+      setIsLinkDialogOpen(false);
+    },
+    [linkSelection],
+  );
 
   const handleLinkDialogClose = useCallback((): void => {
     setLinkSelection(null);

@@ -278,13 +278,13 @@ body {
 }
 
 /* 5. Base styles using @layer */
-  @layer base {
-    * {
-      @apply border-border;
-    }
+@layer base {
+  * {
+    @apply border-border;
+  }
 
-    body {
-      @apply bg-background text-foreground;
+  body {
+    @apply bg-background text-foreground;
     font-family: var(--font-sans);
     font-feature-settings:
       'rlig' 1,
@@ -440,8 +440,8 @@ body {
   /* Blockquotes - multiple selectors to catch different formats */
   .message-content blockquote,
   .message-content .ql-blockquote,
-  .message-content p[class*="blockquote"],
-  .message-content [data-blockquote="true"] {
+  .message-content p[class*='blockquote'],
+  .message-content [data-blockquote='true'] {
     border-left: 4px solid var(--muted-foreground) !important;
     padding-left: 1rem !important;
     padding-top: 0.5rem !important;
@@ -469,7 +469,9 @@ body {
     padding: 0.125rem 0.375rem;
     border-radius: 0.25rem;
     font-size: 0.875rem;
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+    font-family:
+      ui-monospace, SFMono-Regular, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas,
+      'Courier New', monospace;
   }
 
   .message-content pre code {
