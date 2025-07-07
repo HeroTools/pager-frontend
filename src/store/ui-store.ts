@@ -47,7 +47,6 @@ export const useUIStore = create<UIState>((set, get) => ({
     })),
   profileMemberId: null,
   setProfilePanelOpen: (memberId) => {
-    console.log('🔍 UI Store - setProfilePanelOpen called with:', memberId);
     set({ profileMemberId: memberId });
   },
   isProfilePanelOpen: () => get().profileMemberId !== null,
