@@ -368,7 +368,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                           >
                             <div className="flex items-center gap-3">
                               <div className="relative">
-                                <Avatar 
+                                <Avatar
                                   className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity"
                                   onClick={() => {
                                     setProfilePanelOpen(workspaceMember.id);
@@ -389,7 +389,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <p 
+                                  <p
                                     className="font-medium cursor-pointer hover:underline"
                                     onClick={() => setProfilePanelOpen(workspaceMember.id)}
                                   >

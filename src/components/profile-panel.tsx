@@ -19,4 +19,4 @@ export const ProfilePanel = () => {
       <Profile memberId={profileMemberId} onClose={handleClose} />
     </div>
   );
-}; 
+};
