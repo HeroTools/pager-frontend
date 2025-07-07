@@ -366,6 +366,11 @@ body {
     @apply !text-muted-foreground !not-italic !left-4;
   }
 
+  /* Hide default Quill link tooltip since we use custom dialog */
+  .ql-tooltip {
+    @apply !hidden;
+  }
+
   .message-content {
     box-sizing: border-box;
     line-height: 1.42;

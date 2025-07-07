@@ -16,6 +16,7 @@ import AttachmentPreview from './attachment-preview';
 import { validateFile } from '@/lib/helpers';
 import EmojiPicker from '@/components/emoji-picker';
 import EmojiAutoComplete from './emoji-auto-complete';
+import { LinkDialog } from './link-dialog';
 
 type EditorValue = {
   image: File | null;
@@ -54,6 +55,9 @@ const Editor = ({
   const [attachments, setAttachments] = useState<ManagedAttachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isToolbarVisible, setIsToolbarVisible] = useState(true);
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [linkSelection, setLinkSelection] = useState<{ index: number; length: number } | null>(null);
+  const [selectedText, setSelectedText] = useState('');
 
   const isEmpty = useMemo(
     () => !image && attachments.length === 0 && text.replace(/\s*/g, '').trim().length === 0,
@@ -302,11 +306,24 @@ const Editor = ({
       placeholder: placeholderRef.current,
       modules: {
         syntax: { hljs },
-        toolbar: [
-          ['bold', 'italic', 'underline', 'strike'],
-          ['blockquote', 'code-block'],
-          [{ list: 'ordered' }, { list: 'bullet' }, 'link'],
-        ],
+        toolbar: {
+          container: [
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ list: 'ordered' }, { list: 'bullet' }, 'link'],
+          ],
+          handlers: {
+            link: function() {
+              const range = this.quill.getSelection();
+              if (range) {
+                const selectedText = this.quill.getText(range.index, range.length);
+                setLinkSelection({ index: range.index, length: range.length });
+                setSelectedText(selectedText);
+                setIsLinkDialogOpen(true);
+              }
+            }
+          }
+        },
         keyboard: {
           bindings: {
             enterSubmit: {
@@ -390,6 +407,32 @@ const Editor = ({
     const quill = quillRef.current;
     const idx = quill?.getSelection()?.index || 0;
     quill?.insertText(idx, emoji);
+  }, []);
+
+  const handleLinkSave = useCallback((text: string, url: string): void => {
+    const quill = quillRef.current;
+    if (!quill || !linkSelection) return;
+
+    const { index, length } = linkSelection;
+    
+    // If there's selected text, replace it with the link
+    if (length > 0) {
+      quill.deleteText(index, length);
+      quill.insertText(index, text, 'link', url);
+    } else {
+      // No selection, just insert the link text
+      quill.insertText(index, text, 'link', url);
+    }
+    
+    // Clear selection and close dialog
+    setLinkSelection(null);
+    setIsLinkDialogOpen(false);
+  }, [linkSelection]);
+
+  const handleLinkDialogClose = useCallback((): void => {
+    setLinkSelection(null);
+    setSelectedText('');
+    setIsLinkDialogOpen(false);
   }, []);
 
   return (
@@ -531,6 +574,12 @@ const Editor = ({
 
       {/* Emoji Autocomplete */}
       <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
+      <LinkDialog
+        isOpen={isLinkDialogOpen}
+        onClose={handleLinkDialogClose}
+        onSave={handleLinkSave}
+        selectedText={selectedText}
+      />
     </div>
   );
 };
