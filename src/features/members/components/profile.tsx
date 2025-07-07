@@ -77,7 +77,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
       return;
     }
 
-    // First, try to find an existing 1-on-1 conversation with this user
+    // Try to find an existing 1-on-1 conversation with this user first
     const existingConversation = conversations.find((conversation) => {
       if (conversation.is_group_conversation) {
         return false;
@@ -108,7 +108,6 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Header */}
       <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
         <h2 className="text-lg font-semibold text-foreground">Profile</h2>
         <Button onClick={onClose} size="sm" variant="ghost">
@@ -157,13 +156,11 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
           })()}
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-col gap-4">
           <Button variant="outline" className="flex-1 gap-2" onClick={handleMessage}>
             <MessageCircle className="size-4" />
             Message
           </Button>
-          {/* Contact Information */}
           <div className="flex items-center gap-3">
             <div className="size-9 rounded-lg bg-muted flex items-center justify-center">
               <Mail className="size-4 text-muted-foreground" />
