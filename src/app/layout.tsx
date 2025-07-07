@@ -10,6 +10,7 @@ import './styles/globals.css';
 import 'quill/dist/quill.snow.css';
 import 'highlight.js/styles/github.css';
 import { ThemeProvider } from '@/components/providers/theme-provider';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const geistSans = localFont({
   src: './fonts/geist-vf.woff',
@@ -40,7 +41,9 @@ export default function RootLayout({
             <NuqsAdapter>
               <Toaster />
               <Modals />
-              <ThemeProvider>{children}</ThemeProvider>
+              <ThemeProvider>
+                <TooltipProvider delayDuration={50}>{children}</TooltipProvider>
+              </ThemeProvider>
             </NuqsAdapter>
           </AuthProvider>
         </ReactQueryProvider>

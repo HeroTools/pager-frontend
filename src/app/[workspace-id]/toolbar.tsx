@@ -155,11 +155,6 @@ export const Toolbar = () => {
   const hasMessageResults = uniqueResults.length > 0;
   const hasAnswer = !!searchData?.answer;
 
-  console.log(searchData);
-  console.log(hasMessageResults, 'hasMessageResults');
-  console.log(hasAnswer, 'hasAnswer');
-  console.log(isSearching && shouldSearchMessages, 'isSearching && shouldSearchMessages');
-
   const Section = ({ title, children }: any) =>
     children && Array.isArray(children) && children.length > 0 ? (
       <div className="mb-3">

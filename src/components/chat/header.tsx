@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,24 +105,23 @@ export const ChatHeader: FC<ChatHeaderProps> = ({ channel, members = [] }) => {
           className="flex items-center -space-x-2 focus:outline-none group relative px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
           title="Channel details"
         >
-          <TooltipProvider>
-            {visibleMembers.map((member) => (
-              <Tooltip key={member.id}>
-                <TooltipTrigger asChild>
-                  <Avatar className="h-7 w-7 border-2 border-background bg-muted">
-                    {member.avatar ? (
-                      <AvatarImage src={member.avatar} alt={member.name} />
-                    ) : (
-                      <AvatarFallback>
-                        {member.name?.[0] || <Users className="w-4 h-4" />}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                </TooltipTrigger>
-                <TooltipContent>{member.name}</TooltipContent>
-              </Tooltip>
-            ))}
-          </TooltipProvider>
+          {visibleMembers.map((member) => (
+            <Tooltip key={member.id}>
+              <TooltipTrigger asChild>
+                <Avatar className="h-7 w-7 border-2 border-background bg-muted">
+                  {member.avatar ? (
+                    <AvatarImage src={member.avatar} alt={member.name} />
+                  ) : (
+                    <AvatarFallback>
+                      {member.name?.[0] || <Users className="w-4 h-4" />}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </TooltipTrigger>
+              <TooltipContent>{member.name}</TooltipContent>
+            </Tooltip>
+          ))}
+
           {extraCount > 0 && (
             <div className="h-7 w-7 flex items-center justify-center rounded-full bg-muted text-xs font-medium border-2 border-background text-muted-foreground">
               +{extraCount}

@@ -70,6 +70,10 @@
   --text-destructive: oklch(0.576 0.194 25.331);
   --text-info: oklch(0.6 0.15 252);
 
+  /* Link colors */
+  --link: oklch(0.6 0.15 252);
+  --link-hover: oklch(0.7 0.15 252);
+
   --interactive-active: oklch(0.95 0.05 252);
   --interactive-active-border: oklch(0.85 0.08 252);
   --interactive-active-text: oklch(0.35 0.12 252);
@@ -162,6 +166,10 @@ body {
   --text-destructive: oklch(0.62 0.194 25.331);
   --text-info: oklch(0.7 0.15 252);
 
+  /* Link colors for dark mode */
+  --link: oklch(0.75 0.15 252);
+  --link-hover: oklch(0.85 0.15 252);
+
   --interactive-active: oklch(0.15 0.08 252);
   --interactive-active-border: oklch(0.4 0.12 252);
   --interactive-active-text: oklch(0.7 0.15 252);
@@ -246,6 +254,10 @@ body {
   --color-text-warning: var(--text-warning);
   --color-text-destructive: var(--text-destructive);
   --color-text-info: var(--text-info);
+
+  /* Link color mappings */
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
 
   --color-interactive-active: var(--interactive-active);
   --color-interactive-active-border: var(--interactive-active-border);
@@ -366,6 +378,11 @@ body {
     @apply !text-muted-foreground !not-italic !left-4;
   }
 
+  /* Hide default Quill link tooltip since we use custom dialog */
+  .ql-tooltip {
+    @apply !hidden;
+  }
+
   .message-content {
     box-sizing: border-box;
     line-height: 1.42;
@@ -377,16 +394,111 @@ body {
     text-align: left;
     white-space: pre-wrap;
     word-wrap: break-word;
+    color: hsl(var(--foreground));
+    max-width: none;
   }
 
-  /* Paragraph spacing */
-  .message-content p {
-    margin: 0 0 1em 0;
+  /* Rich text formatting */
+  .message-content strong,
+  .message-content b {
+    font-weight: 700;
+  }
+
+  .message-content em,
+  .message-content i {
+    font-style: italic;
+  }
+
+  .message-content u {
+    text-decoration: underline;
+  }
+
+  .message-content s,
+  .message-content strike {
+    text-decoration: line-through;
+  }
+
+  /* Lists */
+  .message-content ul {
+    list-style-type: disc;
+    margin-left: 1.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .message-content ol {
+    list-style-type: decimal;
+    margin-left: 1.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .message-content li {
+    margin-bottom: 0.25rem;
+  }
+
+  /* Blockquotes - multiple selectors to catch different formats */
+  .message-content blockquote,
+  .message-content .ql-blockquote,
+  .message-content p[class*='blockquote'],
+  .message-content [data-blockquote='true'] {
+    border-left: 4px solid var(--muted-foreground) !important;
+    padding-left: 1rem !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    background-color: var(--muted) !important;
+    font-style: italic !important;
+    border-radius: 0.25rem;
+  }
+
+  /* Code blocks */
+  .message-content pre {
+    background-color: var(--muted);
+    border: 0.5px solid var(--color-border-subtle);
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    overflow-x: auto;
+  }
+
+  .message-content code {
+    background-color: var(--muted);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-family:
+      ui-monospace, SFMono-Regular, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas,
+      'Courier New', monospace;
+  }
+
+  .message-content pre code {
+    background-color: transparent;
     padding: 0;
+  }
+
+  /* Paragraphs */
+  .message-content p {
+    margin-bottom: 0.5rem;
   }
 
   .message-content p:last-child {
     margin-bottom: 0;
+  }
+
+  /* Links */
+  .message-content a {
+    color: var(--link);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s ease-in-out;
+  }
+
+  .message-content a:hover {
+    text-decoration: underline;
+    color: var(--link-hover);
   }
 
   /* Headings */
@@ -396,7 +508,7 @@ body {
   .message-content h4,
   .message-content h5,
   .message-content h6 {
-    @apply font-bold;
+    font-weight: 700;
     margin: 1em 0 0.5em 0;
     padding: 0;
   }
@@ -420,93 +532,30 @@ body {
     font-size: 0.67em;
   }
 
-  /* Text formatting */
-  .message-content strong,
-  .message-content b {
-    @apply font-bold;
-  }
-
-  .message-content em,
-  .message-content i {
-    @apply italic;
-  }
-
-  .message-content u {
-    @apply underline;
-  }
-
-  .message-content s,
-  .message-content strike {
-    @apply line-through;
-  }
-
-  /* Links */
-  .message-content a {
-    @apply text-text-info underline;
-  }
-
-  .message-content a:hover {
-    @apply no-underline;
-  }
-
-  /* Lists */
-  .message-content ul,
-  .message-content ol {
-    margin: 1em 0;
-    padding-left: 1.5em;
-  }
-
-  .message-content li {
-    margin: 0.25em 0;
-  }
-
-  /* Blockquotes */
-  .message-content blockquote {
-    @apply border-l-4 border-border-strong text-muted-foreground italic;
-    margin: 1em 0;
-    padding-left: 1em;
-  }
-
-  /* Code blocks */
-  .message-content pre {
-    @apply bg-muted border border-border rounded text-foreground;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 85%;
-    margin: 1em 0;
-    overflow-x: auto;
-    padding: 1em;
-    white-space: pre;
-  }
-
-  .message-content code {
-    @apply bg-muted text-foreground rounded;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 85%;
-    padding: 0.2em 0.4em;
-  }
-
-  .message-content pre code {
-    @apply bg-transparent rounded-none p-0;
-  }
-
   /* Images */
   .message-content img {
-    @apply max-w-full h-auto;
+    max-width: 100%;
+    height: auto;
   }
 
   /* Tables */
   .message-content table {
-    @apply border-collapse w-full;
+    border-collapse: collapse;
+    width: 100%;
     margin: 1em 0;
   }
 
   .message-content th,
   .message-content td {
-    @apply border border-border p-2 text-left text-foreground;
+    border: 1px solid hsl(var(--border));
+    padding: 0.5rem;
+    text-align: left;
+    color: hsl(var(--foreground));
   }
 
   .message-content th {
-    @apply bg-muted font-bold;
+    background-color: hsl(var(--muted));
+    font-weight: 700;
   }
 
   /* Subscript and superscript */
@@ -528,13 +577,13 @@ body {
 
   /* Quill-specific classes */
   .message-content .ql-align-center {
-    @apply text-center;
+    text-align: center;
   }
   .message-content .ql-align-right {
-    @apply text-right;
+    text-align: right;
   }
   .message-content .ql-align-justify {
-    @apply text-justify;
+    text-align: justify;
   }
 
   .message-content .ql-indent-1 {
