@@ -28,7 +28,8 @@
     "**/*.tsx",
     "**/*.mjs",
     ".next/types/**/*.ts",
-    "public/sw-notifications.js"
+    "public/sw-notifications.js",
+    "./eslint.config.mjs"
   ],
   "exclude": ["node_modules"]
 }

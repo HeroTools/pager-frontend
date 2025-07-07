@@ -2,7 +2,9 @@ import { Attachment, Author, Message } from '@/types/chat';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { CurrentUser } from '@/features/auth';
 import { useUIStore } from '@/store/ui-store';
-import type { MessageWithUser, QuillDelta } from './types';
+import type { MessageWithUser, QuillDelta, QuillOp } from './types';
+import { Reaction, User } from '../reactions/types';
+import { Attachment as AttachmentType } from '@/types/database';
 
 export const transformMessages = (
   messagesData: MessageWithUser[],
@@ -21,12 +23,12 @@ export const transformMessages = (
       } as Author,
       timestamp: new Date(msg.created_at),
       reactions:
-        msg.reactions?.map((reaction: any) => ({
+        msg.reactions?.map((reaction: Reaction) => ({
           id: reaction.id,
           value: reaction.value,
           count: reaction.count,
           users: reaction.users,
-          hasReacted: reaction.users.some((user: any) => user.id === currentUser?.id),
+          hasReacted: reaction.users.some((user: User) => user.id === currentUser?.id),
         })) || [],
       threadCount: msg.thread_reply_count || 0,
       threadParticipants: msg.thread_participants || [],
@@ -35,7 +37,7 @@ export const transformMessages = (
       isOptimistic: msg._isOptimistic || false,
       attachments:
         msg?.attachments.map(
-          (attachment: any) =>
+          (attachment: AttachmentType) =>
             ({
               id: attachment.id,
               contentType: attachment.content_type,
@@ -92,16 +94,18 @@ export const parseMessageContent = (content: string | null | undefined): QuillDe
 /**
  * Validates if an object is a valid Quill Delta
  */
-const isValidDelta = (obj: any): obj is QuillDelta => {
+const isValidDelta = (obj: unknown): obj is QuillDelta => {
   return (
-    obj &&
+    obj !== null &&
     typeof obj === 'object' &&
-    Array.isArray(obj.ops) &&
-    obj.ops.length > 0 &&
-    obj.ops.every(
-      (op: any) =>
+    'ops' in obj &&
+    Array.isArray((obj as { ops: unknown }).ops) &&
+    (obj as { ops: unknown[] }).ops.length > 0 &&
+    (obj as { ops: unknown[] }).ops.every(
+      (op: unknown): op is QuillOp =>
+        op !== null &&
         typeof op === 'object' &&
-        (op.insert !== undefined || op.retain !== undefined || op.delete !== undefined),
+        ('insert' in op || 'retain' in op || 'delete' in op),
     )
   );
 };

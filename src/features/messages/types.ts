@@ -1,11 +1,8 @@
 import {
   Message,
   MessageWithRelations,
-  UpdateEntityInput,
   ApiResponse,
-  SendMessageRequest,
   MessageType,
-  Reaction,
   Attachment,
 } from '@/types/database';
 import { UploadedAttachment } from '../file-upload/types';
@@ -115,7 +112,7 @@ export interface MessageWithUser {
   body: string;
   workspace_member_id: string;
   workspace_id: string;
-  channel_id: string;
+  channel_id: string | null;
   conversation_id: string | null;
   parent_message_id: string | null;
   thread_id: string | null;
@@ -153,8 +150,8 @@ export interface QuillDelta {
 }
 
 export interface QuillOp {
-  insert?: string | Record<string, any>;
+  insert?: string | Record<string, unknown>;
   retain?: number;
   delete?: number;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }

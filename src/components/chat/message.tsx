@@ -12,7 +12,6 @@ import {
   Music,
   Image as ImageIcon,
   Play,
-  Eye,
 } from 'lucide-react';
 import { Message, Attachment } from '@/types/chat';
 import { cn } from '@/lib/utils';
@@ -36,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { parseMessageContent } from '@/features/messages/helpers';
+import { QuillDelta } from '@/features/messages/types';
 
 const ATTACHMENT_SIZES = {
   SINGLE: { maxHeight: 300, maxWidth: 400 },
@@ -500,7 +500,6 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   isInThread = false,
   onEdit,
   onDelete,
-  onReply,
   onReaction,
 }) => {
   const { workspaceId } = useParamIds();
@@ -511,7 +510,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingContent, setEditingContent] = useState<any>(null);
+  const [editingContent, setEditingContent] = useState<QuillDelta | null>(null);
   const {
     openEmojiPickerMessageId,
     openEmojiPickerMessageIdInThread,
@@ -565,7 +564,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   const handleEditSave = async (editorValue: {
     image: File | null;
     body: string;
-    attachments: any[];
+    attachments: Attachment[];
     plainText: string;
   }) => {
     const { body, plainText } = editorValue;

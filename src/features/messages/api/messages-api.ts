@@ -13,7 +13,6 @@ import type {
   MessageThreadResponse,
   MessageSearchResponse,
   MessageFilters,
-  AddReactionData,
   MessageThread,
   MessageWithUser,
   MessageWithUserResponse,
@@ -162,12 +161,12 @@ export const messagesApi = {
     workspaceId: string,
     messageId: string,
     data: UpdateMessageData,
-  ): Promise<MessageEntity> => {
-    const { data: response } = await api.put<MessageResponse>(
+  ): Promise<{ messageId: string; updatedAt: string }> => {
+    const { data: response } = await api.put<{ messageId: string; updatedAt: string }>(
       `/workspaces/${workspaceId}/messages/${messageId}`,
       data,
     );
-    return response.data;
+    return response;
   },
 
   /**

@@ -99,7 +99,6 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
               }),
             );
           },
-          3,
         );
 
         setAttachments((prev) => {

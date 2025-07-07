@@ -120,13 +120,11 @@ export const useFileUpload = (workspaceId: string) => {
    * Orchestrates the entire upload flow for multiple files concurrently.
    * @param files - The array of files to upload.
    * @param onTotalProgress - Callback for overall progress updates.
-   * @param maxConcurrentUploads - Number of files to upload simultaneously.
    * @returns An array of FileUploadResult objects.
    */
   const uploadMultipleFiles = async (
     files: File[],
     onFileProgress: (fileIndex: number, progress: UploadProgress) => void,
-    maxConcurrentUploads: number = 3,
   ): Promise<FileUploadResult[]> => {
     // This function processes a single file through all three stages.
     const processFile = async (file: File, index: number): Promise<FileUploadResult> => {
@@ -168,7 +166,7 @@ export const useFileUpload = (workspaceId: string) => {
           sizeBytes: fileData.size_bytes,
           status: 'success',
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`Failed to upload ${file.name}:`, error);
         // Return an error result object
         return {
@@ -178,7 +176,7 @@ export const useFileUpload = (workspaceId: string) => {
           contentType: file.type,
           sizeBytes: file.size,
           status: 'error',
-          error: error.message || 'An unknown error occurred',
+          error: (error as Error)?.message || 'An unknown error occurred',
         };
       }
     };

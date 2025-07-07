@@ -40,7 +40,6 @@ const ThreadHeader = ({ onClose, title }: ThreadHeaderProps) => (
   </div>
 );
 
-// Helper function to check if a message ID is temporary/optimistic
 const isOptimisticId = (id: string): boolean => {
   return id.startsWith('temp-');
 };
@@ -68,7 +67,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
   });
   const toggleReaction = useToggleReaction(workspaceId);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [editorKey, setEditorKey] = useState(0);
 
   const isParentOptimistic = parentMessage && isOptimisticId(parentMessage.id);
@@ -129,7 +127,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
         messageId,
         data: { body: newContent },
       });
-      setEditingId(null);
     } catch (error) {
       console.error('Failed to edit message:', error);
       toast.error('Failed to edit message. Please try again.');
@@ -208,7 +205,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
           <div className="px-4 pt-4 pb-2 border-b border-border-subtle relative">
             <ChatMessage
               message={parentMessage}
-              currentUser={currentUser}
+              currentUser={currentUser!}
               showAvatar={true}
               isCompact={false}
               onEdit={handleEdit}
@@ -251,7 +248,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
                       <ChatMessage
                         key={message.id}
                         message={message}
-                        currentUser={currentUser}
+                        currentUser={currentUser!}
                         showAvatar={true}
                         isCompact={isCompact}
                         onEdit={handleEdit}
