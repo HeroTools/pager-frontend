@@ -1,7 +1,6 @@
 import api from '@/lib/api/axios-client';
 import { supabase } from '@/lib/supabase/client';
 import type {
-  ApiAuthResponse,
   AuthResponse,
   CurrentUser,
   InviteLinkResponse,
@@ -18,34 +17,36 @@ export const authApi = {
    * Sign up a new user
    */
   signUp: async (data: SignUpData): Promise<AuthResponse> => {
-    const { data: response } = await api.post<ApiAuthResponse>('/auth/sign-up', data);
+    const { data: response } = await api.post<AuthResponse>('/auth/sign-up', data);
 
     // Store session from Lambda response if provided
-    if (response.data.session) {
+    if (response.session) {
       await supabase.auth.setSession({
-        access_token: response.data.session.access_token,
-        refresh_token: response.data.session.refresh_token,
+        access_token: response.session.access_token,
+        refresh_token: response.session.refresh_token,
       });
     }
 
-    return response.data;
+    return response;
   },
 
   /**
    * Sign in an existing user
    */
   signIn: async (data: SignInData): Promise<AuthResponse> => {
-    const { data: response } = await api.post<ApiAuthResponse>('/auth/sign-in', data);
+    const { data: response } = await api.post<AuthResponse>('/auth/sign-in', data);
+
+    console.log(response);
 
     // Store session from Lambda response
-    if (response.data.session) {
+    if (response.session) {
       await supabase.auth.setSession({
-        access_token: response.data.session.access_token,
-        refresh_token: response.data.session.refresh_token,
+        access_token: response.session.access_token,
+        refresh_token: response.session.refresh_token,
       });
     }
 
-    return response.data;
+    return response;
   },
 
   /**
