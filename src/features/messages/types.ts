@@ -1,3 +1,4 @@
+import type { InfiniteData } from '@tanstack/react-query';
 import type {
   ApiResponse,
   Attachment,
@@ -101,10 +102,6 @@ export interface CreateMessageData {
   plain_text?: string;
 }
 
-export interface UpdateMessageData {
-  body?: string;
-}
-
 export interface MessageWithUser {
   id: string;
   body: string;
@@ -150,4 +147,69 @@ export interface QuillOp {
   retain?: number;
   delete?: number;
   attributes?: Record<string, unknown>;
+}
+
+export interface UpdateMessageData {
+  body?: string;
+  attachment_ids?: string[];
+  parent_message_id?: string | null;
+  thread_id?: string | null;
+  message_type?: string;
+}
+
+export interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
+  workspace_member_id: string;
+}
+
+export interface MessagePage {
+  messages: MessageWithUser[];
+  members: unknown[];
+  pagination: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    totalCount: number;
+  };
+}
+
+export interface ThreadData {
+  replies: MessageWithUser[];
+  members: unknown[];
+  pagination: {
+    hasMore: boolean;
+    nextCursor: string | null;
+    totalCount: number;
+  };
+}
+
+export type MessagesInfiniteData = InfiniteData<MessagePage, string | undefined>;
+
+export interface MessageMutationContext {
+  previousChannelMessages?: MessagesInfiniteData;
+  previousConversationMessages?: MessagesInfiniteData;
+  previousThreadMessages?: ThreadData;
+  isThreadMessage: boolean;
+  threadParentId?: string;
+  optimisticId?: string;
+}
+
+export interface UpdateMessageContext {
+  channels?: readonly [readonly unknown[], unknown][];
+  conversations?: readonly [readonly unknown[], unknown][];
+  threads?: readonly [readonly unknown[], unknown][];
+}
+
+export interface MessageRepliesParams {
+  limit?: number;
+  cursor?: string;
+  before?: string;
+  entity_type?: 'channel' | 'conversation';
+  entity_id?: string;
+}
+
+export interface TypingIndicatorData {
+  is_typing: boolean;
 }

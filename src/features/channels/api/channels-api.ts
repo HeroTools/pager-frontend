@@ -178,19 +178,6 @@ export const channelsApi = {
   },
 
   /**
-   * Update notification settings for a channel
-   */
-  updateNotificationSettings: async (
-    workspaceId: string,
-    channelId: string,
-    enabled: boolean,
-  ): Promise<void> => {
-    await api.patch(`/workspaces/${workspaceId}/channels/${channelId}/notifications`, {
-      notifications_enabled: enabled,
-    });
-  },
-
-  /**
    * Get all members of a channel
    */
   getChannelMembers: async (
