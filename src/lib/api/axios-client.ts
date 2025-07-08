@@ -8,7 +8,6 @@ import { supabase } from '@/lib/supabase/client';
 
 // ——————— CONFIG ———————
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
-const REQUEST_TIMEOUT = 10_000; // ms
 
 // ——————— REFRESH QUEUE ———————
 let isRefreshing = false;
@@ -52,7 +51,6 @@ async function refreshAccessToken(): Promise<string | null> {
 // ——————— AXIOS INSTANCE ———————
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: REQUEST_TIMEOUT,
   headers: { 'Content-Type': 'application/json' },
 });
 
