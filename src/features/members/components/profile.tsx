@@ -26,6 +26,25 @@ interface ProfileProps {
   onClose: () => void;
 }
 
+const STATUS_CONFIG = {
+  online: { colorClass: 'bg-text-success', label: 'Active' },
+  away: { colorClass: 'bg-text-warning', label: 'Away' },
+  busy: { colorClass: 'bg-text-destructive', label: 'Busy' },
+  offline: { colorClass: 'bg-text-subtle', label: 'Offline' },
+} as const;
+
+const renderStatusIndicator = (status: string | null | undefined) => {
+  const memberStatus = status || 'offline';
+  const config = STATUS_CONFIG[memberStatus as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.offline;
+  
+  return (
+    <>
+      <div className={`size-2 rounded-full ${config.colorClass}`}></div>
+      <span className="text-sm text-muted-foreground">{config.label}</span>
+    </>
+  );
+};
+
 export const Profile = ({ memberId, onClose }: ProfileProps) => {
   const workspaceId = useWorkspaceId() as string;
   const router = useRouter();
@@ -138,27 +157,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {(() => {
-            const status = member.status || 'offline';
-            let colorClass = 'bg-text-subtle';
-            let label = 'Offline';
-            if (status === 'online') {
-              colorClass = 'bg-text-success';
-              label = 'Active';
-            } else if (status === 'away') {
-              colorClass = 'bg-text-warning';
-              label = 'Away';
-            } else if (status === 'busy') {
-              colorClass = 'bg-text-destructive';
-              label = 'Busy';
-            }
-            return (
-              <>
-                <div className={`size-2 rounded-full ${colorClass}`}></div>
-                <span className="text-sm text-muted-foreground">{label}</span>
-              </>
-            );
-          })()}
+          {renderStatusIndicator(member.status)}
         </div>
 
         <div className="flex flex-col gap-4">
