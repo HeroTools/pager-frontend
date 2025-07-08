@@ -1,18 +1,6 @@
 import { useMemo } from 'react';
-import {
-  AlertTriangle,
-  ChevronDown,
-  Clock,
-  Headphones,
-  Loader,
-  Mail,
-  MessageCircle,
-  MoreHorizontal,
-  Crown,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, Loader, Mail, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
@@ -36,7 +24,7 @@ const STATUS_CONFIG = {
 const renderStatusIndicator = (status: string | null | undefined) => {
   const memberStatus = status || 'offline';
   const config = STATUS_CONFIG[memberStatus as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.offline;
-  
+
   return (
     <>
       <div className={`size-2 rounded-full ${config.colorClass}`}></div>
@@ -50,18 +38,11 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
   const router = useRouter();
   const getMembers = useGetMembers(workspaceId);
   const { conversations = [], createConversation } = useConversations(workspaceId);
-  
+
   const member = useMemo(
     () => getMembers.data?.find((m) => m.id === memberId),
-    [getMembers.data, memberId]
+    [getMembers.data, memberId],
   );
-
-  // Format current time
-  const currentTime = new Date().toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
 
   if (getMembers.isLoading) {
     return (
@@ -156,9 +137,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
           <h1 className="text-2xl font-bold text-foreground">{member.user.name}</h1>
         </div>
 
-        <div className="flex items-center gap-2">
-          {renderStatusIndicator(member.status)}
-        </div>
+        <div className="flex items-center gap-2">{renderStatusIndicator(member.status)}</div>
 
         <div className="flex flex-col gap-4">
           <Button variant="outline" className="flex-1 gap-2" onClick={handleMessage}>
