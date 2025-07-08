@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { AlertTriangle, Loader, Mail, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useGetMembers } from '@/features/members';
 import { useConversations } from '@/features/conversations/hooks/use-conversations';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 
 interface ProfileProps {
   memberId: string;
@@ -137,7 +138,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
           <h1 className="text-2xl font-bold text-foreground">{member.user.name}</h1>
         </div>
 
-        <div className="flex items-center gap-2">{renderStatusIndicator(member.status)}</div>
+        {/* <div className="flex items-center gap-2">{renderStatusIndicator(member.status)}</div> */}
 
         <div className="flex flex-col gap-4">
           <Button variant="outline" className="flex-1 gap-2" onClick={handleMessage}>
