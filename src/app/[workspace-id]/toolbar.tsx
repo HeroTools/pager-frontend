@@ -74,8 +74,6 @@ export const Toolbar = () => {
   const [inputValue, setInputValue] = useState('');
   const [debouncedQuery] = useDebounce(inputValue, 800);
 
-  const shouldSearchMessages = debouncedQuery.trim().length >= 2;
-
   // Remote search (debounced)
   const { data: searchData, isLoading: isSearching } = useSearch(workspaceId, debouncedQuery, {
     includeThreads: true,
@@ -151,9 +149,6 @@ export const Toolbar = () => {
       return true;
     });
   }, [searchData?.results]);
-
-  const hasMessageResults = uniqueResults.length > 0;
-  const hasAnswer = !!searchData?.answer;
 
   const Section = ({ title, children }: any) =>
     children && Array.isArray(children) && children.length > 0 ? (

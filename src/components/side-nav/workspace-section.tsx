@@ -1,6 +1,6 @@
 import { ChevronDown, PlusIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useToggle } from 'react-use';
+import { useToggle } from '@/hooks/use-toggle';
 import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
