@@ -182,7 +182,7 @@ export const authApi = {
   getInviteLink: async (workspace_id: string): Promise<InviteLinkResponse> => {
     const { data: response } = await api.post<{ success: boolean; data: InviteLinkResponse }>(
       '/auth/invite-link',
-      { workspace_id },
+      { workspaceId: workspace_id },
     );
     return response.data;
   },
