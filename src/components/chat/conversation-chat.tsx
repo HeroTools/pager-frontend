@@ -139,7 +139,6 @@ const ConversationChat = () => {
       updateSelectedMessageIfNeeded(optimisticId, transformMessages([message], currentUser)[0]);
 
       removePendingMessage(optimisticId);
-      console.log('Message sent successfully');
     } catch (error) {
       removePendingMessage(optimisticId);
       console.error('Failed to send message:', error);
@@ -153,8 +152,6 @@ const ConversationChat = () => {
         messageId,
         data: { body: newContent },
       });
-
-      console.log('Message edited successfully');
     } catch (error) {
       console.error('Failed to edit message:', error);
     }
@@ -164,7 +161,6 @@ const ConversationChat = () => {
   const handleDeleteMessage = async (messageId: string) => {
     try {
       await deleteMessage.mutateAsync(messageId);
-      console.log('Message deleted successfully');
     } catch (error) {
       console.error('Failed to delete message:', error);
     }
@@ -207,6 +203,7 @@ const ConversationChat = () => {
         messages={messages}
         currentUser={currentUser}
         chatType="conversation"
+        conversationData={conversationWithMessages?.pages?.[0]}
         isLoading={false}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}

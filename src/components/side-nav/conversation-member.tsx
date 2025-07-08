@@ -2,7 +2,6 @@ import type { VariantProps } from 'class-variance-authority';
 import { cva } from 'class-variance-authority';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -100,13 +99,13 @@ export const ConversationItem = ({
   const workspaceId = useWorkspaceId();
   const currentUserId = conversation.members.find((m) => m.workspace_member.user)?.workspace_member
     .user.id;
+
   const display = getConversationDisplay(conversation, currentUserId);
   const { getConversationUnreadCount } = useConversationNotifications(workspaceId);
   const { markEntityNotificationsRead } = useMarkEntityNotificationsRead();
   const router = useRouter();
 
   const unreadCount = getConversationUnreadCount(conversation.id);
-
   const isSelfConversation =
     !conversation.is_group_conversation &&
     conversation.other_members.length === 0 &&
