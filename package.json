@@ -39,7 +39,6 @@
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",
     "date-fns": "^4.1.0",
-    "dayjs": "^1.11.13",
     "dompurify": "^3.2.6",
     "emoji-mart": "^5.6.0",
     "highlight.js": "^11.11.1",
@@ -55,7 +54,6 @@
     "react-hook-form": "^7.59.0",
     "react-icons": "^5.5.0",
     "react-resizable-panels": "^3.0.3",
-    "react-use": "^17.6.0",
     "react-verification-input": "^4.2.2",
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
@@ -73,7 +71,7 @@
     "@types/node": "^24.0.10",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@typescript-eslint/parser": "^8.35.1",
+    "@typescript-eslint/parser": "^8.36.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.30.1",
     "eslint-config-next": "^15.3.5",
@@ -85,7 +83,7 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.11",
     "typescript": "^5",
-    "typescript-eslint": "^8.35.1"
+    "typescript-eslint": "^8.36.0"
   },
   "overrides": {
     "@emoji-mart/react": {

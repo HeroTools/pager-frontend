@@ -213,8 +213,6 @@ export const useDeleteChannel = () => {
   });
 };
 
-// Join a channel
-
 // Add channel member
 export const useAddChannelMembers = () => {
   const queryClient = useQueryClient();
@@ -243,31 +241,6 @@ export const useAddChannelMembers = () => {
       // Invalidate user channels to refresh sidebar
       queryClient.invalidateQueries({
         queryKey: channelsQueryKeys.userChannels(variables.workspaceId),
-      });
-    },
-  });
-};
-
-// Update channel member
-export const useUpdateChannelMember = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      workspaceId,
-      channelId,
-      memberId,
-      data,
-    }: {
-      workspaceId: string;
-      channelId: string;
-      memberId: string;
-      data: UpdateChannelMemberData;
-    }) => channelsApi.updateChannelMember(workspaceId, channelId, memberId, data),
-    onSuccess: (_, variables) => {
-      // Invalidate channel with members to refresh member list
-      queryClient.invalidateQueries({
-        queryKey: channelsQueryKeys.channelMembers(variables.workspaceId, variables.channelId),
       });
     },
   });
@@ -325,52 +298,6 @@ export const useRemoveChannelMembers = () => {
       });
       queryClient.invalidateQueries({
         queryKey: ['channels', workspaceId],
-      });
-    },
-  });
-};
-
-// Mark channel as read
-export const useMarkChannelAsRead = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      workspaceId,
-      channelId,
-      messageId,
-    }: {
-      workspaceId: string;
-      channelId: string;
-      messageId: string;
-    }) => channelsApi.markChannelAsRead(workspaceId, channelId, messageId),
-    onSuccess: (_, variables) => {
-      // Invalidate channel with members to update read status
-      queryClient.invalidateQueries({
-        queryKey: channelsQueryKeys.channelMembers(variables.workspaceId, variables.channelId),
-      });
-    },
-  });
-};
-
-// Update notification settings
-export const useUpdateNotificationSettings = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      workspaceId,
-      channelId,
-      enabled,
-    }: {
-      workspaceId: string;
-      channelId: string;
-      enabled: boolean;
-    }) => channelsApi.updateNotificationSettings(workspaceId, channelId, enabled),
-    onSuccess: (_, variables) => {
-      // Invalidate channel with members to update notification settings
-      queryClient.invalidateQueries({
-        queryKey: channelsQueryKeys.channelMembers(variables.workspaceId, variables.channelId),
       });
     },
   });
