@@ -1,7 +1,6 @@
 'use client';
 
 import { AlertTriangle, Loader } from 'lucide-react';
-
 import { Chat } from '@/components/chat/chat';
 import type { ConversationWithMessagesAndMembers } from '@/features/conversations';
 import {
@@ -54,20 +53,28 @@ const ConversationChat = () => {
   const toggleReaction = useToggleReaction(workspaceId);
 
   const transformConversation = (conversationData: ConversationWithMessagesAndMembers): Channel => {
-    const otherMembers = conversationData.members.filter(
-      (member) => member.user.id !== currentUser?.id,
-    );
-    const displayName =
-      otherMembers.length === 1
-        ? otherMembers[0]?.user.name
-        : `${otherMembers.map((m) => m.user.name).join(', ')}`;
+    const { conversation, members } = conversationData;
+    const otherMembers =
+      conversation.other_members || members.filter((member) => member.user.id !== currentUser?.id);
+
+    let displayName = '';
+    if (conversation.is_group_conversation) {
+      // Group: show only other members
+      displayName = otherMembers.map((m) => m.user.name).join(', ');
+    } else if (otherMembers.length === 1) {
+      // DM: show the other member
+      displayName = otherMembers[0]?.user.name;
+    } else {
+      // Self-conversation: show current user
+      displayName = currentUser?.name || 'You';
+    }
 
     return {
-      id: conversationData.conversation.id,
+      id: conversation.id,
       name: displayName || 'Unknown User',
-      description: `Conversation with ${conversationData.members.length} members`,
+      description: `Conversation with ${members.length} members`,
       isPrivate: true,
-      memberCount: conversationData.members.length,
+      memberCount: members.length,
       type: ChannelType.PRIVATE,
     };
   };
