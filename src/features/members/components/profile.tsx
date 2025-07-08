@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   AlertTriangle,
   ChevronDown,
@@ -30,7 +31,11 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
   const router = useRouter();
   const getMembers = useGetMembers(workspaceId);
   const { conversations = [], createConversation } = useConversations(workspaceId);
-  const member = getMembers.data?.find((m) => m.id === memberId);
+  
+  const member = useMemo(
+    () => getMembers.data?.find((m) => m.id === memberId),
+    [getMembers.data, memberId]
+  );
 
   // Format current time
   const currentTime = new Date().toLocaleTimeString([], {
