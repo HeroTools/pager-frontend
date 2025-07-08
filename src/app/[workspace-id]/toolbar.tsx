@@ -12,6 +12,9 @@ import { useGetMembers } from '@/features/members/hooks/use-members';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useSearch } from '@/features/search/hooks/use-search';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import type { SearchResult } from '@/features/search/types';
+import { useConversations } from '@/features/conversations/hooks/use-conversations';
+import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 
 const AIAnswerSection = ({
   answer,
@@ -69,10 +72,13 @@ export const Toolbar = () => {
 
   const { data: channels } = useGetAllAvailableChannels(workspaceId);
   const { data: members } = useGetMembers(workspaceId);
+  const { conversations, createConversation } = useConversations(workspaceId);
+  const { user: currentUser } = useCurrentUser(workspaceId);
 
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [debouncedQuery] = useDebounce(inputValue, 800);
+  const [creatingConversationWith, setCreatingConversationWith] = useState<string | null>(null);
 
   const shouldSearchMessages = debouncedQuery.trim().length >= 2;
 
@@ -96,6 +102,7 @@ export const Toolbar = () => {
       return members?.slice(0, 5) || [];
     }
     const query = inputValue.toLowerCase();
+    console.log(members, 'members');
     return members.filter((member) => member.user.name.toLowerCase().includes(query)).slice(0, 5);
   }, [members, inputValue]);
 
@@ -107,14 +114,91 @@ export const Toolbar = () => {
     },
     [workspaceId, router],
   );
+
   const handleMemberClick = useCallback(
-    (memberId: string) => () => {
+    (memberId: string) => async () => {
       setOpen(false);
-      router.push(`/${workspaceId}/d-${memberId}`);
+
+      if (!currentUser?.workspace_member_id) {
+        console.error('No current user found');
+        return;
+      }
+
+      // Find existing conversation with this member
+      const existingConversation = conversations?.find((conversation) => {
+        // For 1-on-1 conversations, check if the other member is the one we're looking for
+        if (!conversation.is_group_conversation && conversation.other_members?.length === 1) {
+          return conversation.other_members[0].workspace_member.id === memberId;
+        }
+        return false;
+      });
+
+      if (existingConversation) {
+        router.push(`/${workspaceId}/d-${existingConversation.id}`);
+      } else {
+        try {
+          setCreatingConversationWith(memberId);
+          const newConversation = await createConversation.mutateAsync({
+            participantMemberIds: [memberId],
+          });
+
+          router.push(`/${workspaceId}/d-${newConversation.id}`);
+        } catch (error) {
+          console.error('Failed to create conversation:', error);
+        } finally {
+          setCreatingConversationWith(null);
+        }
+      }
+    },
+    [workspaceId, router, conversations, currentUser?.workspace_member_id, createConversation],
+  );
+
+  // Updated message click handler to navigate to the actual message location
+  const handleMessageClick = useCallback(
+    (result: SearchResult) => () => {
+      setOpen(false);
+
+      let navigationUrl = '';
+
+      // Determine the navigation URL based on the message context
+      // Handle threads first since they can be in channels or conversations
+      if (result.isThread && result.parentMessageId) {
+        // Thread message - navigate to the parent message's location and open thread
+        if (result.channelId) {
+          navigationUrl = `/${workspaceId}/c-${result.channelId}?thread=${result.parentMessageId}`;
+        } else if (result.conversationId) {
+          navigationUrl = `/${workspaceId}/d-${result.conversationId}?thread=${result.parentMessageId}`;
+        }
+      } else if (result.contextType === 'channel' && result.channelId) {
+        // Channel message
+        navigationUrl = `/${workspaceId}/c-${result.channelId}`;
+      } else if (result.contextType === 'conversation' && result.conversationId) {
+        // Direct message
+        navigationUrl = `/${workspaceId}/d-${result.conversationId}`;
+      } else {
+        // Fallback logic - check which IDs are available
+        if (result.channelId) {
+          navigationUrl = `/${workspaceId}/c-${result.channelId}`;
+        } else if (result.conversationId) {
+          navigationUrl = `/${workspaceId}/d-${result.conversationId}`;
+        } else {
+          console.warn('⚠️ No valid navigation ID found for message:', result);
+          return; // Don't navigate if we can't determine the location
+        }
+      }
+
+      // Add highlight parameter to highlight the specific message
+      const separator = navigationUrl.includes('?') ? '&' : '?';
+      navigationUrl += `${separator}highlight=${result.messageId}`;
+
+      console.log('🚀 Navigating to:', navigationUrl);
+      router.push(navigationUrl);
     },
     [workspaceId, router],
   );
-  const handleMessageClick = useCallback(
+
+  // Legacy message click handler for AI citations (fallback)
+  const handleLegacyMessageClick = useCallback(
     (messageId: string) => () => {
       setOpen(false);
       router.push(`/${workspaceId}/m-${messageId}`);
@@ -190,31 +274,37 @@ export const Toolbar = () => {
             <div className="max-h-[400px] overflow-y-auto px-2 py-3">
               <Section title="Channels">
                 {(filteredChannels || []).map((channel) => (
-                  <button
+                  <Button
                     key={channel.id}
-                    className="flex items-center gap-2 p-2 rounded hover:bg-accent w-full text-left"
-                    onClick={() => handleChannelClick(channel.id)}
+                    variant="ghost"
+                    className="flex items-center gap-2 p-2 rounded hover:bg-accent w-full text-left cursor-pointer justify-start"
+                    onClick={handleChannelClick(channel.id)}
                   >
                     <Hash className="size-4" />
                     <span>{channel.name}</span>
-                  </button>
+                  </Button>
                 ))}
               </Section>
 
               {/* People */}
               <Section title="People">
                 {(filteredMembers || []).map((member) => (
-                  <button
+                  <Button
                     key={member.id}
-                    className="flex items-center gap-2 p-2 rounded hover:bg-accent w-full text-left"
-                    onClick={() => handleMemberClick(member.id)}
+                    variant="ghost"
+                    className="flex items-center gap-2 p-2 rounded hover:bg-accent w-full text-left cursor-pointer justify-start"
+                    onClick={handleMemberClick(member.id)}
+                    disabled={creatingConversationWith === member.id}
                   >
                     <Avatar className="size-5">
                       <AvatarImage src={member.user.image} alt={member.user.name} />
                       <AvatarFallback>{member.user.name.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <span>{member.user.name}</span>
-                  </button>
+                    {creatingConversationWith === member.id && (
+                      <Loader2 className="size-4 animate-spin ml-auto" />
+                    )}
+                  </Button>
                 ))}
               </Section>
 
@@ -224,7 +314,7 @@ export const Toolbar = () => {
                   <AIAnswerSection
                     answer={searchData.answer}
                     references={searchData.references}
-                    onReferenceClick={handleMessageClick}
+                    onReferenceClick={handleLegacyMessageClick}
                   />
                 </div>
               )}
@@ -241,8 +331,8 @@ export const Toolbar = () => {
                   {uniqueResults.map((result) => (
                     <button
                       key={result.messageId}
-                      className="flex items-start gap-3 p-2 rounded hover:bg-accent w-full text-left"
-                      onClick={() => handleMessageClick(result.messageId)}
+                      className="flex items-start gap-3 p-2 rounded hover:bg-accent w-full text-left cursor-pointer"
+                      onClick={handleMessageClick(result)}
                     >
                       <Avatar className="size-6 mt-0.5">
                         <AvatarImage src={result.authorImage || ''} alt={result.authorName} />
