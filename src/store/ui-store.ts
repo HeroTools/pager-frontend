@@ -15,6 +15,9 @@ interface UIState {
   isNotificationsPanelOpen: boolean;
   setNotificationsPanelOpen: (open: boolean) => void;
   toggleNotificationsPanel: () => void;
+  profileMemberId: string | null;
+  setProfilePanelOpen: (memberId: string | null) => void;
+  isProfilePanelOpen: () => boolean;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -42,4 +45,9 @@ export const useUIStore = create<UIState>((set, get) => ({
     set((state) => ({
       isNotificationsPanelOpen: !state.isNotificationsPanelOpen,
     })),
+  profileMemberId: null,
+  setProfilePanelOpen: (memberId) => {
+    set({ profileMemberId: memberId });
+  },
+  isProfilePanelOpen: () => get().profileMemberId !== null,
 }));
