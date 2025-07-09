@@ -518,7 +518,6 @@ const Editor = ({
       }
     };
 
-    // 2. Update blur handler
     const handleBlur = () => {
       if (variant === 'create') {
         stopTyping();
