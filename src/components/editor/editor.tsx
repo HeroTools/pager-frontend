@@ -5,7 +5,6 @@ import type { Op } from 'quill/core';
 import hljs from 'highlight.js';
 import type { RefObject } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
 import { cn } from '@/lib/utils';
 import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
@@ -37,6 +36,13 @@ interface EditorProps {
   maxFiles?: number;
   maxFileSizeBytes?: number;
 }
+
+const TLDs = ['com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'dev', 'app', 'xyz', 'info', 'biz'];
+const URL_REGEX = new RegExp(
+  `(?:https?:\\/\\/)?(?:localhost(?::\\d{1,5})?|\\w[\\w-]*\\.(?:${TLDs.join('|')})\\b)(?:\\/[^\\s]*)?`,
+  'i',
+);
+const AUTO_LINK_URL_REGEX = new RegExp(URL_REGEX.source, 'gi');
 
 const Editor = ({
   variant = 'create',
@@ -293,10 +299,6 @@ const Editor = ({
     }
   }, []);
 
-  // Move URL regex to a constant at the top of the file
-  const URL_REGEX =
-    /(?:https?:\/\/)?(?:localhost(?::\d{1,5})?|\w[\w-]*(?:\.[\w-]+)+)(?:\/[^\s]*)?/i;
-
   const handleLinkFormat = useCallback(
     (text: string, url: string, range?: { index: number; length: number }): void => {
       const quill = quillRef.current;
@@ -440,11 +442,9 @@ const Editor = ({
 
         // If the pasted data is a URL, format the selected text.
         if (URL_REGEX.test(pastedData)) {
-          // Prevent Quill's default paste handling.
           e.preventDefault();
           e.stopImmediatePropagation();
 
-          // Use the simpler formatText API to apply the link.
           quill.formatText(selection.index, selection.length, 'link', pastedData);
           quill.setSelection(selection.index + selection.length, 0);
         }
@@ -452,12 +452,59 @@ const Editor = ({
       true,
     );
 
-    quill.on(Quill.events.TEXT_CHANGE, () => {
+    const handleTextChange = () => {
+      setTimeout(() => {
+        const selection = quill.getSelection();
+        if (!selection) return;
+
+        const [line] = quill.getLine(selection.index);
+        if (!line || !line.domNode) return;
+        const lineText = line.domNode.textContent ?? '';
+        const lineStartIndex = quill.getIndex(line);
+
+        const words = [...lineText.matchAll(/\S+/g)];
+        for (const wordMatch of words) {
+          const word = wordMatch[0];
+          const wordIndexInEditor = lineStartIndex + (wordMatch.index ?? 0);
+          const format = quill.getFormat(wordIndexInEditor, word.length);
+
+          const linkValue = format.link;
+          if (linkValue) {
+            const probablyAutoLink = linkValue.includes(word);
+            if (probablyAutoLink) {
+              const isStillValid = new RegExp(`^${URL_REGEX.source}$`, 'i').test(word);
+              if (!isStillValid) {
+                quill.formatText(wordIndexInEditor, word.length, 'link', false, 'silent');
+              }
+            }
+          }
+        }
+
+        const matches = [...lineText.matchAll(AUTO_LINK_URL_REGEX)];
+        for (const match of matches) {
+          const url = match[0];
+          const urlIndexInEditor = lineStartIndex + (match.index ?? 0);
+          const formats = quill.getFormat(urlIndexInEditor, url.length);
+          if (formats.link) continue;
+
+          const formattedUrl =
+            url.startsWith('http') || url.startsWith('localhost') ? url : `https://` + url;
+          quill.formatText(urlIndexInEditor, url.length, 'link', formattedUrl, 'silent');
+        }
+      }, 0);
+    };
+
+    const textChangeHandler = (_delta: Delta, _oldDelta: Delta, source: string) => {
       setText(quill.getText());
-    });
+      if (source === 'user') {
+        handleTextChange();
+      }
+    };
+
+    quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
 
     return () => {
-      quill.off(Quill.events.TEXT_CHANGE);
+      quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       container.innerHTML = '';
       quillRef.current = null;
       if (innerRef) {
