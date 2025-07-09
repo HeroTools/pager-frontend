@@ -1,22 +1,22 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
 import { Bell, X } from 'lucide-react';
+import { type ReactNode, useEffect, useState } from 'react';
 
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Thread } from '@/features/messages/component/thread';
-import { Sidebar } from '@/components/side-nav/sidebar';
-import { Toolbar } from './toolbar';
-import { WorkspaceSidebar } from '@/components/side-nav/workspace-sidebar';
-import { NotificationsSidebar } from '@/components/side-nav/notifications-sidebar';
 import { ProfilePanel } from '@/components/profile-panel';
-import { useUIStore } from '@/store/ui-store';
+import { NotificationsSidebar } from '@/components/side-nav/notifications-sidebar';
+import { Sidebar } from '@/components/side-nav/sidebar';
+import { WorkspaceSidebar } from '@/components/side-nav/workspace-sidebar';
+import { Toolbar } from '@/components/toolbar';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useCurrentUser } from '@/features/auth';
+import { Thread } from '@/features/messages/component/thread';
+import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
 import { useRealtimeNotifications } from '@/features/notifications/hooks/use-realtime-notifications';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { useCurrentUser } from '@/features/auth';
-import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useUIStore } from '@/store/ui-store';
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;

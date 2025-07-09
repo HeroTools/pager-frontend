@@ -79,3 +79,8 @@ export interface SearchHistoryItem {
   resultCount: number;
   workspaceId: string;
 }
+
+export interface NavigationUrlParams {
+  workspaceId: string;
+  result: SearchResult;
+}
