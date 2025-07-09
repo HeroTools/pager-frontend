@@ -16,6 +16,7 @@ interface ChatProps {
   messages: Message[];
   currentUser: CurrentUser;
   chatType?: 'conversation' | 'channel';
+  conversationData?: any; // Original conversation data for conversations
   onLoadMore: () => void;
   hasMoreMessages: boolean;
   isLoadingMore: boolean;
@@ -40,6 +41,7 @@ export const Chat: FC<ChatProps> = ({
   messages,
   currentUser,
   chatType,
+  conversationData,
   isLoading = false,
   onSendMessage,
   onEditMessage,
@@ -169,7 +171,13 @@ export const Chat: FC<ChatProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <ChatHeader channel={channel} members={members} />
+      <ChatHeader
+        channel={channel}
+        members={members}
+        chatType={chatType}
+        conversationData={conversationData}
+        currentUser={currentUser}
+      />
 
       <ChatMessageList
         messages={messages}

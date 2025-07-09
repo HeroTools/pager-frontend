@@ -2,7 +2,6 @@ import type { VariantProps } from 'class-variance-authority';
 import { cva } from 'class-variance-authority';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -59,34 +58,35 @@ interface ConversationItemProps {
   hasUnread?: boolean;
 }
 
-const getConversationDisplay = (conversation: Conversation) => {
+const getConversationDisplay = (conversation: Conversation, currentUserId: string) => {
   if (conversation.is_group_conversation) {
-    // For group conversations, show all member names (truncated if too long)
-    const names = conversation.members.map((member) => member.workspace_member.user.name);
-
+    // For group conversations, show only other members (not the current user)
+    const names = conversation.other_members.map((member) => member.workspace_member.user.name);
     return {
       name: names.join(', '),
-      image: conversation.members[0]?.workspace_member.user.image || null,
+      image: conversation.other_members[0]?.workspace_member.user.image || null,
       initials: names
         .map((name) => name.charAt(0))
         .join('')
         .slice(0, 2),
     };
-  } else {
-    // For 1-on-1 conversations, show the other person
+  } else if (conversation.other_members.length === 1) {
+    // Direct message
     const otherMember = conversation.other_members[0];
-    if (!otherMember) {
-      return {
-        name: 'Unknown User',
-        image: null,
-        initials: '?',
-      };
-    }
-
     return {
       name: otherMember.workspace_member.user.name,
       image: otherMember.workspace_member.user.image,
       initials: otherMember.workspace_member.user.name.charAt(0).toUpperCase(),
+    };
+  } else {
+    // Self-conversation
+    const selfMember = conversation.members.find(
+      (member) => member.workspace_member.user.id === currentUserId,
+    );
+    return {
+      name: selfMember?.workspace_member.user.name || 'You',
+      image: selfMember?.workspace_member.user.image || null,
+      initials: selfMember?.workspace_member.user.name.charAt(0).toUpperCase() || 'Y',
     };
   }
 };
@@ -97,12 +97,19 @@ export const ConversationItem = ({
   hasUnread = false,
 }: ConversationItemProps) => {
   const workspaceId = useWorkspaceId();
-  const display = getConversationDisplay(conversation);
+  const currentUserId = conversation.members.find((m) => m.workspace_member.user)?.workspace_member
+    .user.id;
+
+  const display = getConversationDisplay(conversation, currentUserId);
   const { getConversationUnreadCount } = useConversationNotifications(workspaceId);
   const { markEntityNotificationsRead } = useMarkEntityNotificationsRead();
   const router = useRouter();
 
   const unreadCount = getConversationUnreadCount(conversation.id);
+  const isSelfConversation =
+    !conversation.is_group_conversation &&
+    conversation.other_members.length === 0 &&
+    conversation.members.length === 1;
 
   const handleConversationClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -139,13 +146,16 @@ export const ConversationItem = ({
               {conversation.member_count > 9 ? '9+' : conversation.member_count}
             </div>
           )}
-
-          {/* {!conversation.is_group_conversation && unreadCount === 0 && (
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
-          )} */}
         </div>
 
-        <span className="text-sm truncate flex-1">{display.name}</span>
+        <span className="text-sm truncate flex-1 flex items-center gap-1">
+          {display.name}
+          {isSelfConversation && (
+            <span className="ml-1 px-1 py-0.5 rounded bg-muted text-xs text-muted-foreground border border-border">
+              you
+            </span>
+          )}
+        </span>
 
         {unreadCount > 0 && (
           <Badge
