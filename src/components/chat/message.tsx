@@ -1,7 +1,5 @@
-import type { FC } from 'react';
-import { useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
 import EmojiPicker from '@/components/emoji-picker';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Download,
   Edit,
@@ -14,30 +12,34 @@ import {
   Smile,
   Trash2,
 } from 'lucide-react';
-import type { Attachment, Message } from '@/types/chat';
-import { cn } from '@/lib/utils';
-import { getFileIcon } from '@/lib/helpers';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageReactions } from './message-reactions';
-import { MessageContent } from './message-content';
-import { useUIStore } from '@/store/ui-store';
-import { MediaViewerModal } from '@/components/media-viewer-modal';
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
+import type { Delta, Op } from 'quill';
+import { type FC, useEffect, useRef, useState } from 'react';
+
 import { DeleteMessageModal } from '@/components/delete-message-modal';
-import type { CurrentUser } from '@/features/auth/types';
-import { useGetMembers } from '@/features/members';
-import { useParamIds } from '@/hooks/use-param-ids';
-import ThreadButton from './thread-button';
-import Editor from '@/components/editor/editor';
+import { MediaViewerModal } from '@/components/media-viewer-modal';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { CurrentUser } from '@/features/auth/types';
+import { useGetMembers } from '@/features/members';
 import { parseMessageContent } from '@/features/messages/helpers';
 import type { QuillDelta } from '@/features/messages/types';
-import type { Delta, Op } from 'quill';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { getFileIcon } from '@/lib/helpers';
+import { cn } from '@/lib/utils';
+import { useUIStore } from '@/store/ui-store';
+import type { Attachment, Message } from '@/types/chat';
+import { MessageContent } from './message-content';
+import { MessageReactions } from './message-reactions';
+import ThreadButton from './thread-button';
 
 const ATTACHMENT_SIZES = {
   SINGLE: { maxHeight: 300, maxWidth: 400 },
@@ -55,14 +57,33 @@ interface ChatMessageProps {
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReaction: (messageId: string, emoji: string) => void;
+  isHighlighted?: boolean;
 }
+
+const Editor = dynamic(() => import('@/components/editor/editor'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col border border-border-default rounded-md overflow-hidden">
+      <div className="h-80 p-4">
+        <Skeleton className="h-full w-full rounded-md" />
+      </div>
+      <div className="flex px-2 pb-2 gap-2 border-t">
+        <Skeleton className="h-8 w-8 rounded" />
+        <Skeleton className="h-8 w-8 rounded" />
+        <Skeleton className="h-8 w-8 rounded" />
+        <Skeleton className="h-8 w-20 rounded ml-auto" />
+      </div>
+    </div>
+  ),
+});
 
 const ImageAttachment: FC<{
   attachment: Attachment;
   onOpenMediaViewer: () => void;
   isSingle?: boolean;
   fixedHeight?: number;
-}> = ({ attachment, onOpenMediaViewer, isSingle = false, fixedHeight }) => {
+  priority?: boolean;
+}> = ({ attachment, onOpenMediaViewer, isSingle = false, fixedHeight, priority }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
@@ -72,36 +93,61 @@ const ImageAttachment: FC<{
   return (
     <div className="relative group/image flex-shrink-0">
       {!isLoaded && !hasError && (
-        <div className="absolute inset-0 bg-muted animate-pulse rounded-lg flex items-center justify-center min-h-[120px]">
+        <div
+          className="absolute inset-0 bg-muted animate-pulse rounded-lg flex items-center justify-center z-10"
+          style={{
+            height: fixedHeight ? `${fixedHeight}px` : `${maxHeight}px`,
+            width: `${maxWidth}px`,
+            minWidth: fixedHeight ? '120px' : 'auto',
+          }}
+        >
           <ImageIcon className="w-8 h-8 text-muted-foreground" />
         </div>
       )}
+
       {hasError ? (
-        <div className="bg-muted rounded-lg p-4 flex items-center gap-2 text-muted-foreground min-h-[120px]">
+        <div
+          className="bg-muted rounded-lg p-4 flex items-center gap-2 text-muted-foreground"
+          style={{
+            height: fixedHeight ? `${fixedHeight}px` : `${maxHeight}px`,
+            width: `${maxWidth}px`,
+            minWidth: fixedHeight ? '120px' : 'auto',
+          }}
+        >
           <ImageIcon className="w-5 h-5" />
           <span className="text-sm">Failed to load image</span>
         </div>
       ) : (
-        <img
-          src={attachment.publicUrl}
-          alt={filename || 'Uploaded image'}
+        <div
           className={cn(
-            'rounded-lg cursor-pointer hover:opacity-90 transition-opacity border',
-            fixedHeight ? 'object-cover' : 'object-contain',
+            'relative rounded-lg cursor-pointer hover:opacity-90 transition-opacity border overflow-hidden',
             !isLoaded && 'opacity-0',
           )}
           style={{
-            height: fixedHeight ? `${fixedHeight}px` : 'auto',
-            maxHeight: fixedHeight ? 'none' : `${maxHeight}px`,
-            maxWidth: `${maxWidth}px`,
+            height: fixedHeight ? `${fixedHeight}px` : `${maxHeight}px`,
+            width: `${maxWidth}px`,
             minWidth: fixedHeight ? '120px' : 'auto',
           }}
-          onLoad={() => setIsLoaded(true)}
-          onError={() => setHasError(true)}
           onClick={onOpenMediaViewer}
-          loading="lazy"
-        />
+        >
+          <Image
+            src={attachment.publicUrl}
+            alt={filename || 'Uploaded image'}
+            fill
+            className={cn(
+              'rounded-lg transition-opacity',
+              fixedHeight ? 'object-cover' : 'object-contain',
+            )}
+            sizes={`(max-width: 768px) 100vw, ${maxWidth}px`}
+            priority={priority}
+            onLoad={() => setIsLoaded(true)}
+            onError={() => setHasError(true)}
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+          />
+        </div>
       )}
+
       <div className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
         <Button
           variant="secondary"
@@ -422,6 +468,7 @@ const AttachmentGrid: FC<{
           onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
           isSingle={isSingle}
           fixedHeight={fixedHeight}
+          priority={index === 0}
         />
       );
     }
@@ -506,15 +553,20 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   onEdit,
   onDelete,
   onReaction,
+  isHighlighted,
 }) => {
   const { workspaceId } = useParamIds();
+  const { data: members } = useGetMembers(workspaceId);
+  const messageRef = useRef<HTMLDivElement>(null);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
   const [mediaViewerAttachments, setMediaViewerAttachments] = useState<Attachment[]>([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [editingContent, setEditingContent] = useState<QuillDelta | null>(null);
   const {
     openEmojiPickerMessageId,
@@ -524,7 +576,15 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setThreadOpen,
     setProfilePanelOpen,
   } = useUIStore();
-  const getMembers = useGetMembers(workspaceId);
+
+  useEffect(() => {
+    if (isHighlighted && messageRef.current) {
+      messageRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [isHighlighted]);
 
   const isOwnMessage = message.authorId === currentUser.id;
 
@@ -552,7 +612,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   };
 
   const handleDeleteClick = () => {
-    setIsDeleteModalOpen(true);
+    setIsDeleteDialogOpen(true);
   };
 
   const handleEditClick = () => {
@@ -595,7 +655,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setIsDeleting(true);
     try {
       await onDelete(message.id);
-      setIsDeleteModalOpen(false);
+      setIsDeleteDialogOpen(false);
     } catch (error) {
       console.error('Error deleting message:', error);
     } finally {
@@ -604,24 +664,30 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   };
 
   const handleDeleteCancel = () => {
-    setIsDeleteModalOpen(false);
+    setIsDeleteDialogOpen(false);
   };
 
   return (
     <>
       <div
+        ref={messageRef}
         className={cn(
-          'group relative px-4 hover:bg-message-hover transition-colors py-2',
-          isCompact && '-mt-1',
-          isDropdownOpen && 'bg-message-hover',
+          'group/message relative flex gap-3 px-4 py-1.5 transition-colors duration-100 ease-in-out',
+          {
+            'hover:bg-message-hover': !isEditing,
+            'pt-3': !isCompact,
+          },
+          isHighlighted && 'message-highlighted',
         )}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="flex gap-3">
           {showAvatar && !isCompact ? (
             <Avatar
               className="w-9 h-9 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => {
-                const workspaceMember = getMembers.data?.find(
+                const workspaceMember = members?.find(
                   (member) => member.user.id === message.author.id,
                 );
                 if (workspaceMember) {
@@ -653,7 +719,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                 <span
                   className="font-semibold text-foreground hover:underline cursor-pointer leading-tight"
                   onClick={() => {
-                    const workspaceMember = getMembers.data?.find(
+                    const workspaceMember = members?.find(
                       (member) => member.user.id === message.author.id,
                     );
                     if (workspaceMember) {
@@ -711,7 +777,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
             Number(message.threadCount) > 0 &&
             !hideReplies &&
             !hideThreadButton ? (
-              <ThreadButton message={message} members={getMembers.data!} />
+              <ThreadButton message={message} members={members} />
             ) : null}
           </div>
         </div>
@@ -788,7 +854,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       />
 
       <DeleteMessageModal
-        isOpen={isDeleteModalOpen}
+        isOpen={isDeleteDialogOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}

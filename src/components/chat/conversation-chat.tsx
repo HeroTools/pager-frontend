@@ -1,24 +1,35 @@
 'use client';
 
 import { AlertTriangle, Loader } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo } from 'react';
+
 import { Chat } from '@/components/chat/chat';
-import type { ConversationWithMessagesAndMembers } from '@/features/conversations';
+import { useCurrentUser } from '@/features/auth';
+import type {
+  ConversationMemberWithDetails,
+  ConversationMemberWithUser,
+  ConversationWithMessagesAndMembers,
+} from '@/features/conversations';
 import {
   useGetConversationWithMessagesInfinite,
   useRealtimeConversation,
 } from '@/features/conversations';
-import { useMessageOperations } from '@/features/messages/hooks/use-messages';
-import { useCurrentUser } from '@/features/auth';
-import type { Channel } from '@/types/chat';
-import { useParamIds } from '@/hooks/use-param-ids';
 import type { UploadedAttachment } from '@/features/file-upload/types';
 import { transformMessages, updateSelectedMessageIfNeeded } from '@/features/messages/helpers';
-import { useToggleReaction } from '@/features/reactions';
+import { useMessageOperations } from '@/features/messages/hooks/use-messages';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
+import { useToggleReaction } from '@/features/reactions';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { useUIStore } from '@/store/ui-store';
+import type { Channel } from '@/types/chat';
 import { ChannelType } from '@/types/chat';
 
 const ConversationChat = () => {
   const { id: conversationId, workspaceId, type } = useParamIds();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { setThreadOpen, setThreadHighlightMessageId } = useUIStore();
 
   const { user: currentUser, isAuthenticated } = useCurrentUser(workspaceId);
   const { addPendingMessage, removePendingMessage } = useMessagesStore();
@@ -52,20 +63,77 @@ const ConversationChat = () => {
   );
   const toggleReaction = useToggleReaction(workspaceId);
 
+  const allMessages = useMemo(
+    () => conversationWithMessages?.pages.flatMap((page) => page?.messages || []) || [],
+    [conversationWithMessages],
+  );
+
+  const sortedMessages = useMemo(
+    () =>
+      [...allMessages].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
+    [allMessages],
+  );
+
+  const messages = useMemo(
+    () => transformMessages(sortedMessages || [], currentUser),
+    [sortedMessages, currentUser],
+  );
+
+  const highlightMessageId = searchParams.get('highlight');
+  const threadMessageId = searchParams.get('thread');
+
+  useEffect(() => {
+    if (threadMessageId && messages.length > 0 && !isLoadingMessages) {
+      const parentMessage = messages.find((m) => m.id === threadMessageId);
+      if (parentMessage) {
+        setThreadOpen(parentMessage);
+        setThreadHighlightMessageId(highlightMessageId);
+        const newUrl = `/${workspaceId}/${type === 'channel' ? 'c' : 'd'}-${conversationId}`;
+        router.replace(newUrl, { scroll: false });
+      }
+    }
+  }, [
+    threadMessageId,
+    messages,
+    setThreadOpen,
+    router,
+    workspaceId,
+    conversationId,
+    type,
+    highlightMessageId,
+    isLoadingMessages,
+    setThreadHighlightMessageId,
+  ]);
+
   const transformConversation = (conversationData: ConversationWithMessagesAndMembers): Channel => {
     const { conversation, members } = conversationData;
-    const otherMembers =
-      conversation.other_members || members.filter((member) => member.user.id !== currentUser?.id);
+
+    type UnifiedMember = ConversationMemberWithDetails | ConversationMemberWithUser;
+
+    let otherMembers: UnifiedMember[] = [];
+
+    if (conversation.other_members) {
+      otherMembers = conversation.other_members;
+    } else {
+      otherMembers = members.filter((member) => member.user.id !== currentUser?.id);
+    }
+
+    const getName = (member: UnifiedMember): string => {
+      if ('workspace_member' in member) {
+        return member.workspace_member.user.name;
+      } else {
+        return member.user.name;
+      }
+    };
 
     let displayName = '';
     if (conversation.is_group_conversation) {
-      // Group: show only other members
-      displayName = otherMembers.map((m) => m.user.name).join(', ');
+      displayName = otherMembers.map(getName).join(', ');
     } else if (otherMembers.length === 1) {
-      // DM: show the other member
-      displayName = otherMembers[0]?.user.name;
+      displayName = getName(otherMembers[0]);
     } else {
-      // Self-conversation: show current user
       displayName = currentUser?.name || 'You';
     }
 
@@ -102,15 +170,8 @@ const ConversationChat = () => {
     );
   }
 
-  const allMessages = conversationWithMessages?.pages.flatMap((page) => page?.messages || []) || [];
-
-  const sortedMessages = [...allMessages].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-  );
-
   // Transform data for chat component
   const conversationChannel = transformConversation(conversationWithMessages?.pages?.[0]);
-  const messages = transformMessages(sortedMessages || [], currentUser);
 
   // Handle message sending with real-time integration
   const handleSendMessage = async (content: {
@@ -212,6 +273,7 @@ const ConversationChat = () => {
         onLoadMore={handleLoadMore}
         hasMoreMessages={hasNextPage}
         isLoadingMore={isFetchingNextPage}
+        highlightMessageId={highlightMessageId}
       />
     </div>
   );
