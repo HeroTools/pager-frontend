@@ -1,82 +1,25 @@
 import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { messagesApi } from '../api/messages-api';
 import type {
   CreateChannelMessageData,
   CreateConversationMessageData,
   CreateMessageData,
+  CurrentUser,
+  MessageMutationContext,
+  MessageRepliesParams,
+  MessagesInfiniteData,
   MessageThread,
   MessageWithUser,
+  ThreadData,
+  TypingIndicatorData,
+  UpdateMessageContext,
+  UpdateMessageData,
 } from '../types';
 import type { UploadedAttachment } from '@/features/file-upload/types';
 import { authQueryKeys } from '@/features/auth/query-keys';
-
-interface UpdateMessageData {
-  body?: string;
-  attachment_ids?: string[];
-  parent_message_id?: string | null;
-  thread_id?: string | null;
-  message_type?: string;
-}
-
-interface CurrentUser {
-  id: string;
-  name: string;
-  email: string;
-  image: string | null;
-  workspace_member_id: string;
-}
-
-interface MessagePage {
-  messages: MessageWithUser[];
-  members: unknown[];
-  pagination: {
-    hasMore: boolean;
-    nextCursor: string | null;
-    totalCount: number;
-  };
-}
-
-interface ThreadData {
-  replies: MessageWithUser[];
-  members: unknown[];
-  pagination: {
-    hasMore: boolean;
-    nextCursor: string | null;
-    totalCount: number;
-  };
-}
-
-type MessagesInfiniteData = InfiniteData<MessagePage, string | undefined>;
-
-interface MessageMutationContext {
-  previousChannelMessages?: MessagesInfiniteData;
-  previousConversationMessages?: MessagesInfiniteData;
-  previousThreadMessages?: ThreadData;
-  isThreadMessage: boolean;
-  threadParentId?: string;
-  optimisticId?: string;
-}
-
-interface UpdateMessageContext {
-  channels?: readonly [readonly unknown[], unknown][];
-  conversations?: readonly [readonly unknown[], unknown][];
-  threads?: readonly [readonly unknown[], unknown][];
-}
-
-interface MessageRepliesParams {
-  limit?: number;
-  cursor?: string;
-  before?: string;
-  entity_type?: 'channel' | 'conversation';
-  entity_id?: string;
-}
-
-interface TypingIndicatorData {
-  is_typing: boolean;
-}
 
 export const useCreateChannelMessage = (workspaceId: string, channelId: string) => {
   const queryClient = useQueryClient();

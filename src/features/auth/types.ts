@@ -88,21 +88,6 @@ export interface AuthResponse {
   requires_email_confirmation?: boolean;
 }
 
-// API wrapper response
-export interface ApiAuthResponse {
-  success: boolean;
-  data: AuthResponse;
-  error?: {
-    message: string;
-    code?: string;
-    details?: unknown;
-  };
-  meta?: {
-    timestamp: string;
-    request_id?: string;
-  };
-}
-
 export interface SignUpFormData extends SignUpData {
   confirm_password?: string;
   terms_accepted?: boolean;

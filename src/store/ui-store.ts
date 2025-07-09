@@ -17,6 +17,9 @@ interface UIState {
   toggleNotificationsPanel: () => void;
   threadHighlightMessageId: string | null;
   setThreadHighlightMessageId: (messageId: string | null) => void;
+  profileMemberId: string | null;
+  setProfilePanelOpen: (memberId: string | null) => void;
+  isProfilePanelOpen: () => boolean;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -51,4 +54,9 @@ export const useUIStore = create<UIState>((set, get) => ({
     })),
   threadHighlightMessageId: null,
   setThreadHighlightMessageId: (messageId) => set({ threadHighlightMessageId: messageId }),
+  profileMemberId: null,
+  setProfilePanelOpen: (memberId) => {
+    set({ profileMemberId: memberId });
+  },
+  isProfilePanelOpen: () => get().profileMemberId !== null,
 }));

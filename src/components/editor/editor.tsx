@@ -1,11 +1,10 @@
 import { CaseSensitive, Paperclip, SendHorizontal, Smile } from 'lucide-react';
 import type { QuillOptions } from 'quill';
-import Quill from 'quill';
-import type { Delta, Op } from 'quill/core';
+import Quill, { Delta } from 'quill';
+import type { Op } from 'quill/core';
 import hljs from 'highlight.js';
 import type { RefObject } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
 import { cn } from '@/lib/utils';
 import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
@@ -37,6 +36,13 @@ interface EditorProps {
   maxFiles?: number;
   maxFileSizeBytes?: number;
 }
+
+const TLDs = ['com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'dev', 'app', 'xyz', 'info', 'biz'];
+const URL_REGEX = new RegExp(
+  `(?:https?:\\/\\/)?(?:localhost(?::\\d{1,5})?|\\w[\\w-]*\\.(?:${TLDs.join('|')})\\b)(?:\\/[^\\s]*)?`,
+  'i',
+);
+const AUTO_LINK_URL_REGEX = new RegExp(URL_REGEX.source, 'gi');
 
 const Editor = ({
   variant = 'create',
@@ -142,7 +148,6 @@ const Editor = ({
       setText(oldText);
       setImage(oldImage);
       setAttachments(oldAttachments);
-      console.error('Send failed, rolled back:', err);
     }
   }, [hasUploadsInProgress, attachments, image]);
 
@@ -254,7 +259,6 @@ const Editor = ({
           activeUploadBatchRef.current = null;
         }
       } catch (error) {
-        console.error('Upload batch failed:', error);
         if (activeUploadBatchRef.current === batchId) {
           setAttachments((prev) =>
             prev.map((att) =>
@@ -294,6 +298,41 @@ const Editor = ({
       setIsDragging(false);
     }
   }, []);
+
+  const handleLinkFormat = useCallback(
+    (text: string, url: string, range?: { index: number; length: number }): void => {
+      const quill = quillRef.current;
+      if (!quill) return;
+
+      // If no range provided, use current selection
+      const targetRange = range || quill.getSelection();
+      if (!targetRange) return;
+
+      const { index, length } = targetRange;
+
+      // Delete existing text if there's a selection
+      if (length > 0) {
+        quill.deleteText(index, length);
+      }
+
+      // Insert the link
+      quill.insertText(index, text, 'link', url);
+
+      // Clear any link dialog state
+      setLinkSelection(null);
+      setIsLinkDialogOpen(false);
+    },
+    [],
+  );
+
+  // Handle link dialog save
+  const handleLinkSave = useCallback(
+    (text: string, url: string): void => {
+      if (!linkSelection) return;
+      handleLinkFormat(text, url, linkSelection);
+    },
+    [linkSelection, handleLinkFormat],
+  );
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -383,12 +422,89 @@ const Editor = ({
     quill.setContents(defaultValueRef.current);
     setText(quill.getText());
 
-    quill.on(Quill.events.TEXT_CHANGE, () => {
+    // Add paste event handler to the capture phase to run before Quill's handler.
+    quill.root.addEventListener(
+      'paste',
+      (e: ClipboardEvent) => {
+        const selection = quill.getSelection();
+
+        // If no text is selected, allow the default paste behavior.
+        if (!selection || selection.length === 0) {
+          return;
+        }
+
+        const clipboardData = e.clipboardData;
+        if (!clipboardData) {
+          return;
+        }
+
+        const pastedData = clipboardData.getData('text/plain');
+
+        // If the pasted data is a URL, format the selected text.
+        if (URL_REGEX.test(pastedData)) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+
+          quill.formatText(selection.index, selection.length, 'link', pastedData);
+          quill.setSelection(selection.index + selection.length, 0);
+        }
+      },
+      true,
+    );
+
+    const handleTextChange = () => {
+      setTimeout(() => {
+        const selection = quill.getSelection();
+        if (!selection) return;
+
+        const [line] = quill.getLine(selection.index);
+        if (!line || !line.domNode) return;
+        const lineText = line.domNode.textContent ?? '';
+        const lineStartIndex = quill.getIndex(line);
+
+        const words = [...lineText.matchAll(/\S+/g)];
+        for (const wordMatch of words) {
+          const word = wordMatch[0];
+          const wordIndexInEditor = lineStartIndex + (wordMatch.index ?? 0);
+          const format = quill.getFormat(wordIndexInEditor, word.length);
+
+          const linkValue = format.link;
+          if (linkValue) {
+            const probablyAutoLink = linkValue.includes(word);
+            if (probablyAutoLink) {
+              const isStillValid = new RegExp(`^${URL_REGEX.source}$`, 'i').test(word);
+              if (!isStillValid) {
+                quill.formatText(wordIndexInEditor, word.length, 'link', false, 'silent');
+              }
+            }
+          }
+        }
+
+        const matches = [...lineText.matchAll(AUTO_LINK_URL_REGEX)];
+        for (const match of matches) {
+          const url = match[0];
+          const urlIndexInEditor = lineStartIndex + (match.index ?? 0);
+          const formats = quill.getFormat(urlIndexInEditor, url.length);
+          if (formats.link) continue;
+
+          const formattedUrl =
+            url.startsWith('http') || url.startsWith('localhost') ? url : `https://` + url;
+          quill.formatText(urlIndexInEditor, url.length, 'link', formattedUrl, 'silent');
+        }
+      }, 0);
+    };
+
+    const textChangeHandler = (_delta: Delta, _oldDelta: Delta, source: string) => {
       setText(quill.getText());
-    });
+      if (source === 'user') {
+        handleTextChange();
+      }
+    };
+
+    quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
 
     return () => {
-      quill.off(Quill.events.TEXT_CHANGE);
+      quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       container.innerHTML = '';
       quillRef.current = null;
       if (innerRef) {
@@ -410,26 +526,6 @@ const Editor = ({
     const idx = quill?.getSelection()?.index || 0;
     quill?.insertText(idx, emoji);
   }, []);
-
-  const handleLinkSave = useCallback(
-    (text: string, url: string): void => {
-      const quill = quillRef.current;
-      if (!quill || !linkSelection) return;
-
-      const { index, length } = linkSelection;
-
-      if (length > 0) {
-        quill.deleteText(index, length);
-        quill.insertText(index, text, 'link', url);
-      } else {
-        quill.insertText(index, text, 'link', url);
-      }
-
-      setLinkSelection(null);
-      setIsLinkDialogOpen(false);
-    },
-    [linkSelection],
-  );
 
   const handleLinkDialogClose = useCallback((): void => {
     setLinkSelection(null);

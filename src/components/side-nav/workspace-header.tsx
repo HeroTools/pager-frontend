@@ -1,7 +1,6 @@
-import { ChevronDown, ListFilter, SquarePen } from 'lucide-react';
+import { ChevronDown, SquarePen } from 'lucide-react';
 import { useState } from 'react';
 
-import { InDevelopmentHint } from '@/components/in-development-hint';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
