@@ -1,6 +1,8 @@
 'use client';
 
 import { AlertTriangle, Loader } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 import { Chat } from '@/components/chat/chat';
 import type { ConversationWithMessagesAndMembers } from '@/features/conversations';
@@ -17,9 +19,13 @@ import { transformMessages, updateSelectedMessageIfNeeded } from '@/features/mes
 import { useToggleReaction } from '@/features/reactions';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
 import { ChannelType } from '@/types/chat';
+import { useUIStore } from '@/store/ui-store';
 
 const ConversationChat = () => {
   const { id: conversationId, workspaceId, type } = useParamIds();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { setThreadOpen, setThreadHighlightMessageId } = useUIStore();
 
   const { user: currentUser, isAuthenticated } = useCurrentUser(workspaceId);
   const { addPendingMessage, removePendingMessage } = useMessagesStore();
@@ -52,6 +58,50 @@ const ConversationChat = () => {
     type,
   );
   const toggleReaction = useToggleReaction(workspaceId);
+
+  const allMessages = useMemo(
+    () => conversationWithMessages?.pages.flatMap((page) => page?.messages || []) || [],
+    [conversationWithMessages],
+  );
+
+  const sortedMessages = useMemo(
+    () =>
+      [...allMessages].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
+    [allMessages],
+  );
+
+  const messages = useMemo(
+    () => transformMessages(sortedMessages || [], currentUser),
+    [sortedMessages, currentUser],
+  );
+
+  const highlightMessageId = searchParams.get('highlight');
+  const threadMessageId = searchParams.get('thread');
+
+  useEffect(() => {
+    if (threadMessageId && messages.length > 0 && !isLoadingMessages) {
+      const parentMessage = messages.find((m) => m.id === threadMessageId);
+      if (parentMessage) {
+        setThreadOpen(parentMessage);
+        setThreadHighlightMessageId(highlightMessageId);
+        const newUrl = `/${workspaceId}/${type === 'channel' ? 'c' : 'd'}-${conversationId}`;
+        router.replace(newUrl, { scroll: false });
+      }
+    }
+  }, [
+    threadMessageId,
+    messages,
+    setThreadOpen,
+    router,
+    workspaceId,
+    conversationId,
+    type,
+    highlightMessageId,
+    isLoadingMessages,
+    setThreadHighlightMessageId,
+  ]);
 
   const transformConversation = (conversationData: ConversationWithMessagesAndMembers): Channel => {
     const otherMembers = conversationData.members.filter(
@@ -95,15 +145,8 @@ const ConversationChat = () => {
     );
   }
 
-  const allMessages = conversationWithMessages?.pages.flatMap((page) => page?.messages || []) || [];
-
-  const sortedMessages = [...allMessages].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-  );
-
   // Transform data for chat component
   const conversationChannel = transformConversation(conversationWithMessages?.pages?.[0]);
-  const messages = transformMessages(sortedMessages || [], currentUser);
 
   // Handle message sending with real-time integration
   const handleSendMessage = async (content: {
@@ -208,6 +251,7 @@ const ConversationChat = () => {
         onLoadMore={handleLoadMore}
         hasMoreMessages={hasNextPage}
         isLoadingMore={isFetchingNextPage}
+        highlightMessageId={highlightMessageId}
       />
     </div>
   );
