@@ -1,9 +1,7 @@
 'use client';
 
-import { AlertTriangle, Loader } from 'lucide-react';
-import { useCallback, useEffect, useMemo } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import { Chat } from '@/components/chat/chat';
+import { useCurrentUser } from '@/features/auth';
 import type { ChannelEntity } from '@/features/channels';
 import {
   type ChannelMemberData,
@@ -12,17 +10,19 @@ import {
   useGetChannelWithMessagesInfinite,
   useRealtimeChannel,
 } from '@/features/channels';
+import type { UploadedAttachment } from '@/features/file-upload';
 import { useGetMembers } from '@/features/members';
 import { useMessageOperations } from '@/features/messages';
-import { useCurrentUser } from '@/features/auth';
-import { type Channel, ChannelType } from '@/types/chat';
-import { useParamIds } from '@/hooks/use-param-ids';
-import type { UploadedAttachment } from '@/features/file-upload';
-import type { WorkspaceMember } from '@/types/database';
 import { transformMessages, updateSelectedMessageIfNeeded } from '@/features/messages/helpers';
-import { useToggleReaction } from '@/features/reactions';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
+import { useToggleReaction } from '@/features/reactions';
+import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/store/ui-store';
+import { type Channel, ChannelType } from '@/types/chat';
+import type { WorkspaceMember } from '@/types/database';
+import { AlertTriangle, Loader } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo } from 'react';
 
 const ChannelChat = () => {
   const { id: channelId, workspaceId, type } = useParamIds();
@@ -154,6 +154,7 @@ const ChannelChat = () => {
           role: channelMember.channel_role,
           workspace_member_id: channelMember.workspace_member_id,
           email: workspaceMember.user.email,
+          user_id: workspaceMember.user.id,
         } as ChannelMemberData;
       })
       .filter((member): member is ChannelMemberData => member !== null);

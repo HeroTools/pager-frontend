@@ -1,7 +1,9 @@
-import { useCallback, useRef } from 'react';
-import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { toast } from 'sonner';
 
+import { authQueryKeys } from '@/features/auth/query-keys';
+import type { UploadedAttachment } from '@/features/file-upload/types';
 import { messagesApi } from '../api/messages-api';
 import type {
   CreateChannelMessageData,
@@ -14,12 +16,9 @@ import type {
   MessageThread,
   MessageWithUser,
   ThreadData,
-  TypingIndicatorData,
   UpdateMessageContext,
   UpdateMessageData,
 } from '../types';
-import type { UploadedAttachment } from '@/features/file-upload/types';
-import { authQueryKeys } from '@/features/auth/query-keys';
 
 export const useCreateChannelMessage = (workspaceId: string, channelId: string) => {
   const queryClient = useQueryClient();
@@ -980,65 +979,6 @@ export const useDeleteMessage = (workspaceId: string) => {
       });
     },
   });
-};
-
-export const useTypingIndicator = (
-  workspaceId: string,
-  channelId?: string,
-  conversationId?: string,
-) => {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isTypingRef = useRef<boolean>(false);
-
-  const mutation = useMutation<{ message: string; timestamp: string }, Error, boolean>({
-    mutationFn: async (isTyping: boolean): Promise<{ message: string; timestamp: string }> => {
-      const endpoint = channelId
-        ? `/workspaces/${workspaceId}/channels/${channelId}/typing`
-        : `/workspaces/${workspaceId}/conversations/${conversationId}/typing`;
-
-      const data: TypingIndicatorData = { is_typing: isTyping };
-      return messagesApi.sendTypingIndicator(endpoint, data);
-    },
-    onError: (error: Error) => {
-      console.error('Failed to send typing indicator:', error);
-    },
-  });
-
-  const startTyping = useCallback((): void => {
-    if (!isTypingRef.current) {
-      isTypingRef.current = true;
-      mutation.mutate(true);
-    }
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      if (isTypingRef.current) {
-        isTypingRef.current = false;
-        mutation.mutate(false);
-      }
-    }, 3000);
-  }, [mutation]);
-
-  const stopTyping = useCallback((): void => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-
-    if (isTypingRef.current) {
-      isTypingRef.current = false;
-      mutation.mutate(false);
-    }
-  }, [mutation]);
-
-  return {
-    startTyping,
-    stopTyping,
-    isLoading: mutation.isPending,
-  } as const;
 };
 
 export const useMessageReplies = (

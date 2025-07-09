@@ -624,4 +624,43 @@ body {
   .message-content .ql-indent-8 {
     padding-left: 24em;
   }
+
+  .glass-typing-indicator {
+    /* Enhanced backdrop blur for that frosted glass look */
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+
+    /* True glassmorphism with subtle transparency */
+    background: radial-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.03) 100%
+    );
+
+    /* Subtle inner border for depth */
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 8px 32px rgba(0, 0, 0, 0.12),
+      0 4px 16px rgba(0, 0, 0, 0.08);
+
+    /* Support for dark mode */
+    .dark & {
+      background: radial-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.06) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+      );
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+@supports not (backdrop-filter: blur()) {
+  .glass-typing-indicator {
+    background: var(--background);
+    opacity: 0.9;
+  }
 }

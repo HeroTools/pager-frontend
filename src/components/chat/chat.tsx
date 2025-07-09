@@ -7,8 +7,10 @@ import type { UploadedAttachment } from '@/features/file-upload';
 import { useParamIds } from '@/hooks/use-param-ids';
 import type { Channel, Message } from '@/types/chat';
 import dynamic from 'next/dynamic';
+import { useTypingIndicator } from '../../hooks/use-typing-indicator';
 import { ChatHeader } from './header';
 import { ChatMessageList } from './message-list';
+import { TypingIndicator } from './typing-indicator';
 
 interface ChatProps {
   channel: Channel;
@@ -40,7 +42,7 @@ const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
   loading: () => (
     <div className="flex flex-col border border-border-default rounded-md overflow-hidden">
-      <div className="h-80 p-4">
+      <div className="h-[194px] p-4">
         <Skeleton className="h-full w-full rounded-md" />
       </div>
       <div className="flex px-2 pb-2 gap-2 border-t">
@@ -73,6 +75,12 @@ export const Chat: FC<ChatProps> = ({
   const { workspaceId } = useParamIds();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+
+  const { typingUsers } = useTypingIndicator({
+    channelId: channel.id,
+    conversationId: conversationData?.id,
+    currentUserId: currentUser.id,
+  });
 
   const handleSendMessage = (content: {
     body: string;
@@ -159,11 +167,47 @@ export const Chat: FC<ChatProps> = ({
     setShouldScrollToBottom(c.scrollTop + c.clientHeight >= c.scrollHeight - 100);
   }, [hasMoreMessages, isLoadingMore, onLoadMore]);
 
+  const getUserName = (userId: string) => {
+    if (!members) {
+      return 'Unknown';
+    }
+
+    const member = members.find((member) => {
+      if ('user_id' in member) {
+        return member.user_id === userId;
+      }
+    });
+
+    if (!member) {
+      return 'Unknown';
+    }
+
+    return member.name;
+  };
+
+  const getUserAvatar = (userId: string) => {
+    if (!members) {
+      return 'Unknown';
+    }
+
+    const member = members.find((member) => {
+      if ('user_id' in member) {
+        return member.user_id === userId;
+      }
+    });
+
+    if (!member) {
+      return 'Unknown';
+    }
+
+    return member.avatar;
+  };
+
   return (
     <div className="flex flex-col h-full">
       <ChatHeader
         channel={channel}
-        members={members}
+        members={chatType === 'channel' ? (members as ChannelMemberData[]) : []}
         chatType={chatType}
         conversationData={conversationData}
         currentUser={currentUser}
@@ -181,14 +225,26 @@ export const Chat: FC<ChatProps> = ({
         highlightMessageId={highlightMessageId}
       />
 
+      <TypingIndicator
+        channelId={channel.id}
+        conversationId={conversationData?.id}
+        currentUserId={currentUser.id}
+        getUserName={getUserName}
+        getUserAvatar={getUserAvatar}
+      />
+
       <div className="p-4 border-t border-border-subtle">
         <Editor
+          variant="create"
           workspaceId={workspaceId}
           placeholder={`Message ${chatType === 'channel' ? '#' : ''}${channel.name}`}
           onSubmit={handleSendMessage}
           disabled={isLoading}
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}
+          userId={currentUser.id}
+          channelId={channel.id}
+          conversationId={conversationData?.id}
         />
       </div>
     </div>

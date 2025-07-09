@@ -3,6 +3,7 @@ import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
 import { useFileUpload } from '@/features/file-upload';
 import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
+import { useTypingStatus } from '@/hooks/use-typing-status';
 import { validateFile } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import hljs from 'highlight.js';
@@ -41,6 +42,9 @@ interface EditorProps {
   onSubmit: ({ image, body, attachments, plainText }: EditorValue) => Promise<void> | void;
   maxFiles?: number;
   maxFileSizeBytes?: number;
+  userId: string;
+  channelId?: string;
+  conversationId?: string;
 }
 
 const TLDs = ['com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'dev', 'app', 'xyz', 'info', 'biz'];
@@ -61,6 +65,9 @@ const Editor = ({
   onSubmit,
   maxFiles = 10,
   maxFileSizeBytes = 20 * 1024 * 1024,
+  userId,
+  channelId,
+  conversationId,
 }: EditorProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [text, setText] = useState('');
@@ -72,6 +79,13 @@ const Editor = ({
     null,
   );
   const [selectedText, setSelectedText] = useState('');
+
+  const { startTyping, stopTyping } = useTypingStatus({
+    userId,
+    channelId,
+    conversationId,
+    enabled: variant === 'create',
+  });
 
   const isEmpty = useMemo(
     () => !image && attachments.length === 0 && text.replace(/\s*/g, '').trim().length === 0,
@@ -101,6 +115,11 @@ const Editor = ({
     const quill = quillRef.current;
     if (!quill) {
       return;
+    }
+
+    // Stop typing immediately when submitting
+    if (variant === 'create') {
+      await stopTyping(); // Await to ensure it's sent before submission
     }
 
     if (hasUploadsInProgress) {
@@ -155,7 +174,7 @@ const Editor = ({
       setImage(oldImage);
       setAttachments(oldAttachments);
     }
-  }, [hasUploadsInProgress, attachments, image]);
+  }, [hasUploadsInProgress, attachments, image, stopTyping, variant]);
 
   const handleSubmitRef = useRef(handleSubmit);
 
@@ -329,7 +348,6 @@ const Editor = ({
     [linkSelection, handleLinkFormat],
   );
 
-  // Simple, clean useEffect - no async complexity!
   useEffect(() => {
     if (!containerRef.current) {
       return;
@@ -486,23 +504,45 @@ const Editor = ({
     };
 
     const textChangeHandler = (delta: Delta, oldDelta: Delta, source: string) => {
-      setText(quill.getText());
+      const currentText = quill.getText();
+      setText(currentText);
+
       if (source === 'user') {
         handleTextChange();
+
+        if (currentText.trim().length > 0) {
+          startTyping();
+        } else {
+          stopTyping();
+        }
+      }
+    };
+
+    const handleBlur = () => {
+      if (variant === 'create') {
+        stopTyping();
       }
     };
 
     quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
+    quill.root.addEventListener('blur', handleBlur);
 
     return () => {
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
+      quill.root.removeEventListener('blur', handleBlur);
+
+      // Ensure typing is stopped on cleanup
+      if (variant === 'create') {
+        stopTyping();
+      }
+
       container.innerHTML = '';
       quillRef.current = null;
       if (innerRef) {
         innerRef.current = null;
       }
     };
-  }, []);
+  }, [startTyping, stopTyping, variant]);
 
   const handleToolbarToggle = useCallback((): void => {
     setIsToolbarVisible((v) => !v);
@@ -512,20 +552,33 @@ const Editor = ({
     }
   }, []);
 
-  const handleEmojiSelect = useCallback((emoji: string): void => {
-    const quill = quillRef.current;
-    if (!quill) return;
+  const handleEmojiSelect = useCallback(
+    (emoji: string): void => {
+      const quill = quillRef.current;
+      if (!quill) return;
 
-    const selection = quill.getSelection();
-    const index = selection?.index ?? 0;
-    quill.insertText(index, emoji);
-  }, []);
+      const selection = quill.getSelection();
+      const index = selection?.index ?? 0;
+      quill.insertText(index, emoji);
+
+      // Start typing after emoji insertion
+      startTyping();
+    },
+    [startTyping],
+  );
 
   const handleLinkDialogClose = useCallback((): void => {
     setLinkSelection(null);
     setSelectedText('');
     setIsLinkDialogOpen(false);
   }, []);
+
+  const handleCancel = useCallback(async () => {
+    if (variant === 'create') {
+      await stopTyping(); // Ensure typing is stopped when canceling
+    }
+    onCancel?.();
+  }, [stopTyping, onCancel, variant]);
 
   return (
     <div className="flex flex-col">
@@ -618,7 +671,7 @@ const Editor = ({
 
           {variant === 'update' ? (
             <div className="ml-auto flex items-center gap-x-2">
-              <Button variant="outline" size="sm" onClick={onCancel} disabled={disabled}>
+              <Button variant="outline" size="sm" onClick={handleCancel} disabled={disabled}>
                 Cancel
               </Button>
               <Button

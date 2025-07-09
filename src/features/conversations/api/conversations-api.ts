@@ -130,17 +130,4 @@ export const conversationsApi = {
   leaveConversation: async (workspaceId: string, conversationId: string): Promise<void> => {
     await api.post(`/workspaces/${workspaceId}/conversations/${conversationId}/leave`);
   },
-
-  /**
-   * Send typing indicator
-   */
-  sendTypingIndicator: async (
-    workspaceId: string,
-    conversationId: string,
-    isTyping: boolean,
-  ): Promise<void> => {
-    await api.post(`/workspaces/${workspaceId}/conversations/${conversationId}/typing`, {
-      is_typing: isTyping,
-    });
-  },
 };

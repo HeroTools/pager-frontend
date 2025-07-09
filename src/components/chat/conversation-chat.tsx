@@ -251,6 +251,8 @@ const ConversationChat = () => {
     }
   };
 
+  console.log(conversationWithMessages.pages[0].members);
+
   return (
     <div className="flex flex-col h-full">
       {!isConnected && (
@@ -274,6 +276,14 @@ const ConversationChat = () => {
         hasMoreMessages={hasNextPage}
         isLoadingMore={isFetchingNextPage}
         highlightMessageId={highlightMessageId}
+        members={conversationWithMessages.pages[0].members.map((member) => ({
+          id: member.id,
+          user_id: member.user.id,
+          name: member.user.name,
+          avatar: member.user.image,
+          workspace_member_id: member.workspace_member_id,
+          email: member.user.email,
+        }))}
       />
     </div>
   );
