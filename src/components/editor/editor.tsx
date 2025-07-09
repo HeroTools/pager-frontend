@@ -1,7 +1,7 @@
 import { CaseSensitive, Paperclip, SendHorizontal, Smile } from 'lucide-react';
 import type { QuillOptions } from 'quill';
-import Quill from 'quill';
-import type { Delta, Op } from 'quill/core';
+import Quill, { Delta } from 'quill';
+import type { Op } from 'quill/core';
 import hljs from 'highlight.js';
 import type { RefObject } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -142,7 +142,6 @@ const Editor = ({
       setText(oldText);
       setImage(oldImage);
       setAttachments(oldAttachments);
-      console.error('Send failed, rolled back:', err);
     }
   }, [hasUploadsInProgress, attachments, image]);
 
@@ -254,7 +253,6 @@ const Editor = ({
           activeUploadBatchRef.current = null;
         }
       } catch (error) {
-        console.error('Upload batch failed:', error);
         if (activeUploadBatchRef.current === batchId) {
           setAttachments((prev) =>
             prev.map((att) =>
@@ -294,6 +292,45 @@ const Editor = ({
       setIsDragging(false);
     }
   }, []);
+
+  // Move URL regex to a constant at the top of the file
+  const URL_REGEX =
+    /(?:https?:\/\/)?(?:localhost(?::\d{1,5})?|\w[\w-]*(?:\.[\w-]+)+)(?:\/[^\s]*)?/i;
+
+  const handleLinkFormat = useCallback(
+    (text: string, url: string, range?: { index: number; length: number }): void => {
+      const quill = quillRef.current;
+      if (!quill) return;
+
+      // If no range provided, use current selection
+      const targetRange = range || quill.getSelection();
+      if (!targetRange) return;
+
+      const { index, length } = targetRange;
+
+      // Delete existing text if there's a selection
+      if (length > 0) {
+        quill.deleteText(index, length);
+      }
+
+      // Insert the link
+      quill.insertText(index, text, 'link', url);
+
+      // Clear any link dialog state
+      setLinkSelection(null);
+      setIsLinkDialogOpen(false);
+    },
+    [],
+  );
+
+  // Handle link dialog save
+  const handleLinkSave = useCallback(
+    (text: string, url: string): void => {
+      if (!linkSelection) return;
+      handleLinkFormat(text, url, linkSelection);
+    },
+    [linkSelection, handleLinkFormat],
+  );
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -383,6 +420,38 @@ const Editor = ({
     quill.setContents(defaultValueRef.current);
     setText(quill.getText());
 
+    // Add paste event handler to the capture phase to run before Quill's handler.
+    quill.root.addEventListener(
+      'paste',
+      (e: ClipboardEvent) => {
+        const selection = quill.getSelection();
+
+        // If no text is selected, allow the default paste behavior.
+        if (!selection || selection.length === 0) {
+          return;
+        }
+
+        const clipboardData = e.clipboardData;
+        if (!clipboardData) {
+          return;
+        }
+
+        const pastedData = clipboardData.getData('text/plain');
+
+        // If the pasted data is a URL, format the selected text.
+        if (URL_REGEX.test(pastedData)) {
+          // Prevent Quill's default paste handling.
+          e.preventDefault();
+          e.stopImmediatePropagation();
+
+          // Use the simpler formatText API to apply the link.
+          quill.formatText(selection.index, selection.length, 'link', pastedData);
+          quill.setSelection(selection.index + selection.length, 0);
+        }
+      },
+      true,
+    );
+
     quill.on(Quill.events.TEXT_CHANGE, () => {
       setText(quill.getText());
     });
@@ -410,26 +479,6 @@ const Editor = ({
     const idx = quill?.getSelection()?.index || 0;
     quill?.insertText(idx, emoji);
   }, []);
-
-  const handleLinkSave = useCallback(
-    (text: string, url: string): void => {
-      const quill = quillRef.current;
-      if (!quill || !linkSelection) return;
-
-      const { index, length } = linkSelection;
-
-      if (length > 0) {
-        quill.deleteText(index, length);
-        quill.insertText(index, text, 'link', url);
-      } else {
-        quill.insertText(index, text, 'link', url);
-      }
-
-      setLinkSelection(null);
-      setIsLinkDialogOpen(false);
-    },
-    [linkSelection],
-  );
 
   const handleLinkDialogClose = useCallback((): void => {
     setLinkSelection(null);
