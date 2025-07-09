@@ -38,7 +38,8 @@ export const InviteModal = ({ open, name, setOpen }: InviteModalProps) => {
     }
     navigator.clipboard
       .writeText(url)
-      .then(() => toast.success('Invite link copied to clipboard!'));
+      .then(() => toast.success('Invite link copied to clipboard!'))
+      .catch(() => toast.error('Failed to copy invite link'));
   };
 
   return (
@@ -53,12 +54,8 @@ export const InviteModal = ({ open, name, setOpen }: InviteModalProps) => {
         <div className="flex flex-col gap-y-4 items-center justify-center py-4 w-full">
           <div className="w-full flex flex-col gap-2">
             <Label>Share this link</Label>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleCopy}
-              disabled={inviteLinkMutation.isPending || !inviteLinkMutation.data?.url}
-            >
+            <Button variant="outline" className="w-full" onClick={handleCopy}>
+              <CopyIcon className="mr-2 h-4 w-4" />
               {inviteLinkMutation.isPending ? 'Generating link...' : 'Copy Invite Link'}
             </Button>
           </div>
