@@ -185,6 +185,24 @@ export const Chat: FC<ChatProps> = ({
     return member.name;
   };
 
+  const getUserAvatar = (userId: string) => {
+    if (!members) {
+      return 'Unknown';
+    }
+
+    const member = members.find((member) => {
+      if ('user_id' in member) {
+        return member.user_id === userId;
+      }
+    });
+
+    if (!member) {
+      return 'Unknown';
+    }
+
+    return member.avatar;
+  };
+
   return (
     <div className="flex flex-col h-full">
       <ChatHeader
@@ -207,19 +225,17 @@ export const Chat: FC<ChatProps> = ({
         highlightMessageId={highlightMessageId}
       />
 
-      {typingUsers.length > 0 && (
-        <TypingIndicator
-          channelId={channel.id}
-          conversationId={conversationData?.id}
-          currentUserId={currentUser.id}
-          getUserName={(userId) => {
-            return getUserName(userId) || 'Unknown User';
-          }}
-        />
-      )}
+      <TypingIndicator
+        channelId={channel.id}
+        conversationId={conversationData?.id}
+        currentUserId={currentUser.id}
+        getUserName={getUserName}
+        getUserAvatar={getUserAvatar}
+      />
 
       <div className="p-4 border-t border-border-subtle">
         <Editor
+          variant="create"
           workspaceId={workspaceId}
           placeholder={`Message ${chatType === 'channel' ? '#' : ''}${channel.name}`}
           onSubmit={handleSendMessage}

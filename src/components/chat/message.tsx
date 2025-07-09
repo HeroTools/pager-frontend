@@ -753,6 +753,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                     onCancel={handleEditCancel}
                     placeholder="Edit your message..."
                     disabled={false}
+                    userId={currentUser.id}
                   />
                 </div>
               ) : (

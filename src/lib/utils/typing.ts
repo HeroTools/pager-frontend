@@ -8,18 +8,26 @@ export interface TypingStatus {
   timestamp: string;
 }
 
-export const broadcastTypingStatus = async (
+const getTypingChannelName = (channelId?: string, conversationId?: string): string => {
+  if (channelId) return `typing:channel:${channelId}`;
+  if (conversationId) return `typing:conversation:${conversationId}`;
+  throw new Error('Either channelId or conversationId must be provided');
+};
+
+/**
+ * Broadcast the current user's typing status.
+ */
+export const broadcastTypingStatus = (
   userId: string,
   channelId?: string,
   conversationId?: string,
   isTyping = false,
-) => {
-  try {
-    const realtimeChannel = channelId ? `channel:${channelId}` : `conversation:${conversationId}`;
+): void => {
+  const topic = getTypingChannelName(channelId, conversationId);
+  const channel = supabase.channel(topic);
 
-    const channel = supabase.channel(realtimeChannel);
-
-    await channel.send({
+  channel
+    .send({
       type: 'broadcast',
       event: 'typing_status',
       payload: {
@@ -28,9 +36,9 @@ export const broadcastTypingStatus = async (
         channel_id: channelId,
         conversation_id: conversationId,
         timestamp: new Date().toISOString(),
-      } as TypingStatus,
+      },
+    })
+    .then(({ error }) => {
+      if (error) console.error('Failed to broadcast typing status:', error);
     });
-  } catch (error) {
-    console.error('Failed to broadcast typing status:', error);
-  }
 };

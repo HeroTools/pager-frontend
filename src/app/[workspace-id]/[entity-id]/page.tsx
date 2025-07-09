@@ -2,8 +2,8 @@
 
 import { AlertTriangle } from 'lucide-react';
 
-import ConversationChat from '@/components/chat/conversation-chat';
 import ChannelChat from '@/components/chat/channel-chat';
+import ConversationChat from '@/components/chat/conversation-chat';
 import { useParamIds } from '@/hooks/use-param-ids';
 
 const ChatPage = () => {
