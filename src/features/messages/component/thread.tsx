@@ -271,12 +271,14 @@ export const Thread = ({ onClose }: ThreadProps) => {
       {/* Editor at the bottom */}
       <div className="px-4 py-4 border-t border-border-subtle bg-background">
         <Editor
+          variant="create"
           workspaceId={workspaceId}
           onSubmit={handleSubmit}
           placeholder={isWaitingForPersistence ? 'Waiting for message to save...' : 'Reply...'}
           key={editorKey}
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}
+          userId={currentUser.id}
         />
       </div>
     </div>
