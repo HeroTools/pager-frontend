@@ -1,16 +1,15 @@
-import type { Metadata } from 'next';
-import localFont from 'next/font/local';
-import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Modals } from '@/components/modals';
+import { ThemeProvider } from '@/components/providers/theme-provider';
 import ReactQueryProvider from '@/components/react-query-provider';
 import { Toaster } from '@/components/ui/sonner';
-import { AuthProvider } from '@/lib/auth/auth-provider';
-import './styles/globals.css';
-import 'quill/dist/quill.snow.css';
-import 'highlight.js/styles/github.css';
-import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { AuthProvider } from '@/lib/auth/auth-provider';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import 'highlight.js/styles/github.css';
+import type { Metadata } from 'next';
+import localFont from 'next/font/local';
+import 'quill/dist/quill.snow.css';
+import './styles/globals.css';
 
 const geistSans = localFont({
   src: './fonts/geist-vf.woff',
@@ -33,18 +32,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ReactQueryProvider>
           <ReactQueryDevtools />
           <AuthProvider>
-            <NuqsAdapter>
-              <Toaster />
-              <Modals />
-              <ThemeProvider>
-                <TooltipProvider delayDuration={50}>{children}</TooltipProvider>
-              </ThemeProvider>
-            </NuqsAdapter>
+            <Toaster />
+            <Modals />
+            <ThemeProvider>
+              <TooltipProvider delayDuration={50}>{children}</TooltipProvider>
+            </ThemeProvider>
           </AuthProvider>
         </ReactQueryProvider>
       </body>
