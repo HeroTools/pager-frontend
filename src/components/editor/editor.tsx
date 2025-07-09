@@ -84,6 +84,7 @@ const Editor = ({
     userId,
     channelId,
     conversationId,
+    enabled: variant === 'create',
   });
 
   const isEmpty = useMemo(
@@ -116,7 +117,10 @@ const Editor = ({
       return;
     }
 
-    stopTyping();
+    // Stop typing immediately when submitting
+    if (variant === 'create') {
+      await stopTyping(); // Await to ensure it's sent before submission
+    }
 
     if (hasUploadsInProgress) {
       toast.error('Please wait for all attachments to finish uploading.');
@@ -170,7 +174,7 @@ const Editor = ({
       setImage(oldImage);
       setAttachments(oldAttachments);
     }
-  }, [hasUploadsInProgress, attachments, image, stopTyping]);
+  }, [hasUploadsInProgress, attachments, image, stopTyping, variant]);
 
   const handleSubmitRef = useRef(handleSubmit);
 
@@ -514,27 +518,24 @@ const Editor = ({
       }
     };
 
+    // 2. Update blur handler
     const handleBlur = () => {
-      stopTyping();
-    };
-
-    const handleFocus = () => {
-      const currentText = quill.getText();
-      if (currentText.trim().length > 0) {
-        startTyping();
+      if (variant === 'create') {
+        stopTyping();
       }
     };
 
     quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
     quill.root.addEventListener('blur', handleBlur);
-    quill.root.addEventListener('focus', handleFocus);
 
     return () => {
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       quill.root.removeEventListener('blur', handleBlur);
-      quill.root.removeEventListener('focus', handleFocus);
 
-      stopTyping();
+      // Ensure typing is stopped on cleanup
+      if (variant === 'create') {
+        stopTyping();
+      }
 
       container.innerHTML = '';
       quillRef.current = null;
@@ -542,7 +543,7 @@ const Editor = ({
         innerRef.current = null;
       }
     };
-  }, [startTyping, stopTyping]);
+  }, [startTyping, stopTyping, variant]);
 
   const handleToolbarToggle = useCallback((): void => {
     setIsToolbarVisible((v) => !v);
@@ -561,6 +562,7 @@ const Editor = ({
       const index = selection?.index ?? 0;
       quill.insertText(index, emoji);
 
+      // Start typing after emoji insertion
       startTyping();
     },
     [startTyping],
@@ -572,10 +574,12 @@ const Editor = ({
     setIsLinkDialogOpen(false);
   }, []);
 
-  const handleCancel = useCallback((): void => {
-    stopTyping();
+  const handleCancel = useCallback(async () => {
+    if (variant === 'create') {
+      await stopTyping(); // Ensure typing is stopped when canceling
+    }
     onCancel?.();
-  }, [stopTyping, onCancel]);
+  }, [stopTyping, onCancel, variant]);
 
   return (
     <div className="flex flex-col">

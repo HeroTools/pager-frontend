@@ -1,6 +1,6 @@
-import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
-import { REALTIME_SUBSCRIBE_STATES } from '@supabase/realtime-js';
 import { supabase } from '@/lib/supabase/client';
+import { REALTIME_SUBSCRIBE_STATES } from '@supabase/realtime-js';
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 
 export type Topic = string;
 

@@ -1,63 +1,53 @@
 import { broadcastTypingStatus } from '@/lib/utils/typing';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 
 interface UseTypingStatusProps {
   userId: string;
   channelId?: string;
   conversationId?: string;
   typingTimeout?: number;
+  enabled?: boolean;
 }
 
+/**
+ * Hook for sending typing start/stop events.
+ */
 export const useTypingStatus = ({
   userId,
   channelId,
   conversationId,
-  typingTimeout = 3000,
+  typingTimeout = 2000,
+  enabled = true,
 }: UseTypingStatusProps) => {
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<number>(null);
   const isTypingRef = useRef(false);
 
   const startTyping = useCallback(() => {
+    if (!enabled || (!channelId && !conversationId)) return;
+
     if (!isTypingRef.current) {
       isTypingRef.current = true;
       broadcastTypingStatus(userId, channelId, conversationId, true);
     }
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = window.setTimeout(() => {
       if (isTypingRef.current) {
         isTypingRef.current = false;
         broadcastTypingStatus(userId, channelId, conversationId, false);
       }
     }, typingTimeout);
-  }, [userId, channelId, conversationId, typingTimeout]);
+  }, [userId, channelId, conversationId, typingTimeout, enabled]);
 
   const stopTyping = useCallback(() => {
-    console.log('stop typing');
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = null;
-    }
+    if (!enabled || (!channelId && !conversationId)) return;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     if (isTypingRef.current) {
       isTypingRef.current = false;
       broadcastTypingStatus(userId, channelId, conversationId, false);
     }
-  }, [userId, channelId, conversationId]);
-
-  useEffect(() => {
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      if (isTypingRef.current) {
-        broadcastTypingStatus(userId, channelId, conversationId, false);
-      }
-    };
-  }, [userId, channelId, conversationId]);
+  }, [userId, channelId, conversationId, enabled]);
 
   return { startTyping, stopTyping };
 };

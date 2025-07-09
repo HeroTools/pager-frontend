@@ -1,7 +1,6 @@
 import { supabase } from '@/lib/supabase/client';
-import { TypingStatus } from '@/lib/utils/typing';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { useEffect, useRef, useState } from 'react';
+import type { TypingStatus } from '@/lib/utils/typing';
+import { useEffect, useState } from 'react';
 
 interface UseTypingIndicatorProps {
   channelId?: string;
@@ -9,76 +8,52 @@ interface UseTypingIndicatorProps {
   currentUserId: string;
 }
 
+/**
+ * Hook for listening to typing events from other users.
+ */
 export const useTypingIndicator = ({
   channelId,
   conversationId,
   currentUserId,
 }: UseTypingIndicatorProps) => {
-  const [typingUsers, setTypingUsers] = useState<Map<string, TypingStatus>>(new Map());
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const [typingUsers, setTypingUsers] = useState<TypingStatus[]>([]);
 
   useEffect(() => {
-    if (!channelId && !conversationId) {
-      console.log('No channelId or conversationId provided');
-      return;
-    }
+    if (!channelId && !conversationId) return;
 
-    const channelName = channelId ? `channel:${channelId}` : `conversation:${conversationId}`;
-    console.log('Setting up typing indicator for channel:', channelName);
+    const topic = channelId
+      ? `typing:channel:${channelId}`
+      : `typing:conversation:${conversationId}`;
+    const channel = supabase.channel(topic, { config: { broadcast: { self: false } } });
 
-    // Clean up previous channel
-    if (channelRef.current) {
-      channelRef.current.unsubscribe();
-    }
+    channel
+      .on('broadcast', { event: 'typing_status' }, ({ payload }) => {
+        const status = payload as TypingStatus;
+        if (status.user_id === currentUserId) return;
 
-    const channel = supabase.channel(channelName);
+        setTypingUsers((prev) => {
+          const exists = prev.some((u) => u.user_id === status.user_id);
 
-    channel.on('broadcast', { event: 'typing_status' }, (payload) => {
-      console.log('Received typing status:', payload);
-
-      const typingStatus = payload.payload as TypingStatus;
-
-      // Don't show typing indicator for current user
-      if (typingStatus.user_id === currentUserId) {
-        console.log('Ignoring typing status from current user');
-        return;
-      }
-
-      setTypingUsers((prev) => {
-        const newMap = new Map(prev);
-
-        if (typingStatus.is_typing) {
-          console.log('User started typing:', typingStatus.user_id);
-          newMap.set(typingStatus.user_id, typingStatus);
-        } else {
-          console.log('User stopped typing:', typingStatus.user_id);
-          newMap.delete(typingStatus.user_id);
-        }
-
-        console.log('Updated typing users:', Array.from(newMap.keys()));
-        return newMap;
-      });
-    });
-
-    channel.subscribe((status) => {
-      console.log('Channel subscription status:', status);
-    });
-
-    channelRef.current = channel;
+          if (status.is_typing) {
+            if (exists) {
+              return prev.map((u) => (u.user_id === status.user_id ? status : u));
+            }
+            return [...prev, status];
+          } else {
+            return prev.filter((u) => u.user_id !== status.user_id);
+          }
+        });
+      })
+      .subscribe();
 
     return () => {
-      console.log('Cleaning up typing indicator channel');
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        channelRef.current = null;
-      }
+      supabase.removeChannel(channel);
+      setTypingUsers([]);
     };
   }, [channelId, conversationId, currentUserId]);
 
-  const typingUsersList = Array.from(typingUsers.values());
-
   return {
-    typingUsers: typingUsersList,
-    isAnyoneTyping: typingUsersList.length > 0,
+    typingUsers,
+    isAnyoneTyping: typingUsers.length > 0,
   };
 };
