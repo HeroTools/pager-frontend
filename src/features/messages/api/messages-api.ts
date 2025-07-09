@@ -165,20 +165,6 @@ export const messagesApi = {
   },
 
   /**
-   * Send typing indicator
-   */
-  sendTypingIndicator: async (
-    endpoint: string,
-    data: { is_typing: boolean },
-  ): Promise<{ message: string; timestamp: string }> => {
-    const { data: response } = await api.post<{
-      message: string;
-      timestamp: string;
-    }>(endpoint, data);
-    return response;
-  },
-
-  /**
    * Update a message
    */
   updateMessage: async (
