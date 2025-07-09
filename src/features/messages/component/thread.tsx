@@ -45,7 +45,7 @@ const isOptimisticId = (id: string): boolean => {
 };
 
 export const Thread = ({ onClose }: ThreadProps) => {
-  const { selectedThreadParentMessage: parentMessage } = useUIStore();
+  const { selectedThreadParentMessage: parentMessage, threadHighlightMessageId } = useUIStore();
   const { isMessagePending } = useMessagesStore();
   const { workspaceId, id: entityId, type } = useParamIds();
   const { user: currentUser } = useCurrentUser(workspaceId);
@@ -214,6 +214,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
               hideReplies
               hideThreadButton
               isInThread
+              isHighlighted={parentMessage.id === threadHighlightMessageId}
             />
           </div>
 
@@ -257,6 +258,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
                         hideReplies
                         hideThreadButton
                         isInThread
+                        isHighlighted={message.id === threadHighlightMessageId}
                       />
                     );
                   })}

@@ -1,19 +1,25 @@
-import { CaseSensitive, Paperclip, SendHorizontal, Smile } from 'lucide-react';
-import type { QuillOptions } from 'quill';
-import Quill, { Delta } from 'quill';
-import type { Op } from 'quill/core';
-import hljs from 'highlight.js';
-import type { RefObject } from 'react';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
+import EmojiPicker from '@/components/emoji-picker';
 import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
 import { useFileUpload } from '@/features/file-upload';
-import AttachmentPreview from './attachment-preview';
+import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
 import { validateFile } from '@/lib/helpers';
-import EmojiPicker from '@/components/emoji-picker';
+import { cn } from '@/lib/utils';
+import hljs from 'highlight.js';
+import { CaseSensitive, Paperclip, SendHorizontal, Smile } from 'lucide-react';
+import Quill, { type Delta, type QuillOptions } from 'quill';
+import type { Op } from 'quill/core';
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { toast } from 'sonner';
+import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
 import { LinkDialog } from './link-dialog';
 
@@ -39,7 +45,7 @@ interface EditorProps {
 
 const TLDs = ['com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'dev', 'app', 'xyz', 'info', 'biz'];
 const URL_REGEX = new RegExp(
-  `(?:https?:\\/\\/)?(?:localhost(?::\\d{1,5})?|\\w[\\w-]*\\.(?:${TLDs.join('|')})\\b)(?:\\/[^\\s]*)?`,
+  `(?:https?:\\/\\/)?(?:localhost(?:\\d{1,5})?|\\w[\\w-]*\\.(?:${TLDs.join('|')})\\b)(?:\\/[^\\s]*)?`,
   'i',
 );
 const AUTO_LINK_URL_REGEX = new RegExp(URL_REGEX.source, 'gi');
@@ -54,7 +60,7 @@ const Editor = ({
   onCancel,
   onSubmit,
   maxFiles = 10,
-  maxFileSizeBytes = 20 * 1024 * 1024, // 20MB
+  maxFileSizeBytes = 20 * 1024 * 1024,
 }: EditorProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [text, setText] = useState('');
@@ -185,11 +191,9 @@ const Editor = ({
         return;
       }
 
-      // Create batch ID to track this upload session
       const batchId = `batch-${Date.now()}-${Math.random()}`;
       activeUploadBatchRef.current = batchId;
 
-      // Create initial attachment entries with unique IDs
       const fileIds = fileArray.map(() => `upload-${Date.now()}-${Math.random()}`);
 
       const initialAttachments: ManagedAttachment[] = fileArray.map((file, index) => ({
@@ -200,16 +204,12 @@ const Editor = ({
         publicUrl: '',
         uploadProgress: 0,
         status: 'uploading',
-        file, // Store file for preview
+        file,
       }));
 
-      setAttachments((prev) => {
-        const newState: ManagedAttachment[] = [...prev, ...initialAttachments];
-        return newState;
-      });
+      setAttachments((prev) => [...prev, ...initialAttachments]);
 
       try {
-        // Use uploadMultipleFiles with proper progress tracking
         const results = await uploadMultipleFiles(
           fileArray,
           (fileIndex: number, progress: { percentage: number }) => {
@@ -241,7 +241,7 @@ const Editor = ({
                   publicUrl: result.publicUrl,
                   uploadProgress: 100,
                   status: 'completed' as const,
-                  file: undefined, // Clear the preview file from memory
+                  file: undefined,
                 };
               } else {
                 return {
@@ -304,28 +304,23 @@ const Editor = ({
       const quill = quillRef.current;
       if (!quill) return;
 
-      // If no range provided, use current selection
       const targetRange = range || quill.getSelection();
       if (!targetRange) return;
 
       const { index, length } = targetRange;
 
-      // Delete existing text if there's a selection
       if (length > 0) {
         quill.deleteText(index, length);
       }
 
-      // Insert the link
       quill.insertText(index, text, 'link', url);
 
-      // Clear any link dialog state
       setLinkSelection(null);
       setIsLinkDialogOpen(false);
     },
     [],
   );
 
-  // Handle link dialog save
   const handleLinkSave = useCallback(
     (text: string, url: string): void => {
       if (!linkSelection) return;
@@ -334,10 +329,12 @@ const Editor = ({
     [linkSelection, handleLinkFormat],
   );
 
+  // Simple, clean useEffect - no async complexity!
   useEffect(() => {
     if (!containerRef.current) {
       return;
     }
+
     const container = containerRef.current;
     const editorDiv = document.createElement('div');
     container.appendChild(editorDiv);
@@ -370,13 +367,10 @@ const Editor = ({
             enterSubmit: {
               key: 'Enter',
               handler(): boolean {
-                // If emoji dropdown is open, don't handle enter here - let the emoji component deal with it
                 const emojiDropdownOpen =
-                  quillRef.current &&
-                  (quillRef.current as unknown as { emojiDropdownOpen?: boolean })
-                    .emojiDropdownOpen;
+                  quillRef.current && (quillRef.current as any).emojiDropdownOpen;
                 if (emojiDropdownOpen) {
-                  return true; // Let the event bubble up to emoji handler
+                  return true;
                 }
 
                 const addedImage = imageElementRef.current?.files?.[0] || null;
@@ -422,13 +416,11 @@ const Editor = ({
     quill.setContents(defaultValueRef.current);
     setText(quill.getText());
 
-    // Add paste event handler to the capture phase to run before Quill's handler.
     quill.root.addEventListener(
       'paste',
       (e: ClipboardEvent) => {
         const selection = quill.getSelection();
 
-        // If no text is selected, allow the default paste behavior.
         if (!selection || selection.length === 0) {
           return;
         }
@@ -440,7 +432,6 @@ const Editor = ({
 
         const pastedData = clipboardData.getData('text/plain');
 
-        // If the pasted data is a URL, format the selected text.
         if (URL_REGEX.test(pastedData)) {
           e.preventDefault();
           e.stopImmediatePropagation();
@@ -469,7 +460,7 @@ const Editor = ({
           const format = quill.getFormat(wordIndexInEditor, word.length);
 
           const linkValue = format.link;
-          if (linkValue) {
+          if (linkValue && typeof linkValue === 'string') {
             const probablyAutoLink = linkValue.includes(word);
             if (probablyAutoLink) {
               const isStillValid = new RegExp(`^${URL_REGEX.source}$`, 'i').test(word);
@@ -494,7 +485,7 @@ const Editor = ({
       }, 0);
     };
 
-    const textChangeHandler = (_delta: Delta, _oldDelta: Delta, source: string) => {
+    const textChangeHandler = (delta: Delta, oldDelta: Delta, source: string) => {
       setText(quill.getText());
       if (source === 'user') {
         handleTextChange();
@@ -523,8 +514,11 @@ const Editor = ({
 
   const handleEmojiSelect = useCallback((emoji: string): void => {
     const quill = quillRef.current;
-    const idx = quill?.getSelection()?.index || 0;
-    quill?.insertText(idx, emoji);
+    if (!quill) return;
+
+    const selection = quill.getSelection();
+    const index = selection?.index ?? 0;
+    quill.insertText(index, emoji);
   }, []);
 
   const handleLinkDialogClose = useCallback((): void => {
@@ -539,7 +533,7 @@ const Editor = ({
         type="file"
         accept="image/*"
         ref={imageElementRef}
-        onChange={(e) => setImage(e.target.files![0])}
+        onChange={(e) => setImage(e.target.files?.[0] || null)}
         className="hidden"
       />
       <input
@@ -561,7 +555,6 @@ const Editor = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
-        {/* Drag overlay */}
         {isDragging && (
           <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center border-2 border-dashed border-primary rounded-md">
             <div className="text-center">
@@ -575,7 +568,6 @@ const Editor = ({
 
         <div ref={containerRef} className="h-full ql-custom max-h-80 overflow-y-auto" />
 
-        {/* Attachment previews */}
         {attachments.length > 0 && (
           <div className="px-2 pb-2">
             <div className="flex flex-wrap">
@@ -670,7 +662,6 @@ const Editor = ({
         </div>
       )}
 
-      {/* Emoji Autocomplete */}
       <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
       <LinkDialog
         isOpen={isLinkDialogOpen}

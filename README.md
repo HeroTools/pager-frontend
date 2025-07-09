@@ -45,3 +45,6 @@ The frontend integrates with AWS Lambda functions through API Gateway. Make sure
 1. Deploy your Lambda functions
 2. Set up API Gateway endpoints
 3. Add the AWS region and API endpoint to your environment variables
+
+## Notes
+1. need to set the next.config.ts to use the correct image domain (set to supabase project domain due to storage)

@@ -1,15 +1,14 @@
-import type { FC } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 
-import type { Channel, Message } from '@/types/chat';
-import { ChatHeader } from './header';
-import { ChatMessageList } from './message-list';
-import Editor from '@/components/editor/editor';
-import { useParamIds } from '@/hooks/use-param-ids';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { CurrentUser } from '@/features/auth';
 import type { ChannelMemberData } from '@/features/channels';
 import type { UploadedAttachment } from '@/features/file-upload';
-import type { CurrentUser } from '@/features/auth';
-// import { MediaViewerModal } from '@/components/media-viewer-modal';
+import { useParamIds } from '@/hooks/use-param-ids';
+import type { Channel, Message } from '@/types/chat';
+import dynamic from 'next/dynamic';
+import { ChatHeader } from './header';
+import { ChatMessageList } from './message-list';
 
 interface ChatProps {
   channel: Channel;
@@ -34,7 +33,25 @@ interface ChatProps {
   onInputChange?: (value: string) => void;
   onTypingSubmit?: () => void;
   members?: ChannelMemberData[];
+  highlightMessageId?: string | null;
 }
+
+const Editor = dynamic(() => import('@/components/editor/editor'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col border border-border-default rounded-md overflow-hidden">
+      <div className="h-80 p-4">
+        <Skeleton className="h-full w-full rounded-md" />
+      </div>
+      <div className="flex px-2 pb-2 gap-2 border-t">
+        <Skeleton className="h-8 w-8 rounded" />
+        <Skeleton className="h-8 w-8 rounded" />
+        <Skeleton className="h-8 w-8 rounded" />
+        <Skeleton className="h-8 w-20 rounded ml-auto" />
+      </div>
+    </div>
+  ),
+});
 
 export const Chat: FC<ChatProps> = ({
   channel,
@@ -51,11 +68,9 @@ export const Chat: FC<ChatProps> = ({
   hasMoreMessages,
   isLoadingMore,
   members,
+  highlightMessageId,
 }) => {
   const { workspaceId } = useParamIds();
-  // const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
-  // const [mediaViewerAttachments, setMediaViewerAttachments] = useState<Attachment[]>([]);
-  // const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
 
@@ -71,31 +86,6 @@ export const Chat: FC<ChatProps> = ({
   const handleEditMessage = (messageId: string, newContent: string) => {
     onEditMessage?.(messageId, newContent);
   };
-
-  // const handleOpenMediaViewer = (message: Message, attachmentIndex: number) => {
-  //   // Get all viewable attachments (images, videos, and documents)
-  //   const viewableAttachments = message.attachments.filter((attachment) => {
-  //     const mimeType = attachment.contentType || '';
-  //     const filename = attachment.originalFilename || '';
-  //     const extension = filename.split('.').pop()?.toLowerCase();
-
-  //     return (
-  //       attachment.contentType?.startsWith('image/') ||
-  //       attachment.contentType?.startsWith('video/') ||
-  //       mimeType.includes('pdf') ||
-  //       mimeType.includes('document') ||
-  //       mimeType.includes('spreadsheet') ||
-  //       mimeType.includes('presentation') ||
-  //       ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension || '')
-  //     );
-  //   });
-
-  //   if (viewableAttachments.length > 0) {
-  //     setMediaViewerAttachments(viewableAttachments);
-  //     setMediaViewerInitialIndex(attachmentIndex);
-  //     setIsMediaViewerOpen(true);
-  //   }
-  // };
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const c = messagesContainerRef.current;
@@ -188,6 +178,7 @@ export const Chat: FC<ChatProps> = ({
         onReaction={onReactToMessage}
         containerRef={messagesContainerRef}
         onScroll={handleScroll}
+        highlightMessageId={highlightMessageId}
       />
 
       <div className="p-4 border-t border-border-subtle">
@@ -200,13 +191,6 @@ export const Chat: FC<ChatProps> = ({
           maxFileSizeBytes={20 * 1024 * 1024}
         />
       </div>
-
-      {/* <MediaViewerModal
-        isOpen={isMediaViewerOpen}
-        onClose={() => setIsMediaViewerOpen(false)}
-        attachments={mediaViewerAttachments}
-        initialIndex={mediaViewerInitialIndex}
-      /> */}
     </div>
   );
 };
