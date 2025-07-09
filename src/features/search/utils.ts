@@ -1,4 +1,5 @@
-import type { SearchFilters, SearchHistoryItem, SearchResult } from './types';
+import { MAX_RESULTS_PER_SECTION } from './constants';
+import type { NavigationUrlParams, SearchFilters, SearchHistoryItem, SearchResult } from './types';
 
 // Search utilities
 export class SearchUtils {
@@ -203,3 +204,62 @@ export class SearchHistory {
       .map((item) => item.query);
   }
 }
+
+export const getNavigationUrl = ({ workspaceId, result }: NavigationUrlParams): string | null => {
+  let baseUrl = '';
+
+  if (result.isThread && result.parentMessageId) {
+    if (result.channelId) {
+      baseUrl = `/${workspaceId}/c-${result.channelId}?thread=${result.parentMessageId}`;
+    } else if (result.conversationId) {
+      baseUrl = `/${workspaceId}/d-${result.conversationId}?thread=${result.parentMessageId}`;
+    } else {
+      return null;
+    }
+  } else if (result.contextType === 'channel' && result.channelId) {
+    baseUrl = `/${workspaceId}/c-${result.channelId}`;
+  } else if (result.contextType === 'conversation' && result.conversationId) {
+    baseUrl = `/${workspaceId}/d-${result.conversationId}`;
+  } else if (result.channelId) {
+    baseUrl = `/${workspaceId}/c-${result.channelId}`;
+  } else if (result.conversationId) {
+    baseUrl = `/${workspaceId}/d-${result.conversationId}`;
+  } else {
+    return null;
+  }
+
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${separator}highlight=${result.messageId}`;
+};
+
+export const filterItems = <T extends { name?: string } & { user?: { name?: string } }>(
+  items: T[] | undefined,
+  query: string,
+  limit: number = MAX_RESULTS_PER_SECTION,
+): T[] => {
+  if (!items) return [];
+
+  if (!query.trim()) {
+    return items.slice(0, limit) as T[];
+  }
+
+  const lowerQuery = query.toLowerCase();
+  return items
+    .filter(
+      (item) =>
+        item.name?.toLowerCase().includes(lowerQuery) ||
+        item.user?.name?.toLowerCase().includes(lowerQuery),
+    )
+    .slice(0, limit) as T[];
+};
+
+export const getUniqueResults = (results: SearchResult[] = []): SearchResult[] => {
+  const seen = new Set<string>();
+  return results.filter((result) => {
+    if (seen.has(result.messageId)) {
+      return false;
+    }
+    seen.add(result.messageId);
+    return true;
+  });
+};
