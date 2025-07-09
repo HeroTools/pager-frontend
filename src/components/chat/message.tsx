@@ -41,24 +41,50 @@ import { MessageContent } from './message-content';
 import { MessageReactions } from './message-reactions';
 import ThreadButton from './thread-button';
 
-const ATTACHMENT_SIZES = {
-  SINGLE: { maxHeight: 300, maxWidth: 400 },
-  MULTI: { maxHeight: 250, maxWidth: 250, fixedHeight: 250 },
+const ATTACHMENT_CONFIG = {
+  SINGLE: {
+    image: {
+      maxWidth: 'max-w-md',
+      maxHeight: 'max-h-96',
+      height: 'h-auto',
+      aspectRatio: 'auto',
+    },
+    video: {
+      maxWidth: 'max-w-md',
+      maxHeight: 'max-h-96',
+      height: 'h-auto',
+      aspectRatio: 'auto',
+    },
+  },
+  MULTI: {
+    image: {
+      maxWidth: 'w-48',
+      maxHeight: 'h-32',
+      height: 'h-32',
+      aspectRatio: '3/2',
+    },
+    video: {
+      maxWidth: 'w-48',
+      maxHeight: 'h-32',
+      height: 'h-32',
+      aspectRatio: '3/2',
+    },
+  },
+  THREAD: {
+    image: {
+      maxWidth: 'w-40',
+      maxHeight: 'h-28',
+      height: 'h-28',
+      aspectRatio: '3/2',
+    },
+    video: {
+      maxWidth: 'w-40',
+      maxHeight: 'h-28',
+      height: 'h-28',
+      aspectRatio: '3/2',
+    },
+  },
 } as const;
-
-interface ChatMessageProps {
-  message: Message;
-  currentUser: CurrentUser;
-  hideReplies?: boolean;
-  isCompact?: boolean;
-  showAvatar?: boolean;
-  hideThreadButton?: boolean;
-  isInThread?: boolean;
-  onEdit?: (messageId: string, newContent: string) => void;
-  onDelete?: (messageId: string) => void;
-  onReaction: (messageId: string, emoji: string) => void;
-  isHighlighted?: boolean;
-}
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
@@ -77,82 +103,75 @@ const Editor = dynamic(() => import('@/components/editor/editor'), {
   ),
 });
 
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+};
+
+const getAttachmentConfig = (isSingle: boolean, isThread: boolean) => {
+  if (isThread) return ATTACHMENT_CONFIG.THREAD;
+  return isSingle ? ATTACHMENT_CONFIG.SINGLE : ATTACHMENT_CONFIG.MULTI;
+};
+
 const ImageAttachment: FC<{
   attachment: Attachment;
   onOpenMediaViewer: () => void;
   isSingle?: boolean;
-  fixedHeight?: number;
+  isThread?: boolean;
   priority?: boolean;
-}> = ({ attachment, onOpenMediaViewer, isSingle = false, fixedHeight, priority }) => {
+}> = ({ attachment, onOpenMediaViewer, isSingle = false, isThread = false, priority = false }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-
-  const { maxHeight, maxWidth } = isSingle ? ATTACHMENT_SIZES.SINGLE : ATTACHMENT_SIZES.MULTI;
+  const config = getAttachmentConfig(isSingle, isThread);
   const filename = attachment.originalFilename || 'Uploaded image';
 
   return (
-    <div className="relative group/image flex-shrink-0">
-      {!isLoaded && !hasError && (
-        <div
-          className="absolute inset-0 bg-muted animate-pulse rounded-lg flex items-center justify-center z-10"
-          style={{
-            height: fixedHeight ? `${fixedHeight}px` : `${maxHeight}px`,
-            width: `${maxWidth}px`,
-            minWidth: fixedHeight ? '120px' : 'auto',
-          }}
-        >
-          <ImageIcon className="w-8 h-8 text-muted-foreground" />
-        </div>
-      )}
+    <div className="relative group/image">
+      <div
+        className={cn(
+          'relative rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity',
+          config.image.maxWidth,
+          config.image.maxHeight,
+          config.image.height,
+        )}
+        onClick={onOpenMediaViewer}
+        style={{ aspectRatio: config.image.aspectRatio }}
+      >
+        {!isLoaded && !hasError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+            <ImageIcon className="w-8 h-8 text-muted-foreground" />
+          </div>
+        )}
 
-      {hasError ? (
-        <div
-          className="bg-muted rounded-lg p-4 flex items-center gap-2 text-muted-foreground"
-          style={{
-            height: fixedHeight ? `${fixedHeight}px` : `${maxHeight}px`,
-            width: `${maxWidth}px`,
-            minWidth: fixedHeight ? '120px' : 'auto',
-          }}
-        >
-          <ImageIcon className="w-5 h-5" />
-          <span className="text-sm">Failed to load image</span>
-        </div>
-      ) : (
-        <div
-          className={cn(
-            'relative rounded-lg cursor-pointer hover:opacity-90 transition-opacity border overflow-hidden',
-            !isLoaded && 'opacity-0',
-          )}
-          style={{
-            height: fixedHeight ? `${fixedHeight}px` : `${maxHeight}px`,
-            width: `${maxWidth}px`,
-            minWidth: fixedHeight ? '120px' : 'auto',
-          }}
-          onClick={onOpenMediaViewer}
-        >
+        {hasError ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <ImageIcon className="w-8 h-8" />
+              <span className="text-sm">Failed to load</span>
+            </div>
+          </div>
+        ) : (
           <Image
             src={attachment.publicUrl}
-            alt={filename || 'Uploaded image'}
+            alt={filename}
             fill
-            className={cn(
-              'rounded-lg transition-opacity',
-              fixedHeight ? 'object-cover' : 'object-contain',
-            )}
-            sizes={`(max-width: 768px) 100vw, ${maxWidth}px`}
+            className={cn('object-cover transition-opacity', !isLoaded && 'opacity-0')}
+            sizes={isSingle ? '(max-width: 768px) 100vw, 448px' : '192px'}
             priority={priority}
             onLoad={() => setIsLoaded(true)}
             onError={() => setHasError(true)}
-            placeholder="blur"
-            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
           />
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
         <Button
           variant="secondary"
           size="sm"
-          className="h-8 w-8 p-0 bg-card/30 hover:bg-card/40 border-0"
+          className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
             window.open(attachment.publicUrl, '_blank');
@@ -169,13 +188,12 @@ const VideoAttachment: FC<{
   attachment: Attachment;
   onOpenMediaViewer: () => void;
   isSingle?: boolean;
-  fixedHeight?: number;
-}> = ({ attachment, onOpenMediaViewer, isSingle = false, fixedHeight }) => {
+  isThread?: boolean;
+}> = ({ attachment, onOpenMediaViewer, isSingle = false, isThread = false }) => {
   const [duration, setDuration] = useState<string>('');
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-
-  const { maxHeight, maxWidth } = isSingle ? ATTACHMENT_SIZES.SINGLE : ATTACHMENT_SIZES.MULTI;
+  const config = getAttachmentConfig(isSingle, isThread);
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -191,57 +209,54 @@ const VideoAttachment: FC<{
     setIsLoaded(true);
   };
 
-  const handleError = () => {
-    setHasError(true);
-    setIsLoaded(true);
-  };
-
   return (
-    <div className="relative group/video flex-shrink-0 cursor-pointer" onClick={onOpenMediaViewer}>
-      {/* Placeholder while loading to prevent layout shift */}
-      {!isLoaded && !hasError && (
-        <div className="bg-muted rounded-lg flex items-center justify-center min-h-[200px] aspect-video">
-          <div className="flex flex-col items-center gap-2 text-muted-foreground">
-            <Play className="w-8 h-8" />
-            <span className="text-sm">Loading video...</span>
+    <div className="relative group/video">
+      <div
+        className={cn(
+          'relative rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity',
+          config.video.maxWidth,
+          config.video.maxHeight,
+          config.video.height,
+        )}
+        onClick={onOpenMediaViewer}
+        style={{ aspectRatio: config.video.aspectRatio }}
+      >
+        {!isLoaded && !hasError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <Play className="w-8 h-8" />
+              <span className="text-sm">Loading...</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {hasError ? (
-        <div className="bg-muted rounded-lg p-4 flex items-center gap-2 text-muted-foreground min-h-[200px] aspect-video justify-center">
-          <Play className="w-5 h-5" />
-          <span className="text-sm">Failed to load video</span>
-        </div>
-      ) : (
-        <video
-          src={attachment.publicUrl}
-          className={cn(
-            'rounded-lg cursor-pointer border',
-            fixedHeight ? 'object-cover' : 'object-contain',
-            !isLoaded && 'opacity-0 absolute inset-0',
-          )}
-          style={{
-            height: fixedHeight ? `${fixedHeight}px` : 'auto',
-            maxHeight: fixedHeight ? 'none' : `${maxHeight}px`,
-            maxWidth: `${maxWidth}px`,
-            minWidth: fixedHeight ? '120px' : 'auto',
-          }}
-          preload="metadata"
-          onLoadedMetadata={handleLoadedMetadata}
-          onError={handleError}
-        >
-          Your browser does not support the video tag.
-        </video>
-      )}
+        {hasError ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <Play className="w-8 h-8" />
+              <span className="text-sm">Failed to load</span>
+            </div>
+          </div>
+        ) : (
+          <video
+            src={attachment.publicUrl}
+            className={cn(
+              'w-full h-full object-cover transition-opacity',
+              !isLoaded && 'opacity-0',
+            )}
+            preload="metadata"
+            onLoadedMetadata={handleLoadedMetadata}
+            onError={() => setHasError(true)}
+          />
+        )}
 
-      {/* Video overlay with play icon and duration - only show when loaded */}
-      {isLoaded && !hasError && (
-        <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
-          <Play className="w-3 h-3 fill-current" />
-          {duration && <span>{duration}</span>}
-        </div>
-      )}
+        {isLoaded && !hasError && (
+          <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
+            <Play className="w-3 h-3 fill-current" />
+            {duration && <span>{duration}</span>}
+          </div>
+        )}
+      </div>
 
       <div className="absolute top-2 right-2 opacity-0 group-hover/video:opacity-100 transition-opacity">
         <Button
@@ -292,18 +307,18 @@ const DocumentAttachment: FC<{
     const extension = filename.split('.').pop()?.toLowerCase();
     switch (extension) {
       case 'pdf':
-        return 'border-red-200';
+        return 'border-red-200 bg-red-50 dark:bg-red-950/20';
       case 'doc':
       case 'docx':
-        return 'border-blue-200';
+        return 'border-blue-200 bg-blue-50 dark:bg-blue-950/20';
       case 'xls':
       case 'xlsx':
-        return 'border-green-200';
+        return 'border-green-200 bg-green-50 dark:bg-green-950/20';
       case 'ppt':
       case 'pptx':
-        return 'border-orange-200';
+        return 'border-orange-200 bg-orange-50 dark:bg-orange-950/20';
       default:
-        return 'border-border';
+        return 'border-border bg-muted';
     }
   };
 
@@ -316,12 +331,10 @@ const DocumentAttachment: FC<{
     const extension = attachment.originalFilename?.split('.').pop()?.toLowerCase();
 
     if (extension === 'pdf') {
-      // For PDFs, use simple embedded view
       return `${attachment.publicUrl}#toolbar=0`;
     }
 
     if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension || '')) {
-      // Use Microsoft Office Online viewer for thumbnails
       return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
         attachment.publicUrl,
       )}`;
@@ -331,21 +344,17 @@ const DocumentAttachment: FC<{
   };
 
   const previewUrl = getPreviewUrl(attachment);
+  const canPreview = isViewableDocument(attachment.originalFilename || '');
 
   return (
-    <div className="relative group/document max-w-sm">
+    <div className="relative group/document w-48">
       <div
         className={cn(
-          'rounded-lg border-2 bg-background cursor-pointer hover:shadow-md transition-all overflow-hidden',
+          'rounded-lg border-2 cursor-pointer hover:shadow-md transition-all overflow-hidden',
           getFileColor(attachment.originalFilename || ''),
         )}
-        onClick={
-          isViewableDocument(attachment.originalFilename || '')
-            ? onOpenMediaViewer
-            : () => window.open(attachment.publicUrl, '_blank')
-        }
+        onClick={canPreview ? onOpenMediaViewer : () => window.open(attachment.publicUrl, '_blank')}
       >
-        {/* File info header */}
         <div className="p-3 pb-2">
           <div className="flex items-center gap-2 mb-1">
             {getFileIcon(attachment.originalFilename || '')}
@@ -368,13 +377,12 @@ const DocumentAttachment: FC<{
           </div>
         </div>
 
-        {/* Preview thumbnail underneath */}
-        <div className="h-36 bg-muted relative overflow-hidden rounded-b-lg">
-          {previewUrl && isViewableDocument(attachment.originalFilename || '') && !previewError ? (
+        <div className="h-24 bg-muted/50 relative overflow-hidden">
+          {previewUrl && canPreview && !previewError ? (
             <>
               {!previewLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                  <div className="w-8 h-8 opacity-50">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-6 h-6 opacity-50">
                     {getFileIcon(attachment.originalFilename || '')}
                   </div>
                 </div>
@@ -390,8 +398,8 @@ const DocumentAttachment: FC<{
                     ? {
                         width: '200%',
                         height: '200%',
-                        transform: 'scale(0.6)',
-                        transformOrigin: '-30px -40px',
+                        transform: 'scale(0.5)',
+                        transformOrigin: 'top left',
                       }
                     : undefined
                 }
@@ -400,28 +408,27 @@ const DocumentAttachment: FC<{
               />
             </>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted">
-              <div className="w-8 h-8 opacity-50">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-6 h-6 opacity-50">
                 {getFileIcon(attachment.originalFilename || '')}
               </div>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Download button */}
-        <div className="absolute top-2 right-2 opacity-0 group-hover/document:opacity-100 transition-opacity">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="h-6 w-6 p-0 bg-background/80 hover:bg-background border-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(attachment.publicUrl, '_blank');
-            }}
-          >
-            <Download className="w-3 h-3 text-muted-foreground" />
-          </Button>
-        </div>
+      <div className="absolute top-2 right-2 opacity-0 group-hover/document:opacity-100 transition-opacity">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-6 w-6 p-0 bg-background/80 hover:bg-background border-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.open(attachment.publicUrl, '_blank');
+          }}
+        >
+          <Download className="w-3 h-3 text-muted-foreground" />
+        </Button>
       </div>
     </div>
   );
@@ -450,13 +457,9 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
 const AttachmentGrid: FC<{
   attachments: Attachment[];
   onOpenMediaViewer: (attachments: Attachment[], initialIndex: number) => void;
-}> = ({ attachments, onOpenMediaViewer }) => {
-  const renderAttachment = (
-    attachment: Attachment,
-    index: number,
-    isSingle = false,
-    fixedHeight?: number,
-  ) => {
+  isThread?: boolean;
+}> = ({ attachments, onOpenMediaViewer, isThread = false }) => {
+  const renderAttachment = (attachment: Attachment, index: number, isSingle = false) => {
     const mimeType = attachment.contentType || '';
     const filename = attachment.originalFilename || '';
 
@@ -467,7 +470,7 @@ const AttachmentGrid: FC<{
           attachment={attachment}
           onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
           isSingle={isSingle}
-          fixedHeight={fixedHeight}
+          isThread={isThread}
           priority={index === 0}
         />
       );
@@ -480,7 +483,7 @@ const AttachmentGrid: FC<{
           attachment={attachment}
           onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
           isSingle={isSingle}
-          fixedHeight={fixedHeight}
+          isThread={isThread}
         />
       );
     }
@@ -514,33 +517,32 @@ const AttachmentGrid: FC<{
 
   const isSingleAttachment = attachments.length === 1;
 
-  // Use fixed height for multi-attachment layout to align all media
-  const fixedHeight = isSingleAttachment ? undefined : ATTACHMENT_SIZES.MULTI.fixedHeight;
-
   return (
     <div className="mt-2">
       {isSingleAttachment ? (
         <div className="flex justify-start">{renderAttachment(attachments[0], 0, true)}</div>
       ) : (
-        <div className="flex flex-wrap items-start gap-1.5 max-w-5xl">
-          {attachments.map((attachment, index) =>
-            renderAttachment(attachment, index, false, fixedHeight),
-          )}
+        <div className="flex flex-wrap items-start gap-2">
+          {attachments.map((attachment, index) => renderAttachment(attachment, index, false))}
         </div>
       )}
     </div>
   );
 };
 
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) {
-    return '0 B';
-  }
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-};
+interface ChatMessageProps {
+  message: Message;
+  currentUser: CurrentUser;
+  hideReplies?: boolean;
+  isCompact?: boolean;
+  showAvatar?: boolean;
+  hideThreadButton?: boolean;
+  isInThread?: boolean;
+  onEdit?: (messageId: string, newContent: string) => void;
+  onDelete?: (messageId: string) => void;
+  onReaction: (messageId: string, emoji: string) => void;
+  isHighlighted?: boolean;
+}
 
 export const ChatMessage: FC<ChatMessageProps> = ({
   message,
@@ -762,6 +764,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
               <AttachmentGrid
                 attachments={message.attachments}
                 onOpenMediaViewer={handleOpenMediaViewer}
+                isThread={isInThread}
               />
             )}
 
@@ -786,7 +789,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           <div
             className={cn(
               'absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity',
-              isEmojiPickerOpen || isDropdownOpen
+              isEmojiPickerOpen || isDropdownOpen || isHovered
                 ? 'opacity-100'
                 : 'opacity-0 group-hover:opacity-100',
             )}
@@ -814,7 +817,6 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                 </Button>
               )}
 
-              {/* Only show More button for own messages */}
               {isOwnMessage && (
                 <DropdownMenu onOpenChange={setIsDropdownOpen}>
                   <DropdownMenuTrigger asChild>
