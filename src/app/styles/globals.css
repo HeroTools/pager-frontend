@@ -339,8 +339,22 @@ body {
   }
 }
 
+@keyframes highlight-pulse {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: var(--brand-blue);
+  }
+}
+
 /* 7. Components layer */
 @layer components {
+  .message-highlighted {
+    animation: highlight-pulse 3s ease-in-out;
+    border: 1px solid transparent;
+  }
   /* Quill Editor Styles */
   .ql-toolbar {
     @apply !border-none !bg-input !border-b !border-border !p-2 !rounded-t-md;

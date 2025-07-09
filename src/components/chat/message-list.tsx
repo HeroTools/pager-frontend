@@ -17,6 +17,7 @@ interface ChatMessageListProps {
   onReaction?: (messageId: string, emoji: string) => void;
   containerRef?: RefObject<HTMLDivElement | null>;
   onScroll?: (e: UIEvent<HTMLDivElement>) => void;
+  highlightMessageId?: string | null;
 }
 
 const TIME_THRESHOLD = 5;
@@ -30,6 +31,7 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
   onReaction,
   containerRef,
   onScroll,
+  highlightMessageId,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { isEmojiPickerOpen } = useUIStore();
@@ -99,6 +101,7 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onReaction={onReaction || (() => {})}
+                  isHighlighted={message.id === highlightMessageId}
                 />
               </Fragment>
             );

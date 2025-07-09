@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import EmojiPicker from '@/components/emoji-picker';
 import {
@@ -55,6 +55,7 @@ interface ChatMessageProps {
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReaction: (messageId: string, emoji: string) => void;
+  isHighlighted?: boolean;
 }
 
 const ImageAttachment: FC<{
@@ -506,15 +507,20 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   onEdit,
   onDelete,
   onReaction,
+  isHighlighted,
 }) => {
   const { workspaceId } = useParamIds();
+  const { data: members } = useGetMembers(workspaceId);
+  const messageRef = useRef<HTMLDivElement>(null);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
   const [mediaViewerAttachments, setMediaViewerAttachments] = useState<Attachment[]>([]);
   const [mediaViewerInitialIndex, setMediaViewerInitialIndex] = useState(0);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [editingContent, setEditingContent] = useState<QuillDelta | null>(null);
   const {
     openEmojiPickerMessageId,
@@ -523,7 +529,15 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setEmojiPickerOpenInThread,
     setThreadOpen,
   } = useUIStore();
-  const getMembers = useGetMembers(workspaceId);
+
+  useEffect(() => {
+    if (isHighlighted && messageRef.current) {
+      messageRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [isHighlighted]);
 
   const isOwnMessage = message.authorId === currentUser.id;
 
@@ -551,7 +565,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   };
 
   const handleDeleteClick = () => {
-    setIsDeleteModalOpen(true);
+    setIsDeleteDialogOpen(true);
   };
 
   const handleEditClick = () => {
@@ -594,7 +608,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setIsDeleting(true);
     try {
       await onDelete(message.id);
-      setIsDeleteModalOpen(false);
+      setIsDeleteDialogOpen(false);
     } catch (error) {
       console.error('Error deleting message:', error);
     } finally {
@@ -603,17 +617,23 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   };
 
   const handleDeleteCancel = () => {
-    setIsDeleteModalOpen(false);
+    setIsDeleteDialogOpen(false);
   };
 
   return (
     <>
       <div
+        ref={messageRef}
         className={cn(
-          'group relative px-4 hover:bg-message-hover transition-colors py-2',
-          isCompact && '-mt-1',
-          isDropdownOpen && 'bg-message-hover',
+          'group/message relative flex gap-3 px-4 py-1.5 transition-colors duration-100 ease-in-out',
+          {
+            'hover:bg-message-hover': !isEditing,
+            'pt-3': !isCompact,
+          },
+          isHighlighted && 'message-highlighted',
         )}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="flex gap-3">
           {showAvatar && !isCompact ? (
@@ -690,7 +710,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
             Number(message.threadCount) > 0 &&
             !hideReplies &&
             !hideThreadButton ? (
-              <ThreadButton message={message} members={getMembers.data!} />
+              <ThreadButton message={message} members={members!} />
             ) : null}
           </div>
         </div>
@@ -767,7 +787,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       />
 
       <DeleteMessageModal
-        isOpen={isDeleteModalOpen}
+        isOpen={isDeleteDialogOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}

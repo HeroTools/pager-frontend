@@ -33,6 +33,7 @@ interface ChatProps {
   onInputChange?: (value: string) => void;
   onTypingSubmit?: () => void;
   members?: ChannelMemberData[];
+  highlightMessageId?: string | null;
 }
 
 export const Chat: FC<ChatProps> = ({
@@ -49,6 +50,7 @@ export const Chat: FC<ChatProps> = ({
   hasMoreMessages,
   isLoadingMore,
   members,
+  highlightMessageId,
 }) => {
   const { workspaceId } = useParamIds();
   // const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
@@ -180,6 +182,7 @@ export const Chat: FC<ChatProps> = ({
         onReaction={onReactToMessage}
         containerRef={messagesContainerRef}
         onScroll={handleScroll}
+        highlightMessageId={highlightMessageId}
       />
 
       <div className="p-4 border-t border-border-subtle">

@@ -102,7 +102,6 @@ export const Toolbar = () => {
       return members?.slice(0, 5) || [];
     }
     const query = inputValue.toLowerCase();
-    console.log(members, 'members');
     return members.filter((member) => member.user.name.toLowerCase().includes(query)).slice(0, 5);
   }, [members, inputValue]);
 

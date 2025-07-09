@@ -1,8 +1,8 @@
 'use client';
 
 import { AlertTriangle, Loader } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
-
+import { useCallback, useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Chat } from '@/components/chat/chat';
 import type { ChannelEntity } from '@/features/channels';
 import {
@@ -22,10 +22,14 @@ import type { WorkspaceMember } from '@/types/database';
 import { transformMessages, updateSelectedMessageIfNeeded } from '@/features/messages/helpers';
 import { useToggleReaction } from '@/features/reactions';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
+import { useUIStore } from '@/store/ui-store';
 
 const ChannelChat = () => {
   const { id: channelId, workspaceId, type } = useParamIds();
   const { addPendingMessage, removePendingMessage } = useMessagesStore();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { setThreadOpen, setThreadHighlightMessageId } = useUIStore();
 
   const { user: currentUser, isAuthenticated } = useCurrentUser(workspaceId);
 
@@ -69,6 +73,51 @@ const ChannelChat = () => {
     type,
   );
   const toggleReaction = useToggleReaction(workspaceId);
+
+  const allMessages = useMemo(
+    () => channelWithMessages?.pages?.flatMap((page) => page?.messages || []) || [],
+    [channelWithMessages],
+  );
+
+  const sortedMessages = useMemo(
+    () =>
+      [...allMessages].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
+    [allMessages],
+  );
+
+  const messages = useMemo(
+    () => transformMessages(sortedMessages, currentUser),
+    [sortedMessages, currentUser],
+  );
+
+  const highlightMessageId = searchParams.get('highlight');
+  const threadMessageId = searchParams.get('thread');
+
+  useEffect(() => {
+    if (threadMessageId && messages.length > 0 && !isLoadingMessages) {
+      const parentMessage = messages.find((m) => m.id === threadMessageId);
+      if (parentMessage) {
+        setThreadOpen(parentMessage);
+        setThreadHighlightMessageId(highlightMessageId);
+        // Clear the query param
+        const newUrl = `/${workspaceId}/${type === 'channel' ? 'c' : 'd'}-${channelId}`;
+        router.replace(newUrl, { scroll: false });
+      }
+    }
+  }, [
+    threadMessageId,
+    messages,
+    setThreadOpen,
+    router,
+    workspaceId,
+    channelId,
+    type,
+    highlightMessageId,
+    isLoadingMessages,
+    setThreadHighlightMessageId,
+  ]);
 
   const transformChannel = useCallback(
     (channelData: ChannelEntity): Channel => ({
@@ -146,17 +195,7 @@ const ChannelChat = () => {
     );
   }
 
-  const allMessages =
-    channelWithMessages.pages?.flatMap((page) => {
-      return page?.messages || [];
-    }) || [];
-
-  const sortedMessages = [...allMessages].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-  );
-
   const channel = transformChannel(channelDetails);
-  const messages = transformMessages(sortedMessages, currentUser);
 
   const handleSendMessage = async (content: {
     body: string;
@@ -256,6 +295,7 @@ const ChannelChat = () => {
         onLoadMore={handleLoadMore}
         hasMoreMessages={hasNextPage}
         isLoadingMore={isFetchingNextPage}
+        highlightMessageId={highlightMessageId}
       />
     </div>
   );

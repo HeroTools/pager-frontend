@@ -15,6 +15,8 @@ interface UIState {
   isNotificationsPanelOpen: boolean;
   setNotificationsPanelOpen: (open: boolean) => void;
   toggleNotificationsPanel: () => void;
+  threadHighlightMessageId: string | null;
+  setThreadHighlightMessageId: (messageId: string | null) => void;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -30,8 +32,13 @@ export const useUIStore = create<UIState>((set, get) => ({
   },
   openThreadMessageId: null,
   setThreadOpen: (message) => {
-    set({ openThreadMessageId: message?.id });
-    set({ selectedThreadParentMessage: message });
+    set({
+      openThreadMessageId: message?.id,
+      selectedThreadParentMessage: message,
+    });
+    if (!message) {
+      set({ threadHighlightMessageId: null });
+    }
   },
   selectedThreadParentMessage: null,
   setSelectedThreadParentMessage: (message) => set({ selectedThreadParentMessage: message }),
@@ -42,4 +49,6 @@ export const useUIStore = create<UIState>((set, get) => ({
     set((state) => ({
       isNotificationsPanelOpen: !state.isNotificationsPanelOpen,
     })),
+  threadHighlightMessageId: null,
+  setThreadHighlightMessageId: (messageId) => set({ threadHighlightMessageId: messageId }),
 }));
