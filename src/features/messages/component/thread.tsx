@@ -1,20 +1,20 @@
+import { differenceInMinutes, format, parseISO } from 'date-fns';
 import { AlertTriangle, Loader, XIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { differenceInMinutes, format, parseISO } from 'date-fns';
 
 import { ChatMessage } from '@/components/chat/message';
 import { Button } from '@/components/ui/button';
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
+import type { UploadedAttachment } from '@/features/file-upload/types';
 import { useMessageOperations, useMessageReplies } from '@/features/messages/hooks/use-messages';
+import { useMessagesStore } from '@/features/messages/store/messages-store';
+import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/store/ui-store';
-import { formatDateLabel, transformMessages } from '../helpers';
-import { useToggleReaction } from '@/features/reactions';
 import type { Message } from '@/types/chat';
-import { useMessagesStore } from '@/features/messages/store/messages-store';
-import type { UploadedAttachment } from '@/features/file-upload/types';
+import { formatDateLabel, transformMessages } from '../helpers';
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
@@ -202,7 +202,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
       <div className="flex-1 overflow-y-auto messages-scrollbar relative">
         <div className="flex flex-col">
           {/* Parent message at the top */}
-          <div className="px-4 pt-4 pb-2 border-b border-border-subtle relative">
+          <div className="pb-2 relative">
             <ChatMessage
               message={parentMessage}
               currentUser={currentUser!}
