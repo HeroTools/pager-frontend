@@ -9,6 +9,7 @@ import { Sidebar } from '@/components/side-nav/sidebar';
 import { Toolbar } from './toolbar';
 import { WorkspaceSidebar } from '@/components/side-nav/workspace-sidebar';
 import { NotificationsSidebar } from '@/components/side-nav/notifications-sidebar';
+import { ProfilePanel } from '@/components/profile-panel';
 import { useUIStore } from '@/store/ui-store';
 import { useRealtimeNotifications } from '@/features/notifications/hooks/use-realtime-notifications';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
@@ -28,6 +29,9 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     openThreadMessageId,
     isNotificationsPanelOpen,
     setNotificationsPanelOpen,
+    isProfilePanelOpen,
+    profileMemberId,
+    setProfilePanelOpen,
   } = useUIStore();
 
   const workspaceId = useWorkspaceId();
@@ -135,6 +139,14 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
               <ResizableHandle />
               <ResizablePanel minSize={20} defaultSize={29}>
                 <Thread onClose={() => setThreadOpen(null)} />
+              </ResizablePanel>
+            </>
+          )}
+          {isProfilePanelOpen() && profileMemberId && (
+            <>
+              <ResizableHandle />
+              <ResizablePanel minSize={20} defaultSize={25}>
+                <ProfilePanel />
               </ResizablePanel>
             </>
           )}

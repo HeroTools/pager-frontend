@@ -528,6 +528,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setEmojiPickerOpen,
     setEmojiPickerOpenInThread,
     setThreadOpen,
+    setProfilePanelOpen,
   } = useUIStore();
 
   useEffect(() => {
@@ -637,7 +638,17 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       >
         <div className="flex gap-3">
           {showAvatar && !isCompact ? (
-            <Avatar className="w-9 h-9 flex-shrink-0">
+            <Avatar
+              className="w-9 h-9 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => {
+                const workspaceMember = getMembers.data?.find(
+                  (member) => member.user.id === message.author.id,
+                );
+                if (workspaceMember) {
+                  setProfilePanelOpen(workspaceMember.id);
+                }
+              }}
+            >
               <AvatarImage src={message.author.avatar} />
               <AvatarFallback className="text-sm">
                 {message.author.name.charAt(0).toUpperCase()}
@@ -659,7 +670,17 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           <div className="flex-1 min-w-0">
             {!isCompact && (
               <div className="flex items-baseline gap-2 mb-0.5">
-                <span className="font-semibold text-foreground hover:underline cursor-pointer leading-tight">
+                <span
+                  className="font-semibold text-foreground hover:underline cursor-pointer leading-tight"
+                  onClick={() => {
+                    const workspaceMember = getMembers.data?.find(
+                      (member) => member.user.id === message.author.id,
+                    );
+                    if (workspaceMember) {
+                      setProfilePanelOpen(workspaceMember.id);
+                    }
+                  }}
+                >
                   {message.author.name}
                 </span>
                 <span className="text-xs text-muted-foreground leading-tight">

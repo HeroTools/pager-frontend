@@ -142,39 +142,6 @@ export const useDeleteWorkspace = () => {
   });
 };
 
-// Leave workspace
-export const useLeaveWorkspace = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => workspacesApi.leaveWorkspace(id),
-    onSuccess: (_, workspaceId) => {
-      // Remove from workspaces list
-      queryClient.setQueryData<WorkspaceEntity[]>(
-        workspacesQueryKeys.workspaces(),
-        (old) => old?.filter((workspace) => workspace.id !== workspaceId) || [],
-      );
-
-      // Clear all workspace-related data
-      queryClient.removeQueries({
-        queryKey: workspacesQueryKeys.workspace(workspaceId),
-      });
-      queryClient.removeQueries({
-        queryKey: ['members', workspaceId],
-      });
-      queryClient.removeQueries({
-        queryKey: ['channels', workspaceId],
-      });
-      queryClient.removeQueries({
-        queryKey: ['conversations', workspaceId],
-      });
-      queryClient.removeQueries({
-        queryKey: ['currentMember', workspaceId],
-      });
-    },
-  });
-};
-
 /**
  * Fetch workspace info from invite token
  */

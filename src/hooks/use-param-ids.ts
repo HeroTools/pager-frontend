@@ -27,7 +27,6 @@ export const useParamIds = (): {
       return { id: cleanId, type: 'conversation' as const, workspaceId };
     }
 
-    // Return default instead of throwing
     console.error(`Invalid entity ID format: ${entityId}`);
     return { id: '', type: 'channel' as const, workspaceId };
   }, [params]);
