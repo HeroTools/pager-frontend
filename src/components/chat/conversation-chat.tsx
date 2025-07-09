@@ -1,25 +1,29 @@
 'use client';
 
 import { AlertTriangle, Loader } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 
 import { Chat } from '@/components/chat/chat';
-import type { ConversationWithMessagesAndMembers } from '@/features/conversations';
+import { useCurrentUser } from '@/features/auth';
+import type {
+  ConversationMemberWithDetails,
+  ConversationMemberWithUser,
+  ConversationWithMessagesAndMembers,
+} from '@/features/conversations';
 import {
   useGetConversationWithMessagesInfinite,
   useRealtimeConversation,
 } from '@/features/conversations';
-import { useMessageOperations } from '@/features/messages/hooks/use-messages';
-import { useCurrentUser } from '@/features/auth';
-import type { Channel } from '@/types/chat';
-import { useParamIds } from '@/hooks/use-param-ids';
 import type { UploadedAttachment } from '@/features/file-upload/types';
 import { transformMessages, updateSelectedMessageIfNeeded } from '@/features/messages/helpers';
-import { useToggleReaction } from '@/features/reactions';
+import { useMessageOperations } from '@/features/messages/hooks/use-messages';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
-import { ChannelType } from '@/types/chat';
+import { useToggleReaction } from '@/features/reactions';
+import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/store/ui-store';
+import type { Channel } from '@/types/chat';
+import { ChannelType } from '@/types/chat';
 
 const ConversationChat = () => {
   const { id: conversationId, workspaceId, type } = useParamIds();
@@ -105,18 +109,31 @@ const ConversationChat = () => {
 
   const transformConversation = (conversationData: ConversationWithMessagesAndMembers): Channel => {
     const { conversation, members } = conversationData;
-    const otherMembers =
-      conversation.other_members || members.filter((member) => member.user.id !== currentUser?.id);
+
+    type UnifiedMember = ConversationMemberWithDetails | ConversationMemberWithUser;
+
+    let otherMembers: UnifiedMember[] = [];
+
+    if (conversation.other_members) {
+      otherMembers = conversation.other_members;
+    } else {
+      otherMembers = members.filter((member) => member.user.id !== currentUser?.id);
+    }
+
+    const getName = (member: UnifiedMember): string => {
+      if ('workspace_member' in member) {
+        return member.workspace_member.user.name;
+      } else {
+        return member.user.name;
+      }
+    };
 
     let displayName = '';
     if (conversation.is_group_conversation) {
-      // Group: show only other members
-      displayName = otherMembers.map((m) => m.user.name).join(', ');
+      displayName = otherMembers.map(getName).join(', ');
     } else if (otherMembers.length === 1) {
-      // DM: show the other member
-      displayName = otherMembers[0]?.user.name;
+      displayName = getName(otherMembers[0]);
     } else {
-      // Self-conversation: show current user
       displayName = currentUser?.name || 'You';
     }
 
