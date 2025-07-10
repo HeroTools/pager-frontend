@@ -1,17 +1,16 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { channelsApi } from '../api/channels-api';
+import { channelsQueryKeys } from '../query-keys';
 import type {
   AddChannelMembersData,
   ChannelEntity,
   ChannelFilters,
+  ChannelMemberResponse,
   CreateChannelData,
   MutateCreateChannelContext,
   RemoveChannelMembersParams,
   UpdateChannelData,
-  UpdateChannelMemberData,
 } from '../types';
-import type { ChannelMember } from '@/types/database';
-import { channelsQueryKeys } from '../query-keys';
 
 // Get all public and joined channels for a workspace for the user
 export const useGetAllAvailableChannels = (
@@ -259,13 +258,14 @@ export const useRemoveChannelMembers = () => {
         queryKey: channelsQueryKeys.channelMembers(workspaceId, channelId),
       });
 
-      const previousMembers = queryClient.getQueryData<ChannelMember[]>(
+      const previousMembers = queryClient.getQueryData<ChannelMemberResponse[]>(
         channelsQueryKeys.channelMembers(workspaceId, channelId),
       );
 
-      queryClient.setQueryData<ChannelMember[]>(
+      queryClient.setQueryData<ChannelMemberResponse[]>(
         channelsQueryKeys.channelMembers(workspaceId, channelId),
-        (old) => old?.filter((member) => !channelMemberIds.includes(member.id)) ?? [],
+        (old) =>
+          old?.filter((member) => !channelMemberIds.includes(member.channel_member_id)) ?? [],
       );
 
       return { previousMembers, isCurrentUserLeaving };

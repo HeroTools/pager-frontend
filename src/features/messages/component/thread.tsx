@@ -5,7 +5,9 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { ChatMessage } from '@/components/chat/message';
+import { TypingIndicator } from '@/components/chat/typing-indicator';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 import type { UploadedAttachment } from '@/features/file-upload/types';
 import { useMessageOperations, useMessageReplies } from '@/features/messages/hooks/use-messages';
@@ -14,10 +16,24 @@ import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/store/ui-store';
 import type { Message } from '@/types/chat';
+import { useChannelMembers } from '../../members/hooks/use-channel-members';
 import { formatDateLabel, transformMessages } from '../helpers';
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
+  loading: () => (
+    <div className="flex flex-col border border-border-default rounded-md overflow-hidden">
+      <div className="h-[194px] p-4">
+        <Skeleton className="h-full w-full rounded-md" />
+      </div>
+      <div className="flex px-2 pb-2 gap-2 border-t">
+        <Skeleton className="h-8 w-8 rounded" />
+        <Skeleton className="h-8 w-8 rounded" />
+        <Skeleton className="h-8 w-8 rounded" />
+        <Skeleton className="h-8 w-20 rounded ml-auto" />
+      </div>
+    </div>
+  ),
 });
 
 interface ThreadProps {
@@ -66,6 +82,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
     entity_type: type,
   });
   const toggleReaction = useToggleReaction(workspaceId);
+
+  const { members: channelMembers } = useChannelMembers(workspaceId, entityId);
 
   const [editorKey, setEditorKey] = useState(0);
 
@@ -268,6 +286,14 @@ export const Thread = ({ onClose }: ThreadProps) => {
         </div>
       </div>
 
+      <TypingIndicator
+        channelId={entityId}
+        conversationId={entityId}
+        currentUserId={currentUser.id}
+        getUserName={getUserName}
+        getUserAvatar={getUserAvatar}
+      />
+
       {/* Editor at the bottom */}
       <div className="px-4 py-4 border-t border-border-subtle bg-background">
         <Editor
@@ -279,6 +305,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}
           userId={currentUser.id}
+          channelId={entityId}
+          conversationId={entityId}
         />
       </div>
     </div>

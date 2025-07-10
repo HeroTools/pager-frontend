@@ -1,17 +1,19 @@
 'use client';
 
+import { AlertTriangle, Loader } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo } from 'react';
+
 import { Chat } from '@/components/chat/chat';
 import { useCurrentUser } from '@/features/auth';
-import type { ChannelEntity } from '@/features/channels';
 import {
-  type ChannelMemberData,
+  type ChannelEntity,
   useGetChannel,
-  useGetChannelMembers,
   useGetChannelWithMessagesInfinite,
   useRealtimeChannel,
 } from '@/features/channels';
 import type { UploadedAttachment } from '@/features/file-upload';
-import { useGetMembers } from '@/features/members';
+import { useChannelMembers } from '@/features/members/hooks/use-channel-members';
 import { useMessageOperations } from '@/features/messages';
 import { transformMessages, updateSelectedMessageIfNeeded } from '@/features/messages/helpers';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
@@ -19,10 +21,6 @@ import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/store/ui-store';
 import { type Channel, ChannelType } from '@/types/chat';
-import type { WorkspaceMember } from '@/types/database';
-import { AlertTriangle, Loader } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo } from 'react';
 
 const ChannelChat = () => {
   const { id: channelId, workspaceId, type } = useParamIds();
@@ -50,14 +48,7 @@ const ChannelChat = () => {
     refetch: refetchChannel,
   } = useGetChannel(workspaceId, channelId);
 
-  const {
-    data: channelMembersResponse,
-    isLoading: isLoadingMembers,
-    error: membersError,
-    refetch: refetchMembers,
-  } = useGetChannelMembers(workspaceId, channelId);
-
-  const { data: workspaceMembers } = useGetMembers(workspaceId);
+  const { members } = useChannelMembers(workspaceId, channelId);
 
   useRealtimeChannel({
     workspaceId,
@@ -126,50 +117,22 @@ const ChannelChat = () => {
       description: channelData.description,
       isPrivate: channelData.channel_type === ChannelType.PRIVATE,
       type: channelData.channel_type as ChannelType,
-      memberCount: channelData.members?.length || 0,
+      memberCount: members?.length || 0,
       isDefault: channelData.is_default || false,
     }),
-    [],
+    [members],
   );
-
-  const members = useMemo(() => {
-    if (!channelMembersResponse || !workspaceMembers) {
-      return [];
-    }
-
-    return channelMembersResponse
-      .map((channelMember) => {
-        const workspaceMember = workspaceMembers.find(
-          (wm: WorkspaceMember) => wm.id === channelMember.workspace_member_id,
-        );
-
-        if (!workspaceMember?.user) {
-          return null;
-        }
-
-        return {
-          id: channelMember.channel_member_id,
-          name: workspaceMember.user.name,
-          avatar: workspaceMember.user.image || undefined,
-          role: channelMember.channel_role,
-          workspace_member_id: channelMember.workspace_member_id,
-          email: workspaceMember.user.email,
-          user_id: workspaceMember.user.id,
-        } as ChannelMemberData;
-      })
-      .filter((member): member is ChannelMemberData => member !== null);
-  }, [channelMembersResponse, workspaceMembers]);
 
   const handleRefreshData = useCallback(async () => {
     try {
-      await Promise.all([refetchMessages(), refetchChannel(), refetchMembers()]);
+      await Promise.all([refetchMessages(), refetchChannel()]);
     } catch (error) {
       console.error('Failed to refresh channel data:', error);
     }
-  }, [refetchMessages, refetchChannel, refetchMembers]);
+  }, [refetchMessages, refetchChannel]);
 
-  const isLoading = isLoadingMessages || isLoadingChannel || isLoadingMembers || !currentUser;
-  const error = messagesError || channelError || membersError;
+  const isLoading = isLoadingMessages || isLoadingChannel || !currentUser;
+  const error = messagesError || channelError;
 
   if (isLoading) {
     return (

@@ -1,12 +1,10 @@
-import type { FC } from 'react';
-import { useState } from 'react';
+import { type FC, useMemo, useState } from 'react';
 
-import type { MemberWithUser } from '@/features/members';
-import { useGetMembers } from '@/features/members';
+import MemberSearchSelect from '@/components/member-search-select';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { type MemberWithUser, useGetMembers } from '@/features/members';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
-import MemberSearchSelect from './member-search-select';
-import { Button } from './ui/button';
 import type { Channel } from '@/types/chat';
 
 interface AddMembersDialogProps {
@@ -14,7 +12,7 @@ interface AddMembersDialogProps {
   onClose: () => void;
   channel: Channel;
   onAddMembers: (memberIds: string[]) => void;
-  existingMemberIds: string[];
+  existingWorkspaceMemberIds: string[];
 }
 
 const AddMembersDialog: FC<AddMembersDialogProps> = ({
@@ -22,7 +20,7 @@ const AddMembersDialog: FC<AddMembersDialogProps> = ({
   onClose,
   channel,
   onAddMembers,
-  existingMemberIds,
+  existingWorkspaceMemberIds,
 }) => {
   const { workspaceId } = useParamIds();
   const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
@@ -32,6 +30,10 @@ const AddMembersDialog: FC<AddMembersDialogProps> = ({
     onAddMembers(selectedMembers.map((member) => member.id));
     setSelectedMembers([]);
   };
+
+  const otherMembers = useMemo(() => {
+    return workspaceMembers.filter((member) => !existingWorkspaceMemberIds.includes(member.id));
+  }, [workspaceMembers, existingWorkspaceMemberIds]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -46,8 +48,8 @@ const AddMembersDialog: FC<AddMembersDialogProps> = ({
           onMemberRemove={(memberId) =>
             setSelectedMembers((prev) => prev.filter((m) => m.id !== memberId))
           }
-          availableMembers={workspaceMembers}
-          existingMemberIds={existingMemberIds}
+          availableMembers={otherMembers}
+          existingMemberIds={existingWorkspaceMemberIds}
           placeholder="ex. Nathalie, or james@acme.com"
         />
 

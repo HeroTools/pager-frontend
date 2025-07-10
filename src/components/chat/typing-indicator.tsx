@@ -37,6 +37,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
 
   const renderUserAvatars = () => {
     if (typingUsers.length === 0) return null;
+    console.log(typingUsers);
 
     return (
       <div className="flex -space-x-1.5">
