@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useMarkEntityNotificationsRead } from '@/features/notifications/hooks/use-mark-entity-notifications-read';
 import { cn } from '@/lib/utils';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { Pencil } from 'lucide-react';
 
 interface SidebarItemProps {
   label: string;
@@ -44,6 +46,9 @@ export const SidebarItem = ({
   const workspaceId = useWorkspaceId();
   const router = useRouter();
   const { markEntityNotificationsRead } = useMarkEntityNotificationsRead();
+  const { getDraft } = useDraftsStore();
+
+  const draft = getDraft(id);
 
   const handleChannelClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -69,6 +74,7 @@ export const SidebarItem = ({
       >
         <Icon className="size-3.5 mr-1 shrink-0" />
         <span className={cn('text-sm truncate', hasUnread && 'font-bold')}>{label}</span>
+        {draft && variant !== 'active' && <Pencil className="size-3 ml-auto" />}
       </Button>
     );
   }
@@ -78,6 +84,7 @@ export const SidebarItem = ({
       <Link href={`/${workspaceId}/c-${id}`} onClick={handleChannelClick}>
         <Icon className="size-3.5 mr-1 shrink-0" />
         <span className={cn('text-sm truncate', hasUnread && 'font-extrabold')}>{label}</span>
+        {draft && variant !== 'active' && <Pencil className="size-3 ml-auto" />}
       </Link>
     </Button>
   );
