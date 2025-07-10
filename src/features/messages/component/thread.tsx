@@ -136,8 +136,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
         message_type: 'thread',
         plain_text: content.plainText,
       });
-
-      setEditorKey((prev) => prev + 1);
     } catch (error) {
       console.error('Failed to send thread reply:', error);
       toast.error('Failed to send reply. Please try again.');
