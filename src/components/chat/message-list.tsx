@@ -12,6 +12,7 @@ interface ChatMessageListProps {
   messages: Message[];
   currentUser: CurrentUser;
   isLoading?: boolean;
+  isLoadingMore?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReaction?: (messageId: string, emoji: string) => void;
@@ -26,6 +27,7 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
   messages,
   currentUser,
   isLoading = false,
+  isLoadingMore = false,
   onEdit,
   onDelete,
   onReaction,
@@ -66,6 +68,16 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
       )}
     >
       <div className="pb-4">
+        {/* Loading more messages indicator */}
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-4 px-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <div className="animate-spin rounded-full h-4 w-4 border border-muted-foreground border-t-transparent" />
+              Loading older messages...
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-muted-foreground">Loading messages...</div>

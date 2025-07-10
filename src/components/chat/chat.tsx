@@ -175,6 +175,7 @@ export const Chat: FC<ChatProps> = ({
         messages={messages}
         currentUser={currentUser}
         isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
         onEdit={handleEditMessage}
         onDelete={onDeleteMessage}
         onReaction={onReactToMessage}
