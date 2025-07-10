@@ -183,7 +183,7 @@ const Editor = ({
       setImage(oldImage);
       setAttachments(oldAttachments);
     }
-  }, [hasUploadsInProgress, attachments, image, stopTyping, variant, entityId, clearDraft]);
+  }, [hasUploadsInProgress, attachments, image, stopTyping, variant, entityId]);
 
   const handleSubmitRef = useRef(handleSubmit);
 
@@ -580,20 +580,10 @@ const Editor = ({
         innerRef.current = null;
       }
     };
-  }, [
-    startTyping,
-    stopTyping,
-    variant,
-    innerRef,
-    entityId,
-    getDraft,
-    setDraft,
-    clearDraft,
-    debouncedSetDraft,
-  ]);
+  }, [variant, innerRef, entityId, startTyping, stopTyping, debouncedSetDraft]);
 
   const handleToolbarToggle = useCallback((): void => {
-    setIsToolbarVisible((v) => !v);
+    setIsToolbarVisible(!isToolbarVisible);
     const toolbarEl = containerRef.current?.querySelector('.ql-toolbar');
     if (toolbarEl) {
       toolbarEl.classList.toggle('hidden');
