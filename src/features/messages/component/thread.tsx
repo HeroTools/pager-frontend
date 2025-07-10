@@ -1,7 +1,7 @@
 import { differenceInMinutes, format, parseISO } from 'date-fns';
 import { AlertTriangle, Loader, XIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ChatMessage } from '@/components/chat/message';
@@ -73,6 +73,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
     type,
   );
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   const {
     data = { replies: [] },
     isLoadingThread,
@@ -96,6 +98,19 @@ export const Thread = ({ onClose }: ThreadProps) => {
   const isWaitingForPersistence = isParentOptimistic && isMessagePending(parentMessage.id);
 
   const replies = transformMessages(data?.replies || [], currentUser);
+
+  const scrollToBottom = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+  };
+
+  // Auto-scroll when new messages are added
+  useEffect(() => {
+    if (replies.length > 0) {
+      scrollToBottom();
+    }
+  }, [replies.length]);
 
   // Sort replies chronologically (oldest first)
   const sortedReplies = [...replies].sort(
@@ -136,6 +151,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
         message_type: 'thread',
         plain_text: content.plainText,
       });
+
+      setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error('Failed to send thread reply:', error);
       toast.error('Failed to send reply. Please try again.');
@@ -220,7 +237,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
     <div className="h-full flex flex-col">
       <ThreadHeader onClose={onClose} title="Thread" />
 
-      <div className="flex-1 overflow-y-auto messages-scrollbar relative">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto messages-scrollbar relative">
         <div className="flex flex-col">
           {/* Parent message at the top */}
           <div className="pb-2 relative">
