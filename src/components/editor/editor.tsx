@@ -1,6 +1,7 @@
 import EmojiPicker from '@/components/emoji-picker';
 import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import { useFileUpload } from '@/features/file-upload';
 import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
 import { useTypingStatus } from '@/hooks/use-typing-status';
@@ -19,6 +20,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useDebouncedCallback } from 'use-debounce';
 import { toast } from 'sonner';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
@@ -109,6 +111,9 @@ const Editor = ({
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
 
+  const { getDraft, setDraft, clearDraft } = useDraftsStore();
+  const entityId = useMemo(() => channelId ?? conversationId, [channelId, conversationId]);
+
   const { uploadMultipleFiles } = useFileUpload(workspaceId);
 
   const handleSubmit = useCallback(async (): Promise<void> => {
@@ -158,6 +163,10 @@ const Editor = ({
         plainText: oldText,
       });
 
+      if (entityId) {
+        clearDraft(entityId);
+      }
+
       quill.setText('');
       quill.setContents([]);
       setText('');
@@ -174,9 +183,23 @@ const Editor = ({
       setImage(oldImage);
       setAttachments(oldAttachments);
     }
-  }, [hasUploadsInProgress, attachments, image, stopTyping, variant]);
+  }, [hasUploadsInProgress, attachments, image, stopTyping, variant, entityId, clearDraft]);
 
   const handleSubmitRef = useRef(handleSubmit);
+
+  const debouncedSetDraft = useDebouncedCallback(() => {
+    if (entityId) {
+      const quill = quillRef.current;
+      if (quill) {
+        const value = JSON.stringify(quill.getContents());
+        if (quill.getText().trim().length === 0) {
+          clearDraft(entityId);
+        } else {
+          setDraft(entityId, value);
+        }
+      }
+    }
+  }, 500);
 
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
@@ -506,14 +529,17 @@ const Editor = ({
     const textChangeHandler = (delta: Delta, oldDelta: Delta, source: string) => {
       const currentText = quill.getText();
       setText(currentText);
+      debouncedSetDraft();
 
       if (source === 'user') {
         handleTextChange();
 
-        if (currentText.trim().length > 0) {
-          startTyping();
-        } else {
-          stopTyping();
+        if (variant === 'create') {
+          if (currentText.trim().length > 0) {
+            startTyping();
+          } else {
+            stopTyping();
+          }
         }
       }
     };
@@ -526,6 +552,18 @@ const Editor = ({
 
     quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
     quill.root.addEventListener('blur', handleBlur);
+
+    if (entityId) {
+      const draft = getDraft(entityId);
+      if (draft) {
+        try {
+          const delta = JSON.parse(draft.content);
+          quill.setContents(delta, 'silent');
+        } catch (e) {
+          console.error('Error parsing draft content', e);
+        }
+      }
+    }
 
     return () => {
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
@@ -542,7 +580,17 @@ const Editor = ({
         innerRef.current = null;
       }
     };
-  }, [startTyping, stopTyping, variant]);
+  }, [
+    startTyping,
+    stopTyping,
+    variant,
+    innerRef,
+    entityId,
+    getDraft,
+    setDraft,
+    clearDraft,
+    debouncedSetDraft,
+  ]);
 
   const handleToolbarToggle = useCallback((): void => {
     setIsToolbarVisible((v) => !v);
