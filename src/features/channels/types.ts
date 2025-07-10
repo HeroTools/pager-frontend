@@ -1,23 +1,30 @@
-import type { ApiResponse, Channel, ChannelMember, ChannelType } from '@/types/database';
+import type { ApiResponse, Channel, ChannelMemberRole, ChannelType } from '@/types/database';
+import { MemberWithUser } from '../members';
 import type { MessageWithUser } from '../messages/types';
 
 // Use the database Channel type directly
-export interface ChannelEntity extends Channel {
-  members?: ChannelMember[];
-}
+export type ChannelEntity = Channel;
 
 // Channel member response from API
 export interface ChannelMemberResponse {
   channel_member_id: string;
-  channel_role: string;
+  channel_role: ChannelMemberRole;
   workspace_member_id: string;
+  joined_at: string;
+  left_at: string;
+  last_read_message_id: string;
+  notifications_enabled: boolean;
+  channel_id: string;
 }
+
+export type WorkspaceMemberWithoutId = Omit<MemberWithUser, 'id'>;
+export type ChannelMember = WorkspaceMemberWithoutId & ChannelMemberResponse;
 
 export interface ChannelMemberData {
   id: string;
   name: string;
   avatar?: string;
-  role?: 'admin' | 'member';
+  role?: ChannelMemberRole;
   workspace_member_id: string;
   email: string;
 }
@@ -46,7 +53,7 @@ export interface AddChannelMembersData {
 }
 
 export interface UpdateChannelMemberData {
-  role?: 'admin' | 'member';
+  role?: ChannelMemberRole;
   notifications_enabled?: boolean;
 }
 
@@ -63,7 +70,7 @@ export interface ChannelListItem extends ChannelEntity {
   unread_count?: number;
   last_message_at?: string;
   is_member?: boolean;
-  member_role?: 'admin' | 'member';
+  member_role?: ChannelMemberRole;
 }
 
 // Form data types for UI components

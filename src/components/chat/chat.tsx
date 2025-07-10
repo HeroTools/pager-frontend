@@ -2,12 +2,11 @@ import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import type { CurrentUser } from '@/features/auth';
-import type { ChannelMemberData } from '@/features/channels';
+import type { ChannelMember } from '@/features/channels';
 import type { UploadedAttachment } from '@/features/file-upload';
 import { useParamIds } from '@/hooks/use-param-ids';
 import type { Channel, Message } from '@/types/chat';
 import dynamic from 'next/dynamic';
-import { useTypingIndicator } from '../../hooks/use-typing-indicator';
 import { ChatHeader } from './header';
 import { ChatMessageList } from './message-list';
 import { TypingIndicator } from './typing-indicator';
@@ -34,7 +33,7 @@ interface ChatProps {
   typingUsers?: { id: string; name: string; avatar?: string }[];
   onInputChange?: (value: string) => void;
   onTypingSubmit?: () => void;
-  members?: ChannelMemberData[];
+  members?: ChannelMember[];
   highlightMessageId?: string | null;
 }
 
@@ -75,12 +74,6 @@ export const Chat: FC<ChatProps> = ({
   const { workspaceId } = useParamIds();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
-
-  const { typingUsers } = useTypingIndicator({
-    channelId: channel.id,
-    conversationId: conversationData?.id,
-    currentUserId: currentUser.id,
-  });
 
   const handleSendMessage = (content: {
     body: string;
@@ -174,7 +167,7 @@ export const Chat: FC<ChatProps> = ({
 
     const member = members.find((member) => {
       if ('user_id' in member) {
-        return member.user_id === userId;
+        return member.user_id === userId || member.user.id === userId;
       }
     });
 
@@ -182,7 +175,7 @@ export const Chat: FC<ChatProps> = ({
       return 'Unknown';
     }
 
-    return member.name;
+    return member.user.name;
   };
 
   const getUserAvatar = (userId: string) => {
@@ -192,7 +185,7 @@ export const Chat: FC<ChatProps> = ({
 
     const member = members.find((member) => {
       if ('user_id' in member) {
-        return member.user_id === userId;
+        return member.user_id === userId || member.user.id === userId;
       }
     });
 
@@ -200,14 +193,14 @@ export const Chat: FC<ChatProps> = ({
       return 'Unknown';
     }
 
-    return member.avatar;
+    return member.user.image;
   };
 
   return (
     <div className="flex flex-col h-full">
       <ChatHeader
         channel={channel}
-        members={chatType === 'channel' ? (members as ChannelMemberData[]) : []}
+        members={chatType === 'channel' ? (members as ChannelMember[]) : []}
         chatType={chatType}
         conversationData={conversationData}
         currentUser={currentUser}
