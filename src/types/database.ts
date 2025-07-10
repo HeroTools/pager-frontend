@@ -39,30 +39,34 @@ export interface WorkspaceMember extends BaseEntity {
   user_id: string;
   workspace_id: string;
   role: WorkspaceMemberRole;
+  is_deactivated: boolean;
 }
 
 export interface Channel extends BaseEntity {
+  channel_type: ChannelType;
+  deleted_at: string | null;
   name: string;
   workspace_id: string;
-  channel_type: ChannelType;
-  description?: string;
-  is_default?: boolean;
+  settings: null; // TODO need to enable
+  description: string | null;
+  is_default: boolean;
 }
 
-export interface ChannelMember extends BaseEntity {
+export interface DBChannelMember extends BaseEntity {
   channel_id: string;
   workspace_member_id: string;
   joined_at: string;
+  left_at?: string;
+  last_read_message_id?: string;
   role: ChannelMemberRole;
   notifications_enabled: boolean;
-  last_read_message_id?: string;
 }
 
 export interface Conversation extends BaseEntity {
   workspace_id: string;
 }
 
-export interface ConversationMember extends BaseEntity {
+export interface DBConversationMember extends BaseEntity {
   conversation_id: string;
   workspace_member_id: string;
   joined_at: string;
@@ -202,7 +206,7 @@ export interface MessageWithRelations extends Message {
 }
 
 export interface ConversationWithMembers extends Conversation {
-  members?: (ConversationMember & {
+  members?: (DBConversationMember & {
     workspace_member: WorkspaceMember & { user: User };
   })[];
   messages?: MessageWithRelations[];

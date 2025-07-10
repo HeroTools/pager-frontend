@@ -1,6 +1,7 @@
-import { useTypingIndicator } from '@/hooks/use-typing-indicator';
 import Image from 'next/image';
 import React from 'react';
+
+import { useTypingIndicator } from '@/hooks/use-typing-indicator';
 
 interface TypingIndicatorProps {
   channelId?: string;
@@ -26,13 +27,12 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
   if (!isAnyoneTyping) return null;
 
   const getText = () => {
+    const nameOfUserOne = getUserName(typingUsers[0].user_id);
     const count = typingUsers.length;
-    if (count === 1) return `${getUserName(typingUsers[0].user_id)} is typing...`;
+    if (count === 1) return `${nameOfUserOne} is typing...`;
     if (count === 2)
-      return `${getUserName(typingUsers[0].user_id)} and ${getUserName(
-        typingUsers[1].user_id,
-      )} are typing...`;
-    return `${getUserName(typingUsers[0].user_id)} and ${count - 1} others are typing...`;
+      return `${nameOfUserOne} and ${getUserName(typingUsers[1].user_id)} are typing...`;
+    return `${nameOfUserOne} and ${count - 1} others are typing...`;
   };
 
   const renderUserAvatars = () => {
@@ -42,6 +42,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
       <div className="flex -space-x-1.5">
         {typingUsers.slice(0, 2).map((user, index) => {
           const avatarUrl = getUserAvatar?.(user.user_id);
+          const nameOfUser = getUserName(user.user_id);
           return (
             <div
               key={user.user_id}
@@ -51,13 +52,13 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
               {avatarUrl ? (
                 <Image
                   src={avatarUrl}
-                  alt={getUserName(user.user_id)}
+                  alt={nameOfUser}
                   width={20}
                   height={20}
                   className="w-full h-full object-cover"
                 />
               ) : (
-                getUserName(user.user_id).charAt(0).toUpperCase()
+                nameOfUser.charAt(0).toUpperCase()
               )}
             </div>
           );

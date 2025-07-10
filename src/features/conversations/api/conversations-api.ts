@@ -3,6 +3,7 @@ import type {
   AddConversationParticipantData,
   ConversationEntity,
   ConversationFilters,
+  ConversationMemberResponse,
   ConversationResponse,
   ConversationWithMessagesAndMembers,
   CreateConversationData,
@@ -76,6 +77,15 @@ export const conversationsApi = {
     return response;
   },
 
+  getConversationMembers: async (
+    workspaceId: string,
+    conversationId: string,
+  ): Promise<ConversationMemberResponse[]> => {
+    const { data: response } = await api.get<ConversationMemberResponse[]>(
+      `/workspaces/${workspaceId}/conversations/${conversationId}/members`,
+    );
+    return response;
+  },
   /**
    * Create new conversation
    */

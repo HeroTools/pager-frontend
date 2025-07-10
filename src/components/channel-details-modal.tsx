@@ -1,5 +1,3 @@
-import type { FC } from 'react';
-import { useEffect, useMemo, useState } from 'react';
 import {
   Edit,
   Globe,
@@ -16,43 +14,42 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { type FC, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
-import type { Channel } from '@/types/chat';
-import { ChannelType } from '@/types/chat';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AddMembersDialog from '@/components/add-people-to-channel-modal';
+import RemoveConfirmation from '@/components/remove-member-from-channel-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCurrentUser } from '@/features/auth';
 import {
-  type ChannelMemberData,
   useAddChannelMembers,
   useDeleteChannel,
   useRemoveChannelMembers,
   useUpdateChannel,
 } from '@/features/channels';
-import { useGetMembers } from '@/features/members';
-import { useCurrentUser } from '@/features/auth';
-import { useParamIds } from '@/hooks/use-param-ids';
 import { useConfirm } from '@/hooks/use-confirm';
+import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/store/ui-store';
-import AddMembersDialog from './add-people-to-channel-modal';
-import RemoveConfirmation from './remove-member-from-channel-modal';
+import { type Channel, ChannelType } from '@/types/chat';
+import { ChatMember } from '../features/members';
 
 interface ChannelDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   channel: Channel;
-  members?: ChannelMemberData[];
+  members?: ChatMember[];
   initialTab?: 'members' | 'settings';
 }
 
@@ -69,7 +66,6 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   const deleteChannel = useDeleteChannel();
   const updateChannel = useUpdateChannel();
   const { user } = useCurrentUser(workspaceId);
-  const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
   const { setProfilePanelOpen } = useUIStore();
   const router = useRouter();
 
@@ -83,8 +79,8 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   const [isAddingMembers, setIsAddingMembers] = useState(false);
   const [removeConfirmation, setRemoveConfirmation] = useState<{
     isOpen: boolean;
-    memberId?: string;
-    memberName?: string;
+    channelMemberId?: string;
+    channelMemberName?: string;
   }>({ isOpen: false });
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -106,13 +102,12 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
     }
     const query = searchQuery.toLowerCase();
     return channelMembers.filter((member) => {
-      const workspaceMember = workspaceMembers.find((wm) => wm.id === member.workspace_member_id);
       return (
-        workspaceMember?.user.name.toLowerCase().includes(query) ||
-        workspaceMember?.user.email?.toLowerCase().includes(query)
+        member.workspace_member.user.name.toLowerCase().includes(query) ||
+        member.workspace_member.user.email?.toLowerCase().includes(query)
       );
     });
-  }, [channelMembers, searchQuery, workspaceMembers]);
+  }, [channelMembers, searchQuery]);
 
   const handleAddMembers = async (memberIds: string[]) => {
     try {
@@ -147,27 +142,21 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
     }
   };
 
-  const existingMemberIds = useMemo(() => {
-    return channelMembers.map((m) => m.workspace_member_id);
+  const existingWorkspaceMemberIds = useMemo(() => {
+    return channelMembers.map((m) => m.workspace_member.id);
   }, [channelMembers]);
+
+  const currentChannelMember = useMemo(() => {
+    return channelMembers.find((member) => member.workspace_member.user.id === user.id);
+  }, [user, channelMembers]);
 
   const isChannelAdmin = useMemo(() => {
     if (!user) {
       return false;
     }
 
-    const currentWorkspaceMember = workspaceMembers.find((wm) => wm.user.id === user.id);
-
-    if (!currentWorkspaceMember) {
-      return false;
-    }
-
-    const currentChannelMember = channelMembers.find(
-      (member) => member.workspace_member_id === currentWorkspaceMember.id,
-    );
-
     return currentChannelMember?.role === 'admin';
-  }, [user, workspaceMembers, channelMembers]);
+  }, [user, currentChannelMember]);
 
   const handleDeleteChannel = async () => {
     const confirmed = await confirmDelete();
@@ -195,17 +184,6 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
       toast.error('User not found');
       return;
     }
-
-    const currentWorkspaceMember = workspaceMembers.find((wm) => wm.user.id === user.id);
-
-    if (!currentWorkspaceMember) {
-      toast.error('Unable to leave channel - workspace membership not found');
-      return;
-    }
-
-    const currentChannelMember = channelMembers.find(
-      (member) => member.workspace_member_id === currentWorkspaceMember.id,
-    );
 
     if (!currentChannelMember) {
       toast.error('Unable to leave channel - channel membership not found');
@@ -353,87 +331,78 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                 <ScrollArea className="h-[300px] pr-4">
                   <div className="space-y-1">
                     {filteredMembers.length > 0 ? (
-                      filteredMembers.map((member) => {
-                        const workspaceMember = workspaceMembers.find(
-                          (wm) => wm.id === member.workspace_member_id,
-                        );
-                        if (!workspaceMember) {
-                          return null;
-                        }
-
-                        return (
-                          <div
-                            key={member.id}
-                            className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 group"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="relative">
-                                <Avatar
-                                  className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity"
-                                  onClick={() => {
-                                    setProfilePanelOpen(workspaceMember.id);
-                                    onClose();
-                                  }}
-                                >
-                                  {workspaceMember.user.image ? (
-                                    <AvatarImage
-                                      src={workspaceMember.user.image}
-                                      alt={workspaceMember.user.name}
-                                    />
-                                  ) : (
-                                    <AvatarFallback>
-                                      {workspaceMember.user.name?.[0]?.toUpperCase() || 'U'}
-                                    </AvatarFallback>
-                                  )}
-                                </Avatar>
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <p
-                                    className="font-medium cursor-pointer hover:underline"
-                                    onClick={() => setProfilePanelOpen(workspaceMember.id)}
-                                  >
-                                    {workspaceMember.user.name}
-                                  </p>
-                                  {member.role === 'admin' && (
-                                    <span className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
-                                      Admin
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {workspaceMember.user.email || 'Member'}
-                                </p>
-                              </div>
+                      filteredMembers.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <Avatar
+                                className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => {
+                                  setProfilePanelOpen(member.workspace_member.id);
+                                  onClose();
+                                }}
+                              >
+                                {member.workspace_member.user.image ? (
+                                  <AvatarImage
+                                    src={member.workspace_member.user.image}
+                                    alt={member.workspace_member.user.name}
+                                  />
+                                ) : (
+                                  <AvatarFallback>
+                                    {member.workspace_member.user.name?.[0]?.toUpperCase() || 'U'}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
                             </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p
+                                  className="font-medium cursor-pointer hover:underline"
+                                  onClick={() => setProfilePanelOpen(member.id)}
                                 >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() =>
-                                    setRemoveConfirmation({
-                                      isOpen: true,
-                                      memberId: member.id,
-                                      memberName: workspaceMember.user.name,
-                                    })
-                                  }
-                                >
-                                  Remove from channel
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                  {member.workspace_member.user.name}
+                                </p>
+                                {member.role === 'admin' && (
+                                  <span className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
+                                    Admin
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {member.workspace_member.user.email || 'Member'}
+                              </p>
+                            </div>
                           </div>
-                        );
-                      })
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() =>
+                                  setRemoveConfirmation({
+                                    isOpen: true,
+                                    channelMemberId: member.id,
+                                    channelMemberName: member.workspace_member.user.name,
+                                  })
+                                }
+                              >
+                                Remove from channel
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      ))
                     ) : (
                       <div className="text-center py-12">
                         <UserSearch className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -608,17 +577,18 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
         onClose={() => setIsAddingMembers(false)}
         channel={channel}
         onAddMembers={handleAddMembers}
-        existingMemberIds={existingMemberIds}
+        existingWorkspaceMemberIds={existingWorkspaceMemberIds}
       />
 
       <RemoveConfirmation
         isOpen={removeConfirmation.isOpen}
         onClose={() => setRemoveConfirmation({ isOpen: false })}
         onConfirm={() =>
-          removeConfirmation.memberId && handleRemoveMember(removeConfirmation.memberId)
+          removeConfirmation.channelMemberId &&
+          handleRemoveMember(removeConfirmation.channelMemberId)
         }
         channelName={channel.name}
-        memberName={removeConfirmation.memberName || ''}
+        memberName={removeConfirmation.channelMemberName || ''}
         isPrivate={channel.isPrivate}
       />
 

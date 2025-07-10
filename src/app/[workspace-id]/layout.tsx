@@ -31,7 +31,6 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     setNotificationsPanelOpen,
     isProfilePanelOpen,
     profileMemberId,
-    setProfilePanelOpen,
   } = useUIStore();
 
   const workspaceId = useWorkspaceId();
@@ -145,7 +144,7 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
           {isProfilePanelOpen() && profileMemberId && (
             <>
               <ResizableHandle />
-              <ResizablePanel minSize={20} defaultSize={25}>
+              <ResizablePanel defaultSize={25} minSize={20}>
                 <ProfilePanel />
               </ResizablePanel>
             </>
