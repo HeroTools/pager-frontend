@@ -7,6 +7,7 @@ import { ChatMessage } from './message';
 import { useUIStore } from '@/store/ui-store';
 import { cn } from '@/lib/utils';
 import type { CurrentUser } from '@/features/auth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ChatMessageListProps {
   messages: Message[];
@@ -22,6 +23,58 @@ interface ChatMessageListProps {
 }
 
 const TIME_THRESHOLD = 5;
+
+// Skeleton message component with consistent heights matching real messages
+const MessageSkeleton: FC<{ isCompact?: boolean; index?: number }> = ({
+  isCompact = false,
+  index = 0,
+}) => {
+  // Create deterministic line patterns based on index
+  const hasSecondLine = (index + 1) % 4 !== 0;
+  const hasThirdLine = (index + 1) % 7 === 0;
+
+  return (
+    <div
+      className={cn('px-4 py-1.5 transition-colors duration-100 ease-in-out', {
+        'pt-3': !isCompact,
+      })}
+    >
+      <div className="flex gap-3">
+        {!isCompact ? (
+          <div className="flex-shrink-0">
+            <Skeleton className="h-9 w-9 rounded-full" />
+          </div>
+        ) : (
+          <div className="w-9 flex-shrink-0" />
+        )}
+        <div className="flex-1 min-w-0">
+          {!isCompact && (
+            <div className="flex items-baseline gap-2 mb-0.5">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          )}
+          <div className={cn('leading-relaxed space-y-1', !isCompact && 'mt-0')}>
+            <Skeleton className="h-4 w-full max-w-md" />
+            {hasSecondLine && <Skeleton className="h-4 w-3/4 max-w-sm" />}
+            {hasThirdLine && <Skeleton className="h-4 w-1/2 max-w-xs" />}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SkeletonMessages: FC<{ count: number }> = ({ count }) => {
+  const skeletons = [];
+
+  for (let i = 0; i < count; i++) {
+    const isCompact = i > 0 && i % 3 !== 0 && i % 5 !== 0;
+    skeletons.push(<MessageSkeleton key={`skeleton-${i}`} isCompact={isCompact} index={i} />);
+  }
+
+  return <>{skeletons}</>;
+};
 
 export const ChatMessageList: FC<ChatMessageListProps> = ({
   messages,
@@ -66,21 +119,22 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
         'flex-1 bg-chat',
         isEmojiPickerOpen() ? 'overflow-y-hidden' : 'overflow-y-auto',
       )}
+      style={{
+        scrollBehavior: 'auto',
+        overscrollBehavior: 'none',
+      }}
     >
       <div className="pb-4">
-        {/* Loading more messages indicator */}
         {isLoadingMore && (
-          <div className="flex items-center justify-center py-4 px-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <div className="animate-spin rounded-full h-4 w-4 border border-muted-foreground border-t-transparent" />
-              Loading older messages...
-            </div>
+          <div className="border-b border-border-subtle/30 pb-4 mb-4">
+            <SkeletonMessages count={8} />
           </div>
         )}
 
         {isLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-muted-foreground">Loading messages...</div>
+          // Initial loading state with full skeleton conversation
+          <div className="px-4 py-4 space-y-2">
+            <SkeletonMessages count={15} />
           </div>
         ) : (
           messages.map((message, index) => {
