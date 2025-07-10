@@ -127,26 +127,28 @@ const ImageAttachment: FC<{
   const [hasError, setHasError] = useState(false);
   const config = getAttachmentConfig(isSingle, isThread);
   const filename = attachment.originalFilename || 'Uploaded image';
+  const hasValidUrl = !!attachment.publicUrl;
 
   return (
     <div className="relative group/image">
       <div
         className={cn(
-          'relative rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity',
+          'relative rounded-lg overflow-hidden border bg-muted',
+          hasValidUrl && 'cursor-pointer hover:opacity-90 transition-opacity',
           config.image.maxWidth,
           config.image.maxHeight,
           config.image.height,
         )}
-        onClick={onOpenMediaViewer}
+        onClick={hasValidUrl ? onOpenMediaViewer : undefined}
         style={{ aspectRatio: config.image.aspectRatio }}
       >
-        {!isLoaded && !hasError && (
+        {!isLoaded && !hasError && hasValidUrl && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted">
             <ImageIcon className="w-8 h-8 text-muted-foreground" />
           </div>
         )}
 
-        {hasError ? (
+        {hasError || !hasValidUrl ? (
           <div className="absolute inset-0 flex items-center justify-center bg-muted">
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <ImageIcon className="w-8 h-8" />
@@ -174,7 +176,9 @@ const ImageAttachment: FC<{
           className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
-            window.open(attachment.publicUrl, '_blank');
+            if (attachment.publicUrl) {
+              window.open(attachment.publicUrl, '_blank');
+            }
           }}
         >
           <Download className="w-4 h-4 text-white" />
