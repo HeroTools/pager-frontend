@@ -1,10 +1,11 @@
-import type { Attachment, Author, Message } from '@/types/chat';
-import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import type { CurrentUser } from '@/features/auth';
 import { useUIStore } from '@/store/ui-store';
-import type { MessageWithUser, QuillDelta, QuillOp } from './types';
-import type { Reaction, User } from '../reactions/types';
+import type { Attachment, Author, Message } from '@/types/chat';
 import type { Attachment as AttachmentType } from '@/types/database';
+import { format, isToday, isYesterday, parseISO } from 'date-fns';
+import { ChatMember } from '../members';
+import type { Reaction, User } from '../reactions/types';
+import type { MessageWithUser, QuillDelta, QuillOp } from './types';
 
 export const transformMessages = (
   messagesData: MessageWithUser[],
@@ -122,4 +123,36 @@ const createPlainTextDelta = (text: string): QuillDelta => {
       },
     ],
   };
+};
+
+export const getUserName = (userId: string, members: ChatMember[]) => {
+  if (!members) {
+    return 'Unknown';
+  }
+
+  const member = members.find((member) => {
+    return member.workspace_member.user.id === userId;
+  });
+
+  if (!member) {
+    return 'Unknown';
+  }
+
+  return member.workspace_member.user.name;
+};
+
+export const getUserAvatar = (userId: string, members: ChatMember[]) => {
+  if (!members) {
+    return 'Unknown';
+  }
+
+  const member = members.find((member) => {
+    return member.workspace_member.user.id === userId;
+  });
+
+  if (!member) {
+    return 'Unknown';
+  }
+
+  return member.workspace_member.user.image;
 };

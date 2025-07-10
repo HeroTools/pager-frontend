@@ -1,18 +1,18 @@
-import { useRouter } from 'next/navigation';
-import { type ChangeEvent, type FormEvent, useState } from 'react';
+import AddMembersDialog from '@/components/add-people-to-channel-modal';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { useCreateChannel } from '..';
-import { useCreateChannelModal } from '../store/use-create-channel-modal';
-import { toast } from 'sonner';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { channelsApi } from '../api/channels-api';
-import { Hash, Lock } from 'lucide-react';
 import { useGetMembers } from '@/features/members';
-import AddMembersDialog from '@/components/add-people-to-channel-modal';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { ChannelType } from '@/types/chat';
+import { Hash, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { type ChangeEvent, type FormEvent, useState } from 'react';
+import { toast } from 'sonner';
+import { useCreateChannel } from '..';
+import { channelsApi } from '../api/channels-api';
+import { useCreateChannelModal } from '../store/use-create-channel-modal';
 
 export const CreateChannelModal = () => {
   const router = useRouter();
@@ -260,7 +260,7 @@ export const CreateChannelModal = () => {
           isDefault: false,
         }}
         onAddMembers={handleAddMembers}
-        existingMemberIds={selectedMemberIds}
+        existingWorkspaceMemberIds={selectedMemberIds}
       />
     </>
   );

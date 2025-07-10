@@ -1,28 +1,27 @@
-import type { FC } from 'react';
-import { useState } from 'react';
 import { Hash, Lock, LogOut, MoreVertical, Settings, Users } from 'lucide-react';
-import type { Channel } from '@/types/chat';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { type FC, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+
+import { ChannelDetailsModal } from '@/components/channel-details-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChannelDetailsModal } from '@/components/channel-details-modal';
-import type { ChannelMemberData } from '@/features/channels/types';
-import { useRemoveChannelMembers } from '@/features/channels';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCurrentUser } from '@/features/auth';
-import { useGetMembers } from '@/features/members';
+import { useRemoveChannelMembers } from '@/features/channels';
+import { ChatMember } from '@/features/members';
 import { useParamIds } from '@/hooks/use-param-ids';
+import type { Channel } from '@/types/chat';
 
 interface ChatHeaderProps {
   channel: Channel;
-  members?: ChannelMemberData[];
+  members?: ChatMember[];
   chatType?: 'conversation' | 'channel';
   conversationData?: any;
   currentUser?: any;
@@ -40,7 +39,6 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   const { workspaceId } = useParamIds();
   const removeChannelMembers = useRemoveChannelMembers();
   const { user } = useCurrentUser(workspaceId);
-  const { data: workspaceMembers = [] } = useGetMembers(workspaceId);
   const router = useRouter();
 
   // Show up to 4 avatars, then a +N indicator
@@ -95,24 +93,15 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
 
   const conversationDisplay = chatType === 'conversation' ? getConversationHeaderDisplay() : null;
 
+  const currentChannelMember = useMemo(() => {
+    return members.find((member) => member.workspace_member.user.id === user.id);
+  }, [user, members]);
+
   const handleLeaveChannel = async () => {
     if (!user) {
       toast.error('User not found');
       return;
     }
-
-    const currentWorkspaceMember = workspaceMembers.find(
-      (wm) => wm.id === user.workspace_member_id,
-    );
-
-    if (!currentWorkspaceMember) {
-      toast.error('Unable to leave channel - workspace membership not found');
-      return;
-    }
-
-    const currentChannelMember = members.find(
-      (member) => member.workspace_member_id === currentWorkspaceMember.id,
-    );
 
     if (!currentChannelMember) {
       toast.error('Unable to leave channel - channel membership not found');
@@ -184,16 +173,19 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
               <Tooltip key={member.id}>
                 <TooltipTrigger asChild>
                   <Avatar className="h-7 w-7 border-2 border-background bg-muted">
-                    {member.avatar ? (
-                      <AvatarImage src={member.avatar} alt={member.name} />
+                    {member.workspace_member.user.image ? (
+                      <AvatarImage
+                        src={member.workspace_member.user.image}
+                        alt={member.workspace_member.user.name}
+                      />
                     ) : (
                       <AvatarFallback>
-                        {member.name?.[0] || <Users className="w-4 h-4" />}
+                        {member.workspace_member.user.name?.[0] || <Users className="w-4 h-4" />}
                       </AvatarFallback>
                     )}
                   </Avatar>
                 </TooltipTrigger>
-                <TooltipContent>{member.name}</TooltipContent>
+                <TooltipContent>{member.workspace_member.user.name}</TooltipContent>
               </Tooltip>
             ))}
 

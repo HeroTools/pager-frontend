@@ -2,24 +2,23 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Hash, Loader, Lock } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   useAddChannelMembers,
   useCreateChannelModal,
   useGetAllAvailableChannels,
   useGetUserChannels,
 } from '@/features/channels';
+import type { ChannelEntity } from '@/features/channels/types';
 import { useCurrentMember } from '@/features/members/hooks/use-members';
 import { useParamIds } from '@/hooks/use-param-ids';
-import type { ChannelEntity } from '@/features/channels/types';
+import { Hash, Loader, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
 // Extended interface for browse channels with additional API properties
 interface BrowseChannelItem extends ChannelEntity {
   is_member?: boolean;
   member_count?: number;
-  description?: string;
 }
 
 export default function BrowseChannels() {
@@ -121,7 +120,7 @@ export default function BrowseChannels() {
         />
       </div>
 
-      <div className="bg-muted rounded-lg overflow-hidden">
+      <div className="bg-muted rounded-lg overflow-y-auto">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">
             <Loader className="mx-auto animate-spin" />
