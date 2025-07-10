@@ -2,11 +2,12 @@ import { type FC, useCallback, useEffect, useRef, useState } from 'react';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import type { CurrentUser } from '@/features/auth';
-import type { ChannelMember } from '@/features/channels';
 import type { UploadedAttachment } from '@/features/file-upload';
+import { getUserAvatar, getUserName } from '@/features/messages/helpers';
 import { useParamIds } from '@/hooks/use-param-ids';
 import type { Channel, Message } from '@/types/chat';
 import dynamic from 'next/dynamic';
+import { ChatMember } from '../../features/members';
 import { ChatHeader } from './header';
 import { ChatMessageList } from './message-list';
 import { TypingIndicator } from './typing-indicator';
@@ -33,7 +34,7 @@ interface ChatProps {
   typingUsers?: { id: string; name: string; avatar?: string }[];
   onInputChange?: (value: string) => void;
   onTypingSubmit?: () => void;
-  members?: ChannelMember[];
+  members?: ChatMember[];
   highlightMessageId?: string | null;
 }
 
@@ -160,47 +161,11 @@ export const Chat: FC<ChatProps> = ({
     setShouldScrollToBottom(c.scrollTop + c.clientHeight >= c.scrollHeight - 100);
   }, [hasMoreMessages, isLoadingMore, onLoadMore]);
 
-  const getUserName = (userId: string) => {
-    if (!members) {
-      return 'Unknown';
-    }
-
-    const member = members.find((member) => {
-      if ('user_id' in member) {
-        return member.user_id === userId || member.user.id === userId;
-      }
-    });
-
-    if (!member) {
-      return 'Unknown';
-    }
-
-    return member.user.name;
-  };
-
-  const getUserAvatar = (userId: string) => {
-    if (!members) {
-      return 'Unknown';
-    }
-
-    const member = members.find((member) => {
-      if ('user_id' in member) {
-        return member.user_id === userId || member.user.id === userId;
-      }
-    });
-
-    if (!member) {
-      return 'Unknown';
-    }
-
-    return member.user.image;
-  };
-
   return (
     <div className="flex flex-col h-full">
       <ChatHeader
         channel={channel}
-        members={chatType === 'channel' ? (members as ChannelMember[]) : []}
+        members={chatType === 'channel' ? (members as ChatMember[]) : []}
         chatType={chatType}
         conversationData={conversationData}
         currentUser={currentUser}
@@ -222,8 +187,8 @@ export const Chat: FC<ChatProps> = ({
         channelId={channel.id}
         conversationId={conversationData?.id}
         currentUserId={currentUser.id}
-        getUserName={getUserName}
-        getUserAvatar={getUserAvatar}
+        getUserName={(userId) => getUserName(userId, members)}
+        getUserAvatar={(userId) => getUserAvatar(userId, members)}
       />
 
       <div className="p-4 border-t border-border-subtle">

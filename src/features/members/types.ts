@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  ChannelMemberRole,
   User,
   Workspace,
   WorkspaceMember,
@@ -24,6 +25,17 @@ export interface MemberWithWorkspace extends MemberEntity {
 export interface MemberWithRelations extends MemberEntity {
   user: UserEntity;
   workspace: Workspace;
+}
+
+export interface ChatMember {
+  id: string; // conversation_member.id or channel_member.id
+  joined_at: string;
+  role: ChannelMemberRole;
+  notifications_enabled: boolean;
+  left_at: string | null;
+  is_hidden: boolean;
+  last_read_message_id?: string;
+  workspace_member: MemberWithUser;
 }
 
 // Update member role data

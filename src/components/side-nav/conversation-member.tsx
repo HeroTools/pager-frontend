@@ -1,14 +1,15 @@
-import type { VariantProps } from 'class-variance-authority';
-import { cva } from 'class-variance-authority';
+import { cva, type VariantProps } from 'class-variance-authority';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { Button } from '@/components/ui/button';
+import type { ConversationEntity } from '@/features/conversations/types';
 import { useConversationNotifications } from '@/features/notifications/hooks/use-conversation-notifications';
-import { cn } from '@/lib/utils';
 import { useMarkEntityNotificationsRead } from '@/features/notifications/hooks/use-mark-entity-notifications-read';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { cn } from '@/lib/utils';
 
 const conversationItemVariants = cva(
   'flex items-center gap-1.5 justify-start font-normal h-7 px-4 text-sm overflow-hidden',
@@ -25,40 +26,13 @@ const conversationItemVariants = cva(
   },
 );
 
-interface ConversationMember {
-  id: string;
-  joined_at: string;
-  left_at: string | null;
-  is_hidden: boolean;
-  workspace_member: {
-    id: string;
-    role: string;
-    user: {
-      id: string;
-      name: string;
-      image: string | null;
-    };
-  };
-}
-
-interface Conversation {
-  id: string;
-  workspace_id: string;
-  created_at: string;
-  updated_at: string;
-  members: ConversationMember[];
-  member_count: number;
-  other_members: ConversationMember[];
-  is_group_conversation: boolean;
-}
-
 interface ConversationItemProps {
-  conversation: Conversation;
+  conversation: ConversationEntity;
   variant?: VariantProps<typeof conversationItemVariants>['variant'];
   hasUnread?: boolean;
 }
 
-const getConversationDisplay = (conversation: Conversation, currentUserId: string) => {
+const getConversationDisplay = (conversation: ConversationEntity, currentUserId: string) => {
   if (conversation.is_group_conversation) {
     // For group conversations, show only other members (not the current user)
     const names = conversation.other_members.map((member) => member.workspace_member.user.name);

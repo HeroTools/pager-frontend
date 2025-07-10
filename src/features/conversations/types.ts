@@ -7,15 +7,29 @@ import type {
   MessageWithRelations,
   SendMessageRequest,
 } from '@/types/database';
+import type { ChatMember, MemberWithUser } from '../members';
 import type { MessageWithUser } from '../messages/types';
 
 // Use the database Conversation type directly
 export interface ConversationEntity extends Conversation {
-  members: ConversationMemberWithDetails[];
+  members: ChatMember[];
   member_count: number;
-  other_members: ConversationMemberWithDetails[];
+  other_members: ChatMember[];
   is_group_conversation: boolean;
 }
+
+export interface ConversationMemberResponse {
+  conversation_member_id: string;
+  workspace_member_id: string;
+  joined_at: string;
+  left_at: string | null;
+  last_read_message_id: string | null;
+  is_hidden: boolean;
+  conversation_id: string;
+}
+
+export type WorkspaceMemberWithoutId = Omit<MemberWithUser, 'id'>;
+export type ConversationMember = WorkspaceMemberWithoutId & ConversationMemberResponse;
 
 // Extended conversation type with members and messages
 export type ConversationWithMembersList = ConversationWithMembers;
@@ -120,7 +134,7 @@ export interface ConversationMemberWithUser {
 export interface ConversationWithMessagesAndMembers {
   conversation: ConversationEntity;
   messages: MessageWithUser[];
-  members: ConversationMemberWithUser[];
+  members: ChatMember[];
   pagination: {
     hasMore: boolean;
     nextCursor: string | null;
