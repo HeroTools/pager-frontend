@@ -54,13 +54,32 @@ const EmojiAutoComplete = ({ quill, containerRef }: EmojiAutoCompleteProps) => {
       return [];
     }
     const q = query.toLowerCase();
-    return Object.values(emojiData.emojis)
-      .filter(
-        (e) =>
-          e.id.includes(q) ||
-          (e.name && e.name.toLowerCase().includes(q)) ||
-          (e.keywords && e.keywords.some((k: string) => k.includes(q))),
-      )
+    const emojis = Object.values(emojiData.emojis) as EmojiMartEmoji[];
+
+    const getScore = (emoji: EmojiMartEmoji) => {
+      const id = emoji.id.toLowerCase();
+      const name = emoji.name.toLowerCase();
+
+      if (id === q) return 10;
+      if (id.startsWith(q)) return 9;
+      if (name.startsWith(q)) return 8;
+      if (id.includes(q)) return 7;
+      if (name.includes(q)) return 6;
+      if (emoji.keywords?.some((k) => k.startsWith(q))) return 5;
+      if (emoji.keywords?.some((k) => k.includes(q))) return 4;
+      return 0;
+    };
+
+    return emojis
+      .map((emoji) => ({ emoji, score: getScore(emoji) }))
+      .filter((item) => item.score > 0)
+      .sort((a, b) => {
+        if (a.score !== b.score) {
+          return b.score - a.score;
+        }
+        return a.emoji.id.length - b.emoji.id.length;
+      })
+      .map((item) => item.emoji)
       .slice(0, 8);
   };
 
