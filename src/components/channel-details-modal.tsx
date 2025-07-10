@@ -34,7 +34,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCurrentUser } from '@/features/auth';
 import {
-  type ChannelMember,
   useAddChannelMembers,
   useDeleteChannel,
   useRemoveChannelMembers,
@@ -44,12 +43,13 @@ import { useConfirm } from '@/hooks/use-confirm';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/store/ui-store';
 import { type Channel, ChannelType } from '@/types/chat';
+import { ChatMember } from '../features/members';
 
 interface ChannelDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   channel: Channel;
-  members?: ChannelMember[];
+  members?: ChatMember[];
   initialTab?: 'members' | 'settings';
 }
 
@@ -103,8 +103,8 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
     const query = searchQuery.toLowerCase();
     return channelMembers.filter((member) => {
       return (
-        member.user.name.toLowerCase().includes(query) ||
-        member.user.email?.toLowerCase().includes(query)
+        member.workspace_member.user.name.toLowerCase().includes(query) ||
+        member.workspace_member.user.email?.toLowerCase().includes(query)
       );
     });
   }, [channelMembers, searchQuery]);
@@ -143,11 +143,11 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   };
 
   const existingWorkspaceMemberIds = useMemo(() => {
-    return channelMembers.map((m) => m.workspace_member_id);
+    return channelMembers.map((m) => m.workspace_member.id);
   }, [channelMembers]);
 
   const currentChannelMember = useMemo(() => {
-    return channelMembers.find((member) => member.user.id === user.id);
+    return channelMembers.find((member) => member.workspace_member.user.id === user.id);
   }, [user, channelMembers]);
 
   const isChannelAdmin = useMemo(() => {
@@ -155,7 +155,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
       return false;
     }
 
-    return currentChannelMember?.channel_role === 'admin';
+    return currentChannelMember?.role === 'admin';
   }, [user, currentChannelMember]);
 
   const handleDeleteChannel = async () => {
@@ -194,7 +194,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
       await removeChannelMembers.mutateAsync({
         workspaceId,
         channelId: channel.id,
-        channelMemberIds: [currentChannelMember.channel_member_id],
+        channelMemberIds: [currentChannelMember.id],
         isCurrentUserLeaving: true,
       });
 
@@ -333,7 +333,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                     {filteredMembers.length > 0 ? (
                       filteredMembers.map((member) => (
                         <div
-                          key={member.channel_member_id}
+                          key={member.id}
                           className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 group"
                         >
                           <div className="flex items-center gap-3">
@@ -341,15 +341,18 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                               <Avatar
                                 className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity"
                                 onClick={() => {
-                                  setProfilePanelOpen(member.workspace_member_id);
+                                  setProfilePanelOpen(member.workspace_member.id);
                                   onClose();
                                 }}
                               >
-                                {member.user.image ? (
-                                  <AvatarImage src={member.user.image} alt={member.user.name} />
+                                {member.workspace_member.user.image ? (
+                                  <AvatarImage
+                                    src={member.workspace_member.user.image}
+                                    alt={member.workspace_member.user.name}
+                                  />
                                 ) : (
                                   <AvatarFallback>
-                                    {member.user.name?.[0]?.toUpperCase() || 'U'}
+                                    {member.workspace_member.user.name?.[0]?.toUpperCase() || 'U'}
                                   </AvatarFallback>
                                 )}
                               </Avatar>
@@ -358,9 +361,9 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                               <div className="flex items-center gap-2">
                                 <p
                                   className="font-medium cursor-pointer hover:underline"
-                                  onClick={() => setProfilePanelOpen(member.channel_member_id)}
+                                  onClick={() => setProfilePanelOpen(member.id)}
                                 >
-                                  {member.user.name}
+                                  {member.workspace_member.user.name}
                                 </p>
                                 {member.role === 'admin' && (
                                   <span className="text-xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
@@ -369,7 +372,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                                 )}
                               </div>
                               <p className="text-xs text-muted-foreground">
-                                {member.user.email || 'Member'}
+                                {member.workspace_member.user.email || 'Member'}
                               </p>
                             </div>
                           </div>
@@ -389,8 +392,8 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                                 onClick={() =>
                                   setRemoveConfirmation({
                                     isOpen: true,
-                                    channelMemberId: member.channel_member_id,
-                                    channelMemberName: member.user.name,
+                                    channelMemberId: member.id,
+                                    channelMemberName: member.workspace_member.user.name,
                                   })
                                 }
                               >

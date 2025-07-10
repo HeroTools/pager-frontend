@@ -14,13 +14,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCurrentUser } from '@/features/auth';
-import { type ChannelMember, useRemoveChannelMembers } from '@/features/channels';
+import { useRemoveChannelMembers } from '@/features/channels';
+import { ChatMember } from '@/features/members';
 import { useParamIds } from '@/hooks/use-param-ids';
 import type { Channel } from '@/types/chat';
 
 interface ChatHeaderProps {
   channel: Channel;
-  members?: ChannelMember[];
+  members?: ChatMember[];
   chatType?: 'conversation' | 'channel';
   conversationData?: any;
   currentUser?: any;
@@ -93,7 +94,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   const conversationDisplay = chatType === 'conversation' ? getConversationHeaderDisplay() : null;
 
   const currentChannelMember = useMemo(() => {
-    return members.find((member) => member.user.id === user.id);
+    return members.find((member) => member.workspace_member.user.id === user.id);
   }, [user, members]);
 
   const handleLeaveChannel = async () => {
@@ -111,7 +112,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
       await removeChannelMembers.mutateAsync({
         workspaceId,
         channelId: channel.id,
-        channelMemberIds: [currentChannelMember.channel_member_id],
+        channelMemberIds: [currentChannelMember.id],
         isCurrentUserLeaving: true,
       });
 
@@ -169,19 +170,22 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
             title="Channel details"
           >
             {visibleMembers.map((member) => (
-              <Tooltip key={member.channel_member_id}>
+              <Tooltip key={member.id}>
                 <TooltipTrigger asChild>
                   <Avatar className="h-7 w-7 border-2 border-background bg-muted">
-                    {member.user.image ? (
-                      <AvatarImage src={member.user.image} alt={member.user.name} />
+                    {member.workspace_member.user.image ? (
+                      <AvatarImage
+                        src={member.workspace_member.user.image}
+                        alt={member.workspace_member.user.name}
+                      />
                     ) : (
                       <AvatarFallback>
-                        {member.user.name?.[0] || <Users className="w-4 h-4" />}
+                        {member.workspace_member.user.name?.[0] || <Users className="w-4 h-4" />}
                       </AvatarFallback>
                     )}
                   </Avatar>
                 </TooltipTrigger>
-                <TooltipContent>{member.user.name}</TooltipContent>
+                <TooltipContent>{member.workspace_member.user.name}</TooltipContent>
               </Tooltip>
             ))}
 

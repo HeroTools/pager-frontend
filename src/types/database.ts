@@ -66,7 +66,7 @@ export interface Conversation extends BaseEntity {
   workspace_id: string;
 }
 
-export interface ConversationMember extends BaseEntity {
+export interface DBConversationMember extends BaseEntity {
   conversation_id: string;
   workspace_member_id: string;
   joined_at: string;
@@ -206,7 +206,7 @@ export interface MessageWithRelations extends Message {
 }
 
 export interface ConversationWithMembers extends Conversation {
-  members?: (ConversationMember & {
+  members?: (DBConversationMember & {
     workspace_member: WorkspaceMember & { user: User };
   })[];
   messages?: MessageWithRelations[];

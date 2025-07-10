@@ -6,24 +6,20 @@ import { useEffect, useMemo } from 'react';
 
 import { Chat } from '@/components/chat/chat';
 import { useCurrentUser } from '@/features/auth';
-import type {
-  ConversationMemberWithDetails,
-  ConversationMemberWithUser,
-  ConversationWithMessagesAndMembers,
-} from '@/features/conversations';
 import {
+  useConversations,
   useGetConversationWithMessagesInfinite,
   useRealtimeConversation,
 } from '@/features/conversations';
 import type { UploadedAttachment } from '@/features/file-upload/types';
+import { ChatMember } from '@/features/members';
 import { transformMessages, updateSelectedMessageIfNeeded } from '@/features/messages/helpers';
 import { useMessageOperations } from '@/features/messages/hooks/use-messages';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
 import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/store/ui-store';
-import type { Channel } from '@/types/chat';
-import { ChannelType } from '@/types/chat';
+import { type Channel, ChannelType } from '@/types/chat';
 
 const ConversationChat = () => {
   const { id: conversationId, workspaceId, type } = useParamIds();
@@ -33,6 +29,7 @@ const ConversationChat = () => {
 
   const { user: currentUser, isAuthenticated } = useCurrentUser(workspaceId);
   const { addPendingMessage, removePendingMessage } = useMessagesStore();
+  const { conversations } = useConversations(workspaceId);
 
   const {
     data: conversationWithMessages,
@@ -81,6 +78,10 @@ const ConversationChat = () => {
     [sortedMessages, currentUser],
   );
 
+  const currentConversation = useMemo(() => {
+    return conversations.find((conversation) => conversation.id === conversationId);
+  }, [conversations, conversationId]);
+
   const highlightMessageId = searchParams.get('highlight');
   const threadMessageId = searchParams.get('thread');
 
@@ -107,42 +108,26 @@ const ConversationChat = () => {
     setThreadHighlightMessageId,
   ]);
 
-  const transformConversation = (conversationData: ConversationWithMessagesAndMembers): Channel => {
-    const { conversation, members } = conversationData;
-
-    type UnifiedMember = ConversationMemberWithDetails | ConversationMemberWithUser;
-
-    let otherMembers: UnifiedMember[] = [];
-
-    if (conversation.other_members) {
-      otherMembers = conversation.other_members;
-    } else {
-      otherMembers = members.filter((member) => member.user.id !== currentUser?.id);
-    }
-
-    const getName = (member: UnifiedMember): string => {
-      if ('workspace_member' in member) {
-        return member.workspace_member.user.name;
-      } else {
-        return member.user.name;
-      }
-    };
-
+  const transformConversation = (
+    chatMembers: ChatMember[],
+    otherMembers: ChatMember[],
+    conversationId: string,
+  ): Channel => {
     let displayName = '';
-    if (conversation.is_group_conversation) {
-      displayName = otherMembers.map(getName).join(', ');
+    if (otherMembers.length > 1) {
+      displayName = otherMembers.map((member) => member.workspace_member?.user?.name).join(', ');
     } else if (otherMembers.length === 1) {
-      displayName = getName(otherMembers[0]);
+      displayName = otherMembers[0].workspace_member?.user?.name;
     } else {
       displayName = currentUser?.name || 'You';
     }
 
     return {
-      id: conversation.id,
+      id: conversationId,
       name: displayName || 'Unknown User',
-      description: `Conversation with ${members.length} members`,
+      description: `Conversation with ${chatMembers.length} members`,
       isPrivate: true,
-      memberCount: members.length,
+      memberCount: chatMembers.length,
       type: ChannelType.PRIVATE,
     };
   };
@@ -171,7 +156,11 @@ const ConversationChat = () => {
   }
 
   // Transform data for chat component
-  const conversationChannel = transformConversation(conversationWithMessages?.pages?.[0]);
+  const conversationChannel = transformConversation(
+    currentConversation.members,
+    currentConversation.other_members,
+    conversationId,
+  );
 
   // Handle message sending with real-time integration
   const handleSendMessage = async (content: {
@@ -251,8 +240,6 @@ const ConversationChat = () => {
     }
   };
 
-  console.log(conversationWithMessages.pages[0].members);
-
   return (
     <div className="flex flex-col h-full">
       {!isConnected && (
@@ -276,14 +263,7 @@ const ConversationChat = () => {
         hasMoreMessages={hasNextPage}
         isLoadingMore={isFetchingNextPage}
         highlightMessageId={highlightMessageId}
-        members={conversationWithMessages.pages[0].members.map((member) => ({
-          id: member.id,
-          user_id: member.user.id,
-          name: member.user.name,
-          avatar: member.user.image,
-          workspace_member_id: member.workspace_member_id,
-          email: member.user.email,
-        }))}
+        members={currentConversation?.members || []}
       />
     </div>
   );
