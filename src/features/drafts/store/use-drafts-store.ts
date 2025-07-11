@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export interface Draft {
   content: string;
   type: 'channel' | 'conversation';
+  text: string;
   updatedAt: Date;
 }
 
@@ -14,6 +15,7 @@ interface DraftsState {
     entityId: string,
     content: string,
     type: 'channel' | 'conversation',
+    text: string,
   ) => void;
   clearDraft: (workspaceId: string, entityId: string) => void;
   getDraft: (workspaceId: string, entityId: string) => Draft | undefined;
@@ -25,13 +27,13 @@ export const useDraftsStore = create<DraftsState>()(
   persist(
     (set, get) => ({
       workspaces: {},
-      setDraft: (workspaceId, entityId, content, type) => {
+      setDraft: (workspaceId, entityId, content, type, text) => {
         set((state) => ({
           workspaces: {
             ...state.workspaces,
             [workspaceId]: {
               ...(state.workspaces[workspaceId] || {}),
-              [entityId]: { content, type, updatedAt: new Date() },
+              [entityId]: { content, type, text, updatedAt: new Date() } as Draft,
             },
           },
         }));
