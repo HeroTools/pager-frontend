@@ -168,7 +168,7 @@ const Editor = ({
       });
 
       if (entityId) {
-        clearDraft(entityId);
+        clearDraft(workspaceId, entityId);
       }
 
       quill.setText('');
@@ -187,7 +187,7 @@ const Editor = ({
       setImage(oldImage);
       setAttachments(oldAttachments);
     }
-  }, [hasUploadsInProgress, attachments, image, stopTyping, variant, entityId]);
+  }, [hasUploadsInProgress, attachments, image, stopTyping, variant, entityId, workspaceId]);
 
   const handleSubmitRef = useRef(handleSubmit);
 
@@ -197,9 +197,9 @@ const Editor = ({
       if (quill) {
         const value = JSON.stringify(quill.getContents());
         if (quill.getText().trim().length === 0) {
-          clearDraft(entityId);
+          clearDraft(workspaceId, entityId);
         } else {
-          setDraft(entityId, value, entityType);
+          setDraft(workspaceId, entityId, value, entityType);
         }
       }
     }
@@ -458,7 +458,16 @@ const Editor = ({
       innerRef.current = quill;
     }
 
-    quill.setContents(defaultValueRef.current);
+    const draft = entityId ? getDraft(workspaceId, entityId) : undefined;
+    let initialContent: Delta | Op[] = defaultValueRef.current;
+    if (draft?.content) {
+      try {
+        initialContent = JSON.parse(draft.content);
+      } catch (e) {
+        console.error('Error parsing draft content', e);
+      }
+    }
+    quill.setContents(initialContent, 'silent');
     setText(quill.getText());
 
     quill.root.addEventListener(
@@ -558,7 +567,7 @@ const Editor = ({
     quill.root.addEventListener('blur', handleBlur);
 
     if (entityId) {
-      const draft = getDraft(entityId);
+      const draft = getDraft(workspaceId, entityId);
       if (draft) {
         try {
           const delta = JSON.parse(draft.content);
@@ -584,7 +593,7 @@ const Editor = ({
         innerRef.current = null;
       }
     };
-  }, [variant, innerRef, entityId, startTyping, stopTyping, debouncedSetDraft]);
+  }, [variant, innerRef, entityId, startTyping, stopTyping, debouncedSetDraft, workspaceId]);
 
   const handleToolbarToggle = useCallback((): void => {
     setIsToolbarVisible(!isToolbarVisible);

@@ -36,9 +36,9 @@ export const WorkspaceSidebar = () => {
   const { user: currentUser } = useCurrentUser(workspaceId);
   const { hasChannelUnread } = useChannelNotifications(workspaceId);
   const { getConversationUnreadCount } = useConversationNotifications(workspaceId);
-  const { drafts } = useDraftsStore();
+  const { getWorkspaceDrafts } = useDraftsStore();
 
-  const draftCount = Object.keys(drafts).length;
+  const draftCount = Object.keys(getWorkspaceDrafts(workspaceId)).length;
 
   const { startConversationCreation } = useConversationCreateStore();
 

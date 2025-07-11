@@ -12,13 +12,12 @@ import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const DraftsPage = () => {
-  const { drafts } = useDraftsStore();
   const workspaceId = useWorkspaceId();
+  const { getWorkspaceDrafts } = useDraftsStore();
+  const drafts = getWorkspaceDrafts(workspaceId);
 
-  const { data: channels, isLoading: isLoadingChannels } =
-    useGetUserChannels(workspaceId);
-  const { conversations, isLoading: isLoadingConversations } =
-    useConversations(workspaceId);
+  const { data: channels, isLoading: isLoadingChannels } = useGetUserChannels(workspaceId);
+  const { conversations, isLoading: isLoadingConversations } = useConversations(workspaceId);
 
   const draftsWithEntities = useMemo(() => {
     if (isLoadingChannels || isLoadingConversations || !conversations || !channels) {
@@ -36,21 +35,11 @@ const DraftsPage = () => {
       })
       .filter((item) => !!item.entity)
       .sort((a, b) => {
-        const timeB = b.draft.updatedAt
-          ? new Date(b.draft.updatedAt).getTime()
-          : 0;
-        const timeA = a.draft.updatedAt
-          ? new Date(a.draft.updatedAt).getTime()
-          : 0;
+        const timeB = b.draft.updatedAt ? new Date(b.draft.updatedAt).getTime() : 0;
+        const timeA = a.draft.updatedAt ? new Date(a.draft.updatedAt).getTime() : 0;
         return timeB - timeA;
       });
-  }, [
-    drafts,
-    channels,
-    conversations,
-    isLoadingChannels,
-    isLoadingConversations,
-  ]);
+  }, [drafts, channels, conversations, isLoadingChannels, isLoadingConversations]);
 
   if (isLoadingChannels || isLoadingConversations) {
     return (
@@ -72,9 +61,7 @@ const DraftsPage = () => {
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
         <h1 className="text-2xl font-bold">Drafts</h1>
-        <p className="text-muted-foreground">
-          {draftsWithEntities.length} drafts
-        </p>
+        <p className="text-muted-foreground">{draftsWithEntities.length} drafts</p>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-2">
@@ -90,4 +77,4 @@ const DraftsPage = () => {
   );
 };
 
-export default DraftsPage; 
+export default DraftsPage;

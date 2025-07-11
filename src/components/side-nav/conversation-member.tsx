@@ -82,7 +82,7 @@ export const ConversationItem = ({
   const router = useRouter();
   const { getDraft } = useDraftsStore();
 
-  const draft = getDraft(conversation.id);
+  const draft = getDraft(workspaceId, conversation.id);
 
   const unreadCount = getConversationUnreadCount(conversation.id);
   const isSelfConversation =
