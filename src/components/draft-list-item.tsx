@@ -85,15 +85,13 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
 
   const id = entity.id;
 
-  const {
-    mutateAsync: sendChannelMessage,
-    isPending: isSendingChannel,
-  } = useCreateChannelMessage(workspaceId, id);
+  const { mutateAsync: sendChannelMessage, isPending: isSendingChannel } = useCreateChannelMessage(
+    workspaceId,
+    id,
+  );
 
-  const {
-    mutateAsync: sendConversationMessage,
-    isPending: isSendingConversation,
-  } = useCreateConversationMessage(workspaceId, id);
+  const { mutateAsync: sendConversationMessage, isPending: isSendingConversation } =
+    useCreateConversationMessage(workspaceId, id);
 
   const isSending = isSendingChannel || isSendingConversation;
 
@@ -106,7 +104,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
       } else {
         await sendConversationMessage(messageData);
       }
-      clearDraft(id);
+      clearDraft(workspaceId, id);
       toast.success('Message sent!');
     } catch (error) {
       toast.error('Failed to send message.');
@@ -114,7 +112,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   };
 
   const handleDelete = () => {
-    clearDraft(id);
+    clearDraft(workspaceId, id);
     toast.success('Draft deleted.');
   };
 
