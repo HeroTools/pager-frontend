@@ -201,8 +201,8 @@ export const Chat: FC<ChatProps> = ({
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}
           userId={currentUser.id}
-          channelId={channel.id}
-          conversationId={conversationData?.id}
+          channelId={chatType === 'channel' ? channel.id : undefined}
+          conversationId={chatType === 'conversation' ? channel.id : undefined}
         />
       </div>
     </div>

@@ -9,6 +9,7 @@ import { useMarkEntityNotificationsRead } from '@/features/notifications/hooks/u
 import { cn } from '@/lib/utils';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import { Pencil } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface SidebarItemProps {
   label: string;
@@ -18,6 +19,7 @@ interface SidebarItemProps {
   variant?: VariantProps<typeof sidebarItemVariants>['variant'];
   hasUnread?: boolean;
   isDefault?: boolean;
+  count?: number;
 }
 
 const sidebarItemVariants = cva(
@@ -42,6 +44,7 @@ export const SidebarItem = ({
   disabled,
   variant,
   hasUnread = false,
+  count,
 }: SidebarItemProps) => {
   const workspaceId = useWorkspaceId();
   const router = useRouter();
@@ -49,19 +52,21 @@ export const SidebarItem = ({
   const { getDraft } = useDraftsStore();
 
   const draft = getDraft(id);
+  const isDraftsPage = id === 'drafts';
+  const link = isDraftsPage ? `/${workspaceId}/drafts` : `/${workspaceId}/c-${id}`;
 
-  const handleChannelClick = async (e: React.MouseEvent) => {
+  const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
 
     try {
-      router.push(`/${workspaceId}/c-${id}`);
-      if (hasUnread) {
+      router.push(link);
+      if (hasUnread && !isDraftsPage) {
         await markEntityNotificationsRead(workspaceId, id, 'channel');
       }
     } catch (error) {
       console.error('Error handling channel click:', error);
       // Still navigate even if marking as read fails
-      router.push(`/${workspaceId}/c-${id}`);
+      router.push(link);
     }
   };
 
@@ -75,16 +80,32 @@ export const SidebarItem = ({
         <Icon className="size-3.5 mr-1 shrink-0" />
         <span className={cn('text-sm truncate', hasUnread && 'font-bold')}>{label}</span>
         {draft && variant !== 'active' && <Pencil className="size-3 ml-auto" />}
+        {count && count > 0 && (
+          <Badge
+            variant="secondary"
+            className="h-5 min-w-5 flex items-center justify-center p-1 text-xs font-medium ml-auto"
+          >
+            {count > 99 ? '99+' : count}
+          </Badge>
+        )}
       </Button>
     );
   }
 
   return (
     <Button variant="transparent" asChild className={cn(sidebarItemVariants({ variant }))}>
-      <Link href={`/${workspaceId}/c-${id}`} onClick={handleChannelClick}>
+      <Link href={link} onClick={handleClick}>
         <Icon className="size-3.5 mr-1 shrink-0" />
         <span className={cn('text-sm truncate', hasUnread && 'font-extrabold')}>{label}</span>
         {draft && variant !== 'active' && <Pencil className="size-3 ml-auto" />}
+        {count && count > 0 && (
+          <Badge
+            variant="secondary"
+            className="h-5 min-w-5 flex items-center justify-center p-1 text-xs font-medium ml-auto"
+          >
+            {count > 99 ? '99+' : count}
+          </Badge>
+        )}
       </Link>
     </Button>
   );

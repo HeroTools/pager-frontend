@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-interface Draft {
+export interface Draft {
   content: string;
+  type: 'channel' | 'conversation';
+  updatedAt: Date;
 }
 
 interface DraftsState {
   drafts: Record<string, Draft>;
-  setDraft: (entityId: string, content: string) => void;
+  setDraft: (entityId: string, content: string, type: 'channel' | 'conversation') => void;
   clearDraft: (entityId: string) => void;
   getDraft: (entityId: string) => Draft | undefined;
 }
@@ -16,11 +18,11 @@ export const useDraftsStore = create<DraftsState>()(
   persist(
     (set, get) => ({
       drafts: {},
-      setDraft: (entityId, content) => {
+      setDraft: (entityId, content, type) => {
         set((state) => ({
           drafts: {
             ...state.drafts,
-            [entityId]: { content },
+            [entityId]: { content, type, updatedAt: new Date() },
           },
         }));
       },

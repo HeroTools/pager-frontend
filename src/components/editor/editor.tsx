@@ -82,6 +82,13 @@ const Editor = ({
   );
   const [selectedText, setSelectedText] = useState('');
 
+  const { getDraft, setDraft, clearDraft } = useDraftsStore();
+  const { entityId, entityType } = useMemo(() => {
+    if (channelId) return { entityId: channelId, entityType: 'channel' as const };
+    if (conversationId) return { entityId: conversationId, entityType: 'conversation' as const };
+    return { entityId: undefined, entityType: undefined };
+  }, [channelId, conversationId]);
+
   const { startTyping, stopTyping } = useTypingStatus({
     userId,
     channelId,
@@ -110,9 +117,6 @@ const Editor = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
-
-  const { getDraft, setDraft, clearDraft } = useDraftsStore();
-  const entityId = useMemo(() => channelId ?? conversationId, [channelId, conversationId]);
 
   const { uploadMultipleFiles } = useFileUpload(workspaceId);
 
@@ -188,14 +192,14 @@ const Editor = ({
   const handleSubmitRef = useRef(handleSubmit);
 
   const debouncedSetDraft = useDebouncedCallback(() => {
-    if (entityId) {
+    if (entityId && entityType) {
       const quill = quillRef.current;
       if (quill) {
         const value = JSON.stringify(quill.getContents());
         if (quill.getText().trim().length === 0) {
           clearDraft(entityId);
         } else {
-          setDraft(entityId, value);
+          setDraft(entityId, value, entityType);
         }
       }
     }
