@@ -1,26 +1,28 @@
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { cn } from '@/lib/utils/general';
-import { Hash, Lock, MessageSquare, Trash2, Pencil, Send } from 'lucide-react';
+import { Hash, Lock, Pencil, Send, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { Hint } from '@/components/hint';
 import { toast } from 'sonner';
-import { ConversationEntity } from '@/features/conversations/types';
-import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
+
+import { Hint } from '@/components/hint';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 import { Channel } from '@/features/channels/types';
+import { ConversationEntity } from '@/features/conversations/types';
+import { type Draft, useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import {
   useCreateChannelMessage,
   useCreateConversationMessage,
 } from '@/features/messages/hooks/use-messages';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { cn } from '@/lib/utils/general';
+import { formatDistanceToNow } from 'date-fns';
 
 interface DraftListItemProps {
-  draft: ReturnType<typeof useDraftsStore.getState>['drafts'][string];
+  draft: Draft;
   entity: Channel | ConversationEntity;
 }
 
@@ -35,13 +37,10 @@ const getConversationDisplayInfo = (
   conversation: ConversationEntity,
   currentUserId: string,
 ): Omit<ConversationDisplay, 'icon'> => {
-  const workspaceId = conversation.workspace_id;
-  const link = `/${workspaceId}/d-${conversation.id}`;
+  const link = `/${conversation.workspace_id}/d-${conversation.id}`;
 
   if (conversation.is_group_conversation) {
-    const names = conversation.other_members.map(
-      (member: any) => member.workspace_member.user.name,
-    );
+    const names = conversation.other_members.map((m) => m.workspace_member.user.name);
     return {
       name: names.join(', '),
       membersToDisplay: conversation.other_members.map((m) => ({
@@ -50,27 +49,28 @@ const getConversationDisplayInfo = (
       })),
       link,
     };
-  } else if (conversation.other_members.length === 1) {
-    const otherMember = conversation.other_members[0];
+  }
+
+  if (conversation.other_members.length === 1) {
+    const other = conversation.other_members[0];
     return {
-      name: otherMember.workspace_member.user.name,
+      name: other.workspace_member.user.name,
       membersToDisplay: [
         {
-          image: otherMember.workspace_member.user.image,
-          name: otherMember.workspace_member.user.name,
+          image: other.workspace_member.user.image,
+          name: other.workspace_member.user.name,
         },
       ],
       link,
     };
   }
-  const currentUserMember = conversation.members.find(
-    (m) => m.workspace_member.user_id === currentUserId,
-  );
+
+  const you = conversation.members.find((m) => m.workspace_member.user_id === currentUserId);
   return {
     name: 'You',
     membersToDisplay: [
       {
-        image: currentUserMember?.workspace_member.user.image || null,
+        image: you?.workspace_member.user.image ?? null,
         name: 'You',
       },
     ],
@@ -82,77 +82,49 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   const workspaceId = useWorkspaceId();
   const { user } = useCurrentUser(workspaceId);
   const { clearDraft } = useDraftsStore();
-
   const id = entity.id;
 
-  const { mutateAsync: sendChannelMessage, isPending: isSendingChannel } = useCreateChannelMessage(
+  const { mutateAsync: sendChannelMessage, isPending: sendingChan } = useCreateChannelMessage(
     workspaceId,
     id,
   );
-
-  const { mutateAsync: sendConversationMessage, isPending: isSendingConversation } =
+  const { mutateAsync: sendConversationMessage, isPending: sendingConv } =
     useCreateConversationMessage(workspaceId, id);
-
-  const isSending = isSendingChannel || isSendingConversation;
+  const isSending = sendingChan || sendingConv;
 
   const sendMessage = async () => {
-    const messageData = { body: draft.content, attachments: [] };
-
+    const payload = { body: draft.content, attachments: [] };
     try {
       if (draft.type === 'channel') {
-        await sendChannelMessage(messageData);
+        await sendChannelMessage(payload);
       } else {
-        await sendConversationMessage(messageData);
+        await sendConversationMessage(payload);
       }
       clearDraft(workspaceId, id);
       toast.success('Message sent!');
-    } catch (error) {
+    } catch {
       toast.error('Failed to send message.');
     }
   };
 
-  const handleDelete = () => {
-    clearDraft(workspaceId, id);
-    toast.success('Draft deleted.');
-  };
-
-  const display: ConversationDisplay | null = useMemo(() => {
+  const display = useMemo<ConversationDisplay | null>(() => {
     if (draft.type === 'conversation' && !user) return null;
-
     if (draft.type === 'channel') {
-      const channel = entity as Channel;
+      const ch = entity as Channel;
       return {
-        name: channel?.name ?? 'Unknown Channel',
+        name: ch.name ?? 'Unknown Channel',
         membersToDisplay: [],
-        icon: channel?.channel_type === 'private' ? Lock : Hash,
+        icon: ch.channel_type === 'private' ? Lock : Hash,
         link: `/${workspaceId}/c-${id}`,
       };
     }
-    if (draft.type === 'conversation') {
-      const conversation = entity as ConversationEntity;
-      return getConversationDisplayInfo(conversation, user!.id);
-    }
-    return {
-      name: 'Unknown',
-      membersToDisplay: [],
-      icon: MessageSquare,
-      link: '',
-    };
-  }, [id, draft.type, entity, workspaceId, user]);
+    return getConversationDisplayInfo(entity as ConversationEntity, user.id);
+  }, [draft.type, entity, workspaceId, user, id]);
 
-  const rawContent = useMemo(() => {
-    try {
-      const delta = JSON.parse(draft.content);
-      return (
-        delta.ops
-          ?.map((op: any) => op.insert)
-          .join('')
-          .trim() ?? ''
-      );
-    } catch {
-      return draft.content;
-    }
-  }, [draft.content]);
+  const formattedDate = useMemo(
+    () => formatDistanceToNow(new Date(draft.updatedAt), { addSuffix: true }),
+    [draft.updatedAt],
+  );
 
   if (!display) {
     return (
@@ -174,66 +146,72 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
       {display.membersToDisplay.length > 0 ? (
         display.membersToDisplay.length > 1 ? (
           <div className="relative flex items-center mt-1">
-            {display.membersToDisplay.slice(0, 2).map((member, index) => (
+            {display.membersToDisplay.slice(0, 2).map((m, i) => (
               <Avatar
-                key={`${member.name}-${index}`}
-                className={cn('size-5 border-2 border-background', index > 0 && '-ml-3')}
+                key={`${m.name}-${i}`}
+                className={cn('size-5 border-2 border-background', i > 0 && '-ml-3')}
               >
-                <AvatarImage src={member.image ?? undefined} />
-                <AvatarFallback>{member.name?.[0]}</AvatarFallback>
+                <AvatarImage src={m.image ?? undefined} />
+                <AvatarFallback>{m.name[0]}</AvatarFallback>
               </Avatar>
             ))}
           </div>
         ) : (
           <Avatar className="size-5 mt-1">
             <AvatarImage src={display.membersToDisplay[0].image ?? undefined} />
-            <AvatarFallback>{display.membersToDisplay[0].name?.[0]}</AvatarFallback>
+            <AvatarFallback>{display.membersToDisplay[0].name[0]}</AvatarFallback>
           </Avatar>
         )
       ) : (
         display.icon && <display.icon className="size-5 text-muted-foreground mt-1 shrink-0" />
       )}
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <p className="font-semibold">{display.name}</p>
-        </div>
-        <p className="text-sm text-muted-foreground truncate">{rawContent}</p>
+
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold truncate min-w-0">{display.name}</p>
+        <p className="text-sm text-muted-foreground line-clamp-1 min-w-0">{draft.text}</p>
       </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Hint label="Delete draft" side="top">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={(e) => {
-              e.preventDefault();
-              handleDelete();
-            }}
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        </Hint>
-        <Hint label="Edit draft" side="top">
-          <Link href={display.link}>
-            <Button variant="ghost" size="icon" className="size-8">
-              <Pencil className="size-4" />
+
+      <div className="relative flex items-center">
+        <span className="text-xs text-muted-foreground shrink-0 opacity-100 group-hover:opacity-0 transition-opacity">
+          {formattedDate}
+        </span>
+        <div className="absolute right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity border border-border-default rounded-md p-0.5 top-0.5 bg-secondary">
+          <Hint label="Delete draft" side="top">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={(e) => {
+                e.preventDefault();
+                clearDraft(workspaceId, id);
+                toast.success('Draft deleted.');
+              }}
+            >
+              <Trash2 className="size-4" />
             </Button>
-          </Link>
-        </Hint>
-        <Hint label="Send message" side="top">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={(e) => {
-              e.preventDefault();
-              sendMessage();
-            }}
-            disabled={isSending}
-          >
-            <Send className="size-4" />
-          </Button>
-        </Hint>
+          </Hint>
+          <Hint label="Edit draft" side="top">
+            <Link href={display.link}>
+              <Button variant="ghost" size="icon" className="size-8">
+                <Pencil className="size-4" />
+              </Button>
+            </Link>
+          </Hint>
+          <Hint label="Send message" side="top">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={(e) => {
+                e.preventDefault();
+                sendMessage();
+              }}
+              disabled={isSending}
+            >
+              <Send className="size-4" />
+            </Button>
+          </Hint>
+        </div>
       </div>
     </Link>
   );

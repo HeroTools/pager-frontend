@@ -20,8 +20,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useDebouncedCallback } from 'use-debounce';
 import { toast } from 'sonner';
+import { useDebouncedCallback } from 'use-debounce';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
 import { LinkDialog } from './link-dialog';
@@ -199,7 +199,7 @@ const Editor = ({
         if (quill.getText().trim().length === 0) {
           clearDraft(workspaceId, entityId);
         } else {
-          setDraft(workspaceId, entityId, value, entityType);
+          setDraft(workspaceId, entityId, value, entityType, quill.getText().trim());
         }
       }
     }

@@ -528,7 +528,7 @@ const AttachmentGrid: FC<{
           onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
           isSingle={isSingle}
           isThread={isThread}
-          priority={index === 0}
+          priority={true} // we shouldn't set priority to messages below the fold
         />
       );
     }
