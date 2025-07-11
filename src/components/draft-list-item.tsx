@@ -167,7 +167,10 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   }
 
   return (
-    <div className="group flex items-start gap-3 p-2 rounded-md hover:bg-secondary/50">
+    <Link
+      href={display.link}
+      className="group flex items-start gap-3 p-2 rounded-md hover:bg-secondary/50 cursor-pointer"
+    >
       {display.membersToDisplay.length > 0 ? (
         display.membersToDisplay.length > 1 ? (
           <div className="relative flex items-center mt-1">
@@ -198,7 +201,15 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <Hint label="Delete draft" side="top">
-          <Button variant="ghost" size="icon" className="size-8" onClick={handleDelete}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
+          >
             <Trash2 className="size-4" />
           </Button>
         </Hint>
@@ -214,13 +225,16 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
             variant="ghost"
             size="icon"
             className="size-8"
-            onClick={sendMessage}
+            onClick={(e) => {
+              e.preventDefault();
+              sendMessage();
+            }}
             disabled={isSending}
           >
             <Send className="size-4" />
           </Button>
         </Hint>
       </div>
-    </div>
+    </Link>
   );
 };
