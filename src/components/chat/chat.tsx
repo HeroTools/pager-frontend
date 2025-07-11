@@ -75,6 +75,8 @@ export const Chat: FC<ChatProps> = ({
   const { workspaceId } = useParamIds();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+  const lastScrollTopRef = useRef<number>(0);
+  const isLoadingMoreRef = useRef<boolean>(false);
 
   const handleSendMessage = (content: {
     body: string;
@@ -96,14 +98,15 @@ export const Chat: FC<ChatProps> = ({
     }
   }, []);
 
+  // Auto-scroll to bottom for new messages only when user is near bottom
   useEffect(() => {
-    if (shouldScrollToBottom) {
+    if (shouldScrollToBottom && !isLoadingMore) {
       scrollToBottom();
     }
-  }, [messages, shouldScrollToBottom, scrollToBottom]);
+  }, [messages, shouldScrollToBottom, scrollToBottom, isLoadingMore]);
 
   useEffect(() => {
-    if (!shouldScrollToBottom) {
+    if (!shouldScrollToBottom || isLoadingMore) {
       return;
     }
     const c = messagesContainerRef.current;
@@ -112,14 +115,16 @@ export const Chat: FC<ChatProps> = ({
     }
 
     const ro = new ResizeObserver(() => {
-      scrollToBottom('auto');
+      if (shouldScrollToBottom && !isLoadingMore) {
+        scrollToBottom('auto');
+      }
     });
     ro.observe(c);
     return () => ro.disconnect();
-  }, [messages, shouldScrollToBottom, scrollToBottom]);
+  }, [messages, shouldScrollToBottom, scrollToBottom, isLoadingMore]);
 
   useEffect(() => {
-    if (!shouldScrollToBottom) {
+    if (!shouldScrollToBottom || isLoadingMore) {
       return;
     }
     const c = messagesContainerRef.current;
@@ -130,7 +135,9 @@ export const Chat: FC<ChatProps> = ({
     const imgs = Array.from(c.querySelectorAll('img'));
 
     const onImgLoad = () => {
-      c.scrollTo({ top: c.scrollHeight, behavior: 'auto' });
+      if (shouldScrollToBottom && !isLoadingMore) {
+        c.scrollTo({ top: c.scrollHeight, behavior: 'auto' });
+      }
     };
 
     imgs.forEach((img) => {
@@ -142,24 +149,31 @@ export const Chat: FC<ChatProps> = ({
     return () => {
       imgs.forEach((img) => img.removeEventListener('load', onImgLoad));
     };
-  }, [messages, shouldScrollToBottom]);
+  }, [messages, shouldScrollToBottom, isLoadingMore]);
 
   const handleScroll = useCallback(() => {
-    if (!messagesContainerRef.current) {
-      return;
-    }
-    const c = messagesContainerRef.current!;
+    const c = messagesContainerRef.current;
+    if (!c) return;
 
-    if (c.scrollTop < 100 && hasMoreMessages && !isLoadingMore) {
-      const prevH = c.scrollHeight;
-      setShouldScrollToBottom(false);
+    const scrollTop = c.scrollTop;
+    const scrollHeight = c.scrollHeight;
+    const clientHeight = c.clientHeight;
+
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
+    setShouldScrollToBottom(isNearBottom);
+
+    if (scrollTop < 200 && hasMoreMessages && !isLoadingMore && !isLoadingMoreRef.current) {
+      isLoadingMoreRef.current = true;
+      lastScrollTopRef.current = scrollTop;
       onLoadMore();
-      setTimeout(() => {
-        c.scrollTop = c.scrollHeight - prevH;
-      }, 100);
     }
-    setShouldScrollToBottom(c.scrollTop + c.clientHeight >= c.scrollHeight - 100);
   }, [hasMoreMessages, isLoadingMore, onLoadMore]);
+
+  useEffect(() => {
+    if (!isLoadingMore) {
+      isLoadingMoreRef.current = false;
+    }
+  }, [isLoadingMore]);
 
   return (
     <div className="flex flex-col h-full">
@@ -175,6 +189,7 @@ export const Chat: FC<ChatProps> = ({
         messages={messages}
         currentUser={currentUser}
         isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
         onEdit={handleEditMessage}
         onDelete={onDeleteMessage}
         onReaction={onReactToMessage}
