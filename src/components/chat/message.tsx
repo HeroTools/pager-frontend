@@ -44,10 +44,8 @@ import ThreadButton from './thread-button';
 const ATTACHMENT_CONFIG = {
   SINGLE: {
     image: {
-      maxWidth: 'max-w-md',
-      maxHeight: 'max-h-96',
-      height: 'h-auto',
-      aspectRatio: 'auto',
+      maxWidthClass: 'max-w-md',
+      maxHeightClass: 'max-h-96',
     },
     video: {
       maxWidth: 'max-w-md',
@@ -58,10 +56,8 @@ const ATTACHMENT_CONFIG = {
   },
   MULTI: {
     image: {
-      maxWidth: 'w-48',
-      maxHeight: 'h-32',
-      height: 'h-32',
-      aspectRatio: '3/2',
+      widthClass: 'w-48',
+      heightClass: 'h-32',
     },
     video: {
       maxWidth: 'w-48',
@@ -72,10 +68,8 @@ const ATTACHMENT_CONFIG = {
   },
   THREAD: {
     image: {
-      maxWidth: 'w-40',
-      maxHeight: 'h-28',
-      height: 'h-28',
-      aspectRatio: '3/2',
+      widthClass: 'w-40',
+      heightClass: 'h-28',
     },
     video: {
       maxWidth: 'w-40',
@@ -85,6 +79,14 @@ const ATTACHMENT_CONFIG = {
     },
   },
 } as const;
+
+interface ImageAttachmentProps {
+  attachment: Attachment;
+  onOpenMediaViewer: () => void;
+  isSingle?: boolean;
+  isThread?: boolean;
+  priority?: boolean;
+}
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
@@ -116,31 +118,32 @@ const getAttachmentConfig = (isSingle: boolean, isThread: boolean) => {
   return isSingle ? ATTACHMENT_CONFIG.SINGLE : ATTACHMENT_CONFIG.MULTI;
 };
 
-const ImageAttachment: FC<{
-  attachment: Attachment;
-  onOpenMediaViewer: () => void;
-  isSingle?: boolean;
-  isThread?: boolean;
-  priority?: boolean;
-}> = ({ attachment, onOpenMediaViewer, isSingle = false, isThread = false, priority = false }) => {
+export const ImageAttachment: FC<ImageAttachmentProps> = ({
+  attachment,
+  onOpenMediaViewer,
+  isSingle = false,
+  isThread = false,
+  priority = false,
+}) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const config = getAttachmentConfig(isSingle, isThread);
-  const filename = attachment.originalFilename || 'Uploaded image';
-  const hasValidUrl = !!attachment.publicUrl;
 
-  return (
-    <div className="relative group/image">
+  const filename = attachment.originalFilename || 'Uploaded image';
+  const url = attachment.publicUrl || '';
+  const hasValidUrl = !!url;
+
+  // 1) Single = no fill: we give it max-width & max-height, let Image size itself
+  // 2) Multi/Thread = fill: we give it exact width/height classes
+  if (isSingle) {
+    const { maxWidthClass, maxHeightClass } = ATTACHMENT_CONFIG.SINGLE.image;
+    return (
       <div
         className={cn(
-          'relative rounded-lg overflow-hidden border bg-muted',
-          hasValidUrl && 'cursor-pointer hover:opacity-90 transition-opacity',
-          config.image.maxWidth,
-          config.image.maxHeight,
-          config.image.height,
+          'relative rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity',
+          maxWidthClass,
+          maxHeightClass,
         )}
         onClick={hasValidUrl ? onOpenMediaViewer : undefined}
-        style={{ aspectRatio: config.image.aspectRatio }}
       >
         {!isLoaded && !hasError && hasValidUrl && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted">
@@ -149,36 +152,86 @@ const ImageAttachment: FC<{
         )}
 
         {hasError || !hasValidUrl ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted">
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <ImageIcon className="w-8 h-8" />
-              <span className="text-sm">Failed to load</span>
-            </div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted text-muted-foreground gap-2">
+            <ImageIcon className="w-8 h-8" />
+            <span className="text-sm">Failed to load</span>
           </div>
         ) : (
           <Image
-            src={attachment.publicUrl}
+            src={url}
             alt={filename}
-            fill
-            className={cn('object-cover transition-opacity', !isLoaded && 'opacity-0')}
-            sizes={isSingle ? '(max-width: 768px) 100vw, 448px' : '192px'}
+            // pick a reasonable “intrinsic” size here that fits under max-w-md / max-h-96
+            width={600}
+            height={400}
+            className={cn('object-contain transition-opacity', !isLoaded && 'opacity-0')}
+            sizes="(max-width: 768px) 100vw, 600px"
             priority={priority}
             onLoad={() => setIsLoaded(true)}
             onError={() => setHasError(true)}
           />
         )}
-      </div>
 
-      <div className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(url, '_blank');
+            }}
+          >
+            <Download className="w-4 h-4 text-white" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const cfg = isThread ? ATTACHMENT_CONFIG.THREAD.image : ATTACHMENT_CONFIG.MULTI.image;
+  const { widthClass, heightClass } = cfg;
+
+  return (
+    <div
+      className={cn(
+        'relative rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0',
+        widthClass,
+        heightClass,
+      )}
+      onClick={hasValidUrl ? onOpenMediaViewer : undefined}
+    >
+      {!isLoaded && !hasError && hasValidUrl && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted">
+          <ImageIcon className="w-8 h-8 text-muted-foreground" />
+        </div>
+      )}
+
+      {hasError || !hasValidUrl ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted text-muted-foreground gap-2">
+          <ImageIcon className="w-8 h-8" />
+          <span className="text-sm">Failed to load</span>
+        </div>
+      ) : (
+        <Image
+          src={url}
+          alt={filename}
+          fill
+          className={cn('object-cover transition-opacity', !isLoaded && 'opacity-0')}
+          sizes={isThread ? '160px' : '192px'}
+          priority={priority}
+          onLoad={() => setIsLoaded(true)}
+          onError={() => setHasError(true)}
+        />
+      )}
+
+      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button
           variant="secondary"
           size="sm"
           className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
-            if (attachment.publicUrl) {
-              window.open(attachment.publicUrl, '_blank');
-            }
+            window.open(url, '_blank');
           }}
         >
           <Download className="w-4 h-4 text-white" />
