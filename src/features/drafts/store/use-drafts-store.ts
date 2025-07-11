@@ -18,7 +18,7 @@ interface DraftsState {
   clearDraft: (workspaceId: string, entityId: string) => void;
   getDraft: (workspaceId: string, entityId: string) => Draft | undefined;
   getWorkspaceDrafts: (workspaceId: string) => Record<string, Draft>;
-  clearWorkspaceDrafts: (workspaceId:string) => void;
+  clearWorkspaceDrafts: (workspaceId: string) => void;
 }
 
 export const useDraftsStore = create<DraftsState>()(
