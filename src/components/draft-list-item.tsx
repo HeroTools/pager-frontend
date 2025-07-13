@@ -1,28 +1,26 @@
 'use client';
 
-import { Hash, Lock, Pencil, Send, Trash2 } from 'lucide-react';
-import Link from 'next/link';
-import { useMemo } from 'react';
-import { toast } from 'sonner';
-
-import { Hint } from '@/components/hint';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
-import { Channel } from '@/features/channels/types';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { cn } from '@/lib/utils/general';
+import { Hash, Lock, MessageSquare, Trash2, Pencil, Send, MessageCircle } from 'lucide-react';
+import { useMemo } from 'react';
+import { Hint } from '@/components/hint';
+import { toast } from 'sonner';
 import { ConversationEntity } from '@/features/conversations/types';
-import { type Draft, useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Channel } from '@/features/channels/types';
 import {
   useCreateChannelMessage,
   useCreateConversationMessage,
 } from '@/features/messages/hooks/use-messages';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { cn } from '@/lib/utils/general';
-import { formatDistanceToNow } from 'date-fns';
+import { useUIStore } from '@/store/ui-store';
 
 interface DraftListItemProps {
-  draft: Draft;
+  draft: ReturnType<typeof useDraftsStore.getState>['drafts'][string];
   entity: Channel | ConversationEntity;
 }
 
@@ -37,10 +35,13 @@ const getConversationDisplayInfo = (
   conversation: ConversationEntity,
   currentUserId: string,
 ): Omit<ConversationDisplay, 'icon'> => {
-  const link = `/${conversation.workspace_id}/d-${conversation.id}`;
+  const workspaceId = conversation.workspace_id;
+  const link = `/${workspaceId}/d-${conversation.id}`;
 
   if (conversation.is_group_conversation) {
-    const names = conversation.other_members.map((m) => m.workspace_member.user.name);
+    const names = conversation.other_members.map(
+      (member: any) => member.workspace_member.user.name,
+    );
     return {
       name: names.join(', '),
       membersToDisplay: conversation.other_members.map((m) => ({
@@ -49,28 +50,27 @@ const getConversationDisplayInfo = (
       })),
       link,
     };
-  }
-
-  if (conversation.other_members.length === 1) {
-    const other = conversation.other_members[0];
+  } else if (conversation.other_members.length === 1) {
+    const otherMember = conversation.other_members[0];
     return {
-      name: other.workspace_member.user.name,
+      name: otherMember.workspace_member.user.name,
       membersToDisplay: [
         {
-          image: other.workspace_member.user.image,
-          name: other.workspace_member.user.name,
+          image: otherMember.workspace_member.user.image,
+          name: otherMember.workspace_member.user.name,
         },
       ],
       link,
     };
   }
-
-  const you = conversation.members.find((m) => m.workspace_member.user_id === currentUserId);
+  const currentUserMember = conversation.members.find(
+    (m) => m.workspace_member.user_id === currentUserId,
+  );
   return {
     name: 'You',
     membersToDisplay: [
       {
-        image: you?.workspace_member.user.image ?? null,
+        image: currentUserMember?.workspace_member.user.image || null,
         name: 'You',
       },
     ],
@@ -82,49 +82,86 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   const workspaceId = useWorkspaceId();
   const { user } = useCurrentUser(workspaceId);
   const { clearDraft } = useDraftsStore();
-  const id = entity.id;
+  const { setThreadOpen } = useUIStore();
 
-  const { mutateAsync: sendChannelMessage, isPending: sendingChan } = useCreateChannelMessage(
+  const id = entity.id;
+  const isThread = !!draft.parentMessageId;
+
+  const { mutateAsync: sendChannelMessage, isPending: isSendingChannel } = useCreateChannelMessage(
     workspaceId,
     id,
   );
-  const { mutateAsync: sendConversationMessage, isPending: sendingConv } =
+
+  const { mutateAsync: sendConversationMessage, isPending: isSendingConversation } =
     useCreateConversationMessage(workspaceId, id);
-  const isSending = sendingChan || sendingConv;
+
+  const isSending = isSendingChannel || isSendingConversation;
 
   const sendMessage = async () => {
-    const payload = { body: draft.content, attachments: [] };
+    const messageData = { body: draft.content, attachments: [] };
+
     try {
       if (draft.type === 'channel') {
-        await sendChannelMessage(payload);
+        await sendChannelMessage(messageData);
       } else {
-        await sendConversationMessage(payload);
+        await sendConversationMessage(messageData);
       }
       clearDraft(workspaceId, id);
       toast.success('Message sent!');
-    } catch {
+    } catch (error) {
       toast.error('Failed to send message.');
     }
   };
 
-  const display = useMemo<ConversationDisplay | null>(() => {
+  const handleDelete = () => {
+    clearDraft(workspaceId, id);
+    toast.success('Draft deleted.');
+  };
+
+  const display: ConversationDisplay | null = useMemo(() => {
     if (draft.type === 'conversation' && !user) return null;
+
     if (draft.type === 'channel') {
-      const ch = entity as Channel;
+      const channel = entity as Channel;
       return {
-        name: ch.name ?? 'Unknown Channel',
+        name: isThread
+          ? `Thread in ${channel?.name ?? 'Unknown Channel'}`
+          : (channel?.name ?? 'Unknown Channel'),
         membersToDisplay: [],
-        icon: ch.channel_type === 'private' ? Lock : Hash,
+        icon: channel?.channel_type === 'private' ? Lock : Hash,
         link: `/${workspaceId}/c-${id}`,
       };
     }
-    return getConversationDisplayInfo(entity as ConversationEntity, user.id);
-  }, [draft.type, entity, workspaceId, user, id]);
+    if (draft.type === 'conversation') {
+      const conversation = entity as ConversationEntity;
+      const conversationInfo = getConversationDisplayInfo(conversation, user!.id);
+      return {
+        ...conversationInfo,
+        name: isThread ? `Thread in ${conversationInfo.name}` : conversationInfo.name,
+        icon: isThread ? MessageCircle : undefined,
+      };
+    }
+    return {
+      name: 'Unknown',
+      membersToDisplay: [],
+      icon: MessageSquare,
+      link: '',
+    };
+  }, [id, draft.type, entity, workspaceId, user, isThread]);
 
-  const formattedDate = useMemo(
-    () => formatDistanceToNow(new Date(draft.updatedAt), { addSuffix: true }),
-    [draft.updatedAt],
-  );
+  const rawContent = useMemo(() => {
+    try {
+      const delta = JSON.parse(draft.content);
+      return (
+        delta.ops
+          ?.map((op: any) => op.insert)
+          .join('')
+          .trim() ?? ''
+      );
+    } catch {
+      return draft.content;
+    }
+  }, [draft.content]);
 
   if (!display) {
     return (
@@ -138,81 +175,115 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
     );
   }
 
+  const handleClick = () => {
+    if (isThread) {
+      // We need to mock a message object for the thread to open
+      // In a real implementation, you might want to fetch the actual parent message
+      const mockParentMessage = {
+        id: draft.parentMessageId!,
+        author: { name: draft.parentAuthorName || 'Unknown' },
+        body: '',
+        timestamp: new Date(),
+        authorId: 'unknown',
+        reactions: [],
+        attachments: [],
+        threadCount: 0,
+        threadParticipants: [],
+        threadLastReplyAt: null,
+        threadId: null,
+        isEdited: false,
+        isDeleted: false,
+        plainText: '',
+      };
+      setThreadOpen(mockParentMessage);
+    } else {
+      // Navigate to the channel/conversation
+      window.location.href = display.link;
+    }
+  };
+
   return (
-    <Link
-      href={display.link}
+    <div
       className="group flex items-start gap-3 p-2 rounded-md hover:bg-secondary/50 cursor-pointer"
+      onClick={handleClick}
     >
       {display.membersToDisplay.length > 0 ? (
         display.membersToDisplay.length > 1 ? (
           <div className="relative flex items-center mt-1">
-            {display.membersToDisplay.slice(0, 2).map((m, i) => (
+            {display.membersToDisplay.slice(0, 2).map((member, index) => (
               <Avatar
-                key={`${m.name}-${i}`}
-                className={cn('size-5 border-2 border-background', i > 0 && '-ml-3')}
+                key={`${member.name}-${index}`}
+                className={cn('size-5 border-2 border-background', index > 0 && '-ml-3')}
               >
-                <AvatarImage src={m.image ?? undefined} />
-                <AvatarFallback>{m.name[0]}</AvatarFallback>
+                <AvatarImage src={member.image ?? undefined} />
+                <AvatarFallback>{member.name?.[0]}</AvatarFallback>
               </Avatar>
             ))}
           </div>
         ) : (
           <Avatar className="size-5 mt-1">
             <AvatarImage src={display.membersToDisplay[0].image ?? undefined} />
-            <AvatarFallback>{display.membersToDisplay[0].name[0]}</AvatarFallback>
+            <AvatarFallback>{display.membersToDisplay[0].name?.[0]}</AvatarFallback>
           </Avatar>
         )
       ) : (
         display.icon && <display.icon className="size-5 text-muted-foreground mt-1 shrink-0" />
       )}
-
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold truncate min-w-0">{display.name}</p>
-        <p className="text-sm text-muted-foreground line-clamp-1 min-w-0">{draft.text}</p>
-      </div>
-
-      <div className="relative flex items-center">
-        <span className="text-xs text-muted-foreground shrink-0 opacity-100 group-hover:opacity-0 transition-opacity">
-          {formattedDate}
-        </span>
-        <div className="absolute right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity border border-border-default rounded-md p-0.5 top-0.5 bg-secondary">
-          <Hint label="Delete draft" side="top">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={(e) => {
-                e.preventDefault();
-                clearDraft(workspaceId, id);
-                toast.success('Draft deleted.');
-              }}
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          </Hint>
-          <Hint label="Edit draft" side="top">
-            <Link href={display.link}>
-              <Button variant="ghost" size="icon" className="size-8">
-                <Pencil className="size-4" />
-              </Button>
-            </Link>
-          </Hint>
-          <Hint label="Send message" side="top">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={(e) => {
-                e.preventDefault();
-                sendMessage();
-              }}
-              disabled={isSending}
-            >
-              <Send className="size-4" />
-            </Button>
-          </Hint>
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <p className="font-semibold">{display.name}</p>
         </div>
+        {isThread && draft.parentAuthorName && (
+          <p className="text-xs text-muted-foreground">Reply to {draft.parentAuthorName}</p>
+        )}
+        <p className="text-sm text-muted-foreground truncate">{rawContent}</p>
       </div>
-    </Link>
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Hint label="Delete draft" side="top">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </Hint>
+        <Hint label="Edit draft" side="top">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isThread) {
+                handleClick();
+              } else {
+                window.location.href = display.link;
+              }
+            }}
+          >
+            <Pencil className="size-4" />
+          </Button>
+        </Hint>
+        <Hint label="Send message" side="top">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={(e) => {
+              e.preventDefault();
+              sendMessage();
+            }}
+            disabled={isSending}
+          >
+            <Send className="size-4" />
+          </Button>
+        </Hint>
+      </div>
+    </div>
   );
 };
