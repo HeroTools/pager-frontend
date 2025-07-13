@@ -1,7 +1,7 @@
 import { differenceInMinutes, format, parseISO } from 'date-fns';
 import { AlertTriangle, Loader, XIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ChatMessage } from '@/components/chat/message';
@@ -73,8 +73,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
     type,
   );
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
   const {
     data = { replies: [] },
     isLoadingThread,
@@ -98,19 +96,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
   const isWaitingForPersistence = isParentOptimistic && isMessagePending(parentMessage.id);
 
   const replies = transformMessages(data?.replies || [], currentUser);
-
-  const scrollToBottom = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-    }
-  };
-
-  // Auto-scroll when new messages are added
-  useEffect(() => {
-    if (replies.length > 0) {
-      scrollToBottom();
-    }
-  }, [replies.length]);
 
   // Sort replies chronologically (oldest first)
   const sortedReplies = [...replies].sort(
@@ -152,7 +137,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
         plain_text: content.plainText,
       });
 
-      setTimeout(() => scrollToBottom(), 100);
+      setEditorKey((prev) => prev + 1);
     } catch (error) {
       console.error('Failed to send thread reply:', error);
       toast.error('Failed to send reply. Please try again.');
@@ -329,8 +314,10 @@ export const Thread = ({ onClose }: ThreadProps) => {
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}
           userId={currentUser.id}
-          channelId={entityId}
-          conversationId={entityId}
+          channelId={type === 'channel' ? entityId : undefined}
+          conversationId={type === 'conversation' ? entityId : undefined}
+          parentMessageId={parentMessage?.id}
+          parentAuthorName={parentMessage?.author?.name}
         />
       </div>
     </div>

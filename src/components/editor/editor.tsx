@@ -20,8 +20,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { toast } from 'sonner';
 import { useDebouncedCallback } from 'use-debounce';
+import { toast } from 'sonner';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
 import { LinkDialog } from './link-dialog';
@@ -47,6 +47,8 @@ interface EditorProps {
   userId: string;
   channelId?: string;
   conversationId?: string;
+  parentMessageId?: string;
+  parentAuthorName?: string;
 }
 
 const TLDs = ['com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'dev', 'app', 'xyz', 'info', 'biz'];
@@ -70,6 +72,8 @@ const Editor = ({
   userId,
   channelId,
   conversationId,
+  parentMessageId,
+  parentAuthorName,
 }: EditorProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [text, setText] = useState('');
@@ -199,7 +203,10 @@ const Editor = ({
         if (quill.getText().trim().length === 0) {
           clearDraft(workspaceId, entityId);
         } else {
-          setDraft(workspaceId, entityId, value, entityType, quill.getText().trim());
+          setDraft(workspaceId, entityId, value, entityType, {
+            parentMessageId,
+            parentAuthorName,
+          });
         }
       }
     }
