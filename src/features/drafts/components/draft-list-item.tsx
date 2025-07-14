@@ -91,7 +91,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   const { user } = useCurrentUser(workspaceId);
   const { clearDraft } = useDraftsStore();
 
-  const { setThreadOpen } = useUIStore();
+  const { setThreadOpen, setThreadHighlightMessageId } = useUIStore();
 
   const id = entity.id;
   const isThread = !!draft.parentMessageId;
@@ -194,14 +194,15 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
       if (cached) {
         const transformed = transformMessages([cached], user);
         setThreadOpen(transformed[0]);
+        setThreadHighlightMessageId(transformed[0].id);
       } else {
         const { data: fetchedMessage } = await refetch();
         if (fetchedMessage) {
           const transformed = transformMessages([fetchedMessage], user);
           setThreadOpen(transformed[0]);
+          setThreadHighlightMessageId(transformed[0].id);
         }
       }
-      router.push(display.link);
     } else {
       router.push(display.link);
     }
