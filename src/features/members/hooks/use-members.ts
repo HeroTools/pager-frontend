@@ -17,6 +17,10 @@ export const useGetMembers = (workspaceId: string, filters?: Partial<MemberFilte
     queryKey: ['members', workspaceId, filters],
     queryFn: () => membersApi.getMembers(workspaceId, filters),
     enabled: !!workspaceId,
-    staleTime: 8 * 60 * 60 * 1000,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    gcTime: 600_000,
   });
 };

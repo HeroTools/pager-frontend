@@ -1,12 +1,3 @@
-import EmojiPicker from '@/components/emoji-picker';
-import { Hint } from '@/components/hint';
-import { Button } from '@/components/ui/button';
-import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
-import { useFileUpload } from '@/features/file-upload';
-import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
-import { useTypingStatus } from '@/hooks/use-typing-status';
-import { validateFile } from '@/lib/helpers';
-import { cn } from '@/lib/utils';
 import hljs from 'highlight.js';
 import { CaseSensitive, Paperclip, SendHorizontal, Smile } from 'lucide-react';
 import Quill, { type Delta, type QuillOptions } from 'quill';
@@ -20,8 +11,18 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useDebouncedCallback } from 'use-debounce';
 import { toast } from 'sonner';
+import { useDebouncedCallback } from 'use-debounce';
+
+import EmojiPicker from '@/components/emoji-picker';
+import { Hint } from '@/components/hint';
+import { Button } from '@/components/ui/button';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useFileUpload } from '@/features/file-upload';
+import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
+import { useTypingStatus } from '@/hooks/use-typing-status';
+import { validateFile } from '@/lib/helpers';
+import { cn } from '@/lib/utils';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
 import { LinkDialog } from './link-dialog';
@@ -203,7 +204,7 @@ const Editor = ({
         if (quill.getText().trim().length === 0) {
           clearDraft(workspaceId, entityId);
         } else {
-          setDraft(workspaceId, entityId, value, entityType, {
+          setDraft(workspaceId, entityId, value, quill.getText().trim(), entityType, {
             parentMessageId,
             parentAuthorName,
           });
