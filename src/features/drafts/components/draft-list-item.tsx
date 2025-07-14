@@ -124,7 +124,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
       } else {
         await sendConversationMessage(messageData);
       }
-      clearDraft(workspaceId, id);
+      clearDraft(workspaceId, id, draft.parentMessageId);
       toast.success('Message sent!');
     } catch (error) {
       toast.error('Failed to send message.');
@@ -132,7 +132,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   };
 
   const handleDelete = () => {
-    clearDraft(workspaceId, id);
+    clearDraft(workspaceId, id, draft.parentMessageId);
     toast.success('Draft deleted.');
   };
 
@@ -196,7 +196,6 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
         setThreadOpen(transformed[0]);
       } else {
         const { data: fetchedMessage } = await refetch();
-        console.log(fetchedMessage);
         if (fetchedMessage) {
           const transformed = transformMessages([fetchedMessage], user);
           setThreadOpen(transformed[0]);

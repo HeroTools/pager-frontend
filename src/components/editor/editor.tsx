@@ -172,7 +172,7 @@ const Editor = ({
       }
 
       if (entityId) {
-        clearDraft(workspaceId, entityId);
+        clearDraft(workspaceId, entityId, parentMessageId);
       }
 
       quill.setText('');
@@ -197,7 +197,16 @@ const Editor = ({
         stopTyping();
       }
     }
-  }, [hasUploadsInProgress, attachments, image, stopTyping, variant, entityId, workspaceId]);
+  }, [
+    hasUploadsInProgress,
+    attachments,
+    image,
+    stopTyping,
+    variant,
+    entityId,
+    workspaceId,
+    parentMessageId,
+  ]);
 
   const handleSubmitRef = useRef(handleSubmit);
 
@@ -207,12 +216,17 @@ const Editor = ({
       if (quill) {
         const value = JSON.stringify(quill.getContents());
         if (quill.getText().trim().length === 0) {
-          clearDraft(workspaceId, entityId);
+          clearDraft(workspaceId, entityId, parentMessageId);
         } else {
-          setDraft(workspaceId, entityId, value, quill.getText().trim(), entityType, {
+          setDraft(
+            workspaceId,
+            entityId,
+            value,
+            quill.getText().trim(),
+            entityType,
             parentMessageId,
             parentAuthorName,
-          });
+          );
         }
       }
     }
@@ -471,7 +485,7 @@ const Editor = ({
       innerRef.current = quill;
     }
 
-    const draft = entityId ? getDraft(workspaceId, entityId) : undefined;
+    const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
     let initialContent: Delta | Op[] = defaultValueRef.current;
     if (draft?.content) {
       try {
@@ -580,7 +594,7 @@ const Editor = ({
     quill.root.addEventListener('blur', handleBlur);
 
     if (entityId) {
-      const draft = getDraft(workspaceId, entityId);
+      const draft = getDraft(workspaceId, entityId, parentMessageId);
       if (draft) {
         try {
           const delta = JSON.parse(draft.content);
@@ -606,7 +620,16 @@ const Editor = ({
         innerRef.current = null;
       }
     };
-  }, [variant, innerRef, entityId, startTyping, stopTyping, debouncedSetDraft, workspaceId]);
+  }, [
+    variant,
+    innerRef,
+    entityId,
+    parentMessageId,
+    startTyping,
+    stopTyping,
+    debouncedSetDraft,
+    workspaceId,
+  ]);
 
   const handleToolbarToggle = useCallback((): void => {
     setIsToolbarVisible(!isToolbarVisible);
