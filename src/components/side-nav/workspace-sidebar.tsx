@@ -25,6 +25,7 @@ import { useChannelNotifications } from '@/features/notifications/hooks/use-chan
 import { useConversationNotifications } from '@/features/notifications/hooks/use-conversation-notifications';
 import { ChannelType } from '@/types/chat';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useUIStore } from '@/store/ui-store';
 
 export const WorkspaceSidebar = () => {
   const router = useRouter();
@@ -37,6 +38,7 @@ export const WorkspaceSidebar = () => {
   const { hasChannelUnread } = useChannelNotifications(workspaceId);
   const { getConversationUnreadCount } = useConversationNotifications(workspaceId);
   const { getWorkspaceDrafts } = useDraftsStore();
+  const { setThreadOpen } = useUIStore();
 
   const draftCount = Object.keys(getWorkspaceDrafts(workspaceId)).length;
 
@@ -107,7 +109,12 @@ export const WorkspaceSidebar = () => {
               <DropdownMenuItem onClick={() => setOpen(true)}>
                 Create a new channel
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push(`/${workspaceId}/browse-channels`)}>
+              <DropdownMenuItem
+                onClick={() => {
+                  setThreadOpen(null);
+                  router.push(`/${workspaceId}/browse-channels`);
+                }}
+              >
                 Browse channels
               </DropdownMenuItem>
             </DropdownMenuContent>

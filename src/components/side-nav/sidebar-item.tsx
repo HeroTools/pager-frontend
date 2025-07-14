@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import { Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useUIStore } from '@/store/ui-store';
 
 interface SidebarItemProps {
   label: string;
@@ -50,6 +51,7 @@ export const SidebarItem = ({
   const router = useRouter();
   const { markEntityNotificationsRead } = useMarkEntityNotificationsRead();
   const { getDraft } = useDraftsStore();
+  const { setThreadOpen } = useUIStore();
 
   const draft = getDraft(id);
   const isDraftsPage = id === 'drafts';
@@ -59,6 +61,7 @@ export const SidebarItem = ({
     e.preventDefault();
 
     try {
+      setThreadOpen(null);
       router.push(link);
       if (hasUnread && !isDraftsPage) {
         await markEntityNotificationsRead(workspaceId, id, 'channel');
