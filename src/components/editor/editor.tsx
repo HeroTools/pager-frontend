@@ -131,11 +131,6 @@ const Editor = ({
       return;
     }
 
-    // Stop typing immediately when submitting
-    if (variant === 'create') {
-      await stopTyping(); // Await to ensure it's sent before submission
-    }
-
     if (hasUploadsInProgress) {
       toast.error('Please wait for all attachments to finish uploading.');
       return;
@@ -172,6 +167,10 @@ const Editor = ({
         plainText: oldText,
       });
 
+      if (result instanceof Promise) {
+        await result;
+      }
+
       if (entityId) {
         clearDraft(workspaceId, entityId);
       }
@@ -183,14 +182,20 @@ const Editor = ({
       setAttachments([]);
       activeUploadBatchRef.current = null;
 
-      if (result instanceof Promise) {
-        await result;
+      if (variant === 'create') {
+        stopTyping();
       }
     } catch (err) {
+      // Restore state on error
       quill.setContents(oldContents);
       setText(oldText);
       setImage(oldImage);
       setAttachments(oldAttachments);
+
+      // Stop typing on error as well since the send failed
+      if (variant === 'create') {
+        stopTyping();
+      }
     }
   }, [hasUploadsInProgress, attachments, image, stopTyping, variant, entityId, workspaceId]);
 
@@ -632,9 +637,9 @@ const Editor = ({
     setIsLinkDialogOpen(false);
   }, []);
 
-  const handleCancel = useCallback(async () => {
+  const handleCancel = useCallback(() => {
     if (variant === 'create') {
-      await stopTyping(); // Ensure typing is stopped when canceling
+      stopTyping(); // Ensure typing is stopped when canceling
     }
     onCancel?.();
   }, [stopTyping, onCancel, variant]);
