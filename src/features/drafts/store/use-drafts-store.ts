@@ -6,6 +6,7 @@ export interface Draft {
   text: string;
   type: 'channel' | 'conversation';
   updatedAt: Date;
+  entityId: string;
   parentMessageId?: string;
   parentAuthorName?: string;
 }
@@ -18,42 +19,48 @@ interface DraftsState {
     content: string,
     text: string,
     type: 'channel' | 'conversation',
-    options?: {
-      parentMessageId?: string;
-      parentAuthorName?: string;
-    },
+    parentMessageId?: string,
+    parentAuthorName?: string,
   ) => void;
-  clearDraft: (workspaceId: string, entityId: string) => void;
-  getDraft: (workspaceId: string, entityId: string) => Draft | undefined;
-  getWorkspaceDrafts: (workspaceId: string) => Record<string, Draft>;
+  clearDraft: (workspaceId: string, entityId: string, parentMessageId?: string) => void;
+  getDraft: (workspaceId: string, entityId: string, parentMessageId?: string) => Draft | undefined;
+  getWorkspaceDrafts: (workspaceId: string) => Draft[];
   clearWorkspaceDrafts: (workspaceId: string) => void;
 }
+
+const createDraftKey = (entityId: string, parentMessageId?: string): string => {
+  return parentMessageId ? `${entityId}::${parentMessageId}` : entityId;
+};
 
 export const useDraftsStore = create<DraftsState>()(
   persist(
     (set, get) => ({
       workspaces: {},
-      setDraft: (workspaceId, entityId, content, text, type, options) => {
+      setDraft: (workspaceId, entityId, content, text, type, parentMessageId, parentAuthorName) => {
+        const draftKey = createDraftKey(entityId, parentMessageId);
         set((state) => ({
           workspaces: {
             ...state.workspaces,
             [workspaceId]: {
               ...(state.workspaces[workspaceId] || {}),
-              [entityId]: {
+              [draftKey]: {
                 content,
                 text,
                 type,
                 updatedAt: new Date(),
-                ...options,
+                entityId,
+                parentMessageId,
+                parentAuthorName,
               },
             },
           },
         }));
       },
-      clearDraft: (workspaceId, entityId) => {
+      clearDraft: (workspaceId, entityId, parentMessageId) => {
+        const draftKey = createDraftKey(entityId, parentMessageId);
         set((state) => {
           const newWorkspaceDrafts = { ...(state.workspaces[workspaceId] || {}) };
-          delete newWorkspaceDrafts[entityId];
+          delete newWorkspaceDrafts[draftKey];
           return {
             workspaces: {
               ...state.workspaces,
@@ -62,11 +69,17 @@ export const useDraftsStore = create<DraftsState>()(
           };
         });
       },
-      getDraft: (workspaceId, entityId) => {
-        return get().workspaces[workspaceId]?.[entityId];
+      getDraft: (workspaceId, entityId, parentMessageId) => {
+        const draftKey = createDraftKey(entityId, parentMessageId);
+        return get().workspaces[workspaceId]?.[draftKey];
       },
       getWorkspaceDrafts: (workspaceId: string) => {
-        return get().workspaces[workspaceId] || {};
+        const draftsMap = get().workspaces[workspaceId] || {};
+        return Object.values(draftsMap).sort((a, b) => {
+          const timeB = new Date(b.updatedAt).getTime();
+          const timeA = new Date(a.updatedAt).getTime();
+          return timeB - timeA;
+        });
       },
       clearWorkspaceDrafts: (workspaceId: string) => {
         set((state) => {

@@ -23,22 +23,15 @@ const DraftsPage = () => {
     if (isLoadingChannels || isLoadingConversations || !conversations || !channels) {
       return [];
     }
-    return Object.entries(drafts as Record<string, Draft>)
-      .map(([id, draft]) => {
-        let entity;
-        if (draft.type === 'channel') {
-          entity = channels?.find((c) => c.id === id);
-        } else {
-          entity = conversations?.find((c) => c.id === id);
-        }
-        return { id, draft, entity };
+    return drafts
+      .map((draft, index) => {
+        const entity =
+          draft.type === 'channel'
+            ? channels?.find((c) => c.id === draft.entityId)
+            : conversations?.find((c) => c.id === draft.entityId);
+        return { id: `draft-${index}`, draft, entity };
       })
-      .filter((item) => !!item.entity)
-      .sort((a, b) => {
-        const timeB = b.draft.updatedAt ? new Date(b.draft.updatedAt).getTime() : 0;
-        const timeA = a.draft.updatedAt ? new Date(a.draft.updatedAt).getTime() : 0;
-        return timeB - timeA;
-      });
+      .filter((item) => !!item.entity);
   }, [drafts, channels, conversations, isLoadingChannels, isLoadingConversations]);
 
   if (isLoadingChannels || isLoadingConversations) {
