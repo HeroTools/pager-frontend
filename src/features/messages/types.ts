@@ -1,4 +1,3 @@
-import type { InfiniteData } from '@tanstack/react-query';
 import type {
   ApiResponse,
   Attachment,
@@ -6,6 +5,7 @@ import type {
   MessageType,
   MessageWithRelations,
 } from '@/types/database';
+import type { InfiniteData } from '@tanstack/react-query';
 import type { UploadedAttachment } from '../file-upload/types';
 
 // Use the database Message type directly
@@ -47,6 +47,9 @@ export type MessagesWithRelationsResponse = ApiResponse<{
   has_more: boolean;
   next_cursor?: string;
 }>;
+export type GetMessageByIdResponse = {
+  message: MessageWithUser;
+};
 
 // Message thread types
 export interface MessageThread {

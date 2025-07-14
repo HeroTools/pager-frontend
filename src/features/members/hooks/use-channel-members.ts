@@ -5,13 +5,18 @@ import { useMemo } from 'react';
 import type { ChatMember, MemberWithUser } from '../types';
 import { useGetMembers } from './use-members';
 
-export function useChannelMembers(workspaceId: string, channelId: string | undefined) {
+export function useChannelMembers(
+  workspaceId: string,
+  channelId: string | undefined,
+  enabled: boolean = true,
+) {
   const { data: workspaceMembers, isLoading: isLoadingWorkspaceMembers } =
     useGetMembers(workspaceId);
 
   const { data: channelMembers, isLoading: isLoadingChannelMembers } = useGetChannelMembers(
     workspaceId,
     channelId || '',
+    enabled,
   );
 
   const combinedMembers = useMemo((): ChatMember[] => {

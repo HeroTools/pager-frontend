@@ -1,7 +1,7 @@
 import { differenceInMinutes, format, parseISO } from 'date-fns';
 import { AlertTriangle, Loader, XIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ChatMessage } from '@/components/chat/message';
@@ -43,12 +43,7 @@ interface ThreadProps {
 
 const TIME_THRESHOLD = 5; // minutes
 
-interface ThreadHeaderProps {
-  onClose: () => void;
-  title: string;
-}
-
-const ThreadHeader = ({ onClose, title }: ThreadHeaderProps) => (
+const ThreadHeader = ({ onClose, title }: { onClose: () => void; title: string }) => (
   <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
     <p className="text-lg font-bold">{title}</p>
     <Button onClick={onClose} size="iconSm" variant="ghost">
@@ -57,9 +52,7 @@ const ThreadHeader = ({ onClose, title }: ThreadHeaderProps) => (
   </div>
 );
 
-const isOptimisticId = (id: string): boolean => {
-  return id.startsWith('temp-');
-};
+const isOptimisticId = (id: string): boolean => id.startsWith('temp-');
 
 export const Thread = ({ onClose }: ThreadProps) => {
   const { selectedThreadParentMessage: parentMessage, threadHighlightMessageId } = useUIStore();
@@ -84,38 +77,45 @@ export const Thread = ({ onClose }: ThreadProps) => {
   });
   const toggleReaction = useToggleReaction(workspaceId);
   const { conversations } = useConversations(workspaceId);
-  const { members: channelMembers } = useChannelMembers(workspaceId, entityId);
+  const { members: channelMembers } = useChannelMembers(workspaceId, entityId, type === 'channel');
 
-  const currentConversation = useMemo(() => {
-    return conversations.find((conversation) => conversation.id === entityId);
-  }, [conversations, entityId]);
+  const currentConversation = useMemo(
+    () => conversations.find((c) => c.id === entityId),
+    [conversations, entityId],
+  );
 
   const [editorKey, setEditorKey] = useState(0);
 
   const isParentOptimistic = parentMessage && isOptimisticId(parentMessage.id);
   const isWaitingForPersistence = isParentOptimistic && isMessagePending(parentMessage.id);
 
-  const replies = transformMessages(data?.replies || [], currentUser);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Sort replies chronologically (oldest first)
+  const replies = transformMessages(data.replies || [], currentUser);
   const sortedReplies = [...replies].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
+  const groupedMessages = sortedReplies.reduce((groups: Record<string, Message[]>, message) => {
+    const messageDate =
+      typeof message.timestamp === 'string' ? parseISO(message.timestamp) : message.timestamp;
+    const dateKey = format(messageDate, 'MMMM d, yyyy');
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(message);
+    return groups;
+  }, {});
 
-  const groupedMessages = sortedReplies.reduce(
-    (groups: Record<string, Message[]>, message: Message) => {
-      const messageDate =
-        typeof message.timestamp === 'string' ? parseISO(message.timestamp) : message.timestamp;
+  const scrollToBottom = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, []);
 
-      const dateKey = format(messageDate, 'MMMM d, yyyy');
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-      groups[dateKey].push(message);
-      return groups;
-    },
-    {} as Record<string, Message[]>,
-  );
+  useEffect(() => {
+    if (replies.length > 0) {
+      scrollToBottom();
+    }
+  }, [replies.length, scrollToBottom]);
 
   const handleSubmit = async (content: {
     body: string;
@@ -137,6 +137,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
         plain_text: content.plainText,
       });
 
+      setTimeout(() => scrollToBottom(), 100);
       setEditorKey((prev) => prev + 1);
     } catch (error) {
       console.error('Failed to send thread reply:', error);
@@ -169,7 +170,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
     try {
       const message = [parentMessage, ...replies].find((m) => m?.id === messageId);
       const existingReaction = message?.reactions?.find((r) => r.value === emoji);
-      const hasReacted = existingReaction?.users.some((user) => user.id === currentUser?.id);
+      const hasReacted = existingReaction?.users.some((u) => u.id === currentUser?.id);
       await toggleReaction.mutateAsync({
         messageId,
         emoji,
@@ -180,20 +181,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
       toast.error('Failed to add reaction. Please try again.');
     }
   };
-
-  if (isWaitingForPersistence || isLoadingThread) {
-    return (
-      <div className="h-full flex flex-col">
-        <ThreadHeader onClose={onClose} title="Thread" />
-        <div className="flex h-full items-center justify-center">
-          <div className="flex flex-col items-center gap-2">
-            <Loader className="size-5 animate-spin text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Loading thread...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (createMessage.isError || threadError || !parentMessage) {
     return (
@@ -222,13 +209,15 @@ export const Thread = ({ onClose }: ThreadProps) => {
     <div className="h-full flex flex-col">
       <ThreadHeader onClose={onClose} title="Thread" />
 
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto messages-scrollbar relative">
-        <div className="flex flex-col">
-          {/* Parent message at the top */}
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 flex flex-col min-h-0 overflow-y-auto messages-scrollbar relative"
+      >
+        <div className="flex-shrink-0 mt-2">
           <div className="pb-2 relative">
             <ChatMessage
               message={parentMessage}
-              currentUser={currentUser!}
+              currentUser={currentUser}
               showAvatar
               isCompact={false}
               onEdit={handleEdit}
@@ -240,13 +229,21 @@ export const Thread = ({ onClose }: ThreadProps) => {
               isHighlighted={parentMessage.id === threadHighlightMessageId}
             />
           </div>
+        </div>
 
-          {/* Thread replies */}
-          <div className="px-4">
-            {replies.length > 0 &&
+        {isWaitingForPersistence || isLoadingThread ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <Loader className="size-5 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Loading thread...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1">
+            {sortedReplies.length > 0 &&
               Object.entries(groupedMessages).map(([dateKey, messages]) => (
                 <div key={dateKey}>
-                  <div className="text-center my-4 relative">
+                  <div className="text-center my-2 relative">
                     <hr className="absolute top-1/2 left-0 right-0 border-t border-border-subtle" />
                     <span className="relative inline-block px-4 py-1 rounded-full text-xs border border-border-subtle bg-background shadow-sm">
                       {formatDateLabel(messages[0].timestamp)}
@@ -259,10 +256,10 @@ export const Thread = ({ onClose }: ThreadProps) => {
                         ? parseISO(message.timestamp)
                         : message.timestamp;
                     const prevMessageTime =
-                      prevMessage && typeof prevMessage.timestamp === 'string'
+                      prevMessage &&
+                      (typeof prevMessage.timestamp === 'string'
                         ? parseISO(prevMessage.timestamp)
-                        : prevMessage?.timestamp;
-
+                        : prevMessage.timestamp);
                     const isCompact =
                       prevMessage &&
                       prevMessage.authorId === message.authorId &&
@@ -272,7 +269,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
                       <ChatMessage
                         key={message.id}
                         message={message}
-                        currentUser={currentUser!}
+                        currentUser={currentUser}
                         showAvatar
                         isCompact={isCompact}
                         onEdit={handleEdit}
@@ -288,7 +285,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
                 </div>
               ))}
           </div>
-        </div>
+        )}
       </div>
 
       <TypingIndicator
@@ -296,14 +293,19 @@ export const Thread = ({ onClose }: ThreadProps) => {
         conversationId={entityId}
         currentUserId={currentUser.id}
         getUserName={(userId) =>
-          getUserName(userId, type === 'channel' ? channelMembers : currentConversation.members)
+          getUserName(
+            userId,
+            type === 'channel' ? channelMembers : currentConversation?.members || [],
+          )
         }
         getUserAvatar={(userId) =>
-          getUserAvatar(userId, type === 'channel' ? channelMembers : currentConversation.members)
+          getUserAvatar(
+            userId,
+            type === 'channel' ? channelMembers : currentConversation?.members || [],
+          )
         }
       />
 
-      {/* Editor at the bottom */}
       <div className="px-4 py-4 border-t border-border-subtle bg-background">
         <Editor
           variant="create"
@@ -316,8 +318,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
           userId={currentUser.id}
           channelId={type === 'channel' ? entityId : undefined}
           conversationId={type === 'conversation' ? entityId : undefined}
-          parentMessageId={parentMessage?.id}
-          parentAuthorName={parentMessage?.author?.name}
+          parentMessageId={parentMessage.id}
+          parentAuthorName={parentMessage.author.name}
         />
       </div>
     </div>

@@ -1,26 +1,33 @@
 'use client';
 
+import { Hash, Lock, MessageCircle, MessageSquare, Pencil, Send, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import { toast } from 'sonner';
+
+import { Hint } from '@/components/hint';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { cn } from '@/lib/utils/general';
-import { Hash, Lock, MessageSquare, Trash2, Pencil, Send, MessageCircle } from 'lucide-react';
-import { useMemo } from 'react';
-import { Hint } from '@/components/hint';
-import { toast } from 'sonner';
-import { ConversationEntity } from '@/features/conversations/types';
-import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
+import { useGetChannelWithMessagesInfinite } from '@/features/channels/hooks/use-channels-mutations';
 import { Channel } from '@/features/channels/types';
+import { useGetConversationWithMessagesInfinite } from '@/features/conversations/hooks/use-conversation-messages';
+import { ConversationEntity } from '@/features/conversations/types';
+import { Draft, useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { transformMessages } from '@/features/messages/helpers';
 import {
   useCreateChannelMessage,
   useCreateConversationMessage,
+  useGetMessageById,
 } from '@/features/messages/hooks/use-messages';
+import { MessageWithUser } from '@/features/messages/types';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { cn } from '@/lib/utils/general';
 import { useUIStore } from '@/store/ui-store';
 
 interface DraftListItemProps {
-  draft: ReturnType<typeof useDraftsStore.getState>['drafts'][string];
+  draft: Draft;
   entity: Channel | ConversationEntity;
 }
 
@@ -79,9 +86,11 @@ const getConversationDisplayInfo = (
 };
 
 export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
-  const workspaceId = useWorkspaceId();
+  const router = useRouter();
+  const { workspaceId, type: entityType, id: entityId } = useParamIds();
   const { user } = useCurrentUser(workspaceId);
   const { clearDraft } = useDraftsStore();
+
   const { setThreadOpen } = useUIStore();
 
   const id = entity.id;
@@ -94,6 +103,15 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
 
   const { mutateAsync: sendConversationMessage, isPending: isSendingConversation } =
     useCreateConversationMessage(workspaceId, id);
+
+  const { data: conversationWithMessages } = useGetConversationWithMessagesInfinite(
+    workspaceId,
+    entityId,
+  );
+
+  const { data: channelMessages } = useGetChannelWithMessagesInfinite(workspaceId, entityId);
+
+  const { data: message, refetch } = useGetMessageById(workspaceId, draft.parentMessageId);
 
   const isSending = isSendingChannel || isSendingConversation;
 
@@ -134,7 +152,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
     }
     if (draft.type === 'conversation') {
       const conversation = entity as ConversationEntity;
-      const conversationInfo = getConversationDisplayInfo(conversation, user!.id);
+      const conversationInfo = getConversationDisplayInfo(conversation, user?.id);
       return {
         ...conversationInfo,
         name: isThread ? `Thread in ${conversationInfo.name}` : conversationInfo.name,
@@ -149,20 +167,6 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
     };
   }, [id, draft.type, entity, workspaceId, user, isThread]);
 
-  const rawContent = useMemo(() => {
-    try {
-      const delta = JSON.parse(draft.content);
-      return (
-        delta.ops
-          ?.map((op: any) => op.insert)
-          .join('')
-          .trim() ?? ''
-      );
-    } catch {
-      return draft.content;
-    }
-  }, [draft.content]);
-
   if (!display) {
     return (
       <div className="flex items-start gap-3 p-2 rounded-md">
@@ -175,30 +179,32 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
     );
   }
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (isThread) {
-      // We need to mock a message object for the thread to open
-      // In a real implementation, you might want to fetch the actual parent message
-      const mockParentMessage = {
-        id: draft.parentMessageId!,
-        author: { name: draft.parentAuthorName || 'Unknown' },
-        body: '',
-        timestamp: new Date(),
-        authorId: 'unknown',
-        reactions: [],
-        attachments: [],
-        threadCount: 0,
-        threadParticipants: [],
-        threadLastReplyAt: null,
-        threadId: null,
-        isEdited: false,
-        isDeleted: false,
-        plainText: '',
-      };
-      setThreadOpen(mockParentMessage);
+      let cached: MessageWithUser | undefined;
+      if (entityType === 'channel') {
+        const allChannelMessages = channelMessages?.pages.flatMap((page) => page.messages) ?? [];
+        cached = allChannelMessages.find((m) => m.id === draft.parentMessageId);
+      } else {
+        const allConversationMessages =
+          conversationWithMessages?.pages.flatMap((page) => page.messages) ?? [];
+        cached = allConversationMessages.find((m) => m.id === draft.parentMessageId);
+      }
+
+      if (cached) {
+        const transformed = transformMessages([cached], user);
+        setThreadOpen(transformed[0]);
+      } else {
+        const { data: fetchedMessage } = await refetch();
+        console.log(fetchedMessage);
+        if (fetchedMessage) {
+          const transformed = transformMessages([fetchedMessage], user);
+          setThreadOpen(transformed[0]);
+        }
+      }
+      router.push(display.link);
     } else {
-      // Navigate to the channel/conversation
-      window.location.href = display.link;
+      router.push(display.link);
     }
   };
 
@@ -236,7 +242,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
         {isThread && draft.parentAuthorName && (
           <p className="text-xs text-muted-foreground">Reply to {draft.parentAuthorName}</p>
         )}
-        <p className="text-sm text-muted-foreground truncate">{rawContent}</p>
+        <p className="text-sm text-muted-foreground truncate">{draft.text}</p>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <Hint label="Delete draft" side="top">
@@ -262,7 +268,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
               if (isThread) {
                 handleClick();
               } else {
-                window.location.href = display.link;
+                router.push(display.link);
               }
             }}
           >
