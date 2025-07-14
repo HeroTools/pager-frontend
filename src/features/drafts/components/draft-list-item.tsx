@@ -181,6 +181,8 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
 
   const handleClick = async () => {
     if (isThread) {
+      router.push(display.link);
+
       let cached: MessageWithUser | undefined;
       if (entityType === 'channel') {
         const allChannelMessages = channelMessages?.pages.flatMap((page) => page.messages) ?? [];
