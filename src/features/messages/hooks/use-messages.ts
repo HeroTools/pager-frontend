@@ -1017,6 +1017,16 @@ export const useMessageReplies = (
   return { data, isLoadingThread, threadError } as const;
 };
 
+export function useGetMessageById(workspaceId: string, messageId: string) {
+  return useQuery({
+    queryKey: ['message', workspaceId, messageId],
+    queryFn: (): Promise<MessageWithUser> => messagesApi.getMessageById(workspaceId, messageId),
+    enabled: false,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+}
+
 export const useMessageOperations = (workspaceId: string, entityId?: string, type?: string) => {
   const createChannelMessage = useCreateChannelMessage(workspaceId, entityId!);
   const createConversationMessage = useCreateConversationMessage(workspaceId, entityId!);

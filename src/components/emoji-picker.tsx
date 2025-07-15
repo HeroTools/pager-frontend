@@ -61,6 +61,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, trigger, open, onOp
       >
         <Picker
           data={data}
+          autoFocus={true}
           onEmojiSelect={handleEmojiSelect}
           theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
           set="native"

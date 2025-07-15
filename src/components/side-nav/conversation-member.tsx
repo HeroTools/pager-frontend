@@ -10,6 +10,9 @@ import { useConversationNotifications } from '@/features/notifications/hooks/use
 import { useMarkEntityNotificationsRead } from '@/features/notifications/hooks/use-mark-entity-notifications-read';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { cn } from '@/lib/utils';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { Pencil } from 'lucide-react';
+import { useUIStore } from '@/store/ui-store';
 
 const conversationItemVariants = cva(
   'flex items-center gap-1.5 justify-start font-normal h-7 px-4 text-sm overflow-hidden',
@@ -78,6 +81,10 @@ export const ConversationItem = ({
   const { getConversationUnreadCount } = useConversationNotifications(workspaceId);
   const { markEntityNotificationsRead } = useMarkEntityNotificationsRead();
   const router = useRouter();
+  const { getDraft } = useDraftsStore();
+  const { setThreadOpen } = useUIStore();
+
+  const draft = getDraft(workspaceId, conversation.id);
 
   const unreadCount = getConversationUnreadCount(conversation.id);
   const isSelfConversation =
@@ -89,6 +96,7 @@ export const ConversationItem = ({
     e.preventDefault();
 
     try {
+      setThreadOpen(null);
       router.push(`/${workspaceId}/d-${conversation.id}`);
       if (hasUnread) {
         await markEntityNotificationsRead(workspaceId, conversation.id, 'conversation');
@@ -130,6 +138,8 @@ export const ConversationItem = ({
             </span>
           )}
         </span>
+
+        {draft && variant !== 'active' && <Pencil className="size-3 ml-auto" />}
 
         {unreadCount > 0 && (
           <Badge

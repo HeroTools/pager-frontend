@@ -9,11 +9,13 @@ import { useConversations } from '@/features/conversations/hooks/use-conversatio
 import { useGetMembers } from '@/features/members/hooks/use-members';
 import { useSearch } from '@/features/search/hooks/use-search';
 import type { SearchResult } from '@/features/search/types';
+import { useUIStore } from '@/store/ui-store';
 import { SEARCH_DEBOUNCE_MS, SEARCH_LIMIT } from '../constants';
 import { filterItems, getNavigationUrl, getUniqueResults } from '../utils';
 
 export const useSearchDialog = (workspaceId: string) => {
   const router = useRouter();
+  const { setThreadOpen } = useUIStore();
 
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -39,6 +41,7 @@ export const useSearchDialog = (workspaceId: string) => {
   const handleChannelClick = useCallback(
     (channelId: string) => () => {
       setOpen(false);
+      setThreadOpen(null);
       router.push(`/${workspaceId}/c-${channelId}`);
     },
     [workspaceId, router],
@@ -47,7 +50,7 @@ export const useSearchDialog = (workspaceId: string) => {
   const handleMemberClick = useCallback(
     (memberId: string) => async () => {
       setOpen(false);
-
+      setThreadOpen(null);
       if (!currentUser?.workspace_member_id) {
         toast.error('Unable to find current user information');
         return;
@@ -85,10 +88,10 @@ export const useSearchDialog = (workspaceId: string) => {
   const handleMessageClick = useCallback(
     (result: SearchResult) => () => {
       setOpen(false);
-
       const navigationUrl = getNavigationUrl({ workspaceId, result });
 
       if (!navigationUrl) {
+        setThreadOpen(null);
         toast.error('Unable to navigate to this message');
         return;
       }
@@ -101,6 +104,7 @@ export const useSearchDialog = (workspaceId: string) => {
   const handleLegacyMessageClick = useCallback(
     (messageId: string) => () => {
       setOpen(false);
+      setThreadOpen(null);
       router.push(`/${workspaceId}/m-${messageId}`);
     },
     [workspaceId, router],

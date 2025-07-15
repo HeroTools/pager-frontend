@@ -11,6 +11,7 @@ import type {
 import type { CurrentUser } from '@/features/auth';
 import { authQueryKeys } from '@/features/auth/query-keys';
 import { workspacesQueryKeys } from '@/features/workspaces/query-keys';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 
 // Get all workspaces
 export const useGetWorkspaces = () => {
@@ -109,10 +110,12 @@ export const useUpdateWorkspace = () => {
 // Delete a workspace
 export const useDeleteWorkspace = () => {
   const queryClient = useQueryClient();
+  const { clearWorkspaceDrafts } = useDraftsStore();
 
   return useMutation({
     mutationFn: (id: string) => workspacesApi.deleteWorkspace(id),
     onSuccess: (_, workspaceId) => {
+      clearWorkspaceDrafts(workspaceId);
       // Remove from workspaces list cache
       queryClient.setQueryData<WorkspaceEntity[]>(
         workspacesQueryKeys.workspaces(),

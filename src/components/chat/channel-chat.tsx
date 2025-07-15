@@ -48,7 +48,7 @@ const ChannelChat = () => {
     refetch: refetchChannel,
   } = useGetChannel(workspaceId, channelId);
 
-  const { members } = useChannelMembers(workspaceId, channelId);
+  const { members } = useChannelMembers(workspaceId, channelId, true);
 
   useRealtimeChannel({
     workspaceId,

@@ -1,4 +1,4 @@
-import { type FC, useCallback, useEffect, useRef, useState } from 'react';
+import { type FC, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import type { CurrentUser } from '@/features/auth';
@@ -11,6 +11,7 @@ import { ChatMember } from '../../features/members';
 import { ChatHeader } from './header';
 import { ChatMessageList } from './message-list';
 import { TypingIndicator } from './typing-indicator';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 
 interface ChatProps {
   channel: Channel;
@@ -73,10 +74,24 @@ export const Chat: FC<ChatProps> = ({
   highlightMessageId,
 }) => {
   const { workspaceId } = useParamIds();
+  const { getDraft } = useDraftsStore();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const lastScrollTopRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
+
+  // Check for drafts for each message
+  const messagesWithDrafts = useMemo(() => {
+    return messages.map((message) => {
+      const draft = getDraft(workspaceId, channel.id, message.id);
+      const hasDraft = draft !== undefined;
+
+      return {
+        ...message,
+        hasDraft,
+      };
+    });
+  }, [messages, workspaceId, channel.id, getDraft]);
 
   const handleSendMessage = (content: {
     body: string;
@@ -186,7 +201,7 @@ export const Chat: FC<ChatProps> = ({
       />
 
       <ChatMessageList
-        messages={messages}
+        messages={messagesWithDrafts}
         currentUser={currentUser}
         isLoading={isLoading}
         isLoadingMore={isLoadingMore}
@@ -216,8 +231,8 @@ export const Chat: FC<ChatProps> = ({
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}
           userId={currentUser.id}
-          channelId={channel.id}
-          conversationId={conversationData?.id}
+          channelId={chatType === 'channel' ? channel.id : undefined}
+          conversationId={chatType === 'conversation' ? channel.id : undefined}
         />
       </div>
     </div>

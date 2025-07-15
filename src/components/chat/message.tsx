@@ -528,7 +528,7 @@ const AttachmentGrid: FC<{
           onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
           isSingle={isSingle}
           isThread={isThread}
-          priority={index === 0}
+          priority={true} // we shouldn't set priority to messages below the fold
         />
       );
     }
@@ -834,11 +834,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
               />
             ) : null}
 
-            {message?.threadCount &&
-            Number(message.threadCount) > 0 &&
-            !hideReplies &&
-            !hideThreadButton ? (
-              <ThreadButton message={message} members={members} />
+            {!hideThreadButton && (message.threadCount || message.hasDraft) ? (
+              <ThreadButton message={message} members={members} hasDraft={message.hasDraft} />
             ) : null}
           </div>
         </div>

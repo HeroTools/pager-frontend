@@ -2,6 +2,8 @@ import type { ApiResponse, Channel, ChannelMemberRole, ChannelType } from '@/typ
 import { MemberWithUser } from '../members';
 import type { MessageWithUser } from '../messages/types';
 
+export type { Channel };
+
 // Use the database Channel type directly
 export type ChannelEntity = Channel;
 

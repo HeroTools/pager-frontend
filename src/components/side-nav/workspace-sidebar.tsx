@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  AlertTriangle,
-  HashIcon,
-  Loader,
-  Lock,
-  MessageSquareText,
-  SendHorizonal,
-} from 'lucide-react';
+import { AlertTriangle, HashIcon, Loader, Lock, MessageSquareText, Pencil } from 'lucide-react';
 
 import { useGetUserChannels } from '@/features/channels/hooks/use-channels-mutations';
 import { useCreateChannelModal } from '@/features/channels/store/use-create-channel-modal';
@@ -31,6 +24,8 @@ import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 import { useChannelNotifications } from '@/features/notifications/hooks/use-channel-notifications';
 import { useConversationNotifications } from '@/features/notifications/hooks/use-conversation-notifications';
 import { ChannelType } from '@/types/chat';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useUIStore } from '@/store/ui-store';
 
 export const WorkspaceSidebar = () => {
   const router = useRouter();
@@ -42,6 +37,10 @@ export const WorkspaceSidebar = () => {
   const { user: currentUser } = useCurrentUser(workspaceId);
   const { hasChannelUnread } = useChannelNotifications(workspaceId);
   const { getConversationUnreadCount } = useConversationNotifications(workspaceId);
+  const { getWorkspaceDrafts } = useDraftsStore();
+  const { setThreadOpen } = useUIStore();
+
+  const draftCount = Object.keys(getWorkspaceDrafts(workspaceId)).length;
 
   const { startConversationCreation } = useConversationCreateStore();
 
@@ -76,7 +75,13 @@ export const WorkspaceSidebar = () => {
         {/* TODO: Implement threads and Drafts & Sent features */}
 
         <SidebarItem label="Threads" icon={MessageSquareText} id="threads" disabled />
-        <SidebarItem label="Drafts & Sent" icon={SendHorizonal} id="drafts" disabled />
+        <SidebarItem
+          label="Drafts"
+          icon={Pencil}
+          id="drafts"
+          variant={entityId === 'drafts' ? 'active' : 'default'}
+          count={draftCount}
+        />
       </div>
       <WorkspaceSection
         label="Channels"
@@ -104,7 +109,12 @@ export const WorkspaceSidebar = () => {
               <DropdownMenuItem onClick={() => setOpen(true)}>
                 Create a new channel
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push(`/${workspaceId}/browse-channels`)}>
+              <DropdownMenuItem
+                onClick={() => {
+                  setThreadOpen(null);
+                  router.push(`/${workspaceId}/browse-channels`);
+                }}
+              >
                 Browse channels
               </DropdownMenuItem>
             </DropdownMenuContent>

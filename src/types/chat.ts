@@ -13,6 +13,7 @@ export interface Message {
   threadId?: string;
   threadLastReplyAt?: string | undefined;
   isEdited?: boolean;
+  hasDraft?: boolean;
 }
 
 export interface Author {
