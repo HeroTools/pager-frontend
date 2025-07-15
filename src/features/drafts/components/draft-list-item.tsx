@@ -181,7 +181,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
 
   const handleClick = async () => {
     if (isThread) {
-      router.push(display.link);
+      router.push(`${display.link}?highlight=${draft.parentMessageId}`);
 
       let cached: MessageWithUser | undefined;
       if (entityType === 'channel') {
