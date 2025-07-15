@@ -16,8 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useDeleteWorkspace, useUpdateWorkspace } from '@/features/workspaces/hooks/use-workspaces';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useConfirm } from '@/hooks/use-confirm';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
 
 interface PreferenceModalProps {
   initialVlaue: string;
@@ -118,7 +118,7 @@ export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModal
                     })}
                     disabled={updateWorkspace.isPending}
                     autoFocus
-                    placeholder="Workspace name e.g. 'Work', 'Personal', 'Home'"
+                    placeholder="Workspace name"
                   />
                   <DialogFooter>
                     <DialogClose asChild>

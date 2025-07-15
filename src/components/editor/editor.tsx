@@ -1,11 +1,3 @@
-import EmojiPicker from '@/components/emoji-picker';
-import { Hint } from '@/components/hint';
-import { Button } from '@/components/ui/button';
-import { useFileUpload } from '@/features/file-upload';
-import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
-import { useTypingStatus } from '@/hooks/use-typing-status';
-import { validateFile } from '@/lib/helpers';
-import { cn } from '@/lib/utils';
 import hljs from 'highlight.js';
 import { CaseSensitive, Paperclip, SendHorizontal, Smile } from 'lucide-react';
 import Quill, { type Delta, type QuillOptions } from 'quill';
@@ -20,6 +12,17 @@ import {
   useState,
 } from 'react';
 import { toast } from 'sonner';
+import { useDebouncedCallback } from 'use-debounce';
+
+import EmojiPicker from '@/components/emoji-picker';
+import { Hint } from '@/components/hint';
+import { Button } from '@/components/ui/button';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useFileUpload } from '@/features/file-upload';
+import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
+import { useTypingStatus } from '@/hooks/use-typing-status';
+import { validateFile } from '@/lib/helpers';
+import { cn } from '@/lib/utils';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
 import { LinkDialog } from './link-dialog';
@@ -45,6 +48,8 @@ interface EditorProps {
   userId: string;
   channelId?: string;
   conversationId?: string;
+  parentMessageId?: string;
+  parentAuthorName?: string;
 }
 
 const TLDs = ['com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'dev', 'app', 'xyz', 'info', 'biz'];
@@ -68,6 +73,8 @@ const Editor = ({
   userId,
   channelId,
   conversationId,
+  parentMessageId,
+  parentAuthorName,
 }: EditorProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [text, setText] = useState('');
@@ -79,6 +86,13 @@ const Editor = ({
     null,
   );
   const [selectedText, setSelectedText] = useState('');
+
+  const { getDraft, setDraft, clearDraft } = useDraftsStore();
+  const { entityId, entityType } = useMemo(() => {
+    if (channelId) return { entityId: channelId, entityType: 'channel' as const };
+    if (conversationId) return { entityId: conversationId, entityType: 'conversation' as const };
+    return { entityId: undefined, entityType: undefined };
+  }, [channelId, conversationId]);
 
   const { startTyping, stopTyping } = useTypingStatus({
     userId,
@@ -117,11 +131,6 @@ const Editor = ({
       return;
     }
 
-    // Stop typing immediately when submitting
-    if (variant === 'create') {
-      await stopTyping(); // Await to ensure it's sent before submission
-    }
-
     if (hasUploadsInProgress) {
       toast.error('Please wait for all attachments to finish uploading.');
       return;
@@ -158,6 +167,14 @@ const Editor = ({
         plainText: oldText,
       });
 
+      if (result instanceof Promise) {
+        await result;
+      }
+
+      if (entityId) {
+        clearDraft(workspaceId, entityId, parentMessageId);
+      }
+
       quill.setText('');
       quill.setContents([]);
       setText('');
@@ -165,18 +182,55 @@ const Editor = ({
       setAttachments([]);
       activeUploadBatchRef.current = null;
 
-      if (result instanceof Promise) {
-        await result;
+      if (variant === 'create') {
+        stopTyping();
       }
     } catch (err) {
+      // Restore state on error
       quill.setContents(oldContents);
       setText(oldText);
       setImage(oldImage);
       setAttachments(oldAttachments);
+
+      // Stop typing on error as well since the send failed
+      if (variant === 'create') {
+        stopTyping();
+      }
     }
-  }, [hasUploadsInProgress, attachments, image, stopTyping, variant]);
+  }, [
+    hasUploadsInProgress,
+    attachments,
+    image,
+    stopTyping,
+    variant,
+    entityId,
+    workspaceId,
+    parentMessageId,
+  ]);
 
   const handleSubmitRef = useRef(handleSubmit);
+
+  const debouncedSetDraft = useDebouncedCallback(() => {
+    if (entityId && entityType) {
+      const quill = quillRef.current;
+      if (quill) {
+        const value = JSON.stringify(quill.getContents());
+        if (quill.getText().trim().length === 0) {
+          clearDraft(workspaceId, entityId, parentMessageId);
+        } else {
+          setDraft(
+            workspaceId,
+            entityId,
+            value,
+            quill.getText().trim(),
+            entityType,
+            parentMessageId,
+            parentAuthorName,
+          );
+        }
+      }
+    }
+  }, 500);
 
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
@@ -431,7 +485,16 @@ const Editor = ({
       innerRef.current = quill;
     }
 
-    quill.setContents(defaultValueRef.current);
+    const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
+    let initialContent: Delta | Op[] = defaultValueRef.current;
+    if (draft?.content) {
+      try {
+        initialContent = JSON.parse(draft.content);
+      } catch (e) {
+        console.error('Error parsing draft content', e);
+      }
+    }
+    quill.setContents(initialContent, 'silent');
     setText(quill.getText());
 
     quill.root.addEventListener(
@@ -506,14 +569,17 @@ const Editor = ({
     const textChangeHandler = (delta: Delta, oldDelta: Delta, source: string) => {
       const currentText = quill.getText();
       setText(currentText);
+      debouncedSetDraft();
 
       if (source === 'user') {
         handleTextChange();
 
-        if (currentText.trim().length > 0) {
-          startTyping();
-        } else {
-          stopTyping();
+        if (variant === 'create') {
+          if (currentText.trim().length > 0) {
+            startTyping();
+          } else {
+            stopTyping();
+          }
         }
       }
     };
@@ -526,6 +592,18 @@ const Editor = ({
 
     quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
     quill.root.addEventListener('blur', handleBlur);
+
+    if (entityId) {
+      const draft = getDraft(workspaceId, entityId, parentMessageId);
+      if (draft) {
+        try {
+          const delta = JSON.parse(draft.content);
+          quill.setContents(delta, 'silent');
+        } catch (e) {
+          console.error('Error parsing draft content', e);
+        }
+      }
+    }
 
     return () => {
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
@@ -542,10 +620,19 @@ const Editor = ({
         innerRef.current = null;
       }
     };
-  }, [startTyping, stopTyping, variant]);
+  }, [
+    variant,
+    innerRef,
+    entityId,
+    parentMessageId,
+    startTyping,
+    stopTyping,
+    debouncedSetDraft,
+    workspaceId,
+  ]);
 
   const handleToolbarToggle = useCallback((): void => {
-    setIsToolbarVisible((v) => !v);
+    setIsToolbarVisible(!isToolbarVisible);
     const toolbarEl = containerRef.current?.querySelector('.ql-toolbar');
     if (toolbarEl) {
       toolbarEl.classList.toggle('hidden');
@@ -573,9 +660,9 @@ const Editor = ({
     setIsLinkDialogOpen(false);
   }, []);
 
-  const handleCancel = useCallback(async () => {
+  const handleCancel = useCallback(() => {
     if (variant === 'create') {
-      await stopTyping(); // Ensure typing is stopped when canceling
+      stopTyping(); // Ensure typing is stopped when canceling
     }
     onCancel?.();
   }, [stopTyping, onCancel, variant]);

@@ -4,6 +4,7 @@ import type {
   ChannelMessageWithRelations,
   CreateChannelMessageData,
   CreateConversationMessageData,
+  GetMessageByIdResponse,
   MessageEntity,
   MessageFilters,
   MessageResponse,
@@ -114,11 +115,11 @@ export const messagesApi = {
   /**
    * Get a specific message
    */
-  getMessage: async (workspaceId: string, messageId: string): Promise<MessageEntity> => {
-    const { data: response } = await api.get<MessageResponse>(
+  getMessageById: async (workspaceId: string, messageId: string): Promise<MessageWithUser> => {
+    const { data: response } = await api.get<GetMessageByIdResponse>(
       `/workspaces/${workspaceId}/messages/${messageId}`,
     );
-    return response.data;
+    return response.message;
   },
 
   /**

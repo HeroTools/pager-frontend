@@ -74,8 +74,11 @@ export const useGetChannelWithMessagesInfinite = (
 
       return pagination.hasMore ? pagination.nextCursor : undefined;
     },
-    staleTime: 2 * 60 * 60 * 1000,
-    gcTime: 2 * 60 * 60 * 1000,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     initialPageParam: undefined as string | undefined,
     select: (data) => ({
       pages: data.pages,
@@ -304,11 +307,15 @@ export const useRemoveChannelMembers = () => {
 };
 
 // Get channel members
-export const useGetChannelMembers = (workspaceId: string, channelId: string) => {
+export const useGetChannelMembers = (
+  workspaceId: string,
+  channelId: string,
+  enabled: boolean = true,
+) => {
   return useQuery({
     queryKey: channelsQueryKeys.channelMembers(workspaceId, channelId),
     queryFn: () => channelsApi.getChannelMembers(workspaceId, channelId),
-    enabled: !!(workspaceId && channelId),
+    enabled: !!(workspaceId && channelId) && enabled,
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnMount: false,
     refetchOnWindowFocus: false,

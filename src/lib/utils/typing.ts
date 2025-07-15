@@ -38,9 +38,6 @@ export const broadcastTypingStatus = (
         timestamp: new Date().toISOString(),
       },
     })
-    .then((response) => {
-      console.log('Typing status broadcasted successfully', response);
-    })
     .catch((error) => {
       console.error('Failed to broadcast typing status:', error);
     });

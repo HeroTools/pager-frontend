@@ -23,8 +23,11 @@ export const useGetConversationWithMessagesInfinite = (
 
       return pagination.hasMore ? pagination.nextCursor : undefined;
     },
-    staleTime: 2 * 60 * 60 * 1000,
-    gcTime: 2 * 60 * 60 * 1000,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     initialPageParam: undefined as string | undefined,
     select: (data) => ({
       pages: data.pages,
