@@ -50,8 +50,6 @@ const DraftsPage = () => {
     );
   }
 
-  console.log(draftsWithEntities);
-
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
