@@ -3,23 +3,25 @@ import { useMemo } from 'react';
 import type { Message } from '@/types/chat';
 import type { MemberWithUser } from '@/features/members';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Pencil } from 'lucide-react';
 import { useUIStore } from '@/store/ui-store';
 import { formatDistanceToNow } from 'date-fns';
 import getThreadMembers from '@/lib/helpers/get-thread-members';
 import { cn } from '@/lib/utils';
 
-const ThreadButton: FC<{ message: Message; members: MemberWithUser[] }> = ({
-  message,
-  members,
-}) => {
+const ThreadButton: FC<{
+  message: Message;
+  members: MemberWithUser[];
+  hasDraft?: boolean;
+}> = ({ message, members, hasDraft = false }) => {
   const threadMembers = useMemo(
     () => getThreadMembers(message.threadParticipants!, members),
     [message.threadParticipants, members],
   );
   const { setThreadOpen, setProfilePanelOpen } = useUIStore();
 
-  if (!message.threadCount || message.threadCount === 0) {
+  // Show button if there are threads OR if there's a draft
+  if (!message.threadCount && !hasDraft) {
     return null;
   }
 
@@ -34,34 +36,46 @@ const ThreadButton: FC<{ message: Message; members: MemberWithUser[] }> = ({
         '[&:hover>.view-thread]:inline-flex',
       )}
     >
-      <div className="flex gap-1">
-        {displayedMembers.map((member) => (
-          <Avatar
-            key={member.id}
-            className="w-5 h-5 ring-2 ring-card-foreground cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent thread from opening
-              setProfilePanelOpen(member.id);
-            }}
-          >
-            <AvatarImage src={member.user.image} />
-            <AvatarFallback className="text-sm">
-              {member.user.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        ))}
-      </div>
+      {message.threadCount > 0 && (
+        <>
+          <div className="flex gap-1">
+            {displayedMembers.map((member) => (
+              <Avatar
+                key={member.id}
+                className="w-5 h-5 ring-2 ring-card-foreground cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent thread from opening
+                  setProfilePanelOpen(member.id);
+                }}
+              >
+                <AvatarImage src={member.user.image} />
+                <AvatarFallback className="text-sm">
+                  {member.user.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            ))}
+          </div>
 
-      <span className="font-medium">
-        {message.threadCount} {message.threadCount === 1 ? 'reply' : 'replies'}
-      </span>
+          <span className="font-medium">
+            {message.threadCount} {message.threadCount === 1 ? 'reply' : 'replies'}
+          </span>
+        </>
+      )}
 
-      <span className="last-reply text-text-subtle transition-all">
-        Last reply{' '}
-        {formatDistanceToNow(new Date(message.threadLastReplyAt!), {
-          addSuffix: true,
-        })}
-      </span>
+      {hasDraft && (
+        <span className="flex items-center gap-1 font-medium">
+          <Pencil className="w-3 h-3" />1 draft
+        </span>
+      )}
+
+      {message.threadCount > 0 && message.threadLastReplyAt && (
+        <span className="last-reply text-text-subtle transition-all">
+          Last reply{' '}
+          {formatDistanceToNow(new Date(message.threadLastReplyAt), {
+            addSuffix: true,
+          })}
+        </span>
+      )}
 
       <span className="view-thread hidden items-center justify-between text-text-subtle gap-1 transition-all flex-1">
         View thread <ChevronRight className="w-3 h-3" />

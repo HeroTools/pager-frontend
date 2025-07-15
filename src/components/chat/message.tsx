@@ -834,11 +834,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
               />
             ) : null}
 
-            {message?.threadCount &&
-            Number(message.threadCount) > 0 &&
-            !hideReplies &&
-            !hideThreadButton ? (
-              <ThreadButton message={message} members={members} />
+            {!hideThreadButton && (message.threadCount || message.hasDraft) ? (
+              <ThreadButton message={message} members={members} hasDraft={message.hasDraft} />
             ) : null}
           </div>
         </div>
