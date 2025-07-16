@@ -20,6 +20,10 @@ interface UIState {
   profileMemberId: string | null;
   setProfilePanelOpen: (memberId: string | null) => void;
   isProfilePanelOpen: () => boolean;
+  aiAssistantPanelOpen: boolean;
+  setAiAssistantPanelOpen: (open: boolean) => void;
+  toggleAiAssistantPanel: () => void;
+  isAiAssistantPanelOpen: () => boolean;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -59,4 +63,11 @@ export const useUIStore = create<UIState>((set, get) => ({
     set({ profileMemberId: memberId });
   },
   isProfilePanelOpen: () => get().profileMemberId !== null,
+  aiAssistantPanelOpen: false,
+  setAiAssistantPanelOpen: (open) => set({ aiAssistantPanelOpen: open }),
+  toggleAiAssistantPanel: () =>
+    set((state) => ({
+      aiAssistantPanelOpen: !state.aiAssistantPanelOpen,
+    })),
+  isAiAssistantPanelOpen: () => get().aiAssistantPanelOpen,
 }));

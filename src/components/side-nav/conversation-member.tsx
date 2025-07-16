@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import { Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -6,12 +7,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { ConversationEntity } from '@/features/conversations/types';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import { useConversationNotifications } from '@/features/notifications/hooks/use-conversation-notifications';
 import { useMarkEntityNotificationsRead } from '@/features/notifications/hooks/use-mark-entity-notifications-read';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { cn } from '@/lib/utils';
-import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
-import { Pencil } from 'lucide-react';
 import { useUIStore } from '@/store/ui-store';
 
 const conversationItemVariants = cva(

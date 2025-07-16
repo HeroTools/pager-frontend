@@ -1,10 +1,10 @@
 import type { LucideIcon } from 'lucide-react';
-import type { IconType } from 'react-icons/lib';
+
 import { NotificationBadge } from '@/components/notification-badge';
 import { cn } from '@/lib/utils';
 
 interface SidebarButtonProps {
-  icon: LucideIcon | IconType;
+  icon: LucideIcon;
   label: string;
   isActive?: boolean;
   disabled?: boolean;
