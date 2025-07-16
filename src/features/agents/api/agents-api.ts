@@ -1,6 +1,7 @@
 import api from '@/lib/api/axios-client';
 import {
   AgentChatData,
+  AgentChatResponse,
   AgentConversationData,
   AgentConversationFilters,
   AgentConversationMessageFilters,
@@ -13,8 +14,12 @@ export const agentsApi = {
   /**
    * Chat with an agent
    */
-  chat: async (data: AgentChatData): Promise<any> => {
-    return await api.post(`/workspaces/${data.workspaceId}/agents/chat`, data);
+  createMessage: async (data: AgentChatData): Promise<AgentChatResponse> => {
+    const { data: response } = await api.post<AgentChatResponse>(
+      `/workspaces/${data.workspaceId}/agents/chat`,
+      data,
+    );
+    return response;
   },
 
   getAgents: async (

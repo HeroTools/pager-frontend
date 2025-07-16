@@ -48,6 +48,7 @@ interface EditorProps {
   userId: string;
   channelId?: string;
   conversationId?: string;
+  agentConversationId?: string;
   parentMessageId?: string;
   parentAuthorName?: string;
 }
@@ -73,6 +74,7 @@ const Editor = ({
   userId,
   channelId,
   conversationId,
+  agentConversationId,
   parentMessageId,
   parentAuthorName,
 }: EditorProps) => {
@@ -91,8 +93,10 @@ const Editor = ({
   const { entityId, entityType } = useMemo(() => {
     if (channelId) return { entityId: channelId, entityType: 'channel' as const };
     if (conversationId) return { entityId: conversationId, entityType: 'conversation' as const };
+    if (agentConversationId)
+      return { entityId: agentConversationId, entityType: 'agent_conversation' as const };
     return { entityId: undefined, entityType: undefined };
-  }, [channelId, conversationId]);
+  }, [channelId, conversationId, agentConversationId]);
 
   const { startTyping, stopTyping } = useTypingStatus({
     userId,

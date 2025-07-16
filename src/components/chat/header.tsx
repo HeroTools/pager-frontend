@@ -22,7 +22,7 @@ import type { Channel } from '@/types/chat';
 interface ChatHeaderProps {
   channel: Channel;
   members?: ChatMember[];
-  chatType?: 'conversation' | 'channel';
+  chatType?: 'conversation' | 'channel' | 'agent';
   conversationData?: any;
   currentUser?: any;
 }
