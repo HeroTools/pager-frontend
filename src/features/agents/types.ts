@@ -1,7 +1,9 @@
 export interface AgentChatData {
+  _optimisticId?: string;
   workspaceId: string;
   message: string;
   conversationId: string;
+  agentId: string;
   stream?: boolean;
 }
 
@@ -97,6 +99,12 @@ export interface AgentMessageWithSender {
     size_bytes: number;
     order_index: number;
   }>;
+  _isOptimistic?: boolean;
+}
+
+export interface AgentChatResponse {
+  userMessage: AgentMessageWithSender;
+  agentMessage: AgentMessageWithSender;
 }
 
 export interface AgentConversationData {
