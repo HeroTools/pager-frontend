@@ -1,4 +1,5 @@
 import type {
+  Agent,
   ApiResponse,
   ChannelMemberRole,
   User,
@@ -30,17 +31,19 @@ export interface MemberWithRelations extends MemberEntity {
 export interface ChatMember {
   id: string; // conversation_member.id or channel_member.id
   joined_at: string;
-  role: ChannelMemberRole;
-  notifications_enabled: boolean;
+  role?: ChannelMemberRole;
+  notifications_enabled?: boolean;
   left_at: string | null;
   is_hidden: boolean;
   last_read_message_id?: string;
-  workspace_member: MemberWithUser;
+  member_type: 'user' | 'agent';
+  workspace_member?: MemberWithUser;
+  ai_agent?: Agent;
 }
 
 // Update member role data
 export interface UpdateMemberRoleData {
-  role: WorkspaceMemberRole; // 'admin' | 'member' from database enum
+  role: WorkspaceMemberRole;
 }
 
 // Member invitation data

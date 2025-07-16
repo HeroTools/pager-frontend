@@ -1,11 +1,13 @@
 'use client';
-import { Bell, Home, MessagesSquare, MoreHorizontal } from 'lucide-react';
+
+import { Bell, Home } from 'lucide-react';
+
 import { UserButton } from '@/features/auth';
+import { useUnreadCount } from '@/features/notifications/hooks/use-notifications';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { useUIStore } from '@/store/ui-store';
 import { SidebarButton } from './sidebar-button';
 import { WorkspaceSwitcher } from './workspace-switcher';
-import { useParamIds } from '@/hooks/use-param-ids';
-import { useUnreadCount } from '@/features/notifications/hooks/use-notifications';
-import { useUIStore } from '@/store/ui-store';
 
 export const Sidebar = () => {
   const { workspaceId } = useParamIds();
@@ -46,7 +48,7 @@ export const Sidebar = () => {
         />
       </div>
       <div className="flex flex-col items-center justify-center gap-y-1 mt-auto">
-        <UserButton workspaceId={workspaceId!} />
+        <UserButton workspaceId={workspaceId} />
       </div>
     </div>
   );

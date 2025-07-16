@@ -381,7 +381,7 @@ body {
   }
 
   .ql-container {
-    @apply !font-sans !border !border-border !border-t-0 !rounded-b-md !bg-input max-h-80 overflow-y-auto;
+    @apply !font-sans !border-0 !rounded-b-md max-h-80 overflow-y-auto;
   }
 
   .ql-editor {
