@@ -1,16 +1,27 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+import { useAgentConversations } from '@/features/agents/hooks/use-agents';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { useParams } from 'next/navigation';
 
-// This would be your page component at: /[workspaceId]/agents/[agentId]/conversations/[conversationId]
 export default function AgentConversationPage() {
-  const { workspaceId } = useParamIds();
-  const params = useParams();
-  const agentId = params.agentId as string;
-  const conversationId = params.conversationId as string;
+  const { workspaceId, agentId } = useParamIds();
 
-  if (!workspaceId || !agentId || !conversationId) {
+  const router = useRouter();
+
+  const { data, isLoading } = useAgentConversations(workspaceId, agentId);
+
+  const conversationId = data?.conversations?.[0]?.id;
+
+  useEffect(() => {
+    if (conversationId) {
+      router.push(`/${workspaceId}/agents/${agentId}/${conversationId}`);
+    }
+  }, [conversationId, router, workspaceId, agentId]);
+
+  if (isLoading) {
     return <div>Loading...</div>;
   }
-
-  return <h1>Agent Conversation</h1>;
 }
