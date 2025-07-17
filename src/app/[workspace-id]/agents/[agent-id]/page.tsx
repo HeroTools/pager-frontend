@@ -3,12 +3,12 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+import AgentConversationChat from '@/features/agents/components/agent-conversation-chat';
 import { useAgentConversations } from '@/features/agents/hooks/use-agents';
 import { useParamIds } from '@/hooks/use-param-ids';
 
 export default function AgentConversationPage() {
   const { workspaceId, agentId } = useParamIds();
-
   const router = useRouter();
 
   const { data, isLoading } = useAgentConversations(workspaceId, agentId);
@@ -17,11 +17,13 @@ export default function AgentConversationPage() {
 
   useEffect(() => {
     if (conversationId) {
-      router.push(`/${workspaceId}/agents/${agentId}/${conversationId}`);
+      router.replace(`/${workspaceId}/agents/${agentId}/${conversationId}`);
     }
   }, [conversationId, router, workspaceId, agentId]);
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
+
+  return <AgentConversationChat agentId={agentId} conversationId={conversationId || null} />;
 }

@@ -105,6 +105,7 @@ export interface AgentMessageWithSender {
 export interface AgentChatResponse {
   userMessage: AgentMessageWithSender;
   agentMessage: AgentMessageWithSender;
+  conversation: AgentConversation;
 }
 
 export interface AgentConversationData {

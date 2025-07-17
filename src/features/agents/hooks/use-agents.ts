@@ -1,3 +1,4 @@
+import { CurrentUser } from '@/features/auth';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { agentsApi } from '../api/agents-api';
 import { agentsQueryKeys } from '../query-keys';
@@ -44,22 +45,42 @@ export const useInfiniteAgentConversations = (
   });
 };
 
-// For infinite scrolling (loading older messages)
 export const useInfiniteAgentConversationMessages = (
   workspaceId: string,
   agentId: string,
-  conversationId: string,
+  conversationId: string | null,
+  currentUser: CurrentUser | null,
+  isTempId: boolean,
   filters?: Omit<AgentConversationMessageFilters, 'cursor'>,
 ) => {
   return useInfiniteQuery({
     queryKey: ['agent-conversation-messages-infinite', workspaceId, agentId, conversationId],
-    queryFn: ({ pageParam }) =>
-      agentsApi.getAgentConversationMessages(workspaceId, agentId, conversationId, {
+    queryFn: ({ pageParam }) => {
+      return agentsApi.getAgentConversationMessages(workspaceId, agentId, conversationId, {
         ...filters,
         limit: 50,
         cursor: pageParam,
-      }),
-    initialPageParam: undefined, // First page has no cursor
+      });
+    },
+    initialPageParam: undefined,
+    initialData: isTempId
+      ? {
+          pages: [
+            {
+              conversation: null,
+              agent: { id: agentId, name: '', avatar_url: null, is_active: true },
+              messages: [],
+              pagination: { hasMore: false, nextCursor: null, totalCount: 0 },
+              user_conversation_data: {
+                member_id: '',
+                last_read_message_id: null,
+                workspace_member_id: currentUser?.workspace_member_id || '',
+              },
+            },
+          ],
+          pageParams: [undefined],
+        }
+      : undefined,
     select: (data) => ({
       pages: data.pages,
       pageParams: data.pageParams,
@@ -67,8 +88,9 @@ export const useInfiniteAgentConversationMessages = (
     getNextPageParam: (lastPage) => {
       return lastPage.pagination.hasMore ? lastPage.pagination.nextCursor : undefined;
     },
-    enabled: !!workspaceId && !!agentId && !!conversationId,
-    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    // Disable query for temp IDs - rely on cache updates from mutations
+    enabled: !!workspaceId && !!agentId && !!conversationId && !isTempId,
+    staleTime: 1000 * 60 * 60 * 24,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });

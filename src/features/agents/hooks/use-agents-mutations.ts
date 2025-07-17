@@ -1,70 +1,89 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
-import { toast } from 'sonner';
-
-import { agentsApi } from '@/features/agents/api/agents-api';
-import {
-  AgentChatData,
-  AgentChatResponse,
-  AgentConversationData,
-  AgentMessageWithSender,
-} from '@/features/agents/types';
 import { authQueryKeys } from '@/features/auth/query-keys';
 import { CurrentUser } from '@/features/auth/types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useRef } from 'react';
+import { toast } from 'sonner';
+import { streamAgentChat } from '../api/streaming-api';
 
-interface AgentMessagesInfiniteData {
-  pages: Array<AgentConversationData>;
-  pageParams: (string | undefined)[];
-}
-
-interface AgentMessageMutationContext {
-  previousMessages?: AgentMessagesInfiniteData;
-  optimisticId?: string;
-}
-
-export const useCreateMessage = (workspaceId: string, agentId: string, conversationId: string) => {
+export const useCreateMessage = (
+  workspaceId: string,
+  agentId: string,
+  conversationId: string | null,
+) => {
   const queryClient = useQueryClient();
+  const streamingContentRef = useRef<string>('');
 
   const getInfiniteQueryKey = useCallback(
-    () => ['agent-conversation-messages-infinite', workspaceId, agentId, conversationId] as const,
-    [workspaceId, agentId, conversationId],
+    (cId: string) => ['agent-conversation-messages-infinite', workspaceId, agentId, cId] as const,
+    [workspaceId, agentId],
   );
 
-  return useMutation<AgentChatResponse, Error, AgentChatData, AgentMessageMutationContext>({
-    mutationKey: ['createAgentMessage', workspaceId, agentId, conversationId],
+  const getConversationsQueryKey = useCallback(
+    () => ['agent-conversations', workspaceId, agentId] as const,
+    [workspaceId, agentId],
+  );
 
-    // 1) call out to the API
-    mutationFn: async (data) => {
-      const response = await agentsApi.createMessage(data);
-      console.log('Agent message created successfully:', response);
-      return response;
+  return useMutation({
+    mutationKey: ['createStreamingAgentMessage', workspaceId, agentId, conversationId],
+
+    mutationFn: async (data: { message: string; _optimisticId?: string }) => {
+      streamingContentRef.current = '';
+
+      return new Promise((resolve, reject) => {
+        streamAgentChat(
+          {
+            message: data.message,
+            conversationId,
+            agentId,
+            workspaceId,
+          },
+          {
+            onUserMessage: (userData) => {
+              // Handle user message confirmation if needed
+              console.log('User message saved:', userData);
+            },
+            onContentDelta: (content) => {
+              streamingContentRef.current += content;
+              // Update the optimistic agent message in real-time
+              updateOptimisticAgentMessage(data._optimisticId, streamingContentRef.current);
+            },
+            onAgentSwitch: (agent) => {
+              console.log('Agent switched to:', agent);
+            },
+            onToolCall: (toolCall) => {
+              console.log('Tool call:', toolCall);
+            },
+            onComplete: (completeData) => {
+              resolve(completeData);
+            },
+            onError: (error) => {
+              reject(new Error(error));
+            },
+          },
+        ).catch(reject);
+      });
     },
 
-    // 2) optimistic update
     onMutate: async (data) => {
-      const queryKey = getInfiniteQueryKey();
-      await queryClient.cancelQueries({ queryKey });
-
-      const previous = queryClient.getQueryData<AgentMessagesInfiniteData>(queryKey);
+      const isNewConversation = !conversationId;
       const currentUser = queryClient.getQueryData<CurrentUser>(authQueryKeys.currentUser());
 
       if (!currentUser) {
         console.error('No current user for optimistic agent message');
-        return { previousMessages: previous };
+        return { isNewConversation };
       }
 
+      const tempConversationId = conversationId || `temp-${agentId}-${Date.now()}`;
       const optimisticId = data._optimisticId || `temp-${Date.now()}-${Math.random()}`;
-      const optimisticMsg: AgentMessageWithSender = {
+      const agentOptimisticId = `agent-temp-${Date.now()}-${Math.random()}`;
+
+      const optimisticUserMsg = {
         id: optimisticId,
         body: data.message,
-        channel_id: null,
-        conversation_id: conversationId,
+        conversation_id: tempConversationId,
         workspace_id: workspaceId,
         workspace_member_id: currentUser.workspace_member_id,
         ai_agent_id: null,
-        parent_message_id: null,
-        thread_id: null,
-        message_type: 'direct',
         sender_type: 'user',
         user: {
           id: currentUser.id,
@@ -73,38 +92,41 @@ export const useCreateMessage = (workspaceId: string, agentId: string, conversat
           image: currentUser.image,
         },
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        edited_at: null,
-        deleted_at: null,
-        blocks: null,
-        metadata: null,
-        reactions: [],
-        attachments: [],
-        thread_reply_count: 0,
-        thread_last_reply_at: null,
-        thread_participants: [],
         _isOptimistic: true,
-      } as AgentMessageWithSender & { _isOptimistic: boolean };
+      };
 
-      console.log('optimisticMsg', optimisticMsg);
-      console.log(queryKey);
+      const optimisticAgentMsg = {
+        id: agentOptimisticId,
+        body: '',
+        conversation_id: tempConversationId,
+        workspace_id: workspaceId,
+        ai_agent_id: agentId,
+        sender_type: 'agent',
+        created_at: new Date().toISOString(),
+        _isOptimistic: true,
+        _isStreaming: true,
+      };
 
-      // insert into the first page
-      queryClient.setQueryData<AgentMessagesInfiniteData>(queryKey, (old) => {
+      const queryKey = getInfiniteQueryKey(tempConversationId);
+      await queryClient.cancelQueries({ queryKey });
+
+      const previousMessages = queryClient.getQueryData(queryKey);
+
+      queryClient.setQueryData(queryKey, (old: any) => {
         if (!old?.pages?.length) {
           return {
             pages: [
               {
                 conversation: {
-                  id: conversationId,
+                  id: tempConversationId,
                   workspace_id: workspaceId,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                   title: null,
                 },
                 agent: { id: agentId, name: '', avatar_url: null, is_active: true },
-                messages: [optimisticMsg],
-                pagination: { hasMore: false, nextCursor: null, totalCount: 1 },
+                messages: [optimisticUserMsg, optimisticAgentMsg],
+                pagination: { hasMore: false, nextCursor: null, totalCount: 2 },
                 user_conversation_data: {
                   member_id: '',
                   last_read_message_id: null,
@@ -118,71 +140,132 @@ export const useCreateMessage = (workspaceId: string, agentId: string, conversat
 
         const newPages = [...old.pages];
         const firstPage = newPages[0];
-        const messageExists = firstPage.messages.find((m) => m.id === optimisticMsg.id);
-
-        if (messageExists) {
-          return old;
-        }
 
         newPages[0] = {
           ...firstPage,
-          messages: [...firstPage.messages, optimisticMsg],
+          messages: [...firstPage.messages, optimisticUserMsg, optimisticAgentMsg],
           pagination: {
             ...firstPage.pagination,
-            totalCount: (firstPage.pagination?.totalCount || 0) + 1,
+            totalCount: (firstPage.pagination?.totalCount || 0) + 2,
           },
         };
         return { ...old, pages: newPages };
       });
 
-      return { previousMessages: previous, optimisticId };
+      return {
+        previousMessages,
+        optimisticId,
+        agentOptimisticId,
+        isNewConversation,
+        tempConversationId,
+      };
     },
 
-    // 3) on success, swap out the temp user-msg for the real one, then append the agent reply
     onSuccess: (res, _vars, ctx) => {
-      const queryKey = getInfiniteQueryKey();
-      if (!ctx?.optimisticId) return;
+      const isNewConversation = ctx?.isNewConversation;
+      const newConversationId = res.conversation?.id;
+      const tempConversationId = ctx?.tempConversationId;
 
-      queryClient.setQueryData<AgentMessagesInfiniteData>(queryKey, (old) => {
-        if (!old) return old;
+      if (isNewConversation && newConversationId && tempConversationId) {
+        const tempQueryKey = getInfiniteQueryKey(tempConversationId);
+        queryClient.removeQueries({ queryKey: tempQueryKey });
 
-        const pages = old.pages.map((page, i) => {
-          if (i !== 0) return page; // Only update the first page
+        const realQueryKey = getInfiniteQueryKey(newConversationId);
+        const initialPageData = {
+          conversation: res.conversation,
+          agent: { id: agentId, name: '', avatar_url: null, is_active: true },
+          messages: [
+            { ...res.userMessage, _isOptimistic: false },
+            { ...res.agentMessage, _isOptimistic: false },
+          ],
+          pagination: { hasMore: false, nextCursor: null, totalCount: 2 },
+          user_conversation_data: {
+            member_id: '',
+            last_read_message_id: null,
+            workspace_member_id: res.userMessage.workspace_member_id,
+          },
+        };
 
-          // Replace optimistic message and add agent reply
-          const messages = page.messages.map((m) =>
-            m.id === ctx.optimisticId ? { ...res.userMessage, _isOptimistic: false } : m,
-          );
-          const newMessages = [...messages, { ...res.agentMessage, _isOptimistic: false }];
+        queryClient.setQueryData(realQueryKey, {
+          pages: [initialPageData],
+          pageParams: [undefined],
+        });
 
+        const conversationsQueryKey = getConversationsQueryKey();
+        queryClient.setQueryData(conversationsQueryKey, (oldData: any) => {
+          if (!oldData) {
+            return { conversations: [res.conversation] };
+          }
           return {
-            ...page,
-            messages: newMessages,
-            pagination: {
-              ...page.pagination,
-              totalCount: page.pagination.totalCount + 1,
-            },
+            ...oldData,
+            conversations: [res.conversation, ...oldData.conversations],
           };
         });
-        return { ...old, pages };
-      });
+      } else if (!isNewConversation && conversationId) {
+        const queryKey = getInfiniteQueryKey(conversationId);
+
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old) return old;
+
+          const pages = old.pages.map((page: any, i: number) => {
+            if (i !== 0) return page;
+
+            const messages = page.messages.map((m: any) => {
+              if (m.id === ctx?.optimisticId) {
+                return { ...res.userMessage, _isOptimistic: false };
+              }
+              if (m.id === ctx?.agentOptimisticId) {
+                return { ...res.agentMessage, _isOptimistic: false };
+              }
+              return m;
+            });
+
+            return { ...page, messages };
+          });
+          return { ...old, pages };
+        });
+      }
     },
 
-    // 4) rollback on error
     onError: (err, _vars, ctx) => {
-      console.error('Agent message failed:', err);
-      const queryKey = getInfiniteQueryKey();
-      if (ctx?.previousMessages) {
-        queryClient.setQueryData(queryKey, ctx.previousMessages);
+      console.error('Streaming agent message failed:', err);
+
+      if (ctx?.isNewConversation && ctx?.tempConversationId) {
+        const tempQueryKey = getInfiniteQueryKey(ctx.tempConversationId);
+        queryClient.removeQueries({ queryKey: tempQueryKey });
+      } else if (conversationId) {
+        const queryKey = getInfiniteQueryKey(conversationId);
+        if (ctx?.previousMessages) {
+          queryClient.setQueryData(queryKey, ctx.previousMessages);
+        }
       }
+
       toast.error('Failed to send to agent. Try again.');
     },
-
-    // 5) finally, refetch stale
-    onSettled: (_data, _error) => {
-      const queryKey = getInfiniteQueryKey();
-      queryClient.invalidateQueries({ queryKey, exact: true, refetchType: 'none' });
-      setTimeout(() => queryClient.invalidateQueries({ queryKey }), 1000);
-    },
   });
+
+  function updateOptimisticAgentMessage(userOptimisticId: string | undefined, content: string) {
+    if (!userOptimisticId) return;
+
+    const tempConversationId = conversationId || `temp-${agentId}-${Date.now()}`;
+    const queryKey = getInfiniteQueryKey(tempConversationId);
+
+    queryClient.setQueryData(queryKey, (old: any) => {
+      if (!old?.pages?.length) return old;
+
+      const pages = old.pages.map((page: any, i: number) => {
+        if (i !== 0) return page;
+
+        const messages = page.messages.map((m: any) => {
+          if (m._isStreaming && m.sender_type === 'agent') {
+            return { ...m, body: content };
+          }
+          return m;
+        });
+
+        return { ...page, messages };
+      });
+      return { ...old, pages };
+    });
+  }
 };
