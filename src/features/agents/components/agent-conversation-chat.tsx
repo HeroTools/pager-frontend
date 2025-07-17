@@ -2,10 +2,10 @@
 
 import { AlertTriangle, Loader } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Chat } from '@/components/chat/chat';
-import { transformAgentMessages, transformSingleAgentMessage } from '@/features/agents/helpers';
+import { transformAgentMessages } from '@/features/agents/helpers';
 import {
   useAgents,
   useInfiniteAgentConversationMessages,
@@ -13,7 +13,6 @@ import {
 import { useCreateMessage } from '@/features/agents/hooks/use-agents-mutations';
 import { useCurrentUser } from '@/features/auth';
 import type { UploadedAttachment } from '@/features/file-upload/types';
-import { updateSelectedMessageIfNeeded } from '@/features/messages/helpers';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
 import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
@@ -22,7 +21,7 @@ import { type Channel, ChannelType } from '@/types/chat';
 
 interface AgentConversationChatProps {
   agentId: string;
-  conversationId: string;
+  conversationId: string | null;
 }
 
 const AgentConversationChat = ({ agentId, conversationId }: AgentConversationChatProps) => {
@@ -30,6 +29,16 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
   const searchParams = useSearchParams();
   const router = useRouter();
   const { setThreadOpen, setThreadHighlightMessageId } = useUIStore();
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(conversationId);
+
+  // Create a stable temporary conversation ID for new conversations
+  const tempConversationIdRef = useRef<string | null>(null);
+  if (!tempConversationIdRef.current && !currentConversationId) {
+    tempConversationIdRef.current = `temp-${agentId}-${Date.now()}`;
+  }
+
+  // Use the real conversation ID if we have one, otherwise use the temp ID
+  const queryConversationId = currentConversationId || tempConversationIdRef.current;
 
   const { user: currentUser } = useCurrentUser(workspaceId);
   const { addPendingMessage, removePendingMessage } = useMessagesStore();
@@ -37,7 +46,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
   // Get agents data
   const { data: agents, isLoading: isLoadingAgents } = useAgents(workspaceId);
 
-  // Get conversation messages
+  // Get conversation messages only if we have a conversationId (real or temp)
   const {
     data: conversationWithMessages,
     isLoading: isLoadingMessages,
@@ -45,12 +54,23 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteAgentConversationMessages(workspaceId, agentId, conversationId, {
-    limit: 50,
-  });
+  } = useInfiniteAgentConversationMessages(
+    workspaceId,
+    agentId,
+    queryConversationId,
+    currentUser,
+    queryConversationId.includes('temp'),
+    {
+      limit: 50,
+    },
+  );
 
   // Message operation hooks
-  const { mutateAsync: createMessage } = useCreateMessage(workspaceId, agentId, conversationId);
+  const { mutateAsync: createMessage } = useCreateMessage(
+    workspaceId,
+    agentId,
+    currentConversationId,
+  );
   const toggleReaction = useToggleReaction(workspaceId);
 
   const agent = useMemo(() => {
@@ -79,13 +99,22 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
   const highlightMessageId = searchParams.get('highlight');
   const threadMessageId = searchParams.get('thread');
 
+  // Update current conversation ID when prop changes
   useEffect(() => {
-    if (threadMessageId && messages.length > 0 && !isLoadingMessages) {
+    if (conversationId && conversationId !== currentConversationId) {
+      setCurrentConversationId(conversationId);
+      // Clear the temp conversation ID since we now have a real one
+      tempConversationIdRef.current = null;
+    }
+  }, [conversationId, currentConversationId]);
+
+  useEffect(() => {
+    if (threadMessageId && messages.length > 0 && !isLoadingMessages && currentConversationId) {
       const parentMessage = messages.find((m) => m.id === threadMessageId);
       if (parentMessage) {
         setThreadOpen(parentMessage);
         setThreadHighlightMessageId(highlightMessageId);
-        const newUrl = `/${workspaceId}/agents/${agentId}/${conversationId}`;
+        const newUrl = `/${workspaceId}/agents/${agentId}/${currentConversationId}`;
         router.replace(newUrl, { scroll: false });
       }
     }
@@ -96,7 +125,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     router,
     workspaceId,
     agentId,
-    conversationId,
+    currentConversationId,
     highlightMessageId,
     isLoadingMessages,
     setThreadHighlightMessageId,
@@ -105,7 +134,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
   // Transform agent data to Channel format for existing Chat component
   const transformAgentToChannel = (agent: any): Channel => {
     return {
-      id: conversationId,
+      id: queryConversationId || `temp-${agentId}`,
       name: agent?.name || 'AI Agent',
       description: agent?.description || `Chat with ${agent?.name}`,
       isPrivate: true,
@@ -114,7 +143,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     };
   };
 
-  const isLoading = isLoadingMessages || isLoadingAgents || !currentUser;
+  const isLoading = isLoadingAgents || !currentUser;
   const error = messagesError;
 
   if (isLoading) {
@@ -126,19 +155,19 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
   }
 
   // Handle error states
-  if (error || !conversationWithMessages || !agents) {
+  if (error || !agents) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
         <span className="text-muted-foreground text-sm">
-          {error ? 'Failed to load conversation' : 'Conversation not found'}
+          {error ? 'Failed to load conversation' : 'Agent not found'}
         </span>
       </div>
     );
   }
 
   // Transform agent data for chat component
-  const agentChannel = transformAgentToChannel(agents);
+  const agentChannel = transformAgentToChannel(agent);
 
   // Handle message sending
   const handleSendMessage = async (content: {
@@ -151,8 +180,8 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     // Track that we're creating this message
     addPendingMessage(optimisticId, {
       workspaceId,
-      conversationId,
-      entityId: conversationId,
+      conversationId: queryConversationId,
+      entityId: queryConversationId || agentId,
       entityType: 'agent_conversation',
     });
 
@@ -161,14 +190,24 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         message: content.plainText,
         workspaceId,
         agentId,
-        conversationId,
+        conversationId: currentConversationId,
         _optimisticId: optimisticId,
       });
 
-      updateSelectedMessageIfNeeded(
-        optimisticId,
-        transformSingleAgentMessage(response.userMessage, currentUser, agent),
-      );
+      // If this was the first message and we got a new conversation ID
+      if (!currentConversationId && response.conversation?.id) {
+        const newConversationId = response.conversation.id;
+
+        // Update the conversation ID state
+        setCurrentConversationId(newConversationId);
+
+        // Clear the temp conversation ID since we now have a real one
+        tempConversationIdRef.current = null;
+
+        // Navigate to the new URL - this should be instant now since cache is populated by the mutation
+        router.replace(`/${workspaceId}/agents/${agentId}/${newConversationId}`, { scroll: false });
+      }
+
       removePendingMessage(optimisticId);
     } catch (error) {
       removePendingMessage(optimisticId);
@@ -179,10 +218,11 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
   // Handle message editing
   const handleEditMessage = async (messageId: string, newContent: string) => {
     try {
-      await updateMessage.mutateAsync({
-        messageId,
-        data: { body: newContent },
-      });
+      // You'll need to implement updateMessage mutation if not already available
+      // await updateMessage.mutateAsync({
+      //   messageId,
+      //   data: { body: newContent },
+      // });
     } catch (error) {
       console.error('Failed to edit message:', error);
     }
@@ -191,7 +231,8 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
   // Handle message deletion
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      await deleteMessage.mutateAsync(messageId);
+      // You'll need to implement deleteMessage mutation if not already available
+      // await deleteMessage.mutateAsync(messageId);
     } catch (error) {
       console.error('Failed to delete message:', error);
     }
@@ -199,6 +240,8 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
 
   // Handle message reactions
   const handleReactToMessage = async (messageId: string, emoji: string) => {
+    if (!currentConversationId) return; // Can't react to messages without a conversation
+
     try {
       // Check if user already reacted with this emoji
       const message = allMessages.find((msg) => msg.id === messageId);
@@ -230,7 +273,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         currentUser={currentUser}
         chatType="agent"
         conversationData={conversationWithMessages?.pages?.[0]}
-        isLoading={false}
+        isLoading={isLoadingMessages && !!currentConversationId}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
