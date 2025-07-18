@@ -7,11 +7,35 @@ interface StreamingChatData {
   workspaceId: string;
 }
 
+interface ToolCall {
+  type: 'tool_call_start' | 'tool_call_end';
+  toolName: string;
+  arguments?: any;
+  result?: any;
+  callId: string;
+  message: string;
+}
+
+interface AgentStep {
+  type: 'step_start' | 'step_end';
+  stepType: string;
+  message: string;
+}
+
+interface ThinkingEvent {
+  status: 'thinking' | 'generating' | 'complete';
+  message: string;
+  toolCallsUsed?: number;
+  processingTime?: number;
+}
+
 interface StreamingCallbacks {
   onUserMessage?: (data: any) => void;
   onContentDelta?: (content: string) => void;
   onAgentSwitch?: (agent: string) => void;
-  onToolCall?: (toolCall: any) => void;
+  onToolCall?: (toolCall: ToolCall) => void;
+  onAgentStep?: (step: AgentStep) => void;
+  onAgentThinking?: (thinking: ThinkingEvent) => void;
   onComplete?: (data: any) => void;
   onError?: (error: string) => void;
 }
@@ -86,27 +110,50 @@ export async function streamAgentChat(
       const chunk = decoder.decode(value, { stream: true });
       const lines = chunk.split('\n');
 
-      for (const line of lines) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
         if (line.startsWith('data: ')) {
           try {
             const data = JSON.parse(line.slice(6));
 
-            // Handle different event types based on the previous event line
-            const eventMatch = lines[lines.indexOf(line) - 1]?.match(/^event: (.+)$/);
-            const event = eventMatch?.[1];
+            // Look for the event line that precedes this data line
+            let event = null;
+            for (let j = i - 1; j >= 0; j--) {
+              const prevLine = lines[j];
+              if (prevLine.startsWith('event: ')) {
+                event = prevLine.slice(7);
+                break;
+              }
+              // Stop looking if we hit another data line
+              if (prevLine.startsWith('data: ')) {
+                break;
+              }
+            }
+
+            // Log all events for debugging
+            console.log(`[Streaming] Event: ${event}`, data);
 
             switch (event) {
               case 'user_message':
                 callbacks.onUserMessage?.(data);
                 break;
               case 'content_delta':
+                console.log('Frontend received delta:', JSON.stringify(data.content));
                 callbacks.onContentDelta?.(data.content);
                 break;
               case 'agent_switch':
                 callbacks.onAgentSwitch?.(data.agent);
                 break;
-              case 'tool_call':
-                callbacks.onToolCall?.(data.toolCall);
+              case 'tool_call_start':
+              case 'tool_call_end':
+                callbacks.onToolCall?.(data as ToolCall);
+                break;
+              case 'agent_step':
+                callbacks.onAgentStep?.(data as AgentStep);
+                break;
+              case 'agent_thinking':
+                callbacks.onAgentThinking?.(data as ThinkingEvent);
                 break;
               case 'agent_message_complete':
                 completeData = data;
@@ -118,9 +165,13 @@ export async function streamAgentChat(
               case 'done':
                 // Stream complete
                 break;
+              default:
+                // Handle events without explicit type - avoid processing content here
+                console.log('Unhandled event type:', event, data);
+                break;
             }
           } catch (parseError) {
-            console.warn('Failed to parse SSE data:', parseError);
+            console.warn('Failed to parse SSE data:', parseError, 'Line:', line);
           }
         }
       }
@@ -131,3 +182,6 @@ export async function streamAgentChat(
 
   return completeData;
 }
+
+// Export types for use in components
+export type { AgentStep, ThinkingEvent, ToolCall };

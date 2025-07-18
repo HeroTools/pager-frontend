@@ -37,6 +37,7 @@ import { getFileIcon } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/store/ui-store';
 import type { Attachment, Message } from '@/types/chat';
+import InlineThinkingStatus from '../../features/agents/components/inline-thinking-status';
 import { MessageContent } from './message-content';
 import { MessageReactions } from './message-reactions';
 import ThreadButton from './thread-button';
@@ -726,6 +727,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setIsDeleteDialogOpen(false);
   };
 
+  console.log(message);
+
   return (
     <>
       <div
@@ -814,7 +817,18 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                   />
                 </div>
               ) : (
-                <MessageContent content={message.content} />
+                <>
+                  <MessageContent content={message.content} />
+
+                  {/* Show inline thinking status for agent messages */}
+                  {message.sender_type === 'agent' &&
+                    (message._isStreaming || message._thinking) && (
+                      <InlineThinkingStatus
+                        isStreaming={!!message._isStreaming}
+                        thinking={message._thinking}
+                      />
+                    )}
+                </>
               )}
             </div>
 

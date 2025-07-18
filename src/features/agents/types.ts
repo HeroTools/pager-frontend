@@ -100,6 +100,8 @@ export interface AgentMessageWithSender {
     order_index: number;
   }>;
   _isOptimistic?: boolean;
+  _isStreaming?: boolean;
+  _thinking?: string;
 }
 
 export interface AgentChatResponse {

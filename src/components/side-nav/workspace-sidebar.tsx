@@ -68,90 +68,96 @@ export const WorkspaceSidebar = () => {
   }
 
   return (
-    <div className="flex flex-col gap-y-2 h-full">
+    <div className="flex flex-col h-full">
       <WorkspaceHeader
         workspace={getWorkspace.data}
         isAdmin={getWorkspace.data.user_role === 'admin'}
       />
-      <div className="flex flex-col px-2 mt-3">
-        <SidebarItem label="Threads" icon={MessageSquareText} id="threads" disabled />
-        <SidebarItem
-          label="Drafts"
-          icon={Pencil}
-          id="drafts"
-          variant={entityId === 'drafts' ? 'active' : 'default'}
-          count={draftCount}
-        />
-      </div>
-      <WorkspaceSection
-        label="Channels"
-        hint="New channel"
-        onNew={getWorkspace.data?.user_role === 'admin' ? () => setOpen(true) : undefined}
-      >
-        {(getUserChannels.data || [])?.map((item) => (
+      <div className="flex flex-col h-full overflow-y-auto pb-12 gap-y-2">
+        <div className="flex flex-col px-2 mt-3">
+          <SidebarItem label="Threads" icon={MessageSquareText} id="threads" disabled />
           <SidebarItem
-            key={item.id}
-            label={item.name}
-            icon={item.channel_type === ChannelType.PRIVATE ? Lock : HashIcon}
-            id={item.id}
-            variant={entityId === item.id ? 'active' : 'default'}
-            hasUnread={hasChannelUnread(item.id)}
+            label="Drafts"
+            icon={Pencil}
+            id="drafts"
+            variant={entityId === 'drafts' ? 'active' : 'default'}
+            count={draftCount}
           />
-        ))}
-        <div className="pt-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="w-full" variant="ghost">
-                + Add Channel
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setOpen(true)}>
-                Create a new channel
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setThreadOpen(null);
-                  router.push(`/${workspaceId}/browse-channels`);
-                }}
-              >
-                Browse channels
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
-      </WorkspaceSection>
-      <WorkspaceSection
-        label="Direct Messages"
-        hint="New direct message"
-        onNew={startConversationCreation}
-      >
-        {conversations?.map((conversation) => (
-          <ConversationItem
-            key={conversation.id}
-            conversation={conversation}
-            variant={entityId === conversation.id ? 'active' : 'default'}
-            hasUnread={getConversationUnreadCount(conversation.id) > 0}
-          />
-        ))}
-        {currentUser?.role === 'admin' && (
-          <>
-            <Button className="mt-2 w-full" variant="ghost" onClick={() => setInviteOpen(true)}>
-              + Invite People
-            </Button>
-            <InviteModal open={inviteOpen} setOpen={setInviteOpen} name={getWorkspace.data.name} />
-          </>
-        )}
-      </WorkspaceSection>
-      <WorkspaceSection label="Agents" hint="New agent">
-        {(getWorkspaceAgents.data || [])?.map((agent) => (
-          <AgentItem
-            key={agent.id}
-            agent={agent}
-            variant={agentId === agent.id ? 'active' : 'default'}
-          />
-        ))}
-      </WorkspaceSection>
+        <WorkspaceSection
+          label="Channels"
+          hint="New channel"
+          onNew={getWorkspace.data?.user_role === 'admin' ? () => setOpen(true) : undefined}
+        >
+          {(getUserChannels.data || [])?.map((item) => (
+            <SidebarItem
+              key={item.id}
+              label={item.name}
+              icon={item.channel_type === ChannelType.PRIVATE ? Lock : HashIcon}
+              id={item.id}
+              variant={entityId === item.id ? 'active' : 'default'}
+              hasUnread={hasChannelUnread(item.id)}
+            />
+          ))}
+          <div className="pt-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="w-full" variant="ghost">
+                  + Add Channel
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setOpen(true)}>
+                  Create a new channel
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setThreadOpen(null);
+                    router.push(`/${workspaceId}/browse-channels`);
+                  }}
+                >
+                  Browse channels
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </WorkspaceSection>
+        <WorkspaceSection
+          label="Direct Messages"
+          hint="New direct message"
+          onNew={startConversationCreation}
+        >
+          {conversations?.map((conversation) => (
+            <ConversationItem
+              key={conversation.id}
+              conversation={conversation}
+              variant={entityId === conversation.id ? 'active' : 'default'}
+              hasUnread={getConversationUnreadCount(conversation.id) > 0}
+            />
+          ))}
+          {currentUser?.role === 'admin' && (
+            <>
+              <Button className="mt-2 w-full" variant="ghost" onClick={() => setInviteOpen(true)}>
+                + Invite People
+              </Button>
+              <InviteModal
+                open={inviteOpen}
+                setOpen={setInviteOpen}
+                name={getWorkspace.data.name}
+              />
+            </>
+          )}
+        </WorkspaceSection>
+        <WorkspaceSection label="Agents" hint="New agent">
+          {(getWorkspaceAgents.data || [])?.map((agent) => (
+            <AgentItem
+              key={agent.id}
+              agent={agent}
+              variant={agentId === agent.id ? 'active' : 'default'}
+            />
+          ))}
+        </WorkspaceSection>
+      </div>
     </div>
   );
 };

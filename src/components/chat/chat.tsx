@@ -37,6 +37,7 @@ interface ChatProps {
   onTypingSubmit?: () => void;
   members?: ChatMember[];
   highlightMessageId?: string | null;
+  isDisabled?: boolean;
 }
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
@@ -84,6 +85,7 @@ export const Chat: FC<ChatProps> = ({
   isLoadingMore,
   members,
   highlightMessageId,
+  isDisabled,
 }) => {
   const { workspaceId } = useParamIds();
   const { getDraft } = useDraftsStore();
@@ -239,7 +241,7 @@ export const Chat: FC<ChatProps> = ({
           workspaceId={workspaceId}
           placeholder={getPlaceholderText(chatType, channel.name)}
           onSubmit={handleSendMessage}
-          disabled={isLoading}
+          disabled={isLoading || isDisabled}
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}
           userId={currentUser.id}

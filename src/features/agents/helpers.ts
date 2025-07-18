@@ -92,6 +92,9 @@ export const transformAgentMessages = (
       metadata: agentMessage.metadata,
       hasDraft: false, // Will be set by the parent component
       isOptimistic: agentMessage._isOptimistic || false, // Preserve the optimistic flag
+      sender_type: agentMessage.sender_type,
+      _isStreaming: agentMessage._isStreaming,
+      _thinking: agentMessage._thinking,
     };
   });
 };
