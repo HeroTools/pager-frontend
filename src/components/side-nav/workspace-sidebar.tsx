@@ -28,11 +28,10 @@ import { InviteModal } from './invite-modal';
 import { SidebarItem } from './sidebar-item';
 import { WorkspaceHeader } from './workspace-header';
 import { WorkspaceSection } from './workspace-section';
-// import { useCreateAgentModal } from '@/features/agents/store/use-create-agent-modal';
 
 export const WorkspaceSidebar = () => {
   const router = useRouter();
-  const { workspaceId, id: entityId } = useParamIds();
+  const { workspaceId, id: entityId, agentId } = useParamIds();
 
   const getWorkspace = useGetWorkspace(workspaceId);
   const getUserChannels = useGetUserChannels(workspaceId);
@@ -48,7 +47,6 @@ export const WorkspaceSidebar = () => {
 
   const { startConversationCreation } = useConversationCreateStore();
   const setOpen = useCreateChannelModal((state) => state.setOpen);
-  // const setAgentModalOpen = useCreateAgentModal((state) => state.setOpen);
 
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -145,19 +143,14 @@ export const WorkspaceSidebar = () => {
           </>
         )}
       </WorkspaceSection>
-      <WorkspaceSection
-        label="Agents"
-        hint="New agent"
-        // onNew={getWorkspace.data?.user_role === 'admin' ? () => setAgentModalOpen(true) : undefined}
-      >
+      <WorkspaceSection label="Agents" hint="New agent">
         {(getWorkspaceAgents.data || [])?.map((agent) => (
-          <AgentItem key={agent.id} agent={agent} />
+          <AgentItem
+            key={agent.id}
+            agent={agent}
+            variant={agentId === agent.id ? 'active' : 'default'}
+          />
         ))}
-        {/* {getWorkspace.data?.user_role === 'admin' && (
-          <Button className="mt-2 w-full" variant="ghost" onClick={() => setAgentModalOpen(true)}>
-            + Create Agent
-          </Button>
-        )} */}
       </WorkspaceSection>
     </div>
   );
