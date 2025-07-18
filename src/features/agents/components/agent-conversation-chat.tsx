@@ -65,12 +65,13 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     },
   );
 
-  // Message operation hooks
-  const { mutateAsync: createMessage } = useCreateMessage(
+  // Message operation hooks - now with streaming state
+  const { mutateAsync: createMessage, isRequestInProgress } = useCreateMessage(
     workspaceId,
     agentId,
     currentConversationId,
   );
+
   const toggleReaction = useToggleReaction(workspaceId);
 
   const agent = useMemo(() => {
@@ -175,6 +176,12 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     attachments: UploadedAttachment[];
     plainText: string;
   }) => {
+    // Don't send if request is already in progress
+    if (isRequestInProgress) {
+      console.warn('Cannot send message while request is in progress');
+      return;
+    }
+
     const optimisticId = `temp-${Date.now()}-${Math.random()}`;
 
     // Track that we're creating this message
@@ -188,9 +195,6 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     try {
       const response = await createMessage({
         message: content.plainText,
-        workspaceId,
-        agentId,
-        conversationId: currentConversationId,
         _optimisticId: optimisticId,
       });
 
@@ -204,7 +208,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         // Clear the temp conversation ID since we now have a real one
         tempConversationIdRef.current = null;
 
-        // Navigate to the new URL - this should be instant now since cache is populated by the mutation
+        // Navigate to the new URL
         router.replace(`/${workspaceId}/agents/${agentId}/${newConversationId}`, { scroll: false });
       }
 
@@ -283,6 +287,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         isLoadingMore={isFetchingNextPage}
         highlightMessageId={highlightMessageId}
         members={[]} // No members to display for agent conversations
+        isDisabled={isRequestInProgress} // Disable during requests
       />
     </div>
   );

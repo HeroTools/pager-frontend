@@ -1,9 +1,15 @@
 import { authQueryKeys } from '@/features/auth/query-keys';
 import { CurrentUser } from '@/features/auth/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { streamAgentChat } from '../api/streaming-api';
+import { streamAgentChat, type ThinkingEvent } from '../api/streaming-api';
+
+interface MessageStreamingState {
+  isStreaming: boolean;
+  thinking: ThinkingEvent | null;
+  optimisticId: string | null;
+}
 
 export const useCreateMessage = (
   workspaceId: string,
@@ -12,6 +18,16 @@ export const useCreateMessage = (
 ) => {
   const queryClient = useQueryClient();
   const streamingContentRef = useRef<string>('');
+
+  // State for tracking streaming per message
+  const [messageStreamingState, setMessageStreamingState] = useState<MessageStreamingState>({
+    isStreaming: false,
+    thinking: null,
+    optimisticId: null,
+  });
+
+  // Track if a request is currently in progress to prevent concurrent requests
+  const [isRequestInProgress, setIsRequestInProgress] = useState(false);
 
   const getInfiniteQueryKey = useCallback(
     (cId: string) => ['agent-conversation-messages-infinite', workspaceId, agentId, cId] as const,
@@ -23,14 +39,81 @@ export const useCreateMessage = (
     [workspaceId, agentId],
   );
 
-  return useMutation({
+  const clearStreamingState = useCallback(() => {
+    setMessageStreamingState({
+      isStreaming: false,
+      thinking: null,
+      optimisticId: null,
+    });
+    setIsRequestInProgress(false);
+    streamingContentRef.current = '';
+  }, []);
+
+  const updateOptimisticMessageWithThinking = useCallback(
+    (optimisticId: string, thinking: ThinkingEvent | null, isStreaming: boolean) => {
+      const tempConversationId = conversationId || `temp-${agentId}-${Date.now()}`;
+      const queryKey = getInfiniteQueryKey(tempConversationId);
+
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old?.pages?.length) return old;
+
+        const pages = old.pages.map((page: any, i: number) => {
+          if (i !== 0) return page;
+
+          const messages = page.messages.map((m: any) => {
+            if (m._isStreaming && m.sender_type === 'agent') {
+              return {
+                ...m,
+                _thinking: thinking,
+                _isStreaming: isStreaming,
+                body: streamingContentRef.current,
+              };
+            }
+            return m;
+          });
+
+          return { ...page, messages };
+        });
+        return { ...old, pages };
+      });
+    },
+    [conversationId, agentId, queryClient, getInfiniteQueryKey],
+  );
+
+  const mutation = useMutation({
     mutationKey: ['createStreamingAgentMessage', workspaceId, agentId, conversationId],
 
     mutationFn: async (data: { message: string; _optimisticId?: string }) => {
+      // Prevent concurrent requests
+      if (isRequestInProgress) {
+        console.warn('Request already in progress, ignoring new request');
+        throw new Error('Another request is already in progress. Please wait.');
+      }
+
+      // Set request in progress flag
+      setIsRequestInProgress(true);
+
+      // Reset streaming state
+      clearStreamingState();
+      const optimisticId = data._optimisticId || `temp-${Date.now()}-${Math.random()}`;
+
+      setMessageStreamingState({
+        isStreaming: true,
+        thinking: null,
+        optimisticId,
+      });
+
+      // Reset the content ref at the start
       streamingContentRef.current = '';
 
       return new Promise((resolve, reject) => {
-        streamAgentChat(
+        let isResolved = false;
+
+        const cleanup = () => {
+          setIsRequestInProgress(false);
+        };
+
+        const streamPromise = streamAgentChat(
           {
             message: data.message,
             conversationId,
@@ -39,28 +122,97 @@ export const useCreateMessage = (
           },
           {
             onUserMessage: (userData) => {
-              // Handle user message confirmation if needed
-              console.log('User message saved:', userData);
+              console.log('✅ User message saved:', userData);
             },
             onContentDelta: (content) => {
+              // Only append new content, don't reset
               streamingContentRef.current += content;
-              // Update the optimistic agent message in real-time
-              updateOptimisticAgentMessage(data._optimisticId, streamingContentRef.current);
+              console.log(
+                '📝 Content delta:',
+                content,
+                'Total so far:',
+                streamingContentRef.current,
+              );
+
+              // Update the optimistic message with accumulated content
+              updateOptimisticMessageWithThinking(
+                optimisticId,
+                messageStreamingState.thinking,
+                true,
+              );
             },
             onAgentSwitch: (agent) => {
-              console.log('Agent switched to:', agent);
+              console.log('🔄 Agent switched to:', agent);
             },
             onToolCall: (toolCall) => {
-              console.log('Tool call:', toolCall);
+              console.log('🔧 Tool call:', toolCall);
+            },
+            onAgentStep: (step) => {
+              console.log('👣 Agent step:', step);
+            },
+            onAgentThinking: (thinking) => {
+              console.log('🧠 Agent thinking:', thinking);
+              setMessageStreamingState((prev) => ({
+                ...prev,
+                thinking,
+              }));
+
+              // Update the optimistic message with thinking state
+              updateOptimisticMessageWithThinking(optimisticId, thinking, true);
             },
             onComplete: (completeData) => {
-              resolve(completeData);
+              console.log('✅ Stream complete:', completeData);
+              if (!isResolved) {
+                isResolved = true;
+                setMessageStreamingState((prev) => ({
+                  ...prev,
+                  isStreaming: false,
+                  thinking: {
+                    status: 'complete',
+                    message: 'Done!',
+                    processingTime: completeData.metadata?.processingTime,
+                    toolCallsUsed: completeData.metadata?.toolCallsCount,
+                  },
+                }));
+
+                // Final update to remove streaming state
+                updateOptimisticMessageWithThinking(optimisticId, null, false);
+
+                cleanup();
+                resolve(completeData);
+              }
             },
             onError: (error) => {
-              reject(new Error(error));
+              console.error('❌ Stream error:', error);
+              if (!isResolved) {
+                isResolved = true;
+                setMessageStreamingState((prev) => ({
+                  ...prev,
+                  isStreaming: false,
+                  thinking: null,
+                }));
+                cleanup();
+                reject(new Error(error));
+              }
             },
           },
-        ).catch(reject);
+        ).catch((error) => {
+          if (!isResolved) {
+            isResolved = true;
+            cleanup();
+            reject(error);
+          }
+        });
+
+        // Add timeout to prevent hanging requests
+        setTimeout(() => {
+          if (!isResolved) {
+            console.error('Request timeout after 60 seconds');
+            isResolved = true;
+            cleanup();
+            reject(new Error('Request timeout'));
+          }
+        }, 60000); // 60 second timeout
       });
     },
 
@@ -105,6 +257,7 @@ export const useCreateMessage = (
         created_at: new Date().toISOString(),
         _isOptimistic: true,
         _isStreaming: true,
+        _thinking: null,
       };
 
       const queryKey = getInfiniteQueryKey(tempConversationId);
@@ -176,7 +329,7 @@ export const useCreateMessage = (
           agent: { id: agentId, name: '', avatar_url: null, is_active: true },
           messages: [
             { ...res.userMessage, _isOptimistic: false },
-            { ...res.agentMessage, _isOptimistic: false },
+            { ...res.agentMessage, _isOptimistic: false, _isStreaming: false, _thinking: null },
           ],
           pagination: { hasMore: false, nextCursor: null, totalCount: 2 },
           user_conversation_data: {
@@ -215,7 +368,12 @@ export const useCreateMessage = (
                 return { ...res.userMessage, _isOptimistic: false };
               }
               if (m.id === ctx?.agentOptimisticId) {
-                return { ...res.agentMessage, _isOptimistic: false };
+                return {
+                  ...res.agentMessage,
+                  _isOptimistic: false,
+                  _isStreaming: false,
+                  _thinking: null,
+                };
               }
               return m;
             });
@@ -225,10 +383,16 @@ export const useCreateMessage = (
           return { ...old, pages };
         });
       }
+
+      // Clear streaming state after successful completion
+      setTimeout(clearStreamingState, 3000);
     },
 
     onError: (err, _vars, ctx) => {
       console.error('Streaming agent message failed:', err);
+
+      // Reset request state
+      setIsRequestInProgress(false);
 
       if (ctx?.isNewConversation && ctx?.tempConversationId) {
         const tempQueryKey = getInfiniteQueryKey(ctx.tempConversationId);
@@ -241,31 +405,15 @@ export const useCreateMessage = (
       }
 
       toast.error('Failed to send to agent. Try again.');
+      clearStreamingState();
     },
   });
 
-  function updateOptimisticAgentMessage(userOptimisticId: string | undefined, content: string) {
-    if (!userOptimisticId) return;
-
-    const tempConversationId = conversationId || `temp-${agentId}-${Date.now()}`;
-    const queryKey = getInfiniteQueryKey(tempConversationId);
-
-    queryClient.setQueryData(queryKey, (old: any) => {
-      if (!old?.pages?.length) return old;
-
-      const pages = old.pages.map((page: any, i: number) => {
-        if (i !== 0) return page;
-
-        const messages = page.messages.map((m: any) => {
-          if (m._isStreaming && m.sender_type === 'agent') {
-            return { ...m, body: content };
-          }
-          return m;
-        });
-
-        return { ...page, messages };
-      });
-      return { ...old, pages };
-    });
-  }
+  return {
+    ...mutation,
+    // Expose message-specific streaming state
+    messageStreamingState,
+    isRequestInProgress,
+    clearStreamingState,
+  };
 };
