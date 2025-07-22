@@ -75,6 +75,14 @@ export async function streamAgentChat(
 
   const url = `${process.env.NEXT_PUBLIC_STREAMING_API_BASE_URL}`;
 
+  console.log('🌐 Starting stream request:', {
+    url,
+    messageLength: data.message.length,
+    conversationId: data.conversationId,
+    agentId: data.agentId,
+    workspaceId: data.workspaceId,
+  });
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -89,11 +97,15 @@ export async function streamAgentChat(
     }),
   });
 
+  console.log('📡 Stream response status:', response.status);
+
   if (!response.ok) {
+    console.error('❌ Stream response not ok:', response.status, response.statusText);
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
   if (!response.body) {
+    console.error('❌ No response body for streaming');
     throw new Error('No response body for streaming');
   }
 

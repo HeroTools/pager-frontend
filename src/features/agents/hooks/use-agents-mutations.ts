@@ -26,9 +26,6 @@ export const useCreateMessage = (
     optimisticId: null,
   });
 
-  // Track if a request is currently in progress to prevent concurrent requests
-  const [isRequestInProgress, setIsRequestInProgress] = useState(false);
-
   const getInfiniteQueryKey = useCallback(
     (cId: string) => ['agent-conversation-messages-infinite', workspaceId, agentId, cId] as const,
     [workspaceId, agentId],
@@ -45,7 +42,6 @@ export const useCreateMessage = (
       thinking: null,
       optimisticId: null,
     });
-    setIsRequestInProgress(false);
     streamingContentRef.current = '';
   }, []);
 
@@ -84,14 +80,10 @@ export const useCreateMessage = (
     mutationKey: ['createStreamingAgentMessage', workspaceId, agentId, conversationId],
 
     mutationFn: async (data: { message: string; _optimisticId?: string }) => {
-      // Prevent concurrent requests
-      if (isRequestInProgress) {
-        console.warn('Request already in progress, ignoring new request');
-        throw new Error('Another request is already in progress. Please wait.');
+      // Prevent new requests if currently streaming
+      if (messageStreamingState.isStreaming) {
+        throw new Error('Please wait for the current response to complete');
       }
-
-      // Set request in progress flag
-      setIsRequestInProgress(true);
 
       // Reset streaming state
       clearStreamingState();
@@ -107,13 +99,7 @@ export const useCreateMessage = (
       streamingContentRef.current = '';
 
       return new Promise((resolve, reject) => {
-        let isResolved = false;
-
-        const cleanup = () => {
-          setIsRequestInProgress(false);
-        };
-
-        const streamPromise = streamAgentChat(
+        streamAgentChat(
           {
             message: data.message,
             conversationId,
@@ -161,58 +147,29 @@ export const useCreateMessage = (
               updateOptimisticMessageWithThinking(optimisticId, thinking, true);
             },
             onComplete: (completeData) => {
-              console.log('✅ Stream complete:', completeData);
-              if (!isResolved) {
-                isResolved = true;
-                setMessageStreamingState((prev) => ({
-                  ...prev,
-                  isStreaming: false,
-                  thinking: {
-                    status: 'complete',
-                    message: 'Done!',
-                    processingTime: completeData.metadata?.processingTime,
-                    toolCallsUsed: completeData.metadata?.toolCallsCount,
-                  },
-                }));
+              // Immediately clear streaming state instead of waiting
+              setMessageStreamingState({
+                isStreaming: false,
+                thinking: null,
+                optimisticId: null,
+              });
 
-                // Final update to remove streaming state
-                updateOptimisticMessageWithThinking(optimisticId, null, false);
+              // Final update to remove streaming state from message
+              updateOptimisticMessageWithThinking(optimisticId, null, false);
 
-                cleanup();
-                resolve(completeData);
-              }
+              resolve(completeData);
             },
             onError: (error) => {
               console.error('❌ Stream error:', error);
-              if (!isResolved) {
-                isResolved = true;
-                setMessageStreamingState((prev) => ({
-                  ...prev,
-                  isStreaming: false,
-                  thinking: null,
-                }));
-                cleanup();
-                reject(new Error(error));
-              }
+              setMessageStreamingState((prev) => ({
+                ...prev,
+                isStreaming: false,
+                thinking: null,
+              }));
+              reject(new Error(error));
             },
           },
-        ).catch((error) => {
-          if (!isResolved) {
-            isResolved = true;
-            cleanup();
-            reject(error);
-          }
-        });
-
-        // Add timeout to prevent hanging requests
-        setTimeout(() => {
-          if (!isResolved) {
-            console.error('Request timeout after 60 seconds');
-            isResolved = true;
-            cleanup();
-            reject(new Error('Request timeout'));
-          }
-        }, 60000); // 60 second timeout
+        ).catch(reject);
       });
     },
 
@@ -314,7 +271,7 @@ export const useCreateMessage = (
       };
     },
 
-    onSuccess: (res, _vars, ctx) => {
+    onSuccess: (res: any, _vars, ctx) => {
       const isNewConversation = ctx?.isNewConversation;
       const newConversationId = res.conversation?.id;
       const tempConversationId = ctx?.tempConversationId;
@@ -384,15 +341,12 @@ export const useCreateMessage = (
         });
       }
 
-      // Clear streaming state after successful completion
-      setTimeout(clearStreamingState, 3000);
+      // Clear streaming state immediately after successful completion
+      clearStreamingState();
     },
 
     onError: (err, _vars, ctx) => {
       console.error('Streaming agent message failed:', err);
-
-      // Reset request state
-      setIsRequestInProgress(false);
 
       if (ctx?.isNewConversation && ctx?.tempConversationId) {
         const tempQueryKey = getInfiniteQueryKey(ctx.tempConversationId);
@@ -413,7 +367,6 @@ export const useCreateMessage = (
     ...mutation,
     // Expose message-specific streaming state
     messageStreamingState,
-    isRequestInProgress,
     clearStreamingState,
   };
 };

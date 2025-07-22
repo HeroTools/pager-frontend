@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 export interface Draft {
   content: string;
   text: string;
-  type: 'channel' | 'conversation';
+  type: 'channel' | 'conversation' | 'agent_conversation';
   updatedAt: Date;
   entityId: string;
   parentMessageId?: string;
@@ -18,7 +18,7 @@ interface DraftsState {
     entityId: string,
     content: string,
     text: string,
-    type: 'channel' | 'conversation',
+    type: 'channel' | 'conversation' | 'agent_conversation',
     parentMessageId?: string,
     parentAuthorName?: string,
   ) => void;

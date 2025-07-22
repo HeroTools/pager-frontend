@@ -1,13 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Brain, CheckCircle, Cog, Loader, Wrench } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
-interface ThinkingEvent {
-  status: 'thinking' | 'generating' | 'using_tools' | 'processing' | 'complete';
-  message: string;
-  toolCallsUsed?: number;
-  processingTime?: number;
-}
+import { ThinkingEvent } from '../types';
 
 interface InlineThinkingStatusProps {
   isStreaming: boolean;

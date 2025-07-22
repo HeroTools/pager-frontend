@@ -191,7 +191,7 @@ const StreamingStatus = ({
     >
       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <Brain className="w-4 h-4" />
-        What I'm doing
+        What I&apos;m doing
       </div>
 
       <div className="space-y-1.5">
