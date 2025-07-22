@@ -727,8 +727,6 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setIsDeleteDialogOpen(false);
   };
 
-  console.log(message);
-
   return (
     <>
       <div

@@ -145,3 +145,10 @@ export interface AgentConversationMessageFilters {
   include_attachments?: boolean;
   include_count?: boolean;
 }
+
+export interface ThinkingEvent {
+  status: 'thinking' | 'generating' | 'using_tools' | 'processing' | 'complete';
+  message: string;
+  toolCallsUsed?: number;
+  processingTime?: number;
+}

@@ -692,7 +692,6 @@ const Editor = ({
         ref={editorWrapperRef}
         className={cn(
           'flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition-all duration-200 relative max-h-[calc(100%-36px)]',
-          disabled && 'opacity-50',
           isDragging && 'border-primary bg-accent/50',
         )}
         onDrop={handleDrop}

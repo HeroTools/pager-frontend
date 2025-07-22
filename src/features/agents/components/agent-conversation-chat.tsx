@@ -18,6 +18,7 @@ import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/store/ui-store';
 import { type Channel, ChannelType } from '@/types/chat';
+import { toast } from 'sonner';
 
 interface AgentConversationChatProps {
   agentId: string;
@@ -66,11 +67,13 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
   );
 
   // Message operation hooks - now with streaming state
-  const { mutateAsync: createMessage, isRequestInProgress } = useCreateMessage(
-    workspaceId,
-    agentId,
-    currentConversationId,
-  );
+  const {
+    mutateAsync: createMessage,
+    messageStreamingState,
+    isPending,
+  } = useCreateMessage(workspaceId, agentId, currentConversationId);
+
+  console.log(isPending);
 
   const toggleReaction = useToggleReaction(workspaceId);
 
@@ -176,13 +179,22 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     attachments: UploadedAttachment[];
     plainText: string;
   }) => {
-    // Don't send if request is already in progress
-    if (isRequestInProgress) {
-      console.warn('Cannot send message while request is in progress');
+    // Prevent sending if currently streaming
+    if (messageStreamingState.isStreaming) {
+      console.log('🚫 Message send blocked - currently streaming');
+      toast.error('Please wait for the current response to complete');
       return;
     }
 
     const optimisticId = `temp-${Date.now()}-${Math.random()}`;
+
+    console.log('📝 Sending message:', {
+      plainText: content.plainText.slice(0, 50) + '...',
+      workspaceId,
+      agentId,
+      conversationId: currentConversationId,
+      isStreaming: messageStreamingState.isStreaming,
+    });
 
     // Track that we're creating this message
     addPendingMessage(optimisticId, {
@@ -213,9 +225,11 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
       }
 
       removePendingMessage(optimisticId);
+      console.log('✅ Message sent successfully');
     } catch (error) {
       removePendingMessage(optimisticId);
-      console.error('Failed to send message:', error);
+      console.error('❌ Failed to send message:', error);
+      toast.error('Failed to send message. Please try again.');
     }
   };
 
@@ -278,6 +292,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         chatType="agent"
         conversationData={conversationWithMessages?.pages?.[0]}
         isLoading={isLoadingMessages && !!currentConversationId}
+        isDisabled={isPending}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
@@ -287,7 +302,6 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         isLoadingMore={isFetchingNextPage}
         highlightMessageId={highlightMessageId}
         members={[]} // No members to display for agent conversations
-        isDisabled={isRequestInProgress} // Disable during requests
       />
     </div>
   );
