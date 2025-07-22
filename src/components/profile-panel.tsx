@@ -1,7 +1,7 @@
 'use client';
 
 import { Profile } from '@/features/members/components/profile';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 
 export const ProfilePanel = () => {
   const { profileMemberId, setProfilePanelOpen } = useUIStore();

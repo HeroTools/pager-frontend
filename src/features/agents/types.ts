@@ -101,7 +101,7 @@ export interface AgentMessageWithSender {
   }>;
   _isOptimistic?: boolean;
   _isStreaming?: boolean;
-  _thinking?: string;
+  _thinking?: ThinkingEvent;
 }
 
 export interface AgentChatResponse {

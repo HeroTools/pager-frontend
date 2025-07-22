@@ -16,8 +16,8 @@ export interface Message {
   isEdited?: boolean;
   hasDraft?: boolean;
   sender_type: string;
-  _isStreaming: boolean;
-  _thinking: ThinkingEvent;
+  _isStreaming?: boolean;
+  _thinking?: ThinkingEvent;
 }
 
 export interface Author {

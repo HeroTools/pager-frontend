@@ -16,7 +16,7 @@ import { useMessageOperations, useMessageReplies } from '@/features/messages/hoo
 import { useMessagesStore } from '@/features/messages/store/messages-store';
 import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 import type { Message } from '@/types/chat';
 import { formatDateLabel, getUserAvatar, getUserName, transformMessages } from '../helpers';
 
@@ -73,7 +73,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
   } = useMessageReplies(workspaceId, parentMessage?.id, parentMessage?.threadCount || 0, {
     limit: 50,
     entity_id: entityId,
-    entity_type: type,
+    entity_type: type as 'channel' | 'conversation',
   });
   const toggleReaction = useToggleReaction(workspaceId);
   const { conversations } = useConversations(workspaceId);

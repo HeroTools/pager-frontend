@@ -35,7 +35,7 @@ import type { QuillDelta } from '@/features/messages/types';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { getFileIcon } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 import type { Attachment, Message } from '@/types/chat';
 import InlineThinkingStatus from '../../features/agents/components/inline-thinking-status';
 import { MessageContent } from './message-content';

@@ -12,7 +12,7 @@ import { useConversationNotifications } from '@/features/notifications/hooks/use
 import { useMarkEntityNotificationsRead } from '@/features/notifications/hooks/use-mark-entity-notifications-read';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { cn } from '@/lib/utils';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 
 const conversationItemVariants = cva(
   'flex items-center gap-1.5 justify-start font-normal h-7 px-4 text-sm overflow-hidden',

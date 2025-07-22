@@ -16,7 +16,7 @@ import type { UploadedAttachment } from '@/features/file-upload/types';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
 import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 import { type Channel, ChannelType } from '@/types/chat';
 import { toast } from 'sonner';
 

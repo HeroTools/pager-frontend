@@ -5,7 +5,7 @@ import { Bell, Home } from 'lucide-react';
 import { UserButton } from '@/features/auth';
 import { useUnreadCount } from '@/features/notifications/hooks/use-notifications';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 import { SidebarButton } from './sidebar-button';
 import { WorkspaceSwitcher } from './workspace-switcher';
 
