@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -13,9 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Form,
   FormControl,
@@ -24,12 +23,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCreateWorkspace } from '@/features/workspaces';
 import { useInviteLink } from '@/features/auth/hooks/use-auth-mutations';
+import { useCreateWorkspace } from '@/features/workspaces';
 
 interface WorkspaceFormData {
   name: string;
+  agentName: string;
 }
 
 interface ProfileFormData {
@@ -44,7 +45,7 @@ export default function CreateWorkspacePage() {
   const [createdWorkspaceId, setCreatedWorkspaceId] = useState<string | null>(null);
 
   const workspaceForm = useForm<WorkspaceFormData>({
-    defaultValues: { name: '' },
+    defaultValues: { name: '', agentName: 'Assistant' },
     mode: 'onChange',
   });
 
@@ -112,12 +113,12 @@ export default function CreateWorkspacePage() {
         <Form {...workspaceForm}>
           <Card className="max-w-md mx-auto w-full">
             <CardHeader>
-              <CardTitle>Give your workspace a name</CardTitle>
+              <CardTitle>Set up your workspace</CardTitle>
               <CardDescription>
-                This is what your team will see everywhere. Make it short, clear, and memorable.
+                Give your workspace and AI assistant names that your team will recognize.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <FormField
                 control={workspaceForm.control}
                 name="name"
@@ -133,6 +134,29 @@ export default function CreateWorkspacePage() {
                         placeholder="e.g. Unowned, My Project, Homebase"
                         {...field}
                         autoFocus
+                        disabled={isCreating}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={workspaceForm.control}
+                name="agentName"
+                rules={{
+                  required: 'Agent name is required',
+                  minLength: { value: 2, message: 'At least 2 characters' },
+                  maxLength: { value: 100, message: 'Maximum 100 characters' },
+                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>AI Assistant Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. Assistant, Helper, Bot"
+                        {...field}
                         disabled={isCreating}
                       />
                     </FormControl>
@@ -157,8 +181,13 @@ export default function CreateWorkspacePage() {
       const valid = await profileForm.trigger();
       if (valid) {
         try {
-          const name = workspaceForm.getValues('name');
-          const workspace = await createWorkspace({ name });
+          const { name, agentName } = workspaceForm.getValues();
+
+          const workspace = await createWorkspace({
+            name,
+            agentName,
+          });
+
           setCreatedWorkspaceId(workspace.id);
           toast.success('Workspace created successfully!');
           setStep(2);

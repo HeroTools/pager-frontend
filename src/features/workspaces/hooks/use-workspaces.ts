@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { agentsQueryKeys } from '@/features/agents/query-keys';
+import type { CurrentUser } from '@/features/auth';
+import { authQueryKeys } from '@/features/auth/query-keys';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { workspacesQueryKeys } from '@/features/workspaces/query-keys';
 import { workspacesApi } from '../api/workspaces-api';
 import type {
   CreateWorkspaceData,
@@ -8,10 +13,6 @@ import type {
   WorkspaceInviteInfoResponse,
   WorkspaceWithMembersList,
 } from '../types';
-import type { CurrentUser } from '@/features/auth';
-import { authQueryKeys } from '@/features/auth/query-keys';
-import { workspacesQueryKeys } from '@/features/workspaces/query-keys';
-import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 
 // Get all workspaces
 export const useGetWorkspaces = () => {
@@ -50,6 +51,8 @@ export const useCreateWorkspace = () => {
         return;
       }
       const userId = currentUser.id;
+
+      // Create workspace entity
       const workspaceEntity: WorkspaceEntity = {
         id: newWorkspace.id,
         name: newWorkspace.name,
@@ -59,6 +62,8 @@ export const useCreateWorkspace = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+
+      // Update workspace queries
       queryClient.setQueryData<WorkspaceEntity[]>(workspacesQueryKeys.workspaces(), (old) => {
         return old ? [...old, workspaceEntity] : [workspaceEntity];
       });
@@ -66,6 +71,13 @@ export const useCreateWorkspace = () => {
       queryClient.setQueryData<WorkspaceEntity>(workspacesQueryKeys.workspace(newWorkspace.id), {
         ...workspaceEntity,
       });
+
+      // Cache the default agent
+      if (newWorkspace.defaultAgent) {
+        queryClient.setQueryData(agentsQueryKeys.agents(newWorkspace.id), [
+          newWorkspace.defaultAgent,
+        ]);
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({

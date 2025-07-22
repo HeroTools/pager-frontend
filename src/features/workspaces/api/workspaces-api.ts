@@ -1,6 +1,7 @@
 import api from '@/lib/api/axios-client';
 import type {
   CreateWorkspaceData,
+  CreateWorkspaceResponse,
   UpdateWorkspaceData,
   WorkspaceEntity,
   WorkspaceInviteInfoResponse,
@@ -41,8 +42,8 @@ export const workspacesApi = {
   /**
    * Create new workspace
    */
-  createWorkspace: async (data: CreateWorkspaceData): Promise<WorkspaceEntity> => {
-    const { data: response } = await api.post<WorkspaceEntity>('/workspaces', data);
+  createWorkspace: async (data: CreateWorkspaceData): Promise<CreateWorkspaceResponse> => {
+    const { data: response } = await api.post<CreateWorkspaceResponse>('/workspaces', data);
     return response;
   },
 
