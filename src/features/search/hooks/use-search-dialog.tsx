@@ -9,7 +9,7 @@ import { useConversations } from '@/features/conversations/hooks/use-conversatio
 import { useGetMembers } from '@/features/members/hooks/use-members';
 import { useSearch } from '@/features/search/hooks/use-search';
 import type { SearchResult } from '@/features/search/types';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 import { SEARCH_DEBOUNCE_MS, SEARCH_LIMIT } from '../constants';
 import { filterItems, getNavigationUrl, getUniqueResults } from '../utils';
 

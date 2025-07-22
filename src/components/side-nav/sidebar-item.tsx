@@ -1,16 +1,16 @@
+import { cva, type VariantProps } from 'class-variance-authority';
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { cva, type VariantProps } from 'class-variance-authority';
 
-import { Button } from '@/components/ui/button';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { useMarkEntityNotificationsRead } from '@/features/notifications/hooks/use-mark-entity-notifications-read';
-import { cn } from '@/lib/utils';
-import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
-import { Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useUIStore } from '@/store/ui-store';
+import { Button } from '@/components/ui/button';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useMarkEntityNotificationsRead } from '@/features/notifications/hooks/use-mark-entity-notifications-read';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { cn } from '@/lib/utils';
+import { useUIStore } from '@/stores/ui-store';
+import { Pencil } from 'lucide-react';
 
 interface SidebarItemProps {
   label: string;
@@ -53,7 +53,7 @@ export const SidebarItem = ({
   const { getDraft } = useDraftsStore();
   const { setThreadOpen } = useUIStore();
 
-  const draft = getDraft(id);
+  const draft = getDraft(workspaceId, id);
   const isDraftsPage = id === 'drafts';
   const link = isDraftsPage ? `/${workspaceId}/drafts` : `/${workspaceId}/c-${id}`;
 

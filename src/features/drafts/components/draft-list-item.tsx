@@ -24,7 +24,7 @@ import {
 import { MessageWithUser } from '@/features/messages/types';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { cn } from '@/lib/utils/general';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 
 interface DraftListItemProps {
   draft: Draft;

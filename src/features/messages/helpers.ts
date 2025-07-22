@@ -1,5 +1,5 @@
 import type { CurrentUser } from '@/features/auth';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 import type { Attachment, Author, Message } from '@/types/chat';
 import type { Attachment as AttachmentType } from '@/types/database';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
@@ -36,6 +36,7 @@ export const transformMessages = (
       threadLastReplyAt: msg.thread_last_reply_at || undefined,
       isEdited: !!msg.edited_at,
       isOptimistic: msg._isOptimistic || false,
+      sender_type: 'user',
       attachments:
         msg?.attachments.map(
           (attachment: AttachmentType) =>

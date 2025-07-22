@@ -41,7 +41,7 @@ import {
 } from '@/features/channels';
 import { useConfirm } from '@/hooks/use-confirm';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 import { type Channel, ChannelType } from '@/types/chat';
 import { ChatMember } from '../features/members';
 

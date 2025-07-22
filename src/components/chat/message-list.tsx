@@ -3,7 +3,7 @@ import { type FC, Fragment, type RefObject, type UIEvent, useRef } from 'react';
 
 import type { CurrentUser } from '@/features/auth';
 import { cn } from '@/lib/utils';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 import type { Message } from '@/types/chat';
 import { ChatMessage } from './message';
 import { SkeletonMessages } from './skeleton-messages';

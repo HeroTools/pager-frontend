@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 import type { UploadedAttachment } from '@/features/file-upload/types';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,

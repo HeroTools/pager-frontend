@@ -43,6 +43,7 @@ export function useChannelMembers(
           last_read_message_id: channelMember.last_read_message_id,
           notifications_enabled: channelMember.notifications_enabled,
           is_hidden: false,
+          member_type: 'user',
         };
         return member;
       })

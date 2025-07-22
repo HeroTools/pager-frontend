@@ -20,7 +20,7 @@ import { useChannelNotifications } from '@/features/notifications/hooks/use-chan
 import { useConversationNotifications } from '@/features/notifications/hooks/use-conversation-notifications';
 import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 import { ChannelType } from '@/types/chat';
 import AgentItem from './agent-item';
 import { ConversationItem } from './conversation-member';
