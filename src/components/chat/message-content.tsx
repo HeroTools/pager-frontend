@@ -11,9 +11,10 @@ import parse, {
 } from 'html-react-parser';
 import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
 import React, { useEffect, useMemo, useRef } from 'react';
+import { useUIStore } from '@/store/ui-store';
 
 interface QuillDeltaOp {
-  insert?: string;
+  insert?: string | { mention?: { id: string; name: string; userId: string } };
   attributes?: {
     link?: string;
     [key: string]: unknown;
@@ -37,6 +38,7 @@ const isDeltaEmpty = (delta: QuillDelta): boolean =>
 
 export const MessageContent = ({ content }: { content: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { setProfilePanelOpen } = useUIStore();
 
   DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     if (node.tagName === 'A') {
@@ -44,6 +46,7 @@ export const MessageContent = ({ content }: { content: string }) => {
       node.setAttribute('rel', 'noopener noreferrer');
     }
   });
+
 
   // sanitize + convert quill-delta or raw HTML → cleanHtml
   const cleanHtml = useMemo<string>(() => {
@@ -72,9 +75,18 @@ export const MessageContent = ({ content }: { content: string }) => {
         multiLineHeader: true,
         multiLineBlockquote: true,
         allowBackgroundClasses: true,
+        customTag: (format: string, op: any) => {
+          if (format === 'mention' && typeof op.insert === 'object' && op.insert.mention) {
+            const { id, name, userId } = op.insert.mention;
+            return `<span class="mention" data-member-id="${id}" data-user-id="${userId}" data-name="${name}">@${name}</span>`;
+          }
+          return undefined;
+        },
       });
       const dirty = converter.convert();
-      const sanitized = DOMPurify.sanitize(dirty);
+      const sanitized = DOMPurify.sanitize(dirty, {
+        ADD_ATTR: ['data-member-id', 'data-user-id', 'data-name']
+      });
       return isContentEmpty(sanitized) ? '' : sanitized;
     } catch {
       // not JSON → treat as HTML
@@ -100,12 +112,32 @@ export const MessageContent = ({ content }: { content: string }) => {
             </Hint>
           );
         }
+        
+        if (node.type === 'tag' && (node as HtmlElement).name === 'span') {
+          const el = node as HtmlElement;
+          if (el.attribs.class === 'mention') {
+            const memberId = el.attribs['data-member-id'];
+            const userId = el.attribs['data-user-id'];
+            const name = el.attribs['data-name'];
+            return (
+              <span
+                key={`mention-${memberId}-${Math.random()}`}
+                className="inline-block bg-blue-500 text-white px-1.5 py-0.5 rounded text-sm cursor-pointer hover:bg-blue-600 transition-colors mx-0.5"
+                onClick={() => setProfilePanelOpen(memberId)}
+                title={`View ${name}'s profile`}
+              >
+                @{name}
+              </span>
+            );
+          }
+        }
+        
         return undefined;
       },
     };
 
     return parse(cleanHtml, options);
-  }, [cleanHtml]);
+  }, [cleanHtml, setProfilePanelOpen]);
 
   // syntax-highlight any code blocks
   useEffect(() => {

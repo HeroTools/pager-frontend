@@ -23,8 +23,11 @@ import type { ManagedAttachment, UploadedAttachment } from '@/features/file-uplo
 import { useTypingStatus } from '@/hooks/use-typing-status';
 import { validateFile } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/store/ui-store';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
+import MentionAutoComplete from './mention-auto-complete';
+import MentionBlot from './mention-blot';
 import { LinkDialog } from './link-dialog';
 
 type EditorValue = {
@@ -90,6 +93,7 @@ const Editor = ({
   const [selectedText, setSelectedText] = useState('');
 
   const { getDraft, setDraft, clearDraft } = useDraftsStore();
+  const { setProfilePanelOpen } = useUIStore();
   const { entityId, entityType } = useMemo(() => {
     if (channelId) return { entityId: channelId, entityType: 'channel' as const };
     if (conversationId) return { entityId: conversationId, entityType: 'conversation' as const };
@@ -411,6 +415,9 @@ const Editor = ({
       return;
     }
 
+    // Register the mention blot
+    Quill.register(MentionBlot);
+
     const container = containerRef.current;
     const editorDiv = document.createElement('div');
     container.appendChild(editorDiv);
@@ -445,7 +452,9 @@ const Editor = ({
               handler(): boolean {
                 const emojiDropdownOpen =
                   quillRef.current && (quillRef.current as any).emojiDropdownOpen;
-                if (emojiDropdownOpen) {
+                const mentionDropdownOpen =
+                  quillRef.current && (quillRef.current as any).mentionDropdownOpen;
+                if (emojiDropdownOpen || mentionDropdownOpen) {
                   return true;
                 }
 
@@ -594,8 +603,14 @@ const Editor = ({
       }
     };
 
+    const handleMentionClick = (e: CustomEvent) => {
+      const { memberId } = e.detail;
+      setProfilePanelOpen(memberId);
+    };
+
     quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
     quill.root.addEventListener('blur', handleBlur);
+    quill.root.addEventListener('mentionClick', handleMentionClick as EventListener);
 
     if (entityId) {
       const draft = getDraft(workspaceId, entityId, parentMessageId);
@@ -612,6 +627,7 @@ const Editor = ({
     return () => {
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       quill.root.removeEventListener('blur', handleBlur);
+      quill.root.removeEventListener('mentionClick', handleMentionClick as EventListener);
 
       // Ensure typing is stopped on cleanup
       if (variant === 'create') {
@@ -807,6 +823,7 @@ const Editor = ({
       )}
 
       <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
+      <MentionAutoComplete quill={quillRef.current} containerRef={containerRef} />
       <LinkDialog
         isOpen={isLinkDialogOpen}
         onClose={handleLinkDialogClose}
