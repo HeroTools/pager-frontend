@@ -2,6 +2,8 @@
 
 Thank you for your interest in contributing to Pager! This guide will help you get started with the development workflow and contribution process.
 
+Please note that by participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## 🚀 Quick Start
 
 Pager uses a **fork-and-rebase** workflow. All contributors create a fork of the repository and submit pull requests to have their contributions reviewed and accepted. We recommend working on feature branches.
@@ -321,4 +323,4 @@ Thank you for contributing to Pager! 🚀
 
 ---
 
-By contributing to this project, you agree to abide by our code of conduct and licensing terms.
+By contributing to this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md) and licensing terms.
