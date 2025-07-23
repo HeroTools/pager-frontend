@@ -81,7 +81,11 @@ export const useCreateMessage = (
   const mutation = useMutation({
     mutationKey: ['createStreamingAgentMessage', workspaceId, agentId, conversationId],
 
-    mutationFn: async (data: { message: string; _optimisticId?: string }) => {
+    mutationFn: async (data: {
+      message: string;
+      _optimisticId?: string;
+      _tempConversationId?: string;
+    }) => {
       // Prevent new requests if currently streaming
       if (messageStreamingState.isStreaming) {
         throw new Error('Please wait for the current response to complete');
@@ -184,7 +188,8 @@ export const useCreateMessage = (
         return { isNewConversation };
       }
 
-      const tempConversationId = conversationId || `temp-${agentId}-${Date.now()}`;
+      const tempConversationId =
+        data._tempConversationId || conversationId || `temp-${agentId}-${Date.now()}`;
       const optimisticId = data._optimisticId || `temp-${Date.now()}-${Math.random()}`;
       const agentOptimisticId = `agent-temp-${Date.now()}-${Math.random()}`;
 

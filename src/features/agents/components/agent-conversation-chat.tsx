@@ -173,13 +173,11 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
   // Transform agent data for chat component
   const agentChannel = transformAgentToChannel(agent);
 
-  // Handle message sending
   const handleSendMessage = async (content: {
     body: string;
     attachments: UploadedAttachment[];
     plainText: string;
   }) => {
-    // Prevent sending if currently streaming
     if (messageStreamingState.isStreaming) {
       console.log('🚫 Message send blocked - currently streaming');
       toast.error('Please wait for the current response to complete');
@@ -196,7 +194,6 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
       isStreaming: messageStreamingState.isStreaming,
     });
 
-    // Track that we're creating this message
     addPendingMessage(optimisticId, {
       workspaceId,
       conversationId: queryConversationId,
@@ -208,19 +205,13 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
       const response = await createMessage({
         message: content.plainText,
         _optimisticId: optimisticId,
+        _tempConversationId: queryConversationId, // Pass the temp conversation ID!
       });
 
-      // If this was the first message and we got a new conversation ID
       if (!currentConversationId && response.conversation?.id) {
         const newConversationId = response.conversation.id;
-
-        // Update the conversation ID state
         setCurrentConversationId(newConversationId);
-
-        // Clear the temp conversation ID since we now have a real one
         tempConversationIdRef.current = null;
-
-        // Navigate to the new URL
         router.replace(`/${workspaceId}/agents/${agentId}/${newConversationId}`, { scroll: false });
       }
 

@@ -34,14 +34,14 @@ export const useInfiniteAgentConversations = (
     queryFn: ({ pageParam }) =>
       agentsApi.getAgentConversations(workspaceId, agentId, {
         ...filters,
-        cursor: pageParam, // pageParam is the cursor (timestamp)
+        cursor: pageParam,
       }),
     initialPageParam: undefined,
     getNextPageParam: (lastPage) => {
       return lastPage.pagination.hasMore ? lastPage.pagination.nextCursor : undefined;
     },
     enabled: !!workspaceId && !!agentId,
-    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    staleTime: 1000 * 60 * 60 * 24,
   });
 };
 
@@ -88,8 +88,7 @@ export const useInfiniteAgentConversationMessages = (
     getNextPageParam: (lastPage) => {
       return lastPage.pagination.hasMore ? lastPage.pagination.nextCursor : undefined;
     },
-    // Disable query for temp IDs - rely on cache updates from mutations
-    enabled: !!workspaceId && !!agentId && !!conversationId && !isTempId,
+    enabled: !!workspaceId && !!agentId && !!conversationId,
     staleTime: 1000 * 60 * 60 * 24,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
