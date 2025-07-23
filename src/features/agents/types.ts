@@ -1,5 +1,6 @@
 export interface AgentChatData {
   _optimisticId?: string;
+  _tempConversationId?: string;
   workspaceId: string;
   message: string;
   conversationId: string;
