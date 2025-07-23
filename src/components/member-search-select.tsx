@@ -118,7 +118,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
       </div>
 
       {isOpen && filteredMembers.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border-subtle rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border-subtle rounded-md z-50 max-h-60 overflow-y-auto">
           {filteredMembers.map((member) => {
             const isExistingMember = existingMemberIds.includes(member.id);
 

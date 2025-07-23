@@ -55,7 +55,7 @@ const AttachmentPreview = ({
       >
         <button
           onClick={() => removeAttachment(attachment.id)}
-          className="cursor-pointer absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 shadow-lg hover:scale-110 border-2 border-background"
+          className="cursor-pointer absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 hover:scale-110 border-2 border-background"
           aria-label="Remove attachment"
         >
           <X className="w-3 h-3" />
