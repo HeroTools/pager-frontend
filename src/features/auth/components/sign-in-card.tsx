@@ -1,10 +1,10 @@
-import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { TriangleAlert } from 'lucide-react';
 import { useSignIn } from '@/features/auth';
 import { AuthFlow } from '@/features/auth/stores/auth-store';
+import { TriangleAlert } from 'lucide-react';
+import { useForm } from 'react-hook-form';
 
 interface SignInCardProps {
   setFlow: (flow: AuthFlow) => void;
@@ -34,7 +34,6 @@ export const SignInCard = ({ setFlow }: SignInCardProps) => {
     <Card className="w-full h-full p-8">
       <CardHeader className="px-0 pt-0">
         <CardTitle>Login to continue</CardTitle>
-        <CardDescription>Use your email or another service to continue</CardDescription>
       </CardHeader>
       {error && (
         <div className="bg-destructive/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
