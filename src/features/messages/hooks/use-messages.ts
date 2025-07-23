@@ -47,7 +47,6 @@ export const useCreateChannelMessage = (workspaceId: string, channelId: string) 
       };
 
       const result = await messagesApi.createChannelMessage(workspaceId, channelId, apiData);
-      console.log('Message created successfully:', result);
       return result;
     },
 
@@ -129,12 +128,6 @@ export const useCreateChannelMessage = (workspaceId: string, channelId: string) 
             const parentMessage = page.messages.find((msg) => msg.id === threadParentId);
             if (parentMessage) {
               isFirstThreadMessage = (parentMessage.thread_reply_count || 0) === 0;
-              console.log(
-                '🧵 Parent message thread_reply_count:',
-                parentMessage.thread_reply_count,
-                'isFirst:',
-                isFirstThreadMessage,
-              );
               break;
             }
           }
@@ -373,8 +366,6 @@ export const useCreateConversationMessage = (workspaceId: string, conversationId
     mutationKey: ['createConversationMessage', workspaceId, conversationId],
 
     mutationFn: async (data: CreateMessageData): Promise<MessageWithUser> => {
-      console.log('Creating conversation message:', data);
-
       const apiData: CreateConversationMessageData = {
         body: data.body,
         attachment_ids: data.attachments?.map((att) => att.id),
@@ -389,13 +380,10 @@ export const useCreateConversationMessage = (workspaceId: string, conversationId
         conversationId,
         apiData,
       );
-      console.log('Conversation message created successfully:', result);
       return result;
     },
 
     onMutate: async (data: CreateMessageData): Promise<MessageMutationContext> => {
-      console.log('onMutate called with:', data);
-
       const threadParentId = data.parent_message_id || data.thread_id;
       const isThreadMessage = Boolean(threadParentId);
       const queryKey = getInfiniteQueryKey();
@@ -473,12 +461,6 @@ export const useCreateConversationMessage = (workspaceId: string, conversationId
             const parentMessage = page.messages.find((msg) => msg.id === threadParentId);
             if (parentMessage) {
               isFirstThreadMessage = (parentMessage.thread_reply_count || 0) === 0;
-              console.log(
-                '🧵 Parent message thread_reply_count:',
-                parentMessage.thread_reply_count,
-                'isFirst:',
-                isFirstThreadMessage,
-              );
               break;
             }
           }
@@ -952,7 +934,6 @@ export const useDeleteMessage = (workspaceId: string) => {
     },
 
     onSuccess: () => {
-      console.log('Message deleted successfully');
       toast.success('Message deleted successfully');
 
       queryClient.invalidateQueries({
@@ -1028,8 +1009,8 @@ export function useGetMessageById(workspaceId: string, messageId: string) {
 }
 
 export const useMessageOperations = (workspaceId: string, entityId?: string, type?: string) => {
-  const createChannelMessage = useCreateChannelMessage(workspaceId, entityId!);
-  const createConversationMessage = useCreateConversationMessage(workspaceId, entityId!);
+  const createChannelMessage = useCreateChannelMessage(workspaceId, entityId);
+  const createConversationMessage = useCreateConversationMessage(workspaceId, entityId);
   const updateMessage = useUpdateMessage(workspaceId);
   const deleteMessage = useDeleteMessage(workspaceId);
 

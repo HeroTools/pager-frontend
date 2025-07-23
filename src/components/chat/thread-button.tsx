@@ -1,13 +1,13 @@
-import type { FC } from 'react';
-import { useMemo } from 'react';
-import type { Message } from '@/types/chat';
-import type { MemberWithUser } from '@/features/members';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ChevronRight, Pencil } from 'lucide-react';
-import { useUIStore } from '@/store/ui-store';
-import { formatDistanceToNow } from 'date-fns';
+import type { MemberWithUser } from '@/features/members';
 import getThreadMembers from '@/lib/helpers/get-thread-members';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/stores/ui-store';
+import type { Message } from '@/types/chat';
+import { formatDistanceToNow } from 'date-fns';
+import { ChevronRight, Pencil } from 'lucide-react';
+import type { FC } from 'react';
+import { useMemo } from 'react';
 
 const ThreadButton: FC<{
   message: Message;

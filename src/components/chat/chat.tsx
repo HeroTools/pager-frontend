@@ -1,23 +1,23 @@
-import { type FC, useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import type { CurrentUser } from '@/features/auth';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import type { UploadedAttachment } from '@/features/file-upload';
 import { getUserAvatar, getUserName } from '@/features/messages/helpers';
 import { useParamIds } from '@/hooks/use-param-ids';
 import type { Channel, Message } from '@/types/chat';
-import dynamic from 'next/dynamic';
 import { ChatMember } from '../../features/members';
 import { ChatHeader } from './header';
 import { ChatMessageList } from './message-list';
 import { TypingIndicator } from './typing-indicator';
-import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 
 interface ChatProps {
   channel: Channel;
   messages: Message[];
   currentUser: CurrentUser;
-  chatType?: 'conversation' | 'channel';
+  chatType?: 'conversation' | 'channel' | 'agent';
   conversationData?: any; // Original conversation data for conversations
   onLoadMore: () => void;
   hasMoreMessages: boolean;
@@ -37,6 +37,7 @@ interface ChatProps {
   onTypingSubmit?: () => void;
   members?: ChatMember[];
   highlightMessageId?: string | null;
+  isDisabled?: boolean;
 }
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
@@ -56,6 +57,18 @@ const Editor = dynamic(() => import('@/components/editor/editor'), {
   ),
 });
 
+const getPlaceholderText = (chatType: string, channelName: string) => {
+  switch (chatType) {
+    case 'agent':
+      return `Message ${channelName}`;
+    case 'channel':
+      return `Message #${channelName}`;
+    case 'conversation':
+    default:
+      return `Message ${channelName}`;
+  }
+};
+
 export const Chat: FC<ChatProps> = ({
   channel,
   messages,
@@ -72,6 +85,7 @@ export const Chat: FC<ChatProps> = ({
   isLoadingMore,
   members,
   highlightMessageId,
+  isDisabled,
 }) => {
   const { workspaceId } = useParamIds();
   const { getDraft } = useDraftsStore();
@@ -225,14 +239,15 @@ export const Chat: FC<ChatProps> = ({
         <Editor
           variant="create"
           workspaceId={workspaceId}
-          placeholder={`Message ${chatType === 'channel' ? '#' : ''}${channel.name}`}
+          placeholder={getPlaceholderText(chatType, channel.name)}
           onSubmit={handleSendMessage}
-          disabled={isLoading}
+          disabled={isLoading || isDisabled}
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}
           userId={currentUser.id}
           channelId={chatType === 'channel' ? channel.id : undefined}
           conversationId={chatType === 'conversation' ? channel.id : undefined}
+          agentConversationId={chatType === 'agent' ? channel.id : undefined}
         />
       </div>
     </div>

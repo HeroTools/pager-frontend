@@ -1,4 +1,3 @@
-// features/conversations/types.ts
 import type {
   ApiResponse,
   Conversation,
@@ -10,7 +9,6 @@ import type {
 import type { ChatMember, MemberWithUser } from '../members';
 import type { MessageWithUser } from '../messages/types';
 
-// Use the database Conversation type directly
 export interface ConversationEntity extends Conversation {
   members: ChatMember[];
   member_count: number;
@@ -40,7 +38,6 @@ export type ConversationMessageWithRelations = MessageWithRelations & {
   conversation_id: string;
 };
 
-// Create conversation data - participants will be added via conversation_members table
 export interface CreateConversationData {
   participantMemberIds: string[]; // User IDs to add as participants
 }
@@ -49,7 +46,6 @@ export interface CreateConversationResponse extends ConversationEntity {
   member_count: number;
 }
 
-// Message creation for conversations - based on SendMessageRequest but conversation-specific
 export interface CreateConversationMessageData extends Omit<SendMessageRequest, 'channel_id'> {
   conversation_id: string;
 }
@@ -66,8 +62,6 @@ export type ConversationMessageResponse = ApiResponse<ConversationMessage>;
 export type ConversationMessagesResponse = ApiResponse<ConversationMessage[]>;
 export type ConversationMessageWithRelationsResponse =
   ApiResponse<ConversationMessageWithRelations>;
-
-// === NEW TYPES FOR COMBINED API ENDPOINT ===
 
 // Request parameters for the new combined endpoint
 export interface GetConversationMessagesParams {
@@ -144,8 +138,6 @@ export interface ConversationWithMessagesAndMembers {
 
 // API response for the combined endpoint
 export type ConversationWithMessagesResponse = ApiResponse<ConversationWithMessagesAndMembers>;
-
-// === END NEW TYPES ===
 
 // Extended conversation with last message for UI lists
 export interface ConversationListItem extends ConversationEntity {

@@ -1,3 +1,4 @@
+import type { ThinkingEvent } from '@/features/agents/types';
 import type { Reaction } from '@/features/reactions/types';
 
 export interface Message {
@@ -14,6 +15,9 @@ export interface Message {
   threadLastReplyAt?: string | undefined;
   isEdited?: boolean;
   hasDraft?: boolean;
+  sender_type: string;
+  _isStreaming?: boolean;
+  _thinking?: ThinkingEvent;
 }
 
 export interface Author {

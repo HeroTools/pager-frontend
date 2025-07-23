@@ -1,10 +1,6 @@
-import type {
-  ApiResponse,
-  Workspace,
-  WorkspaceMemberRole,
-  WorkspaceWithMembers,
-} from '@/types/database';
+import type { AgentEntity } from '@/features/agents/types';
 import type { MemberWithUser } from '@/features/members';
+import type { Workspace, WorkspaceMemberRole, WorkspaceWithMembers } from '@/types/database';
 
 // Use the database Workspace type directly
 export interface WorkspaceEntity extends Workspace {
@@ -15,14 +11,18 @@ export interface WorkspaceEntity extends Workspace {
 // Extended workspace type with members
 export type WorkspaceWithMembersList = WorkspaceWithMembers;
 
-// Create workspace data - based on database fields
 export interface CreateWorkspaceData {
   name: string;
-  description?: string; // UI field not in database yet (you might want to add this to schema)
+  agentName: string;
+  description?: string;
 }
 
 // Update workspace data
-export type UpdateWorkspaceData = CreateWorkspaceData;
+export interface UpdateWorkspaceData {
+  name?: string;
+  agentName?: string;
+  description?: string;
+}
 
 // Join workspace data
 export type JoinWorkspaceData = { workspace_id: string } | { invitation_token: string };
@@ -34,9 +34,11 @@ export interface WorkspaceResponseData extends WorkspaceEntity {
 }
 
 export interface CreateWorkspaceResponse {
-  workspace_id: string;
-  channel_id: string;
-  member_id: string;
+  id: string;
+  name: string;
+  role: WorkspaceMemberRole;
+  workspaceMemberId: string;
+  defaultAgent: AgentEntity;
   message: string;
 }
 
