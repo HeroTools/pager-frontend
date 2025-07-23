@@ -16,7 +16,7 @@ import { Thread } from '@/features/messages/component/thread';
 import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
 import { useRealtimeNotifications } from '@/features/notifications/hooks/use-realtime-notifications';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { useUIStore } from '@/store/ui-store';
+import { useUIStore } from '@/stores/ui-store';
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;

@@ -9,10 +9,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useConversationCreateStore } from '@/features/conversations/store/conversation-create-store';
+import type { WorkspaceEntity } from '@/features/workspaces/types';
 import { InviteModal } from './invite-modal';
 import { PreferenceModal } from './preference-modal';
-import type { WorkspaceEntity } from '@/features/workspaces/types';
-import { useConversationCreateStore } from '@/features/conversations/store/conversation-create-store';
 
 interface WorkspaceHeaderProps {
   workspace: WorkspaceEntity;

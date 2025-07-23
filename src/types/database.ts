@@ -22,6 +22,15 @@ interface BaseEntity {
   updated_at: string;
 }
 
+export interface Agent extends BaseEntity {
+  workspace_id: string;
+  name: string;
+  description?: string;
+  model: string;
+  avatar_url?: string;
+  is_active: boolean;
+}
+
 // Core Entities
 export interface User extends BaseEntity {
   email: string;
@@ -64,6 +73,7 @@ export interface DBChannelMember extends BaseEntity {
 
 export interface Conversation extends BaseEntity {
   workspace_id: string;
+  title?: string;
 }
 
 export interface DBConversationMember extends BaseEntity {

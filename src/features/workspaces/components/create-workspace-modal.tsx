@@ -5,15 +5,22 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useCreateWorkspace } from '..';
 import { useCreateWorkspaceModal } from '../store/use-create-workspace-modal';
+
+interface CreateWorkspaceFormData {
+  name: string;
+  agentName: string;
+}
 
 export const CreateWorkspaceModal = () => {
   const router = useRouter();
 
-  const form = useForm({
+  const form = useForm<CreateWorkspaceFormData>({
     defaultValues: {
       name: '',
+      agentName: 'Assistant',
     },
   });
 
@@ -26,11 +33,15 @@ export const CreateWorkspaceModal = () => {
     form.reset();
   };
 
-  const handleCreateWorkspace = form.handleSubmit(async ({ name }) => {
-    const workspace = await mutateAsync({ name });
-    toast.success('Workspace created');
-    router.push(`/${workspace.id}`);
-    handleClose();
+  const handleCreateWorkspace = form.handleSubmit(async ({ name, agentName }) => {
+    try {
+      const workspace = await mutateAsync({ name, agentName });
+      toast.success('Workspace created');
+      router.push(`/${workspace.id}`);
+      handleClose();
+    } catch (err) {
+      toast.error('Failed to create workspace');
+    }
   });
 
   return (
@@ -40,18 +51,45 @@ export const CreateWorkspaceModal = () => {
           <DialogTitle>Add a workspace</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={handleCreateWorkspace}>
-          <Input
-            {...form.register('name', {
-              required: true,
-              minLength: 3,
-              maxLength: 80,
-            })}
-            disabled={isPending}
-            autoFocus
-            placeholder="Workspace name"
-          />
+          <div className="space-y-2">
+            <Label htmlFor="workspace-name">Workspace name</Label>
+            <Input
+              id="workspace-name"
+              {...form.register('name', {
+                required: 'Workspace name is required',
+                minLength: { value: 3, message: 'At least 3 characters' },
+                maxLength: { value: 80, message: 'Maximum 80 characters' },
+              })}
+              disabled={isPending}
+              autoFocus
+              placeholder="e.g. Unowned, My Project, Homebase"
+            />
+            {form.formState.errors.name && (
+              <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="agent-name">AI assistant name</Label>
+            <Input
+              id="agent-name"
+              {...form.register('agentName', {
+                required: 'Agent name is required',
+                minLength: { value: 2, message: 'At least 2 characters' },
+                maxLength: { value: 255, message: 'Maximum 255 characters' },
+              })}
+              disabled={isPending}
+              placeholder="e.g. Assistant, Helper, Bot"
+            />
+            {form.formState.errors.agentName && (
+              <p className="text-sm text-destructive">{form.formState.errors.agentName.message}</p>
+            )}
+          </div>
+
           <div className="flex justify-end">
-            <Button disabled={isPending}>Create</Button>
+            <Button disabled={isPending} type="submit">
+              {isPending ? 'Creating...' : 'Create'}
+            </Button>
           </div>
         </form>
       </DialogContent>

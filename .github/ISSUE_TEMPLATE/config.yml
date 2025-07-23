@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions & Discussions
+    url: https://github.com/HeroTools/pager-frontend/discussions
+    about: Ask questions, share ideas, or discuss the project with the community
+  - name: 📚 Documentation
+    url: https://github.com/HeroTools/pager-frontend#readme
+    about: Check the README and contributing guidelines before opening an issue
+  - name: 🔒 Security Issues
+    url: mailto:security@herotools.com
+    about: Please email security issues directly instead of opening public issues
+  - name: ⚖️ Code of Conduct Violations
+    url: mailto:conduct@herotools.com
+    about: Report violations of our community standards confidentially
