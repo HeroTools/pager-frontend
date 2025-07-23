@@ -46,7 +46,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
           return (
             <div
               key={user.user_id}
-              className="relative w-5 h-5 rounded-md border border-white/20 overflow-hidden bg-foreground/80 backdrop-blur-sm flex items-center justify-center text-background text-xs font-medium"
+              className="relative w-5 h-5 rounded-md border border-border-subtle overflow-hidden bg-accent flex items-center justify-center text-accent-foreground text-xs font-medium"
               style={{ zIndex: 10 - index }}
             >
               {avatarUrl ? (
@@ -64,7 +64,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
           );
         })}
         {typingUsers.length > 2 && (
-          <div className="w-5 h-5 rounded-full border border-white/20 bg-foreground/60 backdrop-blur-sm flex items-center justify-center text-xs font-medium text-background">
+          <div className="w-5 h-5 rounded-full border border-border-subtle bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
             +{typingUsers.length - 2}
           </div>
         )}
@@ -74,15 +74,15 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
 
   return (
     <div className="mx-4 mb-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-      <div className="glass-typing-indicator backdrop-blur-lg bg-foreground/5 border border-foreground/10 rounded-2xl px-4 py-3 shadow-2xl shadow-black/20">
+      <div className="flat-typing-indicator bg-message-bubble border border-border-subtle rounded-2xl px-4 py-3">
         <div className="flex items-center gap-3">
           {renderUserAvatars()}
           <div className="flex items-center gap-1 -mb-0.5">
-            <div className="w-2 h-2 bg-foreground/60 rounded-full animate-bounce" />
-            <div className="w-2 h-2 bg-foreground/60 rounded-full animate-bounce [animation-delay:150ms]" />
-            <div className="w-2 h-2 bg-foreground/60 rounded-full animate-bounce [animation-delay:300ms]" />
+            <div className="w-2 h-2 bg-text-secondary rounded-full animate-bounce" />
+            <div className="w-2 h-2 bg-text-secondary rounded-full animate-bounce [animation-delay:150ms]" />
+            <div className="w-2 h-2 bg-text-secondary rounded-full animate-bounce [animation-delay:300ms]" />
           </div>
-          <span className="text-sm text-foreground/80 font-medium flex-1">{getText()}</span>
+          <span className="text-sm text-text-secondary font-medium flex-1">{getText()}</span>
         </div>
       </div>
     </div>
