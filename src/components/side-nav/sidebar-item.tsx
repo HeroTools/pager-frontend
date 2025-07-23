@@ -1,5 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { LucideIcon } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -10,7 +11,6 @@ import { useMarkEntityNotificationsRead } from '@/features/notifications/hooks/u
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
-import { Pencil } from 'lucide-react';
 
 interface SidebarItemProps {
   label: string;
