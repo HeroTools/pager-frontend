@@ -1,9 +1,11 @@
-import { authQueryKeys } from '@/features/auth/query-keys';
-import { CurrentUser } from '@/features/auth/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { streamAgentChat, type ThinkingEvent } from '../api/streaming-api';
+
+import { authQueryKeys } from '@/features/auth/query-keys';
+import { CurrentUser } from '@/features/auth/types';
+import { streamAgentChat } from '../api/streaming-api';
+import type { ThinkingEvent } from '../types';
 
 interface MessageStreamingState {
   isStreaming: boolean;

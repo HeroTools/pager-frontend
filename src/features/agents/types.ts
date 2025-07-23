@@ -152,3 +152,25 @@ export interface ThinkingEvent {
   toolCallsUsed?: number;
   processingTime?: number;
 }
+
+export interface StreamingChatData {
+  message: string;
+  conversationId?: string | null;
+  agentId: string;
+  workspaceId: string;
+}
+
+export interface ToolCall {
+  type: 'tool_call_start' | 'tool_call_end';
+  toolName: string;
+  arguments?: any;
+  result?: any;
+  callId: string;
+  message: string;
+}
+
+export interface AgentStep {
+  type: 'step_start' | 'step_end';
+  stepType: string;
+  message: string;
+}
