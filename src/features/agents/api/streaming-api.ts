@@ -1,33 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-
-interface StreamingChatData {
-  message: string;
-  conversationId?: string | null;
-  agentId: string;
-  workspaceId: string;
-}
-
-interface ToolCall {
-  type: 'tool_call_start' | 'tool_call_end';
-  toolName: string;
-  arguments?: any;
-  result?: any;
-  callId: string;
-  message: string;
-}
-
-interface AgentStep {
-  type: 'step_start' | 'step_end';
-  stepType: string;
-  message: string;
-}
-
-interface ThinkingEvent {
-  status: 'thinking' | 'generating' | 'complete';
-  message: string;
-  toolCallsUsed?: number;
-  processingTime?: number;
-}
+import type { AgentStep, StreamingChatData, ThinkingEvent, ToolCall } from '../types';
 
 interface StreamingCallbacks {
   onUserMessage?: (data: any) => void;
@@ -75,14 +47,6 @@ export async function streamAgentChat(
 
   const url = `${process.env.NEXT_PUBLIC_STREAMING_API_BASE_URL}`;
 
-  console.log('🌐 Starting stream request:', {
-    url,
-    messageLength: data.message.length,
-    conversationId: data.conversationId,
-    agentId: data.agentId,
-    workspaceId: data.workspaceId,
-  });
-
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -97,10 +61,7 @@ export async function streamAgentChat(
     }),
   });
 
-  console.log('📡 Stream response status:', response.status);
-
   if (!response.ok) {
-    console.error('❌ Stream response not ok:', response.status, response.statusText);
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
@@ -143,15 +104,11 @@ export async function streamAgentChat(
               }
             }
 
-            // Log all events for debugging
-            console.log(`[Streaming] Event: ${event}`, data);
-
             switch (event) {
               case 'user_message':
                 callbacks.onUserMessage?.(data);
                 break;
               case 'content_delta':
-                console.log('Frontend received delta:', JSON.stringify(data.content));
                 callbacks.onContentDelta?.(data.content);
                 break;
               case 'agent_switch':
@@ -175,11 +132,8 @@ export async function streamAgentChat(
                 callbacks.onError?.(data.message || 'Unknown error');
                 throw new Error(data.message || 'Stream error');
               case 'done':
-                // Stream complete
                 break;
               default:
-                // Handle events without explicit type - avoid processing content here
-                console.log('Unhandled event type:', event, data);
                 break;
             }
           } catch (parseError) {
@@ -194,6 +148,3 @@ export async function streamAgentChat(
 
   return completeData;
 }
-
-// Export types for use in components
-export type { AgentStep, ThinkingEvent, ToolCall };
