@@ -8,7 +8,7 @@ import parse, {
   Element as HtmlElement,
   HTMLReactParserOptions,
 } from 'html-react-parser';
-import { marked, Tokens } from 'marked';
+import { marked, type Tokens } from 'marked';
 import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
 import React, { useEffect, useMemo, useRef } from 'react';
 
