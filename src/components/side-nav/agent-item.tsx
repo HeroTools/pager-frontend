@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { cn } from '../../lib/utils';
 
 const agentItemVariants = cva(
-  'flex items-center gap-1.5 justify-start font-normal h-7 px-4 text-sm overflow-hidden',
+  'flex items-center gap-1.5 justify-start font-normal h-7 px-2 text-sm overflow-hidden',
   {
     variants: {
       variant: {

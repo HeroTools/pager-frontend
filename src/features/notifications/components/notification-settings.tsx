@@ -70,7 +70,7 @@ export const NotificationSettings = () => {
       case 'granted':
         return <Badge variant="default">Enabled</Badge>;
       case 'denied':
-        return <Badge variant="destructive">Blocked</Badge>;
+        return <Badge variant="danger">Blocked</Badge>;
       case 'default':
         return <Badge variant="secondary">Not Set</Badge>;
       case 'unsupported':
@@ -103,7 +103,7 @@ export const NotificationSettings = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Permission Status */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -141,9 +141,9 @@ export const NotificationSettings = () => {
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Notification Preferences</h4>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   <Label htmlFor="desktop-enabled">Desktop Notifications</Label>
                   <p className="text-sm text-muted-foreground">
                     Show desktop notifications when you receive messages
@@ -158,7 +158,7 @@ export const NotificationSettings = () => {
               </div>
 
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   <Label htmlFor="sound-enabled">Notification Sounds</Label>
                   <p className="text-sm text-muted-foreground">
                     Play a sound when you receive notifications
@@ -172,7 +172,7 @@ export const NotificationSettings = () => {
               </div>
 
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   <Label htmlFor="only-mentions">Only Direct Messages & Mentions</Label>
                   <p className="text-sm text-muted-foreground">
                     Only notify for direct messages and @mentions
@@ -193,9 +193,9 @@ export const NotificationSettings = () => {
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Quiet Hours</h4>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   <Label htmlFor="quiet-hours">Enable Quiet Hours</Label>
                   <p className="text-sm text-muted-foreground">
                     Pause notifications during specific hours
@@ -209,7 +209,7 @@ export const NotificationSettings = () => {
               </div>
 
               {preferences.quietHoursEnabled && (
-                <div className="grid grid-cols-2 gap-4 rounded-lg border p-3">
+                <div className="grid grid-cols-2 gap-2 rounded-lg border p-2">
                   <div className="space-y-2">
                     <Label htmlFor="quiet-start">Start Time</Label>
                     <input

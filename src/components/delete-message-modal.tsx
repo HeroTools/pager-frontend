@@ -26,7 +26,7 @@ export const DeleteMessageModal: FC<DeleteMessageModalProps> = ({
         <Button variant="outline" onClick={onClose} disabled={isDeleting}>
           Cancel
         </Button>
-        <Button variant="destructive" onClick={onConfirm} disabled={isDeleting}>
+        <Button variant="danger" onClick={onConfirm} disabled={isDeleting}>
           {isDeleting ? 'Deleting...' : 'Delete'}
         </Button>
       </div>

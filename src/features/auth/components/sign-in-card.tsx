@@ -36,13 +36,13 @@ export const SignInCard = ({ setFlow }: SignInCardProps) => {
         <CardTitle>Login to continue</CardTitle>
       </CardHeader>
       {error && (
-        <div className="bg-destructive/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
+        <div className="bg-destructive/15 p-4 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
           <TriangleAlert className="size-4" />
           <p>{error.message}</p>
         </div>
       )}
       <CardContent className="space-y-5 px-0 pb-0">
-        <form className="space-y-2.5" onSubmit={handlePasswordSignIn}>
+        <form className="space-y-4" onSubmit={handlePasswordSignIn}>
           <Input
             {...form.register('email', {
               required: 'Email is required',

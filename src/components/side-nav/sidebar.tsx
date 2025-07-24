@@ -28,11 +28,11 @@ export const Sidebar = () => {
   };
 
   return (
-    <div className="w-[70px] h-full bg-main-sidebar border-r border flex flex-col gap-y-3 items-center pt-4 pb-4">
+    <div className="w-18 h-full bg-main-sidebar border-r flex flex-col gap-y-4 items-center pt-4 pb-4">
       <div className="mb-2">
         <WorkspaceSwitcher />
       </div>
-      <div className="flex flex-col gap-y-1">
+      <div className="flex flex-col gap-2">
         <SidebarButton
           icon={Home}
           label="Home"

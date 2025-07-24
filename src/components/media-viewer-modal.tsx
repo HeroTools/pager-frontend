@@ -282,7 +282,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <span className="text-foreground text-sm px-2 min-w-[60px] text-center">
+              <span className="text-foreground text-sm px-2 min-w-16 text-center">
                 {Math.round(zoom * 100)}%
               </span>
               <Button

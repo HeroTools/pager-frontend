@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
 
 const conversationItemVariants = cva(
-  'flex items-center gap-1.5 justify-start font-normal h-7 px-4 text-sm overflow-hidden',
+  'flex items-center gap-1.5 justify-start font-normal h-7 px-2 text-sm overflow-hidden',
   {
     variants: {
       variant: {
@@ -124,7 +124,7 @@ export const ConversationItem = ({
           </Avatar>
 
           {conversation.is_group_conversation && (
-            <div className="absolute -bottom-0.5 -right-0.5 bg-card text-foreground text-xs rounded-md min-w-[14px] h-3.5 flex items-center justify-center px-1 border border-background">
+            <div className="absolute -bottom-0.5 -right-0.5 bg-card text-foreground text-xs rounded-md min-w-4 h-3.5 flex items-center justify-center px-1 border border-background">
               {conversation.member_count > 9 ? '9+' : conversation.member_count}
             </div>
           )}
@@ -143,7 +143,7 @@ export const ConversationItem = ({
 
         {unreadCount > 0 && (
           <Badge
-            variant="destructive"
+            variant="danger"
             className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs font-medium"
           >
             {unreadCount > 99 ? '99+' : unreadCount}

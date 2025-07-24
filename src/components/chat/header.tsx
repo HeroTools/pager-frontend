@@ -125,7 +125,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border">
+    <div className="flex items-center justify-between px-2 py-2 border-b">
       <div className="flex items-center gap-2">
         {chatType === 'conversation' ? (
           // For conversations, show avatar(s) or names
@@ -157,7 +157,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
         </h2>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {/* Member Avatars - click to open channel details (only for channels) */}
         {chatType === 'channel' && (
           <Button

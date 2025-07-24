@@ -328,7 +328,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                   </Button>
                 </div>
 
-                <ScrollArea className="h-[300px] pr-4">
+                <ScrollArea className="h-75 pr-4">
                   <div className="space-y-1">
                     {filteredMembers.length > 0 ? (
                       filteredMembers.map((member) => (
@@ -542,7 +542,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                           </p>
                         </div>
                         <Button
-                          variant="destructive"
+                          variant="danger"
                           className="gap-2"
                           onClick={handleDeleteChannel}
                           disabled={deleteChannel.isPending}
@@ -556,7 +556,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
 
                   {!channel.isDefault && (
                     <Button
-                      variant="destructive"
+                      variant="danger"
                       className="gap-2"
                       onClick={handleLeaveChannel}
                       disabled={removeChannelMembers.isPending}

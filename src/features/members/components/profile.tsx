@@ -48,7 +48,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
   if (getMembers.isLoading) {
     return (
       <div className="h-full flex flex-col bg-background">
-        <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
+        <div className="flex justify-between items-center h-12 px-4 border-b border-border-subtle">
           <h2 className="text-lg font-semibold text-foreground">Profile</h2>
           <Button onClick={onClose} size="sm" variant="ghost">
             <X className="size-4" />
@@ -64,13 +64,13 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
   if (!member) {
     return (
       <div className="h-full flex flex-col bg-background">
-        <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
+        <div className="flex justify-between items-center h-12 px-4 border-b border-border-subtle">
           <h2 className="text-lg font-semibold text-foreground">Profile</h2>
           <Button onClick={onClose} size="sm" variant="ghost">
             <X className="size-4" />
           </Button>
         </div>
-        <div className="flex flex-col gap-y-2 h-full items-center justify-center">
+        <div className="flex flex-col gap-y-4 h-full items-center justify-center">
           <AlertTriangle className="size-6 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Profile not found</p>
         </div>
@@ -114,7 +114,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
 
   return (
     <div className="h-full flex flex-col bg-background">
-      <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
+      <div className="flex justify-between items-center h-12 px-4 border-b border-border-subtle">
         <h2 className="text-lg font-semibold text-foreground">Profile</h2>
         <Button onClick={onClose} size="sm" variant="ghost">
           <X className="size-4" />
@@ -134,7 +134,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
           </Avatar>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-4">
           <h1 className="text-2xl font-bold text-foreground">{member.user.name}</h1>
         </div>
 
@@ -145,7 +145,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
             <MessageCircle className="size-4" />
             Message
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <div className="size-9 rounded-lg bg-muted flex items-center justify-center">
               <Mail className="size-4 text-muted-foreground" />
             </div>

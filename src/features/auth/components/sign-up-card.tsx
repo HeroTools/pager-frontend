@@ -145,7 +145,7 @@ export const SignUpCard = ({
           </CardDescription>
         </CardHeader>
         {error && (
-          <div className="bg-destructive/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
+          <div className="bg-destructive/15 p-4 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
             <TriangleAlert className="size-4" />
             <p>{error}</p>
           </div>
@@ -187,13 +187,13 @@ export const SignUpCard = ({
         <CardTitle>Sign up to continue</CardTitle>
       </CardHeader>
       {error && (
-        <div className="bg-destructive/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
+        <div className="bg-destructive/15 p-4 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
           <TriangleAlert className="size-4" />
           <p>{error}</p>
         </div>
       )}
       <CardContent className="space-y-5 px-0 pb-0">
-        <form className="space-y-2.5" onSubmit={handlePasswordSignUp}>
+        <form className="space-y-4" onSubmit={handlePasswordSignUp}>
           <Input
             {...form.register('name', {
               required: 'Name is required',
