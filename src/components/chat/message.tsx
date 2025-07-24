@@ -93,7 +93,7 @@ const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
   loading: () => (
     <div className="flex flex-col border rounded-md overflow-hidden">
-      <div className="h-[194px] p-4">
+      <div className="h-48 p-4">
         <Skeleton className="h-full w-full rounded-md" />
       </div>
       <div className="flex px-2 pb-2 gap-2 border-t">
@@ -309,7 +309,7 @@ const VideoAttachment: FC<{
         )}
 
         {isLoaded && !hasError && (
-          <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
+          <div className="absolute bottom-2 left-2 flex items-center gap-2 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
             <Play className="w-3 h-3 fill-current" />
             {duration && <span>{duration}</span>}
           </div>
@@ -336,7 +336,7 @@ const VideoAttachment: FC<{
 const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
   return (
     <div className="bg-muted rounded-lg p-3 max-w-sm">
-      <div className="flex items-center gap-3 mb-2">
+      <div className="flex items-center gap-2 mb-2">
         <Music className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">
@@ -498,7 +498,7 @@ const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
       className="bg-muted rounded-lg p-3 max-w-sm hover:bg-muted/80 transition-colors cursor-pointer"
       onClick={() => window.open(attachment.publicUrl, '_blank')}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <File className="w-5 h-5 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{attachment.originalFilename || 'File'}</p>
@@ -732,17 +732,17 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       <div
         ref={messageRef}
         className={cn(
-          'group/message relative flex gap-3 px-4 py-1.5 transition-colors duration-100 ease-in-out',
+          'group/message relative flex gap-2 px-2 py-1 transition-colors duration-100 ease-in-out',
           {
             'hover:bg-message-hover': !isEditing,
-            'pt-3': !isCompact,
+            'pt-4': !isCompact,
           },
           isHighlighted && 'message-highlighted',
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           {showAvatar && !isCompact ? (
             <Avatar
               className="w-9 h-9 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
@@ -761,7 +761,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
               </AvatarFallback>
             </Avatar>
           ) : (
-            <div className="w-9 flex-shrink-0 flex justify-center items-start pt-0.5">
+            <div className="w-9 flex-shrink-0 flex justify-center items-start pt-1">
               {isCompact && (
                 <span className="text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors opacity-0 group-hover:opacity-100">
                   {new Date(message.timestamp).toLocaleTimeString([], {
@@ -775,7 +775,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
 
           <div className="flex-1 min-w-0">
             {!isCompact && (
-              <div className="flex items-baseline gap-2 mb-0.5">
+              <div className="flex items-baseline gap-2 mb-1">
                 <span
                   className="font-semibold text-foreground hover:underline cursor-pointer leading-tight"
                   onClick={() => {

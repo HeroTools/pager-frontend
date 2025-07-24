@@ -222,7 +222,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
           disabled={isUploading}
           onChange={(e) => e.target.files && handleFiles(e.target.files)}
         />
-        <div className="space-y-2">
+        <div className="space-y-4">
           <p className="text-foreground">
             {isUploading ? 'Uploading files...' : 'Drop files here or click to browse'}
           </p>
@@ -233,11 +233,11 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
       </div>
 
       {attachments.length > 0 && (
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-4">
           {attachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="flex items-center gap-3 p-3 bg-card border border-border rounded-md"
+              className="flex items-center gap-4 p-4 bg-card border border-border rounded-md">
             >
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-foreground truncate">

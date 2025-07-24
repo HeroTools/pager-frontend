@@ -89,13 +89,13 @@ export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModal
       <ConfirmDialog />
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="p-0 bg-secondary overflow-hidden">
-          <DialogHeader className="p-4 border-b">
+          <DialogHeader className="p-2 border-b">
             <DialogTitle>{initialVlaue}</DialogTitle>
           </DialogHeader>
-          <div className="px-4 pb-4 flex flex-col gap-y-2">
+          <div className="px-2 pb-2 flex flex-col gap-y-2">
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
               <DialogTrigger asChild>
-                <div className="px-5 py-4 rounded-lg border cursor-pointer hover:bg-secondary">
+                <div className="px-3 py-2 rounded-lg border cursor-pointer hover:bg-secondary">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold">Workspace name</p>
                     <p className="text-sm text-muted-foreground hover:underline font-semibold">
@@ -136,7 +136,7 @@ export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModal
             <Button
               disabled={removeWorkspace.isPending}
               onClick={handleRemoveWorkspace}
-              className="flex items-center justify-start gap-x-2 py-4 rounded-lg border cursor-pointer hover:bg-secondary text-destructive"
+              className="flex items-center justify-start gap-x-2 py-2 rounded-lg border cursor-pointer hover:bg-secondary text-destructive"
             >
               <TrashIcon className="size-4" />
               <p className="text-sm font-semibold">Delete workspace</p>

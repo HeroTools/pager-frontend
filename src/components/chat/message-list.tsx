@@ -80,7 +80,7 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
 
         {isLoading ? (
           // Initial loading state with full skeleton conversation
-          <div className="px-4 py-4 space-y-2">
+          <div className="px-2 py-2 space-y-2">
             <SkeletonMessages count={15} />
           </div>
         ) : (
@@ -98,12 +98,12 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
             return (
               <Fragment key={message.id}>
                 {showDateDivider && (
-                  <div className="flex items-center my-4 px-4">
-                    <div className="flex-1 border-t border" />
+                  <div className="flex items-center my-2 px-2">
+                    <div className="flex-1 border-t" />
                     <div className="mx-4 text-xs text-muted-foreground bg-background px-2">
                       {new Date(message.timestamp).toLocaleDateString()}
                     </div>
-                    <div className="flex-1 border-t border" />
+                    <div className="flex-1 border-t" />
                   </div>
                 )}
                 <ChatMessage

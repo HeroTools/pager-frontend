@@ -80,8 +80,8 @@ export const CreateConversationModal = () => {
 
   return (
     <Dialog open={isCreatingConversation} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="space-y-3">
+      <DialogContent className="sm:max-w-md p-6">
+        <DialogHeader className="space-y-4">
           <DialogTitle className="text-xl font-semibold flex items-center gap-2">
             Start a new conversation
           </DialogTitle>
@@ -90,7 +90,7 @@ export const CreateConversationModal = () => {
         <form className="space-y-6" onSubmit={handleSubmit}>
           {/* Conversation Preview */}
           {selectedMembers.length > 0 && (
-            <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-md border">
+            <div className="flex items-center gap-4 p-4 bg-secondary/50 rounded-md border">
               <div className="flex -space-x-2">
                 {selectedMembers.slice(0, 3).map((member, index) => (
                   <div
@@ -127,7 +127,7 @@ export const CreateConversationModal = () => {
           )}
 
           {/* Member Search */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <MemberSearchSelect
               selectedMembers={selectedMembers}
               onMemberSelect={selectMember}
@@ -148,7 +148,7 @@ export const CreateConversationModal = () => {
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-4 pt-4">
             <Button
               type="button"
               variant="outline"
@@ -157,7 +157,7 @@ export const CreateConversationModal = () => {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!canSubmit} className="min-w-[100px]">
+            <Button type="submit" disabled={!canSubmit} className="min-w-24">
               {createConversation.isPending ? 'Creating...' : 'Create Chat'}
             </Button>
           </div>

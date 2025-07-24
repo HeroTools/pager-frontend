@@ -228,7 +228,7 @@ const ProfileStep = ({
             )}
           />
         </CardContent>
-        <CardFooter className="flex gap-3 pt-6">
+        <CardFooter className="flex gap-4 pt-6">
           <Button
             type="button"
             variant="outline"
@@ -300,7 +300,7 @@ const InviteStep = ({
           <span className="truncate">{inviteLink || 'Generating...'}</span>
         </Button>
       </CardContent>
-      <CardFooter className="flex gap-3 pt-6">
+      <CardFooter className="flex gap-4 pt-6">
         <Button variant="outline" onClick={onBack} disabled={isLoading} className="flex-1 h-11">
           Back
         </Button>

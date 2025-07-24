@@ -38,7 +38,7 @@ export const SidebarButton = ({
         <Icon className="size-5 text-main-sidebar-foreground" />
         <NotificationBadge count={badge || 0} />
       </div>
-      <span className="text-[11px] text-main-sidebar-foreground">{label}</span>
+      <span className="text-xs text-main-sidebar-foreground">{label}</span>
     </div>
   );
 };

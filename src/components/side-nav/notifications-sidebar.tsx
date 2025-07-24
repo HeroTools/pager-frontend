@@ -100,7 +100,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
   if (isLoading) {
     return (
       <div className="flex flex-col h-full bg-background">
-        <div className="flex items-center justify-between p-4 border-b border">
+        <div className="flex items-center justify-between p-2 border-b border">
           <h2 className="text-lg font-semibold text-foreground">Activity</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="size-4" />
@@ -116,7 +116,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
   if (error) {
     return (
       <div className="flex flex-col h-full bg-background">
-        <div className="flex items-center justify-between p-4 border-b border">
+        <div className="flex items-center justify-between p-2 border-b border">
           <h2 className="text-lg font-semibold text-foreground">Activity</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="size-4" />
@@ -132,7 +132,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="flex items-center justify-between p-2 border-b border-border">
         <h2 className="text-lg font-semibold text-foreground">Activity</h2>
         <div className="flex items-center gap-2">
           {hasUnread && (
@@ -173,7 +173,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
                 className={cn(
-                  'flex items-start gap-3 p-4 cursor-pointer transition-all duration-150 hover:bg-muted/50 relative',
+                  'flex items-start gap-3 p-2 cursor-pointer transition-all duration-150 hover:bg-muted/50 relative',
                   !notification.is_read && 'bg-muted/30',
                 )}
               >
@@ -229,7 +229,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
             ))}
 
             {hasNextPage && (
-              <div className="p-4 text-center border-t border">
+              <div className="p-2 text-center border-t border">
                 <Button
                   variant="ghost"
                   size="sm"

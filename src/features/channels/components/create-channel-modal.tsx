@@ -97,7 +97,7 @@ export const CreateChannelModal = () => {
   return (
     <>
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent>
+        <DialogContent className="p-6">
           <DialogHeader>
             <DialogTitle>
               {step === 1 ? (
@@ -186,7 +186,7 @@ export const CreateChannelModal = () => {
                   <div className="mb-2 text-sm font-medium">
                     Selected members ({selectedMemberIds.length})
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     {selectedMemberIds.length > 0 ? (
                       <div className="space-y-1">
                         {selectedMemberIds.map((memberId) => {
@@ -230,7 +230,7 @@ export const CreateChannelModal = () => {
                 </div>
               )}
 
-              <div className="flex justify-between mt-4">
+              <div className="flex justify-between mt-6">
                 <Button variant="outline" onClick={() => setStep(1)} disabled={isPending}>
                   Back
                 </Button>

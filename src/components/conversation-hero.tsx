@@ -7,7 +7,7 @@ interface ConversationHeroProps {
 
 export const ConversationHero = ({ image, name }: ConversationHeroProps) => {
   return (
-    <div className="mt-[88px] mx-5 mb-4">
+    <div className="mt-22 mx-5 mb-4">
       <div className="flex items-center gap-x-1 mb-2">
         <Avatar className="size-14 mr-2">
           <AvatarImage src={image} />

@@ -33,12 +33,12 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
         setOpen={setPreferenceOpen}
         initialVlaue={workspace.name}
       />
-      <div className="flex items-center justify-between px-4 h-[49px] gap-0.5 border-b border">
+      <div className="flex items-center justify-between px-2 h-12 gap-1 border-b">
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="transparent"
-              className="font-semibold text-lg w-auto p-1.5 overflow-hidden cursor-pointer"
+              className="font-semibold text-lg w-auto p-2 overflow-hidden cursor-pointer"
               size="sm"
             >
               <span className="truncate text-foreground">{workspace.name}</span>
@@ -75,7 +75,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           <Button variant="transparent" size="iconSm" onClick={startConversationCreation}>
             <SquarePen className="size-4" />
           </Button>

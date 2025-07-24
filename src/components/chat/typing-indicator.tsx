@@ -39,7 +39,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
     if (typingUsers.length === 0) return null;
 
     return (
-      <div className="flex -space-x-1.5">
+      <div className="flex -space-x-2">
         {typingUsers.slice(0, 2).map((user, index) => {
           const avatarUrl = getUserAvatar?.(user.user_id);
           const nameOfUser = getUserName(user.user_id);
@@ -74,10 +74,10 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
 
   return (
     <div className="mx-4 mb-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-      <div className="flat-typing-indicator bg-secondary border rounded-2xl px-4 py-3">
+      <div className="flat-typing-indicator bg-secondary border rounded-2xl px-2 py-1.5">
         <div className="flex items-center gap-3">
           {renderUserAvatars()}
-          <div className="flex items-center gap-1 -mb-0.5">
+          <div className="flex items-center gap-2 -mb-1">
             <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
             <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:150ms]" />
             <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:300ms]" />

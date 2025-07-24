@@ -795,7 +795,7 @@ const Editor = ({
       {variant === 'create' && (
         <div
           className={cn(
-            'p-2 pb-0 text-[10px] text-muted-foreground flex justify-end opacity-0 transition',
+            'p-2 pb-0 text-xs text-muted-foreground flex justify-end opacity-0 transition',
             !isEmpty && 'opacity-100',
           )}
         >
