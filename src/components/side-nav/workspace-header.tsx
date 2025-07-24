@@ -33,7 +33,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
         setOpen={setPreferenceOpen}
         initialVlaue={workspace.name}
       />
-      <div className="flex items-center justify-between px-4 h-[49px] gap-0.5 border-b border-border-subtle">
+      <div className="flex items-center justify-between px-4 h-[49px] gap-0.5 border-b border">
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
@@ -47,7 +47,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom" className="w-64">
             <DropdownMenuItem className="cursor-pointer capitalize">
-              <div className="size-9 relative overflow-hidden bg-primary text-primary-foreground font-semibold text-xl rounded-md flex items-center justify-center mr-2">
+              <div className="size-9 relative overflow-hidden bg-primary text-primary-foreground font-semibold text-xl rounded-lg flex items-center justify-center mr-2">
                 {workspace.name?.charAt(0).toUpperCase()}
               </div>
               <div className="flex flex-col items-start">

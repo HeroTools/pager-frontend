@@ -13,7 +13,7 @@ const NotificationItem: FC<NotificationItemProps> = ({ notification, onClick, ic
     <button
       onClick={onClick}
       className={`w-full p-3 text-left hover:bg-accent transition-colors ${
-        !notification.is_read ? 'bg-blue-50 dark:bg-blue-950/20' : ''
+        !notification.is_read ? 'bg-accent-info/10' : ''
       }`}
     >
       <div className="flex gap-3">
@@ -31,7 +31,7 @@ const NotificationItem: FC<NotificationItemProps> = ({ notification, onClick, ic
 
             <div className="flex items-center gap-1 flex-shrink-0">
               <span className="text-xs text-muted-foreground">{timeAgo}</span>
-              {!notification.is_read && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
+              {!notification.is_read && <div className="w-2 h-2 bg-accent-info rounded-full" />}
             </div>
           </div>
 

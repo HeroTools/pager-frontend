@@ -125,7 +125,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+    <div className="flex items-center justify-between px-4 py-3 border-b border">
       <div className="flex items-center gap-2">
         {chatType === 'conversation' ? (
           // For conversations, show avatar(s) or names
@@ -166,13 +166,13 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
               setDetailsModalOpen(true);
             }}
             variant="ghost"
-            className="flex items-center -space-x-2 focus:outline-none group relative px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
+            className="flex items-center -space-x-2 focus:outline-none group relative px-2 py-1 rounded-lg hover:bg-secondary transition-colors duration-200"
             title="Channel details"
           >
             {visibleMembers.map((member) => (
               <Tooltip key={member.id}>
                 <TooltipTrigger asChild>
-                  <Avatar className="h-7 w-7 border-2 border-background bg-muted">
+                  <Avatar className="h-7 w-7 border-2 border-background bg-secondary">
                     {member.workspace_member.user.image ? (
                       <AvatarImage
                         src={member.workspace_member.user.image}
@@ -190,7 +190,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
             ))}
 
             {extraCount > 0 && (
-              <div className="h-7 w-7 flex items-center justify-center rounded-full bg-muted text-xs font-medium border-2 border-background text-muted-foreground">
+              <div className="h-7 w-7 flex items-center justify-center rounded-full bg-secondary text-xs font-medium border-2 border-background text-muted-foreground">
                 +{extraCount}
               </div>
             )}

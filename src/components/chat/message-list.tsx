@@ -63,7 +63,7 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
       ref={containerRef}
       onScroll={onScroll}
       className={cn(
-        'flex-1 bg-chat',
+        'flex-1 bg-background',
         isEmojiPickerOpen() ? 'overflow-y-hidden' : 'overflow-y-auto',
       )}
       style={{
@@ -73,7 +73,7 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
     >
       <div className="pb-4">
         {isLoadingMore && (
-          <div className="border-b border-border-subtle/30 pb-4 mb-4">
+          <div className="border-b border/30 pb-4 mb-4">
             <SkeletonMessages count={8} />
           </div>
         )}
@@ -99,11 +99,11 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
               <Fragment key={message.id}>
                 {showDateDivider && (
                   <div className="flex items-center my-4 px-4">
-                    <div className="flex-1 border-t border-border-subtle" />
-                    <div className="mx-4 text-xs text-muted-foreground bg-chat px-2">
+                    <div className="flex-1 border-t border" />
+                    <div className="mx-4 text-xs text-muted-foreground bg-background px-2">
                       {new Date(message.timestamp).toLocaleDateString()}
                     </div>
-                    <div className="flex-1 border-t border-border-subtle" />
+                    <div className="flex-1 border-t border" />
                   </div>
                 )}
                 <ChatMessage

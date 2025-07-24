@@ -267,7 +267,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
               )}
 
               {attachment.status === 'completed' && (
-                <div className="flex-1 mx-4 text-xs text-green-600">✓ Uploaded</div>
+                <div className="flex-1 mx-4 text-xs text-accent-success">✓ Uploaded</div>
               )}
 
               <button

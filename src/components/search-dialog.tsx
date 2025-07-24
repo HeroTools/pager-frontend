@@ -48,7 +48,7 @@ const SearchResultCard = ({
   return (
     <div
       className={`p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors ${
-        isReferenced ? 'ring-2 ring-brand-blue/30 bg-brand-blue/5' : ''
+        isReferenced ? 'ring-2 ring-primary/30 bg-primary/5' : ''
       }`}
       onClick={() => onNavigate(result.messageId)}
     >
@@ -57,7 +57,7 @@ const SearchResultCard = ({
           <div className="flex items-center gap-2 mb-2">
             <span className="font-medium text-sm">{result.authorName}</span>
             {isReferenced && (
-              <Badge variant="outline" className="text-xs bg-brand-blue/10">
+              <Badge variant="outline" className="text-xs bg-primary/10">
                 Referenced in AI answer
               </Badge>
             )}
@@ -70,7 +70,7 @@ const SearchResultCard = ({
           </div>
 
           <div
-            className="text-sm leading-relaxed [&_mark]:bg-yellow-200 [&_mark]:dark:bg-yellow-800 [&_mark]:px-0.5 [&_mark]:rounded"
+            className="text-sm leading-relaxed [&_mark]:bg-accent-warning/20 [&_mark]:px-0.5 [&_mark]:rounded"
             dangerouslySetInnerHTML={{ __html: highlightedContent }}
           />
 
@@ -104,7 +104,7 @@ const AIAnswerCard = ({
       return text.replace(/\[(\d+)\]/g, (match, num) => {
         const ref = references.find((r) => r.index === parseInt(num));
         if (ref) {
-          return `<button class="citation-link text-brand-blue hover:underline font-medium" data-message-id="${ref.messageId}">[${num}]</button>`;
+          return `<button class="citation-link text-primary hover:underline font-medium" data-message-id="${ref.messageId}">[${num}]</button>`;
         }
         return match;
       });
@@ -126,10 +126,10 @@ const AIAnswerCard = ({
   );
 
   return (
-    <div className="p-4 bg-gradient-to-r from-brand-blue/5 to-brand-green/5 border border-brand-blue/20 rounded-lg">
+    <div className="p-4 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-lg">
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="size-5 text-brand-blue" />
-        <h3 className="font-semibold text-brand-blue">AI Summary</h3>
+        <Sparkles className="size-5 text-primary" />
+        <h3 className="font-semibold text-primary">AI Summary</h3>
       </div>
       <div
         className="prose prose-sm max-w-none [&_.citation-link]:cursor-pointer"

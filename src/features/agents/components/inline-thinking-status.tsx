@@ -48,15 +48,15 @@ const InlineThinkingStatus = ({ isStreaming, thinking, className }: InlineThinki
   const getIcon = () => {
     switch (currentStatus.status) {
       case 'thinking':
-        return <Brain className="w-3 h-3 text-blue-500 animate-pulse" />;
+        return <Brain className="w-3 h-3 text-accent-info animate-pulse" />;
       case 'using_tools':
-        return <Wrench className="w-3 h-3 text-orange-500 animate-spin" />;
+        return <Wrench className="w-3 h-3 text-accent-warning animate-spin" />;
       case 'processing':
-        return <Cog className="w-3 h-3 text-purple-500 animate-spin" />;
+        return <Cog className="w-3 h-3 text-accent-primary animate-spin" />;
       case 'generating':
-        return <Loader className="w-3 h-3 text-green-500 animate-spin" />;
+        return <Loader className="w-3 h-3 text-accent-success animate-spin" />;
       case 'complete':
-        return <CheckCircle className="w-3 h-3 text-green-500" />;
+        return <CheckCircle className="w-3 h-3 text-accent-success" />;
       default:
         return <Brain className="w-3 h-3 text-muted-foreground animate-pulse" />;
     }
@@ -65,15 +65,15 @@ const InlineThinkingStatus = ({ isStreaming, thinking, className }: InlineThinki
   const getStatusColor = () => {
     switch (currentStatus.status) {
       case 'thinking':
-        return 'text-blue-600 dark:text-blue-400';
+        return 'text-accent-info';
       case 'using_tools':
-        return 'text-orange-600 dark:text-orange-400';
+        return 'text-accent-warning';
       case 'processing':
-        return 'text-purple-600 dark:text-purple-400';
+        return 'text-accent-primary';
       case 'generating':
-        return 'text-green-600 dark:text-green-400';
+        return 'text-accent-success';
       case 'complete':
-        return 'text-green-600 dark:text-green-400';
+        return 'text-accent-success';
       default:
         return 'text-muted-foreground';
     }

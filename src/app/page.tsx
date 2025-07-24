@@ -8,7 +8,7 @@ import { useCreateWorkspaceModal } from '@/features/workspaces/store/use-create-
 import { Skeleton } from '@/components/ui/skeleton';
 
 const SidebarSkeleton = () => (
-  <div className="w-64 bg-gray-50 border-r flex flex-col h-full">
+  <div className="w-64 bg-muted border-r flex flex-col h-full">
     {/* Workspace header */}
     <div className="p-4 border-b">
       <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ const SidebarSkeleton = () => (
         <div className="space-y-1 ml-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="flex items-center gap-2 py-1">
-              <span className="text-gray-400">#</span>
+              <span className="text-muted-foreground">#</span>
               <Skeleton className="h-4 w-20" />
             </div>
           ))}
@@ -91,7 +91,7 @@ const MainContentSkeleton = () => (
     {/* Channel header */}
     <div className="border-b p-4 flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <span className="text-gray-400">#</span>
+        <span className="text-muted-foreground">#</span>
         <Skeleton className="h-6 w-16" />
       </div>
       <div className="flex items-center gap-2">

@@ -36,7 +36,7 @@ const DraftsPage = () => {
 
   if (isLoadingChannels || isLoadingConversations) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full bg-background">
         <div className="p-4 border-b">
           <h1 className="text-2xl font-bold">Drafts</h1>
           <p className="text-muted-foreground">Loading drafts...</p>
@@ -51,7 +51,7 @@ const DraftsPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background">
       <div className="p-4 border-b">
         <h1 className="text-2xl font-bold">Drafts</h1>
         <p className="text-muted-foreground">{draftsWithEntities.length} drafts</p>

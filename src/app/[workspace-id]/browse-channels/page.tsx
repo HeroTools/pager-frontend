@@ -132,7 +132,7 @@ export default function BrowseChannels() {
             {displayedChannels.map((channel) => (
               <li
                 key={channel.id}
-                className="flex items-center gap-4 px-6 py-4 border-b border-border-subtle last:border-b-0 hover:bg-accent transition"
+                className="flex items-center gap-4 px-6 py-4 border-b border last:border-b-0 hover:bg-accent transition"
               >
                 <span>
                   {channel.channel_type === 'public' ? (
@@ -146,7 +146,7 @@ export default function BrowseChannels() {
                   <div className="flex items-center gap-2">
                     <span className="font-medium truncate">#{channel.name}</span>
                     {channel.is_member && (
-                      <span className="text-xs text-green-600 font-semibold ml-2">Joined</span>
+                      <span className="text-xs text-accent-success font-semibold ml-2">Joined</span>
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground">

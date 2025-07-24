@@ -15,7 +15,7 @@ export const ProfilePanel = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background border-l border-border-subtle">
+    <div className="h-full flex flex-col bg-background border-l border">
       <Profile memberId={profileMemberId} onClose={handleClose} />
     </div>
   );
