@@ -1,4 +1,5 @@
-import { ChevronDown, SquarePen } from 'lucide-react';
+import { ChevronDown, Settings, SquarePen } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,6 @@ import {
 import { useConversationCreateStore } from '@/features/conversations/store/conversation-create-store';
 import type { WorkspaceEntity } from '@/features/workspaces/types';
 import { InviteModal } from './invite-modal';
-import { PreferenceModal } from './preference-modal';
 
 interface WorkspaceHeaderProps {
   workspace: WorkspaceEntity;
@@ -20,19 +20,18 @@ interface WorkspaceHeaderProps {
 }
 
 export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) => {
-  const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const router = useRouter();
 
   const { startConversationCreation } = useConversationCreateStore();
+
+  const handleSettingsClick = () => {
+    router.push(`/${workspace.id}/settings`);
+  };
 
   return (
     <>
       <InviteModal open={inviteOpen} setOpen={setInviteOpen} name={workspace.name} />
-      <PreferenceModal
-        open={preferenceOpen}
-        setOpen={setPreferenceOpen}
-        initialVlaue={workspace.name}
-      />
       <div className="flex items-center justify-between px-4 h-[49px] gap-0.5 border-b border-border-subtle">
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
@@ -65,11 +64,9 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
                   Invite people to {workspace.name}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer py-2"
-                  onClick={() => setPreferenceOpen(true)}
-                >
-                  Preference
+                <DropdownMenuItem className="cursor-pointer py-2" onClick={handleSettingsClick}>
+                  <Settings className="size-4 mr-2" />
+                  Settings
                 </DropdownMenuItem>
               </>
             )}

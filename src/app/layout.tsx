@@ -23,7 +23,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Unowned',
+  title: 'Pager',
 };
 
 export default function RootLayout({

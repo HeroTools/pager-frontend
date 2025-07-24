@@ -62,7 +62,7 @@ export const CreateWorkspaceModal = () => {
               })}
               disabled={isPending}
               autoFocus
-              placeholder="e.g. Unowned, My Project, Homebase"
+              placeholder="e.g. Pager, My Project, Homebase"
             />
             {form.formState.errors.name && (
               <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>

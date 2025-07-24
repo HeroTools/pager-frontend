@@ -15,7 +15,6 @@ const WorkspaceIdPage = () => {
   const workspaceId = useWorkspaceId() as string;
   const { open, setOpen } = useCreateChannelModal();
 
-  // These hooks should now return cleaner data
   const {
     data: currentMember,
     isLoading: isMemberLoading,
@@ -35,12 +34,7 @@ const WorkspaceIdPage = () => {
   const channelId = useMemo(() => channels?.[0]?.id, [channels]);
 
   const isAdmin = useMemo(() => {
-    // This depends on your member API structure - update based on what your API returns
-    // If your member API returns the member directly:
     return currentMember?.role === 'admin';
-
-    // If your member API still returns nested data like before, keep the old structure:
-    // return currentMember?.data?.data?.member?.role === "admin";
   }, [currentMember]);
 
   const isLoading = isWorkspaceLoading || isChannelsLoading || isMemberLoading;
