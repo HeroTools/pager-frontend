@@ -408,7 +408,7 @@ const DocumentAttachment: FC<{
     <div className="relative group/document w-48">
       <div
         className={cn(
-          'rounded-lg border-2 cursor-pointer hover:shadow-md transition-all overflow-hidden',
+          'rounded-lg border cursor-pointer hover:shadow-md transition-all overflow-hidden',
           getFileColor(attachment.originalFilename || ''),
         )}
         onClick={canPreview ? onOpenMediaViewer : () => window.open(attachment.publicUrl, '_blank')}

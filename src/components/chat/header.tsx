@@ -172,7 +172,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
             {visibleMembers.map((member) => (
               <Tooltip key={member.id}>
                 <TooltipTrigger asChild>
-                  <Avatar className="h-6 w-6 border-2 border-background bg-secondary">
+                  <Avatar className="h-6 w-6 border bg-secondary">
                     {member.workspace_member.user.image ? (
                       <AvatarImage
                         src={member.workspace_member.user.image}
@@ -190,7 +190,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
             ))}
 
             {extraCount > 0 && (
-              <div className="h-6 w-6 flex items-center justify-center rounded-full bg-secondary text-xs font-medium border-2 border-background text-muted-foreground">
+              <div className="h-6 w-6 flex items-center justify-center rounded-full bg-secondary text-xs font-medium border text-muted-foreground">
                 +{extraCount}
               </div>
             )}

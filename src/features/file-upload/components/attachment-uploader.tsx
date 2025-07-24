@@ -201,7 +201,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
     <div className="w-full mb-4">
       <div
         className={`
-          border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200
+          border border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200
           ${
             isDragging
               ? 'border-primary bg-accent/50 scale-[1.02]'

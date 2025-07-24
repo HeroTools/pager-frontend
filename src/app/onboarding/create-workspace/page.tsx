@@ -51,7 +51,7 @@ const StepIndicator = ({ currentStep }: { currentStep: Step }) => (
         <div key={step.id} className="flex items-center">
           <div
             className={`
-                relative flex h-10 w-10 items-center justify-center rounded-full border-2
+                relative flex h-10 w-10 items-center justify-center rounded-full border
                 transition-all duration-200 ease-in-out
                 ${
                   currentStep === index

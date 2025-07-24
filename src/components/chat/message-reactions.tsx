@@ -86,14 +86,14 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'h-6 px-2 py-0 text-xs rounded-full border transition-all duration-200',
+                  'h-6 px-2 py-0 text-xs rounded-full border-border transition-all duration-200',
                   hasUserReacted
                     ? [
-                        'bg-primary border-primary text-primary-foreground',
+                        'bg-secondary border-border text-secondary-foreground',
                         'hover:bg-primary/90 hover:border-primary/90',
                       ]
                     : [
-                        'bg-secondary border-secondary text-secondary-foreground',
+                        'bg-secondary border-border text-secondary-foreground',
                         'hover:bg-secondary/80 hover:border-secondary/80 hover:text-secondary-foreground',
                       ],
                 )}

@@ -699,7 +699,7 @@ const Editor = ({
         onDragLeave={handleDragLeave}
       >
         {isDragging && (
-          <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center border-2 border-dashed border-primary rounded-md">
+          <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center border border-dashed border-primary rounded-md">
             <div className="text-center">
               <div className="text-lg font-medium text-primary mb-2">Drop files here</div>
               <div className="text-sm text-muted-foreground">

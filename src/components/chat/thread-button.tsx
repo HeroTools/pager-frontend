@@ -42,7 +42,7 @@ const ThreadButton: FC<{
             {displayedMembers.map((member) => (
               <Avatar
                 key={member.id}
-                className="w-5 h-5 ring-2 ring-card-foreground cursor-pointer hover:opacity-80 transition-opacity"
+                className="w-5 h-5 border cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent thread from opening
                   setProfilePanelOpen(member.id);
