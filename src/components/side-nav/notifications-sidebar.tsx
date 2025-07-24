@@ -115,7 +115,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
 
   if (error) {
     return (
-      <div className="flex flex-col h-full bg-background">
+      <div className="flex flex-col h-full">
         <div className="flex items-center justify-between p-2 border-b border">
           <h2 className="text-lg font-semibold text-foreground">Activity</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -131,7 +131,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-workspace-sidebar">
       <div className="flex items-center justify-between p-2 border-b border-border">
         <h2 className="text-lg font-semibold text-foreground">Activity</h2>
         <div className="flex items-center gap-2">

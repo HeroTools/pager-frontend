@@ -732,7 +732,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       <div
         ref={messageRef}
         className={cn(
-          'group/message relative flex gap-2 px-2 py-1 transition-colors duration-100 ease-in-out',
+          'group/message relative flex gap-2 px-4 py-1 transition-colors duration-100 ease-in-out',
           {
             'hover:bg-message-hover': !isEditing,
             'pt-4': !isCompact,
