@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { toast } from 'sonner';
 
 import { authQueryKeys } from '@/features/auth/query-keys';
+import { conversationsQueryKeys } from '@/features/conversations/query-keys';
 import type { UploadedAttachment } from '@/features/file-upload/types';
 import { messagesApi } from '../api/messages-api';
 import type {
@@ -940,7 +941,7 @@ export const useDeleteMessage = (workspaceId: string) => {
         queryKey: ['channels', workspaceId],
       });
       queryClient.invalidateQueries({
-        queryKey: ['conversations', workspaceId],
+        queryKey: conversationsQueryKeys.conversations(workspaceId),
       });
       queryClient.invalidateQueries({
         queryKey: ['thread', workspaceId],
