@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { membersApi } from '../api/members-api';
+import { membersQueryKeys } from '../query-keys';
 import type { MemberFilters } from '../types';
 
 // Get current user's member record for a workspace
@@ -14,7 +15,7 @@ export const useCurrentMember = (workspaceId: string) => {
 // Get all members for a workspace
 export const useGetMembers = (workspaceId: string, filters?: Partial<MemberFilters>) => {
   return useQuery({
-    queryKey: ['members', workspaceId, filters],
+    queryKey: membersQueryKeys.members(workspaceId),
     queryFn: () => membersApi.getMembers(workspaceId, filters),
     enabled: !!workspaceId,
     staleTime: 300_000,
