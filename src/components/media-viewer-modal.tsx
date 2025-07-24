@@ -226,7 +226,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-none w-[90vw] h-[90vh] p-0 bg-background/95 backdrop-blur-sm border-border rounded-lg"
+        className="max-w-none w-[90vw] h-[90vh] p-0 bg-background/95 backdrop-blur-sm border rounded-lg"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <DialogTitle className="sr-only">
@@ -244,7 +244,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border-border text-foreground transition-opacity duration-200',
+                  'absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border text-foreground transition-opacity duration-200',
                   showControls ? 'opacity-100' : 'opacity-0',
                 )}
                 onClick={goToPrevious}
@@ -255,7 +255,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border-border text-foreground transition-opacity duration-200',
+                  'absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border text-foreground transition-opacity duration-200',
                   showControls ? 'opacity-100' : 'opacity-0',
                 )}
                 onClick={goToNext}
@@ -269,7 +269,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           {isImage && (
             <div
               className={cn(
-                'absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200',
+                'absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border rounded-lg p-2 transition-opacity duration-200',
                 showControls ? 'opacity-100' : 'opacity-0',
               )}
             >
@@ -317,7 +317,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           {isDocument && (
             <div
               className={cn(
-                'absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200',
+                'absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border rounded-lg p-2 transition-opacity duration-200',
                 showControls ? 'opacity-100' : 'opacity-0',
               )}
             >
@@ -345,7 +345,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           {/* File info */}
           <div
             className={cn(
-              'absolute top-4 left-4 z-50 bg-card/80 border border-border rounded-lg p-3 text-foreground transition-opacity duration-200',
+              'absolute top-4 left-4 z-50 bg-card/80 border rounded-lg p-3 text-foreground transition-opacity duration-200',
               showControls ? 'opacity-100' : 'opacity-0',
             )}
           >
@@ -384,7 +384,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                 <div className="flex gap-2 mt-4 justify-center">
                   <Button
                     variant="outline"
-                    className="border-border hover:bg-accent hover:text-accent-foreground"
+                    className="border hover:bg-accent hover:text-accent-foreground"
                     onClick={openInNewTab}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
@@ -392,7 +392,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                   </Button>
                   <Button
                     variant="outline"
-                    className="border-border hover:bg-accent hover:text-accent-foreground"
+                    className="border hover:bg-accent hover:text-accent-foreground"
                     onClick={handleDownload}
                   >
                     <Download className="h-4 w-4 mr-2" />
@@ -443,7 +443,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                 </p>
                 <Button
                   variant="outline"
-                  className="mt-4 border-border hover:bg-accent hover:text-accent-foreground"
+                  className="mt-4 border hover:bg-accent hover:text-accent-foreground"
                   onClick={handleDownload}
                 >
                   <Download className="h-4 w-4 mr-2" />

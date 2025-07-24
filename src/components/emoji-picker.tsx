@@ -45,7 +45,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, trigger, open, onOp
   };
 
   const defaultTrigger = (
-    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-sidebar-hover">
+    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
       <Smile className="w-4 h-4" />
     </Button>
   );

@@ -124,7 +124,7 @@ export const ConversationItem = ({
           </Avatar>
 
           {conversation.is_group_conversation && (
-            <div className="absolute -bottom-0.5 -right-0.5 bg-sidebar text-color-foreground text-xs rounded-md min-w-[14px] h-3.5 flex items-center justify-center px-1 border border-background">
+            <div className="absolute -bottom-0.5 -right-0.5 bg-card text-foreground text-xs rounded-md min-w-[14px] h-3.5 flex items-center justify-center px-1 border border-background">
               {conversation.member_count > 9 ? '9+' : conversation.member_count}
             </div>
           )}
@@ -133,7 +133,7 @@ export const ConversationItem = ({
         <span className="text-sm truncate flex-1 flex items-center gap-1">
           {display.name}
           {isSelfConversation && (
-            <span className="ml-1 px-1 py-0.5 rounded bg-muted text-xs text-muted-foreground border border-border">
+            <span className="ml-1 px-1 py-0.5 rounded bg-muted text-xs text-muted-foreground border border">
               you
             </span>
           )}

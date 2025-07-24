@@ -31,14 +31,14 @@ export const SidebarButton = ({
       <div
         className={cn(
           'size-9 p-2 relative transition-colors rounded-md flex items-center justify-center',
-          'group-hover:bg-foreground/10',
-          isActive && 'bg-foreground/15',
+          'group-hover:bg-main-sidebar-hover',
+          isActive && 'bg-main-sidebar-active',
         )}
       >
-        <Icon className="size-5 text-foreground" />
+        <Icon className="size-5 text-main-sidebar-foreground" />
         <NotificationBadge count={badge || 0} />
       </div>
-      <span className="text-[11px] text-foreground">{label}</span>
+      <span className="text-[11px] text-main-sidebar-foreground">{label}</span>
     </div>
   );
 };

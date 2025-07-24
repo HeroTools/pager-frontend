@@ -31,7 +31,7 @@ const ThreadButton: FC<{
     <button
       onClick={() => setThreadOpen(message)}
       className={cn(
-        'w-full max-w-xl cursor-pointer mt-2 inline-flex items-center gap-2 px-2 py-1 text-xs font-medium text-brand-blue rounded hover:bg-chat hover:border-border-default transition-colors',
+        'w-full max-w-xl cursor-pointer mt-2 inline-flex items-center gap-2 px-2 py-1 text-xs font-medium text-primary rounded hover:bg-secondary hover:border transition-colors',
         '[&:hover>.last-reply]:hidden',
         '[&:hover>.view-thread]:inline-flex',
       )}
@@ -69,7 +69,7 @@ const ThreadButton: FC<{
       )}
 
       {message.threadCount > 0 && message.threadLastReplyAt && (
-        <span className="last-reply text-text-subtle transition-all">
+        <span className="last-reply text-muted-foreground transition-all">
           Last reply{' '}
           {formatDistanceToNow(new Date(message.threadLastReplyAt), {
             addSuffix: true,
@@ -77,7 +77,7 @@ const ThreadButton: FC<{
         </span>
       )}
 
-      <span className="view-thread hidden items-center justify-between text-text-subtle gap-1 transition-all flex-1">
+      <span className="view-thread hidden items-center justify-between text-muted-foreground gap-1 transition-all flex-1">
         View thread <ChevronRight className="w-3 h-3" />
       </span>
     </button>

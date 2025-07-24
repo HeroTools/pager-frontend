@@ -51,7 +51,7 @@ const AttachmentPreview = ({
     <div className="relative py-2 pr-2">
       <div
         key={attachment.id}
-        className="relative w-16 h-16 bg-muted border border-border rounded-lg overflow-visible group"
+        className="relative w-16 h-16 bg-muted border rounded-lg overflow-visible group"
       >
         <button
           onClick={() => removeAttachment(attachment.id)}

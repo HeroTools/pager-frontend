@@ -100,7 +100,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
   if (isLoading) {
     return (
       <div className="flex flex-col h-full bg-background">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center justify-between p-4 border-b border">
           <h2 className="text-lg font-semibold text-foreground">Activity</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="size-4" />
@@ -116,7 +116,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
   if (error) {
     return (
       <div className="flex flex-col h-full bg-background">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center justify-between p-4 border-b border">
           <h2 className="text-lg font-semibold text-foreground">Activity</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="size-4" />
@@ -167,7 +167,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
             <p className="text-sm text-muted-foreground">No new notifications to show</p>
           </div>
         ) : (
-          <div className="divide-y divide-border-subtle">
+          <div className="divide-y divide-border">
             {allNotifications.map((notification) => (
               <div
                 key={notification.id}
@@ -211,7 +211,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
                     {notification.message}
                   </p>
 
-                  <div className="flex items-center gap-2 text-xs text-text-subtle pt-0.5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground pt-0.5">
                     <span>
                       {formatDistanceToNow(new Date(notification.created_at), {
                         addSuffix: true,
@@ -229,7 +229,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
             ))}
 
             {hasNextPage && (
-              <div className="p-4 text-center border-t border-border-subtle">
+              <div className="p-4 text-center border-t border">
                 <Button
                   variant="ghost"
                   size="sm"

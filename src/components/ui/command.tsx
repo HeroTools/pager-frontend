@@ -46,7 +46,7 @@ const CommandInput = forwardRef<
   ComponentRef<typeof CommandPrimitive.Input>,
   ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
-  <div className="flex items-center border-b border-border-subtle px-3" cmdk-input-wrapper="">
+  <div className="flex items-center border-b border px-3" cmdk-input-wrapper="">
     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
     <CommandPrimitive.Input
       ref={ref}
@@ -105,7 +105,7 @@ const CommandSeparator = forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1 h-px bg-border-subtle', className)}
+    className={cn('-mx-1 h-px bg-border', className)}
     {...props}
   />
 ));

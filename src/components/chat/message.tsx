@@ -92,7 +92,7 @@ interface ImageAttachmentProps {
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
   loading: () => (
-    <div className="flex flex-col border border-border-default rounded-md overflow-hidden">
+    <div className="flex flex-col border rounded-md overflow-hidden">
       <div className="h-[194px] p-4">
         <Skeleton className="h-full w-full rounded-md" />
       </div>
@@ -365,18 +365,18 @@ const DocumentAttachment: FC<{
     const extension = filename.split('.').pop()?.toLowerCase();
     switch (extension) {
       case 'pdf':
-        return 'border-red-200 bg-red-50 dark:bg-red-950/20';
+        return 'border-accent-danger/30 bg-accent-danger/10';
       case 'doc':
       case 'docx':
-        return 'border-blue-200 bg-blue-50 dark:bg-blue-950/20';
+        return 'border-accent-info/30 bg-accent-info/10';
       case 'xls':
       case 'xlsx':
-        return 'border-green-200 bg-green-50 dark:bg-green-950/20';
+        return 'border-accent-success/30 bg-accent-success/10';
       case 'ppt':
       case 'pptx':
-        return 'border-orange-200 bg-orange-50 dark:bg-orange-950/20';
+        return 'border-accent-warning/30 bg-accent-warning/10';
       default:
-        return 'border-border bg-muted';
+        return 'border bg-muted';
     }
   };
 
@@ -795,7 +795,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                   })}
                 </span>
                 {message.isEdited && (
-                  <span className="text-xs text-text-subtle leading-tight">(edited)</span>
+                  <span className="text-xs text-muted-foreground leading-tight">(edited)</span>
                 )}
               </div>
             )}
@@ -855,7 +855,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
         {!isEditing && (
           <div
             className={cn(
-              'absolute top-0 right-4 bg-card border border-border-subtle rounded-lg shadow-sm transition-opacity',
+              'absolute top-0 right-4 bg-card border rounded-lg shadow-sm transition-opacity',
               isEmojiPickerOpen || isDropdownOpen || isHovered
                 ? 'opacity-100'
                 : 'opacity-0 group-hover:opacity-100',
@@ -902,7 +902,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={handleDeleteClick}
-                      className="text-text-destructive hover:text-text-destructive/80"
+                      className="text-destructive hover:text-destructive/80"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete message

@@ -16,7 +16,7 @@ import { useUIStore } from '@/stores/ui-store';
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
   loading: () => (
-    <div className="flex flex-col border border-border-default rounded-md overflow-hidden">
+    <div className="flex flex-col border rounded-md overflow-hidden">
       <div className="h-[120px] p-4">
         <Skeleton className="h-full w-full rounded-md" />
       </div>
@@ -110,12 +110,12 @@ export const AiAssistantPanel: React.FC<AiAssistantPanelProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full bg-panel border-l border-panel-border">
+    <div className="flex flex-col h-full bg-card border-l border">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-panel-border">
+      <div className="flex items-center justify-between p-4 border-b border">
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5 text-brand-blue" />
-          <h2 className="font-semibold text-panel-foreground">AI Assistant</h2>
+          <h2 className="font-semibold text-foreground">AI Assistant</h2>
         </div>
         <Button
           onClick={handleClose}
@@ -131,13 +131,13 @@ export const AiAssistantPanel: React.FC<AiAssistantPanelProps> = ({
         <div className="p-4 space-y-6">
           {/* Context */}
           <div>
-            <h3 className="text-sm font-medium text-panel-foreground mb-2">Context:</h3>
-            <p className="text-sm text-text-subtle">{getContextText()}</p>
+            <h3 className="text-sm font-medium text-foreground mb-2">Context:</h3>
+            <p className="text-sm text-muted-foreground">{getContextText()}</p>
           </div>
 
           {/* Conversation Summary */}
           <div>
-            <h3 className="text-sm font-medium text-panel-foreground mb-3">Conversation Summary</h3>
+            <h3 className="text-sm font-medium text-foreground mb-3">Conversation Summary</h3>
             <div className="bg-muted/50 rounded-lg p-3">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Discussion about Supabase RPC functions and a 400 error during user creation. Gabe
@@ -148,7 +148,7 @@ export const AiAssistantPanel: React.FC<AiAssistantPanelProps> = ({
 
           {/* Quick Actions */}
           <div>
-            <h3 className="text-sm font-medium text-panel-foreground mb-3">Quick Actions</h3>
+            <h3 className="text-sm font-medium text-foreground mb-3">Quick Actions</h3>
             <div className="space-y-2">
               {quickActions.map((action, index) => (
                 <Button
@@ -161,7 +161,7 @@ export const AiAssistantPanel: React.FC<AiAssistantPanelProps> = ({
                     <div className="text-brand-blue mt-0.5">{action.icon}</div>
                     <div>
                       <div className="font-medium text-sm text-foreground">{action.text}</div>
-                      <div className="text-xs text-text-subtle mt-1">{action.description}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{action.description}</div>
                     </div>
                   </div>
                 </Button>
@@ -178,7 +178,7 @@ export const AiAssistantPanel: React.FC<AiAssistantPanelProps> = ({
                   <Bot className="w-3 h-3" />
                 </AvatarFallback>
               </Avatar>
-              <h3 className="text-sm font-medium text-panel-foreground">Claude</h3>
+              <h3 className="text-sm font-medium text-foreground">Claude</h3>
             </div>
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               <p className="text-sm text-foreground leading-relaxed">
@@ -196,7 +196,7 @@ export const AiAssistantPanel: React.FC<AiAssistantPanelProps> = ({
       </ScrollArea>
 
       {/* Chat Input */}
-      <div className="px-4 py-4 border-t border-panel-border bg-background">
+      <div className="px-4 py-4 border-t border bg-background">
         {currentUser ? (
           <Editor
             variant="create"

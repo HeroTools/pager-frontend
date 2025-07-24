@@ -28,8 +28,8 @@ const sidebarItemVariants = cva(
   {
     variants: {
       variant: {
-        default: 'text-foreground hover:bg-secondary/90',
-        active: 'text-foreground bg-secondary/90 hover:bg-secondary/90',
+        default: 'text-workspace-sidebar-foreground hover:bg-workspace-sidebar-hover',
+        active: 'text-workspace-sidebar-foreground bg-workspace-sidebar-active hover:bg-workspace-sidebar-active',
       },
     },
     defaultVariants: {

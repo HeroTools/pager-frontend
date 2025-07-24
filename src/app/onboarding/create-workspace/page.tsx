@@ -57,7 +57,7 @@ const StepIndicator = ({ currentStep }: { currentStep: Step }) => (
                   currentStep === index
                     ? 'border-primary bg-primary text-primary-foreground shadow-lg scale-110'
                     : currentStep > index
-                      ? 'border-green-500 bg-green-500 text-white'
+                      ? 'border-accent-success bg-accent-success text-white'
                       : 'border-muted-foreground/30 bg-background text-muted-foreground'
                 }
               `}
@@ -72,7 +72,7 @@ const StepIndicator = ({ currentStep }: { currentStep: Step }) => (
             <div
               className={`
                   ml-4 h-0.5 w-16 transition-colors duration-200
-                  ${currentStep > index ? 'bg-green-500' : 'bg-muted-foreground/30'}
+                  ${currentStep > index ? 'bg-accent-success' : 'bg-muted-foreground/30'}
                 `}
             />
           )}
@@ -293,7 +293,7 @@ const InviteStep = ({
           disabled={!inviteLink}
         >
           {isCopied ? (
-            <CheckIcon className="h-4 w-4 text-green-500" />
+            <CheckIcon className="h-4 w-4 text-accent-success" />
           ) : (
             <CopyIcon className="h-4 w-4" />
           )}

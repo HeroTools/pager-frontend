@@ -136,7 +136,7 @@ export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModal
             <Button
               disabled={removeWorkspace.isPending}
               onClick={handleRemoveWorkspace}
-              className="flex items-center justify-start gap-x-2 py-4 rounded-lg border cursor-pointer hover:bg-secondary text-text-destructive"
+              className="flex items-center justify-start gap-x-2 py-4 rounded-lg border cursor-pointer hover:bg-secondary text-destructive"
             >
               <TrashIcon className="size-4" />
               <p className="text-sm font-semibold">Delete workspace</p>
