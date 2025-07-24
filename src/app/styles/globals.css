@@ -55,7 +55,7 @@
   --primary-foreground: var(--text-primary);
   --secondary: var(--smoke);
   --secondary-foreground: var(--text-primary);
-  --muted: var(--smoke);
+  --muted: var(--ash);
   --muted-foreground: var(--text-secondary);
   --accent: var(--smoke);
   --accent-foreground: var(--text-primary);
