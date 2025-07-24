@@ -132,7 +132,7 @@
   --radius-full: 9999px;   /* Full radius */
   
   /* ===== Utility Variables ===== */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-sans: var(--font-noto-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   
   /* ===== ShadCN Component Overrides ===== */
   /* These extend our semantic tokens with ShadCN-specific mappings */
