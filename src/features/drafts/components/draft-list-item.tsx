@@ -221,7 +221,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
             {display.membersToDisplay.slice(0, 2).map((member, index) => (
               <Avatar
                 key={`${member.name}-${index}`}
-                className={cn('size-5 border-2 border-background', index > 0 && '-ml-3')}
+                className={cn('size-5 border border-background', index > 0 && '-ml-3')}
               >
                 <AvatarImage src={member.image ?? undefined} />
                 <AvatarFallback>{member.name?.[0]}</AvatarFallback>

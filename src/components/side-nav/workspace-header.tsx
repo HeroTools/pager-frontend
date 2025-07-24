@@ -38,7 +38,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
           <DropdownMenuTrigger asChild>
             <Button
               variant="transparent"
-              className="font-semibold text-lg w-auto p-2 overflow-hidden cursor-pointer"
+              className="font-semibold text-lg w-auto p-2 overflow-hidden cursor-pointer hover:bg-content-area"
               size="sm"
             >
               <span className="truncate text-foreground">{workspace.name}</span>
@@ -76,7 +76,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="flex items-center gap-1">
-          <Button variant="transparent" size="iconSm" onClick={startConversationCreation}>
+          <Button variant="transparent" className="hover:bg-content-area" size="iconSm" onClick={startConversationCreation}>
             <SquarePen className="size-4" />
           </Button>
         </div>

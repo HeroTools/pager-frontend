@@ -48,7 +48,7 @@ const SearchResultCard = ({
   return (
     <div
       className={`p-4 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors ${
-        isReferenced ? 'ring-2 ring-primary/30 bg-primary/5' : ''
+        isReferenced ? 'ring ring-primary/30 bg-primary/5' : ''
       }`}
       onClick={() => onNavigate(result.messageId)}
     >
@@ -362,7 +362,7 @@ export const SearchDialog = ({
             {debouncedQuery && isLoading && (
               <div className="flex items-center justify-center py-8">
                 <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+                  <div className="animate-spin rounded-full h-5 w-5 border border-primary border-t-transparent" />
                   <span className="text-sm text-muted-foreground">Searching...</span>
                 </div>
               </div>

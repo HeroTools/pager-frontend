@@ -95,7 +95,7 @@ export const CreateConversationModal = () => {
                 {selectedMembers.slice(0, 3).map((member, index) => (
                   <div
                     key={member.id}
-                    className="w-8 h-8 rounded-full bg-background border-2 border-background flex items-center justify-center text-sm relative"
+                    className="w-8 h-8 rounded-full bg-background border border-background flex items-center justify-center text-sm relative"
                     style={{ zIndex: selectedMembers.length - index }}
                   >
                     {member.user?.image ? (
@@ -112,7 +112,7 @@ export const CreateConversationModal = () => {
                   </div>
                 ))}
                 {selectedMembers.length > 3 && (
-                  <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-medium">
+                  <div className="w-8 h-8 rounded-full bg-muted border border-background flex items-center justify-center text-xs font-medium">
                     +{selectedMembers.length - 3}
                   </div>
                 )}

@@ -38,7 +38,7 @@ export const WorkspaceSwitcher = () => {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild className="outline-none relative">
-        <Button className="size-9 relative overflow-hidden bg-primary hover:bg-primary/80 text-primary-foreground font-semibold text-xl">
+        <Button className="size-9 relative bg-workspace-sidebar hover:bg-content-area text-primary-foreground font-semibold text-xl border-border">
           {isLoading || switchWorkspace.isPending ? (
             <Loader className="size-5 animate-spin shrink-0" />
           ) : (

@@ -32,17 +32,17 @@
   
   /* ===== Semantic Layout Areas ===== */
   /* Dark mode by default */
-  --main-sidebar: var(--void);      /* Leftmost navigation sidebar - darkest */
+  --main-sidebar: var(--ink);      /* Leftmost navigation sidebar - darkest */
   --main-sidebar-foreground: var(--text-secondary);
-  --main-sidebar-hover: var(--ink);
+  --main-sidebar-hover: var(--smoke);
   --main-sidebar-active: var(--smoke);
   
-  --workspace-sidebar: var(--ink);  /* Channels/conversations sidebar - medium */
+  --workspace-sidebar: var(--graphite);  /* Channels/conversations sidebar - medium */
   --workspace-sidebar-foreground: var(--text-secondary);
-  --workspace-sidebar-hover: var(--graphite);
+  --workspace-sidebar-hover: var(--smoke);
   --workspace-sidebar-active: var(--smoke);
   
-  --content-area: var(--graphite);  /* Main chat/content area - lightest */
+  --content-area: var(--smoke);  /* Main chat/content area - lightest */
   
   /* ===== Semantic Component Colors (ShadCN Compatible) ===== */
   --background: var(--content-area);
@@ -167,12 +167,17 @@
   --border-strong: oklch(0.15 0.02 280 / 0.15);
   
   /* Update sidebar states for light mode */
+  --main-sidebar: var(--smoke);      /* Leftmost navigation sidebar - darkest */
   --main-sidebar-foreground: var(--text-secondary);
-  --main-sidebar-hover: var(--ink);
-  --main-sidebar-active: var(--smoke);
+  --main-sidebar-hover: var(--ash);
+  --main-sidebar-active: var(--ash);
+  
+  --workspace-sidebar: var(--graphite);  /* Channels/conversations sidebar - medium */
   --workspace-sidebar-foreground: var(--text-secondary);
-  --workspace-sidebar-hover: var(--graphite);
+  --workspace-sidebar-hover: var(--smoke);
   --workspace-sidebar-active: var(--smoke);
+  
+  --content-area: var(--ink);  /* Main chat/content area - lightest */
   
   /* Link colors for light mode */
   --link: oklch(0.45 0.15 252);
@@ -531,7 +536,7 @@
   }
 
   .message-content pre {
-    background-color: var(--muted);
+    background-color: var(--ash);
     border: 1px solid var(--border);
     padding: 0.75rem;
     border-radius: 0.5rem;
