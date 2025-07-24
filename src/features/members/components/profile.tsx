@@ -47,7 +47,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
 
   if (getMembers.isLoading) {
     return (
-      <div className="h-full flex flex-col bg-background">
+      <div className="h-full flex flex-col">
         <div className="flex justify-between items-center h-12 px-4 border-b border-border-subtle">
           <h2 className="text-lg font-semibold text-foreground">Profile</h2>
           <Button onClick={onClose} size="sm" variant="ghost">
@@ -63,7 +63,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
 
   if (!member) {
     return (
-      <div className="h-full flex flex-col bg-background">
+      <div className="h-full flex flex-col">
         <div className="flex justify-between items-center h-12 px-4 border-b border-border-subtle">
           <h2 className="text-lg font-semibold text-foreground">Profile</h2>
           <Button onClick={onClose} size="sm" variant="ghost">
