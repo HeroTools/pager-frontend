@@ -24,12 +24,12 @@ interface SidebarItemProps {
 }
 
 const sidebarItemVariants = cva(
-  'flex items-center gap-1.5 justify-start font-normal h-7 px-[18px] text-sm overflow-hidden',
+  'flex items-center gap-1.5 justify-start font-normal h-7 2 text-sm overflow-hidden',
   {
     variants: {
       variant: {
-        default: 'text-foreground hover:bg-secondary/90',
-        active: 'text-foreground bg-secondary/90 hover:bg-secondary/90',
+        default: 'text-workspace-sidebar-foreground hover:bg-workspace-sidebar-hover',
+        active: 'text-workspace-sidebar-foreground bg-workspace-sidebar-active hover:bg-workspace-sidebar-active',
       },
     },
     defaultVariants: {

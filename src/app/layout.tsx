@@ -7,19 +7,14 @@ import { AuthProvider } from '@/lib/auth/auth-provider';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import 'highlight.js/styles/github.css';
 import type { Metadata } from 'next';
-import localFont from 'next/font/local';
+import { Noto_Sans } from 'next/font/google';
 import 'quill/dist/quill.snow.css';
 import './styles/globals.css';
 
-const geistSans = localFont({
-  src: './fonts/geist-vf.woff',
-  variable: '--font-geist-sans',
-  weight: '100 900',
-});
-const geistMono = localFont({
-  src: './fonts/geist-mono-vf.woff',
-  variable: '--font-geist-mono',
-  weight: '100 900',
+const notoSans = Noto_Sans({
+  subsets: ['latin'],
+  variable: '--font-noto-sans',
+  weight: ['300', '400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -33,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${notoSans.variable} antialiased`}>
         <ReactQueryProvider>
           <ReactQueryDevtools />
           <AuthProvider>

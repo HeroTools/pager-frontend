@@ -86,15 +86,15 @@ export const MessageReactions: FC<MessageReactionsProps> = ({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'h-6 px-2 py-0 text-xs rounded-full border transition-all duration-200',
+                  'h-6 px-2 py-0 text-xs rounded-full border-border transition-all duration-200',
                   hasUserReacted
                     ? [
-                        'bg-interactive-active border-interactive-active-border text-interactive-active-text',
-                        'hover:bg-interactive-active-hover hover:border-interactive-active-border-hover',
+                        'bg-secondary border-border text-secondary-foreground',
+                        'hover:bg-primary/90 hover:border-primary/90',
                       ]
                     : [
-                        'bg-interactive-inactive border-interactive-inactive-border text-interactive-inactive-text',
-                        'hover:bg-interactive-inactive-hover hover:border-interactive-inactive-border-hover hover:text-interactive-inactive-text-hover',
+                        'bg-secondary border-border text-secondary-foreground',
+                        'hover:bg-secondary/80 hover:border-secondary/80 hover:text-secondary-foreground',
                       ],
                 )}
                 onClick={() => onReaction(reaction.value)}

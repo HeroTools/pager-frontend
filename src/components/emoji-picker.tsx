@@ -45,7 +45,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, trigger, open, onOp
   };
 
   const defaultTrigger = (
-    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-sidebar-hover">
+    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
       <Smile className="w-4 h-4" />
     </Button>
   );
@@ -54,7 +54,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, trigger, open, onOp
     <Popover open={popoverOpen} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{trigger ?? defaultTrigger}</PopoverTrigger>
       <PopoverContent
-        className="p-0 w-auto border-0 shadow-lg"
+        className="p-0 w-auto border-0"
         align="end"
         side="top"
         sideOffset={8}

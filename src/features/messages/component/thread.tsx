@@ -24,7 +24,7 @@ const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
   loading: () => (
     <div className="flex flex-col border border-border-default rounded-md overflow-hidden">
-      <div className="h-[194px] p-4">
+      <div className="h-48 p-4">
         <Skeleton className="h-full w-full rounded-md" />
       </div>
       <div className="flex px-2 pb-2 gap-2 border-t">
@@ -44,7 +44,7 @@ interface ThreadProps {
 const TIME_THRESHOLD = 5; // minutes
 
 const ThreadHeader = ({ onClose, title }: { onClose: () => void; title: string }) => (
-  <div className="flex justify-between items-center h-[49px] px-4 border-b border-border-subtle">
+  <div className="flex justify-between items-center h-12 px-4 border-b border-border-subtle">
     <p className="text-lg font-bold">{title}</p>
     <Button onClick={onClose} size="iconSm" variant="ghost">
       <XIcon className="size-5 stroke-[1.5]" />

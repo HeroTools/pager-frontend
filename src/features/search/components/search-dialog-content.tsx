@@ -66,10 +66,10 @@ export const SearchDialogContent = ({ workspaceId }: { workspaceId: string }) =>
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-lg w-full bg-background rounded-xl p-0 overflow-hidden">
-        <div className="border-b border-border-subtle p-3 flex items-center gap-2">
+        <div className="border-b border-border-subtle p-4 flex items-center gap-2">
           <Search className="size-4 text-muted-foreground" />
           <input
-            className="flex-1 bg-transparent outline-none text-base px-2"
+            className="flex-1 bg-transparent outline-none text-base px-4"
             placeholder="Search messages, channels, or people…"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -79,7 +79,7 @@ export const SearchDialogContent = ({ workspaceId }: { workspaceId: string }) =>
           />
         </div>
 
-        <div className="max-h-[400px] overflow-y-auto px-2 py-3">
+        <div className="max-h-96 overflow-y-auto px-4 py-4">
           <Section title="Channels">
             {filteredChannels.map((channel) => (
               <ChannelItem
@@ -102,7 +102,7 @@ export const SearchDialogContent = ({ workspaceId }: { workspaceId: string }) =>
           </Section>
 
           {searchData?.answer && (
-            <div className="mb-3 px-2">
+            <div className="mb-4 px-4">
               <AIAnswerSection
                 answer={searchData.answer}
                 references={searchData.references}
