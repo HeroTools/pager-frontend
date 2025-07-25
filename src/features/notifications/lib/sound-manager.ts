@@ -53,8 +53,6 @@ class NotificationSoundManager {
       this.audioContext = new AudioContext();
       this.isAudioContextReady = true;
 
-      console.log('🎵 AudioContext initialized after user interaction');
-
       // Play any pending sounds
       this.pendingSounds.forEach((type) => this.playNotificationSound(type));
       this.pendingSounds = [];
@@ -83,13 +81,11 @@ class NotificationSoundManager {
 
         const onCanPlayThrough = () => {
           this.sounds.set(type, audio);
-          console.log(`✅ Loaded sound: ${type}`);
           cleanup();
           resolve();
         };
 
         const onError = () => {
-          console.warn(`⚠️ Failed to load sound: ${url}, will use fallback`);
           cleanup();
           resolve(); // Still resolve to not block initialization
         };
@@ -249,7 +245,6 @@ class NotificationSoundManager {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('notifications-sound-enabled', String(enabled));
     }
-    console.log(`🎛️ Sound enabled: ${enabled}`);
   }
 
   setVolume(volume: number) {
@@ -262,8 +257,6 @@ class NotificationSoundManager {
     this.sounds.forEach((sound) => {
       sound.volume = this.volume;
     });
-
-    console.log(`🎛️ Volume set to: ${this.volume}`);
   }
 
   getEnabled(): boolean {
