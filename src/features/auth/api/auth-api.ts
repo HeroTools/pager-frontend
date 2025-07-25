@@ -1,5 +1,3 @@
-import api from '@/lib/api/axios-client';
-import { supabase } from '@/lib/supabase/client';
 import type {
   AuthResponse,
   CurrentUser,
@@ -10,6 +8,8 @@ import type {
   UpdateProfileData,
   UserPreferences,
 } from '@/features/auth/types';
+import api from '@/lib/api/axios-client';
+import { supabase } from '@/lib/supabase/client';
 import type { AuthSession, User } from '@supabase/supabase-js';
 
 export const authApi = {
@@ -35,8 +35,6 @@ export const authApi = {
    */
   signIn: async (data: SignInData): Promise<AuthResponse> => {
     const { data: response } = await api.post<AuthResponse>('/auth/sign-in', data);
-
-    console.log(response);
 
     // Store session from Lambda response
     if (response.session) {

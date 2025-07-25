@@ -1,9 +1,9 @@
-import { useCallback } from 'react';
-import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { useMarkNotificationAsRead } from '@/features/notifications/hooks/use-notifications-mutations';
 import { notificationsApi } from '@/features/notifications/api/notifications-api';
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
+import { useMarkNotificationAsRead } from '@/features/notifications/hooks/use-notifications-mutations';
 import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
+import { type InfiniteData, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
 type NotificationsInfiniteData = InfiniteData<NotificationsResponse, string | undefined>;
 
@@ -52,10 +52,6 @@ export const useMarkEntityNotificationsRead = () => {
 
         const notificationIdsToMarkAsRead = entityNotificationsToMarkAsRead.map((n) => n.id);
         const countToDecrease = entityNotificationsToMarkAsRead.length;
-
-        console.log(
-          `Marking ${countToDecrease} notifications as read for ${entityType}:${entityId}`,
-        );
 
         // Optimistically update the count BEFORE making API calls
         const previousUnreadCount = queryClient.getQueryData<{
