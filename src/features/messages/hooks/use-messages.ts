@@ -935,29 +935,6 @@ export const useDeleteMessage = (workspaceId: string) => {
 
     onSuccess: () => {
       toast.success('Message deleted successfully');
-
-      queryClient.invalidateQueries({
-        queryKey: ['channels', workspaceId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['conversations', workspaceId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['thread', workspaceId],
-        exact: false,
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['channel', workspaceId],
-        exact: false,
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['conversation', workspaceId],
-        exact: false,
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['message', workspaceId],
-        exact: false,
-      });
     },
   });
 };

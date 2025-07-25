@@ -1,10 +1,10 @@
-import { useCallback, useEffect } from 'react';
-import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { useMarkNotificationAsRead } from '@/features/notifications/hooks/use-notifications-mutations';
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
-import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
 import { useNotificationContext } from '@/features/notifications/hooks/use-notification-context';
+import { useMarkNotificationAsRead } from '@/features/notifications/hooks/use-notifications-mutations';
+import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
 import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
+import { type InfiniteData, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect } from 'react';
 
 type NotificationsInfiniteData = InfiniteData<NotificationsResponse, string | undefined>;
 
@@ -39,14 +39,6 @@ export const useFocusNotificationManager = () => {
       const unreadNotificationIds = getNotificationsToMarkAsRead(allNotifications);
 
       if (unreadNotificationIds.length > 0) {
-        console.log(
-          `Marking ${unreadNotificationIds.length} notifications as read for current entity`,
-          {
-            currentEntityId,
-            notificationIds: unreadNotificationIds,
-          },
-        );
-
         // Close browser notifications for these notifications
         unreadNotificationIds.forEach((id) => {
           browserNotificationService.closeNotification(id);

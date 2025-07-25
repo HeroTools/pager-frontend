@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { conversationsApi } from '../api/conversations-api';
+import { conversationsQueryKeys } from '../query-keys';
 import type { ConversationEntity, ConversationFilters, CreateConversationData } from '../types';
 
 export const useConversations = (workspaceId: string, filters?: Partial<ConversationFilters>) => {
@@ -10,7 +11,7 @@ export const useConversations = (workspaceId: string, filters?: Partial<Conversa
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['conversations', workspaceId, filters],
+    queryKey: conversationsQueryKeys.conversations(workspaceId),
     queryFn: () => conversationsApi.getConversations(workspaceId, filters),
     enabled: !!workspaceId,
   });
@@ -19,14 +20,13 @@ export const useConversations = (workspaceId: string, filters?: Partial<Conversa
     mutationFn: (data: CreateConversationData) =>
       conversationsApi.createConversation(workspaceId, data),
     onSuccess: (newConversation) => {
-      // Optimistically update the conversations list
-      queryClient.setQueryData<ConversationEntity[]>(['conversations', workspaceId], (old) =>
-        old ? [...old, newConversation] : [newConversation],
+      queryClient.setQueryData<ConversationEntity[]>(
+        conversationsQueryKeys.conversations(workspaceId),
+        (old) => (old ? [newConversation, ...old] : [newConversation]),
       );
 
-      // Invalidate to ensure fresh data
       queryClient.invalidateQueries({
-        queryKey: ['conversations', workspaceId],
+        queryKey: conversationsQueryKeys.conversations(workspaceId),
       });
     },
   });
@@ -37,13 +37,13 @@ export const useConversations = (workspaceId: string, filters?: Partial<Conversa
     onSuccess: (_, conversationId) => {
       // Remove from conversations list cache
       queryClient.setQueryData<ConversationEntity[]>(
-        ['conversations', workspaceId],
+        conversationsQueryKeys.conversations(workspaceId),
         (old) => old?.filter((conversation) => conversation.id !== conversationId) || [],
       );
 
       // Remove all related caches
       queryClient.removeQueries({
-        queryKey: ['conversation', workspaceId, conversationId],
+        queryKey: conversationsQueryKeys.conversation(workspaceId, conversationId),
       });
 
       queryClient.removeQueries({

@@ -113,19 +113,10 @@ export const useCreateMessage = (
             workspaceId,
           },
           {
-            onUserMessage: (userData) => {
-              console.log('✅ User message saved:', userData);
-            },
+            onUserMessage: (userData) => {},
             onContentDelta: (content) => {
               // Only append new content, don't reset
               streamingContentRef.current += content;
-              console.log(
-                '📝 Content delta:',
-                content,
-                'Total so far:',
-                streamingContentRef.current,
-              );
-
               // Update the optimistic message with accumulated content
               updateOptimisticMessageWithThinking(
                 optimisticId,
@@ -133,17 +124,10 @@ export const useCreateMessage = (
                 true,
               );
             },
-            onAgentSwitch: (agent) => {
-              console.log('🔄 Agent switched to:', agent);
-            },
-            onToolCall: (toolCall) => {
-              console.log('🔧 Tool call:', toolCall);
-            },
-            onAgentStep: (step) => {
-              console.log('👣 Agent step:', step);
-            },
+            onAgentSwitch: (agent) => {},
+            onToolCall: (toolCall) => {},
+            onAgentStep: (step) => {},
             onAgentThinking: (thinking) => {
-              console.log('🧠 Agent thinking:', thinking);
               setMessageStreamingState((prev) => ({
                 ...prev,
                 thinking,

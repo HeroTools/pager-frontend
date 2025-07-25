@@ -1,6 +1,6 @@
-import { create } from 'zustand';
 import { soundManager } from '@/features/notifications/lib/sound-manager';
 import { tabBadgeManager } from '@/features/notifications/lib/tab-badge-manager';
+import { create } from 'zustand';
 import type { NotificationData } from '../types';
 
 interface NotificationStore {
@@ -23,8 +23,6 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   isLoading: false,
 
   addNotification: (notification) => {
-    console.log('🔔 New notification:', notification.title, `(${notification.type})`);
-
     const { notifications } = get();
 
     // Prevent duplicates

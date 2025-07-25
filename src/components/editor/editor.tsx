@@ -89,6 +89,8 @@ const Editor = ({
   );
   const [selectedText, setSelectedText] = useState('');
 
+  const isAgentChat = !!agentConversationId;
+
   const { getDraft, setDraft, clearDraft } = useDraftsStore();
   const { entityId, entityType } = useMemo(() => {
     if (channelId) return { entityId: channelId, entityType: 'channel' as const };
@@ -190,13 +192,11 @@ const Editor = ({
         stopTyping();
       }
     } catch (err) {
-      // Restore state on error
       quill.setContents(oldContents);
       setText(oldText);
       setImage(oldImage);
       setAttachments(oldAttachments);
 
-      // Stop typing on error as well since the send failed
       if (variant === 'create') {
         stopTyping();
       }
@@ -247,6 +247,8 @@ const Editor = ({
 
   const handleFiles = useCallback(
     async (files: FileList): Promise<void> => {
+      if (isAgentChat) return;
+
       if (!uploadMultipleFiles) {
         toast.error('File upload not configured');
         return;
@@ -346,11 +348,13 @@ const Editor = ({
         }
       }
     },
-    [attachments.length, maxFiles, uploadMultipleFiles, maxFileSizeBytes],
+    [attachments.length, maxFiles, uploadMultipleFiles, maxFileSizeBytes, isAgentChat],
   );
 
   const handleDrop = useCallback(
     (e: React.DragEvent): void => {
+      if (isAgentChat) return;
+
       e.preventDefault();
       e.stopPropagation();
       setIsDragging(false);
@@ -359,22 +363,32 @@ const Editor = ({
         handleFiles(e.dataTransfer.files);
       }
     },
-    [handleFiles],
+    [handleFiles, isAgentChat],
   );
 
-  const handleDragOver = useCallback((e: React.DragEvent): void => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent): void => {
+      if (isAgentChat) return;
 
-  const handleDragLeave = useCallback((e: React.DragEvent): void => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (editorWrapperRef.current && !editorWrapperRef.current.contains(e.relatedTarget as Node)) {
-      setIsDragging(false);
-    }
-  }, []);
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+    },
+    [isAgentChat],
+  );
+
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent): void => {
+      if (isAgentChat) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      if (editorWrapperRef.current && !editorWrapperRef.current.contains(e.relatedTarget as Node)) {
+        setIsDragging(false);
+      }
+    },
+    [isAgentChat],
+  );
 
   const handleLinkFormat = useCallback(
     (text: string, url: string, range?: { index: number; length: number }): void => {
@@ -613,7 +627,6 @@ const Editor = ({
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       quill.root.removeEventListener('blur', handleBlur);
 
-      // Ensure typing is stopped on cleanup
       if (variant === 'create') {
         stopTyping();
       }
@@ -645,6 +658,8 @@ const Editor = ({
 
   const handleEmojiSelect = useCallback(
     (emoji: string): void => {
+      if (isAgentChat) return;
+
       const quill = quillRef.current;
       if (!quill) return;
 
@@ -652,10 +667,9 @@ const Editor = ({
       const index = selection?.index ?? 0;
       quill.insertText(index, emoji);
 
-      // Start typing after emoji insertion
       startTyping();
     },
-    [startTyping],
+    [startTyping, isAgentChat],
   );
 
   const handleLinkDialogClose = useCallback((): void => {
@@ -666,39 +680,43 @@ const Editor = ({
 
   const handleCancel = useCallback(() => {
     if (variant === 'create') {
-      stopTyping(); // Ensure typing is stopped when canceling
+      stopTyping();
     }
     onCancel?.();
   }, [stopTyping, onCancel, variant]);
 
   return (
     <div className="flex flex-col">
-      <input
-        type="file"
-        accept="image/*"
-        ref={imageElementRef}
-        onChange={(e) => setImage(e.target.files?.[0] || null)}
-        className="hidden"
-      />
-      <input
-        type="file"
-        multiple
-        ref={fileInputRef}
-        onChange={(e) => e.target.files && handleFiles(e.target.files)}
-        className="hidden"
-      />
+      {!isAgentChat && (
+        <>
+          <input
+            type="file"
+            accept="image/*"
+            ref={imageElementRef}
+            onChange={(e) => setImage(e.target.files?.[0] || null)}
+            className="hidden"
+          />
+          <input
+            type="file"
+            multiple
+            ref={fileInputRef}
+            onChange={(e) => e.target.files && handleFiles(e.target.files)}
+            className="hidden"
+          />
+        </>
+      )}
 
       <div
         ref={editorWrapperRef}
         className={cn(
           'flex flex-col border rounded-md overflow-hidden focus-within:border-ring transition-all duration-200 relative max-h-[calc(100%-36px)]',
-          isDragging && 'border-primary bg-accent/50',
+          !isAgentChat && isDragging && 'border-primary bg-accent/50',
         )}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
-        {isDragging && (
+        {!isAgentChat && isDragging && (
           <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center border border-dashed border-primary rounded-md">
             <div className="text-center">
               <div className="text-lg font-medium text-primary mb-2">Drop files here</div>
@@ -711,7 +729,7 @@ const Editor = ({
 
         <div ref={containerRef} className="h-full ql-custom max-h-80 overflow-y-auto" />
 
-        {attachments.length > 0 && (
+        {!isAgentChat && attachments.length > 0 && (
           <div className="px-2 pb-2">
             <div className="flex flex-wrap">
               {attachments.map((attachment) => (
@@ -733,31 +751,36 @@ const Editor = ({
               <CaseSensitive className="size-4" />
             </Button>
           </Hint>
-          <EmojiPicker
-            onSelect={handleEmojiSelect}
-            trigger={
-              <Button disabled={disabled} size="sm" variant="ghost">
-                <Smile className="size-4" />
-              </Button>
-            }
-          />
 
-          <Hint label="Attach files">
-            <Button
-              disabled={disabled}
-              size="sm"
-              variant="ghost"
-              onClick={() => fileInputRef.current?.click()}
-              className={cn(attachments.length > 0 && 'bg-accent text-accent-foreground')}
-            >
-              <Paperclip className="size-4" />
-              {attachments.length > 0 && (
-                <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1 min-w-4 h-4 flex items-center justify-center">
-                  {attachments.length}
-                </span>
-              )}
-            </Button>
-          </Hint>
+          {!isAgentChat && (
+            <>
+              <EmojiPicker
+                onSelect={handleEmojiSelect}
+                trigger={
+                  <Button disabled={disabled} size="sm" variant="ghost">
+                    <Smile className="size-4" />
+                  </Button>
+                }
+              />
+
+              <Hint label="Attach files">
+                <Button
+                  disabled={disabled}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(attachments.length > 0 && 'bg-accent text-accent-foreground')}
+                >
+                  <Paperclip className="size-4" />
+                  {attachments.length > 0 && (
+                    <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1 min-w-4 h-4 flex items-center justify-center">
+                      {attachments.length}
+                    </span>
+                  )}
+                </Button>
+              </Hint>
+            </>
+          )}
 
           {variant === 'update' ? (
             <div className="ml-auto flex items-center gap-x-2">
@@ -805,7 +828,7 @@ const Editor = ({
         </div>
       )}
 
-      <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
+      {!isAgentChat && <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />}
       <LinkDialog
         isOpen={isLinkDialogOpen}
         onClose={handleLinkDialogClose}

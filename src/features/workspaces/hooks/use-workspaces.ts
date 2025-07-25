@@ -3,9 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { agentsQueryKeys } from '@/features/agents/query-keys';
 import type { CurrentUser } from '@/features/auth';
 import { authQueryKeys } from '@/features/auth/query-keys';
+import { conversationsQueryKeys } from '@/features/conversations/query-keys';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { membersQueryKeys } from '@/features/members/query-keys';
+import { workspacesApi } from '@/features/workspaces/api/workspaces-api';
 import { workspacesQueryKeys } from '@/features/workspaces/query-keys';
-import { workspacesApi } from '../api/workspaces-api';
 import type {
   CreateWorkspaceData,
   UpdateWorkspaceData,
@@ -136,16 +138,16 @@ export const useDeleteWorkspace = () => {
 
       // Remove all workspace-related caches
       queryClient.removeQueries({
-        queryKey: ['workspace', workspaceId],
+        queryKey: workspacesQueryKeys.workspace(workspaceId),
       });
       queryClient.removeQueries({
-        queryKey: ['members', workspaceId],
+        queryKey: membersQueryKeys.members(workspaceId),
       });
       queryClient.removeQueries({
         queryKey: ['channels', workspaceId],
       });
       queryClient.removeQueries({
-        queryKey: ['conversations', workspaceId],
+        queryKey: conversationsQueryKeys.conversations(workspaceId),
       });
       queryClient.removeQueries({
         queryKey: ['currentMember', workspaceId],

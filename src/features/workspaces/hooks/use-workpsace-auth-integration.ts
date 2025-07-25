@@ -1,8 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+
+import { workspacesApi } from '@/features/workspaces/api/workspaces-api';
 import { useGetWorkspaces } from '@/features/workspaces/hooks/use-workspaces';
+import { workspacesQueryKeys } from '@/features/workspaces/query-keys';
 import type { WorkspaceEntity } from '@/features/workspaces/types';
-import { workspacesApi } from '../api/workspaces-api';
 
 /**
  * Hook that integrates auth state with workspace management
@@ -111,7 +113,7 @@ export const useWorkspaceSwitcher = () => {
       const cachedWorkspace = queryClient.getQueryData<WorkspaceEntity>(['workspace', workspaceId]);
       if (!cachedWorkspace) {
         await queryClient.prefetchQuery({
-          queryKey: ['workspace', workspaceId],
+          queryKey: workspacesQueryKeys.workspace(workspaceId),
           queryFn: () => workspacesApi.getWorkspace(workspaceId),
         });
       }

@@ -96,7 +96,7 @@ git push origin main
 
 2. **Make your changes** following our [Code Standards](#code-standards)
 
-3. **Test your changes**:
+3. **Run quality checks**:
 
    ```bash
    npm run check-all
@@ -106,7 +106,7 @@ git push origin main
 
    ```bash
    git add .
-   git commit -m "Add feature: brief description of what you did"
+   git commit -m "feat: brief description of what you did"
    ```
 
 5. **Push to your fork**:
@@ -150,7 +150,6 @@ git push --force-with-lease origin feature/your-feature-name
 ### Component Structure
 
 ```typescript
-// Good component structure
 interface ComponentProps {
   title: string
   onAction: () => void
@@ -168,19 +167,31 @@ export function Component({ title, onAction }: ComponentProps) {
 
 ### Commit Messages
 
-Write clear, concise commit messages:
+Write clean, descriptive commit messages following conventional commit format. While we don't have commitlint configured, we prefer this style for consistency:
 
 ```bash
-# Good
-git commit -m "Add message threading support"
-git commit -m "Fix typing indicator not showing"
-git commit -m "Refactor channel creation modal"
+# Good - use conventional commit prefixes
+git commit -m "feat: add message threading support"
+git commit -m "fix: resolve typing indicator not showing"
+git commit -m "refactor: improve channel creation modal"
+git commit -m "chore: update dependencies"
+git commit -m "docs: add API documentation"
 
-# Bad
+# Bad - vague or unclear messages
 git commit -m "updates"
 git commit -m "fix bug"
 git commit -m "changes to chat"
 ```
+
+**Common prefixes:**
+
+- `feat:` - new features
+- `fix:` - bug fixes
+- `refactor:` - code refactoring
+- `chore:` - maintenance tasks
+- `docs:` - documentation updates
+- `style:` - formatting changes
+- `perf:` - performance improvements
 
 ## 🧪 Quality Checks
 
@@ -221,7 +232,6 @@ npm run dev
 ### Before Creating a PR
 
 - [ ] Your code follows the style guidelines
-- [ ] You've tested your changes locally
 - [ ] Your commit messages are clear
 - [ ] You've updated documentation if needed
 
@@ -232,7 +242,6 @@ Include in your pull request:
 - **What:** Brief description of changes
 - **Why:** Explanation of the problem being solved
 - **How:** Technical approach taken
-- **Testing:** How you tested the changes
 - **Screenshots:** For UI changes
 
 Example:
@@ -251,12 +260,6 @@ Users need to be able to react to messages with workspace-specific emojis
 - Added reaction component with emoji picker
 - Integrated with custom emoji API
 - Added hover states and animations
-
-## Testing
-
-- Tested in Chrome and Firefox
-- Verified emoji picker works with keyboard navigation
-- Tested with screen reader
 
 ## Screenshots
 
@@ -295,7 +298,6 @@ Include:
 
 - Follow the existing design system
 - Ensure accessibility (proper contrast, keyboard navigation)
-- Test on mobile devices
 - Include dark mode considerations
 
 ## 📚 Documentation

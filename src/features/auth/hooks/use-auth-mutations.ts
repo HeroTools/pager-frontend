@@ -1,6 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+
+import { membersQueryKeys } from '@/features/members/query-keys';
+import { workspacesQueryKeys } from '@/features/workspaces/query-keys';
+import type { WorkspaceEntity } from '@/features/workspaces/types';
 import { authApi } from '../api/auth-api';
+import { authQueryKeys } from '../query-keys';
 import type {
   AuthError,
   AuthResponse,
@@ -8,9 +13,6 @@ import type {
   InviteLinkResponse,
   SignInData,
 } from '../types';
-import type { WorkspaceEntity } from '@/features/workspaces/types';
-import { authQueryKeys } from '../query-keys';
-import { workspacesQueryKeys } from '@/features/workspaces/query-keys';
 
 export const useSignUp = () => {
   const router = useRouter();
@@ -190,7 +192,7 @@ export const useSwitchWorkspace = () => {
         queryKey: workspacesQueryKeys.workspace(workspace_id),
       });
       queryClient.invalidateQueries({
-        queryKey: ['members', workspace_id],
+        queryKey: membersQueryKeys.members(workspace_id),
       });
       queryClient.invalidateQueries({
         queryKey: ['channels', workspace_id],

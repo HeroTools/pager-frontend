@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RESERVED_NAMES } from '@/lib/constants';
 import { useCreateWorkspace } from '..';
 import { useCreateWorkspaceModal } from '../store/use-create-workspace-modal';
 
@@ -25,7 +26,6 @@ export const CreateWorkspaceModal = () => {
   });
 
   const { open, setOpen } = useCreateWorkspaceModal();
-
   const { mutateAsync, isPending } = useCreateWorkspace();
 
   const handleClose = () => {
@@ -39,8 +39,13 @@ export const CreateWorkspaceModal = () => {
       toast.success('Workspace created');
       router.push(`/${workspace.id}`);
       handleClose();
-    } catch (err) {
-      toast.error('Failed to create workspace');
+    } catch (err: any) {
+      const serverMessage = err?.response?.data?.error;
+      if (serverMessage) {
+        form.setError('name', { type: 'server', message: serverMessage });
+      } else {
+        toast.error(err?.message ?? 'Failed to create workspace');
+      }
     }
   });
 
@@ -59,10 +64,14 @@ export const CreateWorkspaceModal = () => {
                 required: 'Workspace name is required',
                 minLength: { value: 3, message: 'At least 3 characters' },
                 maxLength: { value: 80, message: 'Maximum 80 characters' },
+                validate: (value) => {
+                  const lower = value.trim().toLowerCase();
+                  return !RESERVED_NAMES.includes(lower) || 'That name is reserved';
+                },
               })}
               disabled={isPending}
               autoFocus
-              placeholder="e.g. Unowned, My Project, Homebase"
+              placeholder="e.g. My Workspace, My Project, Homebase"
             />
             {form.formState.errors.name && (
               <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>

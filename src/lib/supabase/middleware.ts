@@ -46,10 +46,7 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  console.log('Middleware - User:', user?.id, 'Path:', pathname);
-
   if (authError) {
-    console.error('Auth error in middleware:', authError);
     if (!isPublicRoute) {
       url.pathname = '/auth';
       url.searchParams.set('error', 'session_expired');

@@ -1,22 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { type InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
+import { notificationKeys } from '@/features/notifications/constants/query-keys';
+import { useFocusNotificationManager } from '@/features/notifications/hooks/use-focus-notification-manager';
+import { useNotificationContext } from '@/features/notifications/hooks/use-notification-context';
+import {
+  type NotificationPermissionState,
+  useNotificationPermissions,
+} from '@/features/notifications/hooks/use-notification-permissions';
+import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
+import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
 import {
   notificationsRealtimeHandler,
   type RealtimeHandler,
 } from '@/lib/realtime/realtime-handler';
 import type { supabase } from '@/lib/supabase/client';
-import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
-import { notificationKeys } from '@/features/notifications/constants/query-keys';
-import { useFocusNotificationManager } from '@/features/notifications/hooks/use-focus-notification-manager';
-import {
-  type NotificationPermissionState,
-  useNotificationPermissions,
-} from '@/features/notifications/hooks/use-notification-permissions';
-import { useNotificationContext } from '@/features/notifications/hooks/use-notification-context';
-import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
 
 interface UseRealtimeNotificationsProps {
   workspaceMemberId: string;
@@ -117,7 +117,7 @@ export const useRealtimeNotifications = ({
 
         const last = processedNotificationsRef.current.get(notification.id);
         if (last && now - last < DUPLICATE_WINDOW) {
-          console.log(`🔄 Duplicate notification ${notification.id} ignored`);
+          // Duplicate notification ${notification.id} ignored
           return;
         }
         processedNotificationsRef.current.set(notification.id, now);
