@@ -73,8 +73,6 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     isPending,
   } = useCreateMessage(workspaceId, agentId, currentConversationId);
 
-  console.log(isPending);
-
   const toggleReaction = useToggleReaction(workspaceId);
 
   const agent = useMemo(() => {
@@ -179,20 +177,11 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     plainText: string;
   }) => {
     if (messageStreamingState.isStreaming) {
-      console.log('🚫 Message send blocked - currently streaming');
       toast.error('Please wait for the current response to complete');
       return;
     }
 
     const optimisticId = `temp-${Date.now()}-${Math.random()}`;
-
-    console.log('📝 Sending message:', {
-      plainText: content.plainText.slice(0, 50) + '...',
-      workspaceId,
-      agentId,
-      conversationId: currentConversationId,
-      isStreaming: messageStreamingState.isStreaming,
-    });
 
     addPendingMessage(optimisticId, {
       workspaceId,

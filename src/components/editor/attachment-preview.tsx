@@ -23,8 +23,6 @@ const AttachmentPreview = ({
   const deleteAttachment = useDeleteAttachment();
 
   const removeAttachment = async (attachmentId: string) => {
-    console.log('Removing attachment', attachmentId);
-
     const attachment = attachments.find((att) => att.id === attachmentId);
     if (!attachment) {
       return;

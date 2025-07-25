@@ -60,7 +60,7 @@ export const createClient = () => {
       },
       global: {
         headers: {
-          'X-Client-Info': 'unowned-frontend',
+          'X-Client-Info': 'pager-frontend',
         },
       },
     },

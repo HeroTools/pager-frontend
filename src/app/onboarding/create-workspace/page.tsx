@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useInviteLink } from '@/features/auth/hooks/use-auth-mutations';
 import { useCreateWorkspace } from '@/features/workspaces';
+import { RESERVED_NAMES } from '@/lib/constants';
 
 interface WorkspaceFormData {
   name: string;
@@ -117,6 +118,10 @@ const WorkspaceStep = ({
               required: 'Workspace name is required',
               minLength: { value: 3, message: 'Name must be at least 3 characters' },
               maxLength: { value: 50, message: 'Name must be less than 50 characters' },
+              validate: (value) => {
+                const lower = value.trim().toLowerCase();
+                return !RESERVED_NAMES.includes(lower) || 'That name is reserved';
+              },
             }}
             render={({ field }) => (
               <FormItem>

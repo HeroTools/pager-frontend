@@ -18,7 +18,7 @@ const notoSans = Noto_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Unowned',
+  title: 'Pager',
 };
 
 export default function RootLayout({

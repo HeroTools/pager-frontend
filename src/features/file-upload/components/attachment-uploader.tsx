@@ -1,8 +1,8 @@
-import React, { useCallback, useState } from 'react';
 import type { UploadProgress } from '@/features/file-upload/hooks/use-upload';
 import { useDeleteAttachment, useFileUpload } from '@/features/file-upload/hooks/use-upload';
-import { v4 as uuidv4 } from 'uuid';
 import { X } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import type { UploadedAttachment } from '../types';
 
 interface AttachmentUploaderProps {
@@ -104,7 +104,6 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
 
             if (resultIndex >= 0 && resultIndex < results.length) {
               const result = results[resultIndex];
-              console.log(result, 'result.publicUrl');
               return {
                 id: result.attachmentId || att.id,
                 originalFilename: att.originalFilename,

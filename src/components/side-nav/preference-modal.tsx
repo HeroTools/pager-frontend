@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { useDeleteWorkspace, useUpdateWorkspace } from '@/features/workspaces/hooks/use-workspaces';
 import { useConfirm } from '@/hooks/use-confirm';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { RESERVED_NAMES } from '@/lib/constants';
 
 interface PreferenceModalProps {
   initialVlaue: string;
@@ -61,7 +62,12 @@ export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModal
       toast.success('Workspace updated');
     } catch (error) {
       console.error(error);
-      toast.error('Failed to update workspace');
+      const serverMessage = error.response?.data?.error;
+      if (serverMessage) {
+        form.setError('name', { type: 'server', message: serverMessage });
+      } else {
+        toast.error('Failed to update workspace');
+      }
     }
   });
 
@@ -115,6 +121,10 @@ export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModal
                       required: true,
                       minLength: 3,
                       maxLength: 80,
+                      validate: (value) => {
+                        const lower = value.trim().toLowerCase();
+                        return !RESERVED_NAMES.includes(lower) || 'That name is reserved';
+                      },
                     })}
                     disabled={updateWorkspace.isPending}
                     autoFocus
