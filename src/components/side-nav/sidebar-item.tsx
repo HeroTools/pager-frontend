@@ -76,7 +76,7 @@ export const SidebarItem = ({
   if (disabled) {
     return (
       <Button
-        variant="transparent"
+        variant="ghost"
         className={cn(sidebarItemVariants({ variant }))}
         disabled={disabled}
       >
@@ -96,7 +96,7 @@ export const SidebarItem = ({
   }
 
   return (
-    <Button variant="transparent" asChild className={cn(sidebarItemVariants({ variant }))}>
+    <Button variant="ghost" asChild className={cn(sidebarItemVariants({ variant }))}>
       <Link href={link} onClick={handleClick}>
         <Icon className="size-3.5 mr-1 shrink-0" />
         <span className={cn('text-sm truncate', hasUnread && 'font-extrabold')}>{label}</span>

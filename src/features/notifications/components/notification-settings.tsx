@@ -68,7 +68,7 @@ export const NotificationSettings = () => {
   const getPermissionBadge = () => {
     switch (permission) {
       case 'granted':
-        return <Badge variant="default">Enabled</Badge>;
+        return <Badge variant="success">Enabled</Badge>;
       case 'denied':
         return <Badge variant="danger">Blocked</Badge>;
       case 'default':

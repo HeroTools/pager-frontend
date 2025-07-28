@@ -236,7 +236,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
           {attachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="flex items-center gap-4 p-4 bg-card border border-border rounded-md">
+              className="flex items-center gap-4 p-4 bg-card border border-border rounded-md"
             >
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-foreground truncate">

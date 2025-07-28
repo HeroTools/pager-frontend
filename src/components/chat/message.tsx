@@ -734,7 +734,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
         className={cn(
           'group/message relative flex gap-2 px-4 py-1 transition-colors duration-100 ease-in-out',
           {
-            'hover:bg-ash': !isEditing,
+            'hover:bg-accent': !isEditing,
             'pt-4': !isCompact,
           },
           isHighlighted && 'message-highlighted',

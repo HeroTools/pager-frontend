@@ -19,8 +19,8 @@ const conversationItemVariants = cva(
   {
     variants: {
       variant: {
-        default: 'text-secondary-foreground hover:bg-secondary/50',
-        active: 'text-secondary-foreground bg-secondary/90 hover:bg-secondary/90',
+        default: 'text-secondary-foreground hover:bg-accent',
+        active: 'text-secondary-foreground bg-accent hover:bg-accent',
       },
     },
     defaultVariants: {
@@ -109,7 +109,7 @@ export const ConversationItem = ({
 
   return (
     <Button
-      variant="transparent"
+      variant="ghost"
       className={cn(conversationItemVariants({ variant }))}
       size="sm"
       asChild

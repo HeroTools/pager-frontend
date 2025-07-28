@@ -19,23 +19,23 @@ export const WorkspaceSection = ({ children, hint, label, onNew }: WorkspaceSect
     <div className="flex flex-col mt-3 px-2 gap-2">
       <div className="flex items-center px-2 group">
         <Button
-          variant="transparent"
-          className="p-1 text-sm text-foreground shrink-0 size-6 hover:bg-secondary/90"
+          variant="ghost"
+          className="p-1 text-sm text-foreground shrink-0 size-6 hover:bg-accent"
           onClick={toggle}
         >
           <ChevronDown className={cn('size-4 transition-transform', !on && '-rotate-90')} />
         </Button>
         <Button
-          variant="transparent"
+          variant="ghost"
           size="sm"
-          className="group px-2 text-sm text-foreground h-7 justify-start overflow-hidden items-center hover:bg-secondary/90"
+          className="group px-2 text-sm text-foreground h-7 justify-start overflow-hidden items-center hover:bg-accent"
         >
           <span className="truncate">{label}</span>
         </Button>
         {onNew && (
           <Hint label={hint} side="top" align="center">
             <Button
-              variant="transparent"
+              variant="ghost"
               className="opacity-0 group-hover:opacity-100 hover:bg-accent transition-opacity ml-auto p-1 text-sm text-muted-foreground size-6 shrink-0"
               onClick={onNew}
             >

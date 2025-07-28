@@ -7,11 +7,11 @@
 :root {
   /* ===== Color Palette ===== */
   /* Surface colors (dark to light) */
-  --void: oklch(0.06 0.008 280);      /* #0A0A0B - darkest surface */
-  --ink: oklch(0.09 0.01 280);        /* #111113 - dark surface */
-  --graphite: oklch(0.15 0.005 280);  /* #1A1A1A - medium surface */
-  --smoke: oklch(0.20 0.01 280);      /* #242427 - light surface */
-  --ash: oklch(0.24 0.01 280);        /* #2A2A2D - lightest surface */
+  --darkest: oklch(0.1398 0 0);              /* Pure black - for sidebars only */
+  --darker: oklch(0.1448 0 0);         /* Near black - main background */
+  --dark: oklch(0.1589 0.0021 286.18);    /* Dark gray - cards/elevated */
+  --smoke: oklch(0.20 0.01 280);       /* Medium gray - hover states */
+  --ash: oklch(0.24 0.01 280);         /* Light gray - active states */
   
   /* Text colors */
   --text-primary: oklch(1 0 0);          /* Pure white */
@@ -19,41 +19,41 @@
   --text-tertiary: oklch(1 0 0 / 0.4);   /* 40% opacity white */
   
   /* Border colors */
-  --border-subtle: oklch(1 0 0 / 0.05);  /* 5% opacity white */
-  --border-default: oklch(1 0 0 / 0.1);  /* 10% opacity white */
-  --border-strong: oklch(1 0 0 / 0.15);  /* 15% opacity white */
+  --border-subtle: oklch(0.95 0 0 / 0.06);  /* 6% opacity soft white */
+  --border-default: oklch(0.2779 0.0093 276.78); /* 10% opacity soft white */
+  --border-strong: oklch(0.95 0 0 / 0.16);  /* 16% opacity soft white */
   
   /* Accent colors */
-  --accent-primary: oklch(0.59 0.21 285);  /* Purple */
-  --accent-success: oklch(0.70 0.14 162);  /* Green */
-  --accent-danger: oklch(0.63 0.20 25);    /* Red */
-  --accent-warning: oklch(0.75 0.14 75);   /* Orange */
-  --accent-info: oklch(0.63 0.18 252);     /* Blue */
+  --accent-primary: oklch(0.65 0.28 275);  /* Vibrant Purple */
+  --accent-success: oklch(0.72 0.20 162);  /* Rich Green */
+  --accent-danger: oklch(0.65 0.25 25);    /* Vivid Red */
+  --accent-warning: oklch(0.78 0.18 70);   /* Bright Orange */
+  --accent-info: oklch(0.67 0.24 252);     /* Electric Blue */
   
   /* ===== Semantic Layout Areas ===== */
   /* Dark mode by default */
-  --main-sidebar: var(--ink);      /* Leftmost navigation sidebar - darkest */
+  --main-sidebar: var(--darkest);      /* Leftmost navigation - pure black for clean feel */
   --main-sidebar-foreground: var(--text-secondary);
   --main-sidebar-hover: var(--smoke);
   --main-sidebar-active: var(--smoke);
   
-  --workspace-sidebar: var(--graphite);  /* Channels/conversations sidebar - medium */
+  --workspace-sidebar: var(--darker);  /* Channels/conversations sidebar - near black */
   --workspace-sidebar-foreground: var(--text-secondary);
   --workspace-sidebar-hover: var(--smoke);
   --workspace-sidebar-active: var(--smoke);
   
-  --content-area: var(--smoke);  /* Main chat/content area - lightest */
+  --content-area: var(--dark);  /* Main chat/content area - near black */
   
   /* ===== Semantic Component Colors (ShadCN Compatible) ===== */
   --background: var(--content-area);
   --foreground: var(--text-primary);
-  --card: var(--smoke);
+  --card: var(--dark);
   --card-foreground: var(--text-primary);
-  --popover: var(--graphite);
+  --popover: var(--dark);
   --popover-foreground: var(--text-primary);
-  --primary: var(--accent-primary);
-  --primary-foreground: var(--text-primary);
-  --secondary: var(--smoke);
+  --primary: var(--text-primary);         
+  --primary-foreground: var(--text-primary);      /* Dark background */
+  --secondary: var(--dark);
   --secondary-foreground: var(--text-primary);
   --muted: var(--ash);
   --muted-foreground: var(--text-secondary);
@@ -62,8 +62,8 @@
   --destructive: var(--accent-danger);
   --destructive-foreground: var(--text-primary);
   --border: var(--border-default);
-  --input: var(--content-area);
-  --ring: var(--accent-primary);
+  --input: var(--content-area);         
+  --ring: var(--primary);
   --chart-1: var(--accent-primary);
   --chart-2: var(--accent-info);
   --chart-3: var(--accent-success);
@@ -71,8 +71,8 @@
   --chart-5: var(--accent-danger);
   
   /* ===== Link Colors ===== */
-  --link: oklch(0.6 0.15 252);
-  --link-hover: oklch(0.7 0.15 252);
+  --link: oklch(0.65 0.22 252);
+  --link-hover: oklch(0.72 0.25 252);
   
   /* ===== Interactive States ===== */
   --interactive-active: oklch(0.95 0.05 252);
@@ -86,8 +86,8 @@
   --interactive-inactive-hover: oklch(0.92 0 0);
   
   /* ===== Brand Colors ===== */
-  --brand-green: oklch(0.7 0.14 162);
-  --brand-blue: oklch(0.5 0.12 252);
+  --brand-green: oklch(0.72 0.20 162);
+  --brand-blue: oklch(0.55 0.22 252);
   
   /* ===== Modern Tech UI Grid System ===== */
   /* Base Grid: 4px for maximum flexibility */
@@ -123,12 +123,12 @@
   --touch-target-mobile: 2.75rem;   /* 44px - minimum mobile touch target */
   --touch-target-desktop: 2rem;     /* 32px - minimum desktop touch target */
   
-  /* Border Radius Scale (4px increments) */
-  --radius-sm: 0.25rem;    /* 4px */
-  --radius: 0.5rem;        /* 8px - default */
-  --radius-lg: 0.75rem;    /* 12px */
-  --radius-xl: 1rem;       /* 16px */
-  --radius-2xl: 1.5rem;    /* 24px */
+  /* Border Radius Scale (refined, smaller values) */
+  --radius-sm: 0.125rem;   /* 2px */
+  --radius: 0.375rem;      /* 6px - default */
+  --radius-lg: 0.5rem;     /* 8px */
+  --radius-xl: 0.75rem;    /* 12px */
+  --radius-2xl: 1rem;      /* 16px */
   --radius-full: 9999px;   /* Full radius */
   
   /* ===== Utility Variables ===== */
@@ -150,38 +150,38 @@
 /* ===== Light Theme Overrides ===== */
 .light {
   /* Invert surface colors for light mode */
-  --void: oklch(0.99 0.005 280);       /* Lightest becomes darkest */
-  --ink: oklch(0.97 0.005 280);        /* Very light */
-  --graphite: oklch(0.94 0.005 280);   /* Light */
-  --smoke: oklch(0.92 0.005 280);      /* Medium light */
-  --ash: oklch(0.88 0.01 280);         /* Darker in light mode */
+  --darkest: oklch(1 0 0);                /* Pure white background */
+  --darker: oklch(0.98 0.005 60);         /* Warm off-white */
+  --dark: oklch(0.96 0.008 60);    /* Light gray with warmth */
+  --smoke: oklch(0.94 0.01 60);        /* Medium light gray */
+  --ash: oklch(0.90 0.012 60);         /* Darker gray for contrast */
   
   /* Text colors for light mode */
-  --text-primary: oklch(0.15 0.02 280);    /* Dark text */
-  --text-secondary: oklch(0.40 0.015 280); /* Medium dark */
-  --text-tertiary: oklch(0.60 0.01 280);   /* Light dark */
+  --text-primary: oklch(0.10 0.03 280);    /* Deep rich black */
+  --text-secondary: oklch(0.35 0.02 280);  /* Strong gray */
+  --text-tertiary: oklch(0.55 0.015 280);  /* Medium gray */
   
   /* Borders for light mode */
-  --border-subtle: oklch(0.15 0.02 280 / 0.05);
-  --border-default: oklch(0.15 0.02 280 / 0.1);
-  --border-strong: oklch(0.15 0.02 280 / 0.15);
+  --border-subtle: oklch(0.15 0.02 280 / 0.08);
+  --border-default: oklch(0.15 0.02 280 / 0.12);
+  --border-strong: oklch(0.15 0.02 280 / 0.20);
   
   /* Update sidebar states for light mode */
-  --main-sidebar: var(--smoke);      /* Leftmost navigation sidebar - darkest */
+  --main-sidebar: var(--dark);      /* Leftmost navigation sidebar */
   --main-sidebar-foreground: var(--text-secondary);
-  --main-sidebar-hover: var(--ash);
-  --main-sidebar-active: var(--ash);
+  --main-sidebar-hover: var(--smoke);
+  --main-sidebar-active: var(--smoke);
   
-  --workspace-sidebar: var(--graphite);  /* Channels/conversations sidebar - medium */
+  --workspace-sidebar: var(--darker);       /* Channels/conversations sidebar */
   --workspace-sidebar-foreground: var(--text-secondary);
-  --workspace-sidebar-hover: var(--smoke);
-  --workspace-sidebar-active: var(--smoke);
+  --workspace-sidebar-hover: var(--dark);
+  --workspace-sidebar-active: var(--dark);
   
-  --content-area: var(--ink);  /* Main chat/content area - lightest */
+  --content-area: var(--darkest);           /* Main chat/content area - pure white */
   
   /* Link colors for light mode */
-  --link: oklch(0.45 0.15 252);
-  --link-hover: oklch(0.35 0.15 252);
+  --link: oklch(0.48 0.25 252);
+  --link-hover: oklch(0.40 0.28 252);
   
   /* Interactive states for light mode */
   --interactive-active: oklch(0.15 0.08 252);
@@ -193,14 +193,20 @@
   --interactive-inactive-border: oklch(0.35 0 0);
   --interactive-inactive-text: oklch(0.65 0 0);
   --interactive-inactive-hover: oklch(0.25 0 0);
+  
+  /* Light mode component overrides */
+  --primary: oklch(0.08 0 0);            /* Near black button for light mode */
+  --primary-foreground: oklch(0.98 0 0); /* Near white text on dark button */
+  --ring: oklch(0.08 0 0 / 0.3);
+  --input: var(--dark);
 }
 
 /* ===== Tailwind Color Mappings ===== */
 @theme inline {
   /* Surface colors */
-  --color-void: var(--void);
-  --color-ink: var(--ink);
-  --color-graphite: var(--graphite);
+  --color-darkest: var(--darkest);
+  --color-darker: var(--darker);
+  --color-dark: var(--dark);
   --color-smoke: var(--smoke);
   --color-ash: var(--ash);
   
@@ -398,11 +404,11 @@
 
   /* Quill Editor Styles */
   .ql-toolbar {
-    @apply !border-none !rounded-lg !bg-input !p-2;
+    @apply !border-none !rounded-md !bg-input !p-2;
   }
 
   .ql-toolbar .ql-formats:not(:last-child) {
-    @apply !border-none !rounded-lg !pr-3 !mr-3;
+    @apply !border-none !rounded-md !pr-3 !mr-3;
   }
 
   .ql-toolbar .ql-stroke {
@@ -422,7 +428,7 @@
   }
 
   .ql-container {
-    @apply !font-sans !border-0 !rounded-b-lg max-h-80 overflow-y-auto;
+    @apply !font-sans !border-0 !rounded-b-md max-h-80 overflow-y-auto;
   }
 
   .ql-editor {
@@ -527,7 +533,7 @@
     margin: 0.75rem 0 !important;
     background-color: var(--muted) !important;
     font-style: italic !important;
-    border-radius: 0 0.375rem 0.375rem 0 !important;
+    border-radius: 0 var(--radius) var(--radius) 0 !important;
     white-space: normal !important;
   }
 
@@ -539,7 +545,7 @@
     background-color: var(--ash);
     border: 1px solid var(--border);
     padding: 0.75rem;
-    border-radius: 0.5rem;
+    border-radius: var(--radius);
     margin: 0.75rem 0;
     overflow-x: auto;
     font-size: 0.875rem;
@@ -550,7 +556,7 @@
   .message-content code {
     background-color: var(--muted);
     padding: 0.125rem 0.375rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     font-size: 0.875rem;
     font-family: ui-monospace, SFMono-Regular, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     border: 1px solid var(--border);
@@ -573,7 +579,7 @@
     width: 100%;
     margin: 1rem 0;
     border: 1px solid var(--border);
-    border-radius: 0.5rem;
+    border-radius: var(--radius);
     overflow: hidden;
     white-space: normal;
   }
@@ -630,7 +636,7 @@
   .message-content img {
     max-width: 100%;
     height: auto;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     margin: 1rem 0;
     border: 1px solid var(--border);
   }
@@ -671,6 +677,6 @@
   .flat-typing-indicator {
     background: var(--muted);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
   }
 }

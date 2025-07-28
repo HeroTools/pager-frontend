@@ -15,8 +15,8 @@ const agentItemVariants = cva(
   {
     variants: {
       variant: {
-        default: 'text-secondary-foreground hover:bg-secondary/50',
-        active: 'text-secondary-foreground bg-secondary/90 hover:bg-secondary/90',
+        default: 'text-secondary-foreground hover:bg-accent',
+        active: 'text-secondary-foreground bg-accent hover:bg-accent',
       },
     },
     defaultVariants: {
@@ -40,7 +40,7 @@ const AgentItem = ({
   };
 
   return (
-    <Button variant="transparent" className={cn(agentItemVariants({ variant }))} size="sm" asChild>
+    <Button variant="ghost" className={cn(agentItemVariants({ variant }))} size="sm" asChild>
       <Link href={`/${workspaceId}/agents/${agent.id}`} onClick={handleAgentClick}>
         <Avatar className="size-5">
           <AvatarImage src={agent.avatar_url || undefined} />

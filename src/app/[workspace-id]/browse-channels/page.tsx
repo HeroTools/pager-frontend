@@ -120,7 +120,7 @@ export default function BrowseChannels() {
         />
       </div>
 
-      <div className="bg-muted rounded-lg overflow-y-auto">
+      <div className="rounded-md overflow-y-auto">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">
             <Loader className="mx-auto animate-spin" />
@@ -132,7 +132,7 @@ export default function BrowseChannels() {
             {displayedChannels.map((channel) => (
               <li
                 key={channel.id}
-                className="flex items-center gap-4 px-6 py-4 border-b border last:border-b-0 hover:bg-accent transition"
+                className="flex items-center gap-4 px-6 py-4 border border-b-0 last:border-b hover:bg-accent transition"
               >
                 <span>
                   {channel.channel_type === 'public' ? (
@@ -172,7 +172,7 @@ export default function BrowseChannels() {
                     </Button>
                   ) : (
                     <Button
-                      variant="default"
+                      variant="primary"
                       size="sm"
                       onClick={() => handleJoinChannel(channel.id)}
                       disabled={joiningChannelId === channel.id || !currentMember?.id}

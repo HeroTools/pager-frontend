@@ -36,8 +36,8 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="transparent"
-              className="font-semibold text-lg w-auto p-2 overflow-hidden cursor-pointer hover:bg-content-area"
+              variant="ghost"
+              className="font-semibold text-lg w-auto p-2 overflow-hidden cursor-pointer hover:bg-accent"
               size="sm"
             >
               <span className="truncate text-foreground">{workspace.name}</span>
@@ -46,7 +46,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom" className="w-64">
             <DropdownMenuItem className="cursor-pointer capitalize">
-              <div className="size-9 relative overflow-hidden bg-primary text-primary-foreground font-semibold text-xl rounded-lg flex items-center justify-center mr-2">
+              <div className="size-9 relative overflow-hidden text-primary-foreground font-semibold text-xl rounded-lg flex items-center justify-center mr-2">
                 {workspace.name?.charAt(0).toUpperCase()}
               </div>
               <div className="flex flex-col items-start">
@@ -73,7 +73,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="flex items-center gap-1">
-          <Button variant="transparent" className="hover:bg-content-area" size="iconSm" onClick={startConversationCreation}>
+          <Button variant="ghost" className="hover:bg-accent" size="iconSm" onClick={startConversationCreation}>
             <SquarePen className="size-4" />
           </Button>
         </div>
