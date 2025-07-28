@@ -24,7 +24,7 @@ export default function AgentConversationPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full bg-background">
         <div className="flex-1 bg-chat">
           <div className="px-4 py-4 space-y-2">
             <SkeletonMessages count={15} />

@@ -709,7 +709,7 @@ const Editor = ({
       <div
         ref={editorWrapperRef}
         className={cn(
-          'flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition-all duration-200 relative max-h-[calc(100%-36px)]',
+          'flex flex-col border rounded-md overflow-hidden focus-within:border-ring transition-all duration-200 relative max-h-[calc(100%-36px)]',
           !isAgentChat && isDragging && 'border-primary bg-accent/50',
         )}
         onDrop={handleDrop}
@@ -717,7 +717,7 @@ const Editor = ({
         onDragLeave={handleDragLeave}
       >
         {!isAgentChat && isDragging && (
-          <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center border-2 border-dashed border-primary rounded-md">
+          <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-50 flex items-center justify-center border border-dashed border-primary rounded-md">
             <div className="text-center">
               <div className="text-lg font-medium text-primary mb-2">Drop files here</div>
               <div className="text-sm text-muted-foreground">
@@ -818,7 +818,7 @@ const Editor = ({
       {variant === 'create' && (
         <div
           className={cn(
-            'p-2 pb-0 text-[10px] text-muted-foreground flex justify-end opacity-0 transition',
+            'p-2 pb-0 text-xs text-muted-foreground flex justify-end opacity-0 transition',
             !isEmpty && 'opacity-100',
           )}
         >

@@ -11,20 +11,20 @@ const ChatPage = () => {
 
   if (type === 'conversation') {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full bg-background">
         <ConversationChat />
       </div>
     );
   } else if (type === 'channel') {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full bg-background">
         <ChannelChat />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background">
       <AlertTriangle className="size-5 text-muted-foreground" />
     </div>
   );

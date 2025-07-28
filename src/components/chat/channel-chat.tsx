@@ -151,7 +151,7 @@ const ChannelChat = () => {
         </span>
         <button
           onClick={handleRefreshData}
-          className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          className="mt-2 px-2 py-1 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
           Retry
         </button>

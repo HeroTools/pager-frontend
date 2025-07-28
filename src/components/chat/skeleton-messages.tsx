@@ -14,7 +14,7 @@ const MessageSkeleton: FC<{ isCompact?: boolean; index?: number }> = ({
 
   return (
     <div
-      className={cn('px-4 py-1.5 transition-colors duration-100 ease-in-out', {
+      className={cn('px-2 py-1 transition-colors duration-100 ease-in-out', {
         'pt-3': !isCompact,
       })}
     >

@@ -52,13 +52,13 @@ const StepIndicator = ({ currentStep }: { currentStep: Step }) => (
         <div key={step.id} className="flex items-center">
           <div
             className={`
-                relative flex h-10 w-10 items-center justify-center rounded-full border-2
+                relative flex h-10 w-10 items-center justify-center rounded-full border
                 transition-all duration-200 ease-in-out
                 ${
                   currentStep === index
                     ? 'border-primary bg-primary text-primary-foreground shadow-lg scale-110'
                     : currentStep > index
-                      ? 'border-green-500 bg-green-500 text-white'
+                      ? 'border-accent-success bg-accent-success text-white'
                       : 'border-muted-foreground/30 bg-background text-muted-foreground'
                 }
               `}
@@ -73,7 +73,7 @@ const StepIndicator = ({ currentStep }: { currentStep: Step }) => (
             <div
               className={`
                   ml-4 h-0.5 w-16 transition-colors duration-200
-                  ${currentStep > index ? 'bg-green-500' : 'bg-muted-foreground/30'}
+                  ${currentStep > index ? 'bg-accent-success' : 'bg-muted-foreground/30'}
                 `}
             />
           )}
@@ -233,7 +233,7 @@ const ProfileStep = ({
             )}
           />
         </CardContent>
-        <CardFooter className="flex gap-3 pt-6">
+        <CardFooter className="flex gap-4 pt-6">
           <Button
             type="button"
             variant="outline"
@@ -298,14 +298,14 @@ const InviteStep = ({
           disabled={!inviteLink}
         >
           {isCopied ? (
-            <CheckIcon className="h-4 w-4 text-green-500" />
+            <CheckIcon className="h-4 w-4 text-accent-success" />
           ) : (
             <CopyIcon className="h-4 w-4" />
           )}
           <span className="truncate">{inviteLink || 'Generating...'}</span>
         </Button>
       </CardContent>
-      <CardFooter className="flex gap-3 pt-6">
+      <CardFooter className="flex gap-4 pt-6">
         <Button variant="outline" onClick={onBack} disabled={isLoading} className="flex-1 h-11">
           Back
         </Button>

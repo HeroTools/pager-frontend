@@ -24,12 +24,12 @@ interface SidebarItemProps {
 }
 
 const sidebarItemVariants = cva(
-  'flex items-center gap-1.5 justify-start font-normal h-7 px-[18px] text-sm overflow-hidden',
+  'flex items-center gap-1.5 justify-start font-normal h-7 2 text-sm overflow-hidden',
   {
     variants: {
       variant: {
-        default: 'text-foreground hover:bg-secondary/90',
-        active: 'text-foreground bg-secondary/90 hover:bg-secondary/90',
+        default: 'text-workspace-sidebar-foreground hover:bg-workspace-sidebar-hover',
+        active: 'text-workspace-sidebar-foreground bg-workspace-sidebar-active hover:bg-workspace-sidebar-active',
       },
     },
     defaultVariants: {
@@ -76,7 +76,7 @@ export const SidebarItem = ({
   if (disabled) {
     return (
       <Button
-        variant="transparent"
+        variant="ghost"
         className={cn(sidebarItemVariants({ variant }))}
         disabled={disabled}
       >
@@ -96,7 +96,7 @@ export const SidebarItem = ({
   }
 
   return (
-    <Button variant="transparent" asChild className={cn(sidebarItemVariants({ variant }))}>
+    <Button variant="ghost" asChild className={cn(sidebarItemVariants({ variant }))}>
       <Link href={link} onClick={handleClick}>
         <Icon className="size-3.5 mr-1 shrink-0" />
         <span className={cn('text-sm truncate', hasUnread && 'font-extrabold')}>{label}</span>

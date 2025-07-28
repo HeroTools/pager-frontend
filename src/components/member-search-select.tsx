@@ -62,9 +62,9 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
   const getStatusColor = (status?: string) => {
     switch (status) {
       case 'online':
-        return 'bg-text-success';
+        return 'bg-accent-success';
       case 'away':
-        return 'bg-text-warning';
+        return 'bg-accent-warning';
       case 'offline':
         return 'bg-muted-foreground';
       default:
@@ -74,11 +74,11 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 border border-border-subtle rounded-md bg-background min-h-[40px] w-full ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+      <div className="flex flex-wrap items-center gap-2 px-2 py-2 border rounded-md bg-background min-h-10 w-full focus-within:ring-1 focus-within:ring-ring">
         {selectedMembers.map((member) => (
           <div
             key={member.id}
-            className="flex items-center gap-1.5 px-2 py-1 bg-accent text-accent-foreground rounded text-sm"
+            className="flex items-center gap-2 px-2 py-1 bg-accent text-accent-foreground rounded text-sm"
           >
             <span className="text-lg">
               {member.user?.image ? (
@@ -88,7 +88,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
                   className="w-5 h-5 rounded-full"
                 />
               ) : (
-                <div className="w-5 h-5 rounded-full bg-muted-foreground flex items-center justify-center text-xs font-medium text-message-hover">
+                <div className="w-5 h-5 rounded-full bg-muted-foreground flex items-center justify-center text-xs font-medium text-background">
                   {member.user?.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
               )}
@@ -100,7 +100,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
           </div>
         ))}
 
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1 min-w-48">
           <input
             ref={inputRef}
             type="text"
@@ -118,7 +118,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
       </div>
 
       {isOpen && filteredMembers.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border-subtle rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-md z-50 max-h-60 overflow-y-auto">
           {filteredMembers.map((member) => {
             const isExistingMember = existingMemberIds.includes(member.id);
 
@@ -126,7 +126,7 @@ const MemberSearchSelect: React.FC<MemberSearchSelectProps> = ({
               <button
                 key={member.id}
                 onClick={() => !isExistingMember && handleMemberSelect(member)}
-                className={`w-full flex items-center gap-3 px-3 py-2 hover:bg-accent text-left cursor-pointer ${
+                className={`w-full flex items-center gap-4 px-3 py-2 hover:bg-accent text-left cursor-pointer ${
                   isExistingMember ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 disabled={isExistingMember}

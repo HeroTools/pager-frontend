@@ -31,7 +31,7 @@ export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="outline-none relative cursor-pointer">
-        <Avatar className="rounded-md size-10 hover:opacity-75 transition">
+        <Avatar className="rounded-lg size-10 transition border hover:bg-content-area">
           <AvatarImage className="rounded-md" alt={user.name} src={user.image} />
           <AvatarFallback className="rounded-md">
             {user.name!.charAt(0).toUpperCase()}
