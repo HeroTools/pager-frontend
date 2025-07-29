@@ -18,7 +18,7 @@ const notoSans = Noto_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Pager',
+  title: 'Pager - AI Powered Collaboration',
 };
 
 export default function RootLayout({
