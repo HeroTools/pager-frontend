@@ -125,7 +125,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+    <div className="flex items-center justify-between px-4 py-3 border-b">
       <div className="flex items-center gap-2">
         {chatType === 'conversation' ? (
           // For conversations, show avatar(s) or names

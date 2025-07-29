@@ -28,7 +28,7 @@ export const Sidebar = () => {
   };
 
   return (
-    <div className="w-[70px] h-full bg-sidebar border-r border-border-subtle flex flex-col gap-y-3 items-center pt-4 pb-4">
+    <div className="w-[70px] h-full bg-sidebar border-r flex flex-col gap-y-3 items-center pt-4 pb-4">
       <div className="mb-2">
         <WorkspaceSwitcher />
       </div>

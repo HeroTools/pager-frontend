@@ -8,7 +8,7 @@ export const Toolbar = () => {
   const workspaceId = useWorkspaceId();
 
   return (
-    <div className="flex items-center justify-between h-10 p-1.5 border-b border-border-subtle">
+    <div className="flex items-center justify-between h-10 p-1.5 border-b">
       <div className="flex-1" />
       <div className="min-w-[280px] max-w-[642px] flex-1">
         <SearchDialogContent workspaceId={workspaceId} />

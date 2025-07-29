@@ -100,7 +100,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
   if (isLoading) {
     return (
       <div className="flex flex-col h-full bg-background">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center justify-between p-4 border-b border-r">
           <h2 className="text-lg font-semibold text-foreground">Activity</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="size-4" />
@@ -116,7 +116,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
   if (error) {
     return (
       <div className="flex flex-col h-full bg-background">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center justify-between p-4 border-b border-r">
           <h2 className="text-lg font-semibold text-foreground">Activity</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="size-4" />
@@ -132,7 +132,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
 
   return (
     <div className="flex flex-col h-full bg-background">
-      <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="flex items-center justify-between p-4 border-b border-r">
         <h2 className="text-lg font-semibold text-foreground">Activity</h2>
         <div className="flex items-center gap-2">
           {hasUnread && (
@@ -157,7 +157,7 @@ export const NotificationsSidebar = ({ workspaceId, onClose }: NotificationsSide
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 border-r">
         {allNotifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <div className="size-12 bg-muted rounded-full flex items-center justify-center mb-4">
