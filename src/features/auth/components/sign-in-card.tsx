@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { useSignIn } from '@/features/auth';
 import { AuthFlow } from '@/features/auth/stores/auth-store';
 import { TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 interface SignInCardProps {
@@ -12,6 +13,7 @@ interface SignInCardProps {
 
 export const SignInCard = ({ setFlow }: SignInCardProps) => {
   const signIn = useSignIn();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -21,11 +23,18 @@ export const SignInCard = ({ setFlow }: SignInCardProps) => {
   });
 
   const handlePasswordSignIn = form.handleSubmit(async ({ email, password }) => {
-    signIn.mutate({ email, password });
+    signIn.mutate({ email, password }, {
+      onSuccess: () => {
+        setIsRedirecting(true);
+      },
+      onError: () => {
+        setIsRedirecting(false);
+      }
+    });
   });
 
-  // Get loading state from the mutation
-  const isLoading = signIn.isPending;
+  // Get loading state from the mutation or redirecting
+  const isLoading = signIn.isPending || isRedirecting;
 
   // Get error from the mutation
   const error = signIn.error;
@@ -74,7 +83,7 @@ export const SignInCard = ({ setFlow }: SignInCardProps) => {
             <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
           )}
           <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-            {signIn.isPending ? 'Signing in...' : 'Continue'}
+            {isRedirecting ? 'Redirecting...' : signIn.isPending ? 'Signing in...' : 'Continue'}
           </Button>
         </form>
         <p className="text-xs text-muted-foreground">
