@@ -1,6 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { uploadApi } from '../api/upload-api';
-import type { ConfirmUploadRequest, DeleteAttachmentRequest, PresignedUrlRequest } from '../types';
+import { useCallback, useRef } from 'react';
+
+import { uploadApi } from '@/features/file-upload/api/upload-api';
+import type {
+  ConfirmUploadRequest,
+  DeleteAttachmentRequest,
+  PresignedUrlRequest,
+} from '@/features/file-upload/types';
 
 export interface UploadProgress {
   loaded: number;
@@ -18,9 +24,6 @@ export interface FileUploadResult {
   error?: string;
 }
 
-/**
- * Hook for getting presigned URLs
- */
 export const useGetPresignedUrl = () => {
   return useMutation({
     mutationFn: (request: PresignedUrlRequest) => uploadApi.getPresignedUrl(request),
@@ -30,16 +33,12 @@ export const useGetPresignedUrl = () => {
   });
 };
 
-/**
- * Hook for deleting attachments
- */
 export const useDeleteAttachment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (request: DeleteAttachmentRequest) => uploadApi.deleteAttachment(request),
     onSuccess: () => {
-      // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['attachments'] });
     },
     onError: (error) => {
@@ -48,9 +47,6 @@ export const useDeleteAttachment = () => {
   });
 };
 
-/**
- * Alternative manual upload method
- */
 export const useManualUpload = () => {
   return useMutation({
     mutationFn: async ({
@@ -91,9 +87,6 @@ export const useManualUpload = () => {
   });
 };
 
-/**
- * Hook for confirming upload completion
- */
 export const useConfirmUpload = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -107,85 +100,132 @@ export const useConfirmUpload = () => {
   });
 };
 
-/**
- * Comprehensive hook that handles the entire upload process.
- * This is the corrected and completed version.
- */
 export const useFileUpload = (workspaceId: string) => {
   const getPresignedUrlMutation = useGetPresignedUrl();
   const manualUploadMutation = useManualUpload();
   const confirmUploadMutation = useConfirmUpload();
 
-  /**
-   * Orchestrates the entire upload flow for multiple files concurrently.
-   * @param files - The array of files to upload.
-   * @param onTotalProgress - Callback for overall progress updates.
-   * @returns An array of FileUploadResult objects.
-   */
-  const uploadMultipleFiles = async (
-    files: File[],
-    onFileProgress: (fileIndex: number, progress: UploadProgress) => void,
-  ): Promise<FileUploadResult[]> => {
-    // This function processes a single file through all three stages.
-    const processFile = async (file: File, index: number): Promise<FileUploadResult> => {
-      try {
-        const fileId = crypto.randomUUID();
+  // Use refs to track progress throttling more efficiently
+  const progressThrottleRefs = useRef<Map<number, { lastUpdate: number; rafId?: number }>>(
+    new Map(),
+  );
 
-        // 1. Get Presigned URL from your backend
-        const presignedUrlResponse = await getPresignedUrlMutation.mutateAsync({
-          workspaceId,
-          fileId,
-          filename: file.name,
-          contentType: file.type,
-          sizeBytes: file.size,
-          filePurpose: 'attachments',
-        });
+  const createThrottledProgressCallback = useCallback(
+    (onFileProgress: (fileIndex: number, progress: UploadProgress) => void) => {
+      return (fileIndex: number, progress: UploadProgress) => {
+        const now = Date.now();
+        const progressInfo = progressThrottleRefs.current.get(fileIndex) || { lastUpdate: 0 };
 
-        const { signed_url, file_id } = presignedUrlResponse;
+        // Cancel any pending RAF for this file
+        if (progressInfo.rafId) {
+          cancelAnimationFrame(progressInfo.rafId);
+        }
 
-        // 2. Upload the file to the storage provider
-        await manualUploadMutation.mutateAsync({
-          signedUrl: signed_url,
-          file,
-          onProgress: (progress) => onFileProgress(index, progress),
-        });
+        // Update immediately for 100% or throttle others
+        if (progress.percentage === 100 || now - progressInfo.lastUpdate > 150) {
+          progressThrottleRefs.current.set(fileIndex, { lastUpdate: now });
+          onFileProgress(fileIndex, progress);
+        } else {
+          // Use RAF to batch updates and prevent blocking the main thread
+          const rafId = requestAnimationFrame(() => {
+            progressThrottleRefs.current.set(fileIndex, { lastUpdate: Date.now() });
+            onFileProgress(fileIndex, progress);
+          });
+          progressThrottleRefs.current.set(fileIndex, {
+            lastUpdate: progressInfo.lastUpdate,
+            rafId,
+          });
+        }
+      };
+    },
+    [],
+  );
 
-        // 3. Confirm the upload with your backend
-        const confirmedAttachment = await confirmUploadMutation.mutateAsync({
-          workspaceId,
-          attachmentId: file_id,
-        });
+  const uploadMultipleFiles = useCallback(
+    async (
+      files: File[],
+      onFileProgress: (fileIndex: number, progress: UploadProgress) => void,
+    ): Promise<FileUploadResult[]> => {
+      // Clear previous progress tracking
+      progressThrottleRefs.current.forEach((info) => {
+        if (info.rafId) {
+          cancelAnimationFrame(info.rafId);
+        }
+      });
+      progressThrottleRefs.current.clear();
 
-        const fileData = confirmedAttachment.file;
+      const throttledProgress = createThrottledProgressCallback(onFileProgress);
 
-        return {
-          attachmentId: fileData.id,
-          filename: fileData.original_filename,
-          storageUrl: fileData.storage_url,
-          contentType: fileData.content_type,
-          sizeBytes: fileData.size_bytes,
-          status: 'success',
-        };
-      } catch (error: unknown) {
-        console.error(`Failed to upload ${file.name}:`, error);
-        // Return an error result object
-        return {
-          attachmentId: `error-${file.name}-${Date.now()}`,
-          filename: file.name,
-          storageUrl: '',
-          contentType: file.type,
-          sizeBytes: file.size,
-          status: 'error',
-          error: (error as Error)?.message || 'An unknown error occurred',
-        };
-      }
-    };
+      const processFile = async (file: File, index: number): Promise<FileUploadResult> => {
+        try {
+          const fileId = crypto.randomUUID();
 
-    // Process all files using the function above
-    const results = await Promise.all(files.map((file, index) => processFile(file, index)));
+          const presignedUrlResponse = await getPresignedUrlMutation.mutateAsync({
+            workspaceId,
+            fileId,
+            filename: file.name,
+            contentType: file.type,
+            sizeBytes: file.size,
+            filePurpose: 'attachments',
+          });
 
-    return results;
-  };
+          const { signed_url, file_id } = presignedUrlResponse;
+
+          await manualUploadMutation.mutateAsync({
+            signedUrl: signed_url,
+            file,
+            onProgress: (progress) => throttledProgress(index, progress),
+          });
+
+          const confirmedAttachment = await confirmUploadMutation.mutateAsync({
+            workspaceId,
+            attachmentId: file_id,
+          });
+
+          const fileData = confirmedAttachment.file;
+
+          return {
+            attachmentId: fileData.id,
+            filename: fileData.original_filename,
+            storageUrl: fileData.storage_url,
+            contentType: fileData.content_type,
+            sizeBytes: fileData.size_bytes,
+            status: 'success',
+          };
+        } catch (error: unknown) {
+          console.error(`Failed to upload ${file.name}:`, error);
+          return {
+            attachmentId: `error-${file.name}-${Date.now()}`,
+            filename: file.name,
+            storageUrl: '',
+            contentType: file.type,
+            sizeBytes: file.size,
+            status: 'error',
+            error: (error as Error)?.message || 'An unknown error occurred',
+          };
+        }
+      };
+
+      const results = await Promise.all(files.map((file, index) => processFile(file, index)));
+
+      // Clean up progress tracking after completion
+      progressThrottleRefs.current.forEach((info) => {
+        if (info.rafId) {
+          cancelAnimationFrame(info.rafId);
+        }
+      });
+      progressThrottleRefs.current.clear();
+
+      return results;
+    },
+    [
+      workspaceId,
+      getPresignedUrlMutation,
+      manualUploadMutation,
+      confirmUploadMutation,
+      createThrottledProgressCallback,
+    ],
+  );
 
   return {
     uploadMultipleFiles,

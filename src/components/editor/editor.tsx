@@ -107,6 +107,7 @@ const Editor = ({
     enabled: variant === 'create',
   });
 
+  // Optimize these calculations to prevent unnecessary re-renders
   const isEmpty = useMemo(
     () => !image && attachments.length === 0 && text.replace(/\s*/g, '').trim().length === 0,
     [text, image, attachments.length],
@@ -128,6 +129,10 @@ const Editor = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
+
+  // Use a Map to store progress updates to avoid frequent state updates
+  const progressMapRef = useRef<Map<string, number>>(new Map());
+  const progressUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { uploadMultipleFiles } = useFileUpload(workspaceId);
 
@@ -187,6 +192,7 @@ const Editor = ({
       setImage(null);
       setAttachments([]);
       activeUploadBatchRef.current = null;
+      progressMapRef.current.clear();
 
       if (variant === 'create') {
         stopTyping();
@@ -243,7 +249,45 @@ const Editor = ({
     disabledRef.current = disabled;
     attachmentsRef.current = attachments;
     handleSubmitRef.current = handleSubmit;
-  }, [onSubmit, placeholder, defaultValue, disabled, attachments, handleSubmit]);
+  });
+
+  // Batch progress updates to reduce re-renders
+  const flushProgressUpdates = useCallback(() => {
+    if (progressMapRef.current.size === 0) return;
+
+    setAttachments((prev) => {
+      let hasChanges = false;
+      const updated = prev.map((att, index) => {
+        const fileKey = `file-${index}`;
+        const newProgress = progressMapRef.current.get(fileKey);
+        if (newProgress !== undefined && newProgress !== att.uploadProgress) {
+          hasChanges = true;
+          return { ...att, uploadProgress: newProgress };
+        }
+        return att;
+      });
+
+      progressMapRef.current.clear();
+      return hasChanges ? updated : prev;
+    });
+  }, []);
+
+  const handleBatchedProgressUpdate = useCallback(
+    (fileIndex: number, progress: { percentage: number }) => {
+      const fileKey = `file-${fileIndex}`;
+      progressMapRef.current.set(fileKey, progress.percentage);
+
+      // Clear existing timeout
+      if (progressUpdateTimeoutRef.current) {
+        clearTimeout(progressUpdateTimeoutRef.current);
+      }
+
+      // Batch updates: flush immediately at 100% or after 200ms delay
+      const delay = progress.percentage === 100 ? 0 : 200;
+      progressUpdateTimeoutRef.current = setTimeout(flushProgressUpdates, delay);
+    },
+    [flushProgressUpdates],
+  );
 
   const handleFiles = useCallback(
     async (files: FileList): Promise<void> => {
@@ -289,29 +333,18 @@ const Editor = ({
       setAttachments((prev) => [...prev, ...initialAttachments]);
 
       try {
-        const results = await uploadMultipleFiles(
-          fileArray,
-          (fileIndex: number, progress: { percentage: number }) => {
-            if (activeUploadBatchRef.current === batchId) {
-              const targetId = fileIds[fileIndex];
-              setAttachments((prev) =>
-                prev.map((att) =>
-                  att.id === targetId ? { ...att, uploadProgress: progress.percentage } : att,
-                ),
-              );
-            }
-          },
-        );
+        const results = await uploadMultipleFiles(fileArray, handleBatchedProgressUpdate);
 
         if (activeUploadBatchRef.current === batchId) {
           setAttachments((prev) => {
-            const updatedAttachments: ManagedAttachment[] = prev.map((att) => {
-              const originalFileIndex = fileIds.indexOf(att.id);
-              if (originalFileIndex === -1) {
+            const fileStartIndex = prev.length - fileArray.length;
+            return prev.map((att, index) => {
+              const fileIndex = index - fileStartIndex;
+              if (fileIndex < 0 || fileIndex >= results.length) {
                 return att;
               }
 
-              const result = results[originalFileIndex];
+              const result = results[fileIndex];
 
               if (result.status === 'success') {
                 return {
@@ -331,11 +364,10 @@ const Editor = ({
                 };
               }
             });
-
-            return updatedAttachments;
           });
 
           activeUploadBatchRef.current = null;
+          progressMapRef.current.clear();
         }
       } catch (error) {
         if (activeUploadBatchRef.current === batchId) {
@@ -345,10 +377,18 @@ const Editor = ({
             ),
           );
           activeUploadBatchRef.current = null;
+          progressMapRef.current.clear();
         }
       }
     },
-    [attachments.length, maxFiles, uploadMultipleFiles, maxFileSizeBytes, isAgentChat],
+    [
+      attachments.length,
+      maxFiles,
+      uploadMultipleFiles,
+      maxFileSizeBytes,
+      isAgentChat,
+      handleBatchedProgressUpdate,
+    ],
   );
 
   const handleDrop = useCallback(
@@ -420,6 +460,7 @@ const Editor = ({
     [linkSelection, handleLinkFormat],
   );
 
+  // Remove attachments from useEffect dependencies to prevent re-initialization
   useEffect(() => {
     if (!containerRef.current) {
       return;
@@ -624,6 +665,12 @@ const Editor = ({
     }
 
     return () => {
+      // Clear any pending progress updates
+      if (progressUpdateTimeoutRef.current) {
+        clearTimeout(progressUpdateTimeoutRef.current);
+      }
+      progressMapRef.current.clear();
+
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       quill.root.removeEventListener('blur', handleBlur);
 
@@ -646,6 +693,7 @@ const Editor = ({
     stopTyping,
     debouncedSetDraft,
     workspaceId,
+    // Removed attachments and related dependencies
   ]);
 
   const handleToolbarToggle = useCallback((): void => {
@@ -654,7 +702,7 @@ const Editor = ({
     if (toolbarEl) {
       toolbarEl.classList.toggle('hidden');
     }
-  }, []);
+  }, [isToolbarVisible]);
 
   const handleEmojiSelect = useCallback(
     (emoji: string): void => {
