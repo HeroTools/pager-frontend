@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ConfirmUploadRequest, DeleteAttachmentRequest, PresignedUrlRequest } from '../types';
 import { uploadApi } from '../api/upload-api';
+import type { ConfirmUploadRequest, DeleteAttachmentRequest, PresignedUrlRequest } from '../types';
 
 export interface UploadProgress {
   loaded: number;
@@ -11,7 +11,7 @@ export interface UploadProgress {
 export interface FileUploadResult {
   attachmentId: string;
   filename: string;
-  publicUrl: string;
+  storageUrl: string;
   contentType: string;
   sizeBytes: number;
   status: 'success' | 'error';
@@ -161,7 +161,7 @@ export const useFileUpload = (workspaceId: string) => {
         return {
           attachmentId: fileData.id,
           filename: fileData.original_filename,
-          publicUrl: fileData.public_url,
+          storageUrl: fileData.storage_url,
           contentType: fileData.content_type,
           sizeBytes: fileData.size_bytes,
           status: 'success',
@@ -172,7 +172,7 @@ export const useFileUpload = (workspaceId: string) => {
         return {
           attachmentId: `error-${file.name}-${Date.now()}`,
           filename: file.name,
-          publicUrl: '',
+          storageUrl: '',
           contentType: file.type,
           sizeBytes: file.size,
           status: 'error',

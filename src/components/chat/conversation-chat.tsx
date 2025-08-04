@@ -242,7 +242,7 @@ const ConversationChat = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {!isConnected && (
+      {!isConnected && process.env.NODE_ENV === 'development' && (
         <div className="bg-warning/50 border-b border-warning px-4 py-2 text-sm text-warning">
           Reconnecting to real-time updates... (Status: {connectionStatus})
         </div>

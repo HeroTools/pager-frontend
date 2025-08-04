@@ -4,7 +4,6 @@ import ReactQueryProvider from '@/components/react-query-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider } from '@/lib/auth/auth-provider';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import 'highlight.js/styles/github.css';
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
@@ -35,7 +34,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ReactQueryProvider>
-          <ReactQueryDevtools />
+          {/* <ReactQueryDevtools /> */}
           <AuthProvider>
             <Toaster />
             <Modals />

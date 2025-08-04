@@ -1,6 +1,7 @@
 import { FileIcon, Loader2, PlayIcon, X } from 'lucide-react';
 
 import { type ManagedAttachment, useDeleteAttachment } from '@/features/file-upload';
+import { getProxiedUrl } from '@/lib/helpers/proxied-url';
 
 const AttachmentPreview = ({
   attachment,
@@ -75,9 +76,13 @@ const AttachmentPreview = ({
             </div>
           )}
 
-          {isImage && (attachment.file || attachment.publicUrl) && (
+          {isImage && (attachment.file || attachment.storageUrl) && (
             <img
-              src={attachment.file ? URL.createObjectURL(attachment.file) : attachment.publicUrl}
+              src={
+                attachment.file
+                  ? URL.createObjectURL(attachment.file)
+                  : getProxiedUrl(attachment.storageUrl || '')
+              }
               alt={attachment.originalFilename}
               className="w-full h-full object-cover rounded-lg"
             />

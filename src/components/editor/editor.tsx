@@ -154,14 +154,14 @@ const Editor = ({
     const body = JSON.stringify(oldContents);
 
     try {
-      const completedAttachments = attachments.filter((att) => !!att.publicUrl);
+      const completedAttachments = attachments.filter((att) => !!att.storageUrl);
 
       const attachmentsForSubmit: UploadedAttachment[] = completedAttachments.map((att) => ({
         id: att.id,
         originalFilename: att.originalFilename,
         contentType: att.contentType,
         sizeBytes: att.sizeBytes,
-        publicUrl: att.publicUrl,
+        storageUrl: att.storageUrl,
         uploadProgress: att.uploadProgress,
         status: 'completed' as const,
       }));
@@ -280,7 +280,7 @@ const Editor = ({
         originalFilename: file.name,
         contentType: file.type,
         sizeBytes: file.size,
-        publicUrl: '',
+        storageUrl: '',
         uploadProgress: 0,
         status: 'uploading',
         file,
@@ -317,7 +317,7 @@ const Editor = ({
                 return {
                   ...att,
                   id: result.attachmentId,
-                  publicUrl: result.publicUrl,
+                  storageUrl: result.storageUrl,
                   uploadProgress: 100,
                   status: 'completed' as const,
                   file: undefined,

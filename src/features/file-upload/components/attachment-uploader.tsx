@@ -73,7 +73,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
         originalFilename: file.name,
         contentType: file.type,
         sizeBytes: file.size,
-        publicUrl: '',
+        storageUrl: '',
         uploadProgress: 0,
         status: 'uploading',
       }));
@@ -109,7 +109,7 @@ const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
                 originalFilename: att.originalFilename,
                 contentType: att.contentType,
                 sizeBytes: att.sizeBytes,
-                publicUrl: result.publicUrl,
+                storageUrl: result.storageUrl,
                 uploadProgress: 100,
                 status: result.status === 'success' ? ('completed' as const) : ('error' as const),
                 error: result.error,
