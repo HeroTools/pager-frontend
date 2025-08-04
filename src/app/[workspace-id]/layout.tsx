@@ -2,7 +2,7 @@
 
 import { Bell, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
-
+import { MobileBottomNav } from '@/components/mobile/mobile-bottom-nav';
 import { ProfilePanel } from '@/components/profile-panel';
 import { NotificationsSidebar } from '@/components/side-nav/notifications-sidebar';
 import { Sidebar } from '@/components/side-nav/sidebar';
@@ -15,6 +15,7 @@ import { useCurrentUser } from '@/features/auth';
 import { Thread } from '@/features/messages/component/thread';
 import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
 import { useRealtimeNotifications } from '@/features/notifications/hooks/use-realtime-notifications';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useUIStore } from '@/stores/ui-store';
 
@@ -36,6 +37,7 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
   const workspaceId = useWorkspaceId();
   const { user } = useCurrentUser(workspaceId);
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
+  const isMobile = useIsMobile();
 
   useRealtimeNotifications({
     workspaceMemberId: user?.workspace_member_id || '',
@@ -87,6 +89,69 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     setNotificationsPanelOpen(false);
   };
 
+  // Mobile layout
+  if (isMobile) {
+    return (
+      <div className="h-full flex flex-col">        
+        {/* Notification Permission Banner */}
+        {showPermissionBanner && (
+          <div className="relative mt-12">
+            <Alert className="rounded-none border-x-0 border-t-0">
+              <Bell className="h-4 w-4" />
+              <AlertTitle className="text-sm">Enable Notifications</AlertTitle>
+              <AlertDescription className="flex flex-col gap-2">
+                <span className="text-xs">Get notified when you receive messages</span>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={handleDismissBanner} className="flex-1">
+                    Not now
+                  </Button>
+                  <Button size="sm" onClick={handleEnableNotifications} className="flex-1">
+                    Enable
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Main content area with padding for fixed header and nav */}
+        <main className="flex-1 overflow-hidden pb-14">
+          {children}
+        </main>
+
+        {/* Thread as full-screen overlay on mobile */}
+        {isThreadOpen() && openThreadMessageId && (
+          <div className="fixed inset-0 z-50 bg-background">
+            <div className="h-full">
+              <Thread onClose={() => setThreadOpen(null)} />
+            </div>
+          </div>
+        )}
+
+        {/* Profile panel as full-screen overlay on mobile */}
+        {isProfilePanelOpen() && profileMemberId && (
+          <div className="fixed inset-0 z-50 bg-background">
+            <div className="h-full">
+              <ProfilePanel />
+            </div>
+          </div>
+        )}
+
+        {/* Notifications as full-screen overlay on mobile */}
+        {isNotificationsPanelOpen && workspaceId && (
+          <div className="fixed inset-0 z-50 bg-background">
+            <div className="h-full">
+              <NotificationsSidebar workspaceId={workspaceId} onClose={handleCloseNotifications} />
+            </div>
+          </div>
+        )}
+
+        <MobileBottomNav />
+      </div>
+    );
+  }
+
+  // Desktop layout (unchanged)
   return (
     <div className="h-full">
       <Toolbar />

@@ -3,17 +3,19 @@
 import { Loader, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
-
+import { WorkspaceSidebar } from '@/components/side-nav/workspace-sidebar';
 import { useGetUserChannels } from '@/features/channels/hooks/use-channels-mutations';
 import { useCreateChannelModal } from '@/features/channels/store/use-create-channel-modal';
 import { useCurrentMember } from '@/features/members/hooks/use-members';
 import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 
 const WorkspaceIdPage = () => {
   const router = useRouter();
   const workspaceId = useWorkspaceId() as string;
   const { open, setOpen } = useCreateChannelModal();
+  const isMobile = useIsMobile();
 
   const {
     data: currentMember,
@@ -45,12 +47,13 @@ const WorkspaceIdPage = () => {
       return;
     }
 
-    if (channelId) {
+    // Only redirect to channel on desktop
+    if (!isMobile && channelId) {
       router.push(`/${workspaceId}/c-${channelId}`);
-    } else if (!open && isAdmin) {
+    } else if (!isMobile && !open && isAdmin) {
       setOpen(true);
     }
-  }, [isLoading, workspace, currentMember, isAdmin, channelId, open, setOpen, router, workspaceId]);
+  }, [isLoading, workspace, currentMember, isAdmin, channelId, open, setOpen, router, workspaceId, isMobile]);
 
   if (isLoading) {
     return (
@@ -67,6 +70,15 @@ const WorkspaceIdPage = () => {
         <span className="text-sm text-muted-foreground">
           {hasError ? 'Error loading workspace' : 'Workspace not found'}
         </span>
+      </div>
+    );
+  }
+
+  // On mobile, show the workspace sidebar as the home screen
+  if (isMobile) {
+    return (
+      <div className="h-full overflow-y-auto">
+        <WorkspaceSidebar />
       </div>
     );
   }

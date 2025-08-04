@@ -24,6 +24,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: 'Pager - AI Powered Collaboration',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 };
 
 export default function RootLayout({
