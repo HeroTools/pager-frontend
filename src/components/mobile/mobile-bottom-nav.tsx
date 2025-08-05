@@ -66,7 +66,7 @@ export function MobileBottomNav() {
 
           return (
             <Link
-              key={item.href}
+              key={item.label}
               href={item.href}
               className={cn(
                 'flex-1 flex flex-col items-center justify-center gap-0.5 text-muted-foreground transition-colors',

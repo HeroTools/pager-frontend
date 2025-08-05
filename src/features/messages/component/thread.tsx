@@ -15,7 +15,9 @@ import { useChannelMembers } from '@/features/members/hooks/use-channel-members'
 import { useMessageOperations, useMessageReplies } from '@/features/messages/hooks/use-messages';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
 import { useToggleReaction } from '@/features/reactions';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useParamIds } from '@/hooks/use-param-ids';
+import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
 import type { Message } from '@/types/chat';
 import { formatDateLabel, getUserAvatar, getUserName, transformMessages } from '../helpers';
@@ -59,6 +61,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
   const { isMessagePending } = useMessagesStore();
   const { workspaceId, id: entityId, type } = useParamIds();
   const { user: currentUser } = useCurrentUser(workspaceId);
+  const isMobile = useIsMobile();
 
   const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
     workspaceId,
@@ -206,12 +209,15 @@ export const Thread = ({ onClose }: ThreadProps) => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
       <ThreadHeader onClose={onClose} title="Thread" />
 
       <div
         ref={scrollContainerRef}
-        className="flex-1 flex flex-col min-h-0 overflow-y-auto messages-scrollbar relative"
+        className={cn(
+          "flex-1 flex flex-col min-h-0 overflow-y-auto messages-scrollbar relative",
+          isMobile && "pb-[80px]"
+        )}
       >
         <div className="flex-shrink-0 mt-2">
           <div className="pb-2 relative">
@@ -306,7 +312,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
         }
       />
 
-      <div className="px-4 py-4 border-t border-border-subtle bg-background">
+      <div className={isMobile ? "absolute bottom-0 left-0 right-0 bg-background" : "px-4 py-4 border-t border-border-subtle bg-background"}>
         <Editor
           variant="create"
           workspaceId={workspaceId}

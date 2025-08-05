@@ -740,8 +740,9 @@ const Editor = ({
       <div
         ref={editorWrapperRef}
         className={cn(
-          'flex flex-col border border-border-default overflow-hidden focus-within:border-border-strong transition-all duration-200 relative max-h-[calc(100%-36px)]',
+          'flex flex-col border border-border-default overflow-hidden focus-within:border-border-strong transition-all duration-200 relative',
           isMobile ? 'rounded-t-md' : 'rounded-md',
+          !isMobile && 'max-h-[calc(100%-36px)]',
           !isAgentChat && isDragging && 'border-primary bg-accent/50',
         )}
         onDrop={handleDrop}
@@ -759,7 +760,7 @@ const Editor = ({
           </div>
         )}
 
-        <div ref={containerRef} className="h-full ql-custom max-h-80 overflow-y-auto" />
+        <div ref={containerRef} className="ql-custom max-h-80 overflow-y-auto" />
 
         {!isAgentChat && attachments.length > 0 && (
           <div className="px-2 pb-2">
@@ -777,7 +778,7 @@ const Editor = ({
           </div>
         )}
 
-        <div className="flex px-2 pb-2 z-5">
+        <div className="flex px-2 pb-2 z-10 flex-shrink-0 items-center">
           {!isMobile && (
             <Hint label={isToolbarVisible ? 'Hide formatting' : 'Show formatting'}>
               <Button disabled={disabled} size="sm" variant="ghost" onClick={handleToolbarToggle}>

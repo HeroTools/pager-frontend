@@ -119,9 +119,9 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
           {children}
         </main>
 
-        {/* Thread as full-screen overlay on mobile */}
+        {/* Thread panel slides in from right on mobile */}
         {isThreadOpen() && openThreadMessageId && (
-          <div className="fixed inset-0 z-50 bg-background">
+          <div className="fixed top-0 right-0 bottom-14 w-full z-40 bg-background border-l">
             <div className="h-full">
               <Thread onClose={() => setThreadOpen(null)} />
             </div>
