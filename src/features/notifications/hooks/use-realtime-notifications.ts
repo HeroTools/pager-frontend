@@ -197,6 +197,10 @@ export const useRealtimeNotifications = ({
         const DUPLICATE_WINDOW = 5000; // Reduced from 30s to 5s
 
         const last = processedNotificationsRef.current.get(notification.id);
+        console.log('last', last);
+        console.log('now', now);
+        console.log('DUPLICATE_WINDOW', DUPLICATE_WINDOW);
+        console.log('now - last', now - last);
         if (last && now - last < DUPLICATE_WINDOW) {
           return;
         }
@@ -213,6 +217,11 @@ export const useRealtimeNotifications = ({
         const showBrowser = shouldShowBrowserNotification();
         const showToastFlag = shouldShowToast(notification);
         const storeUnread = shouldCreateUnreadNotification(notification);
+
+        console.log('showBrowser', showBrowser);
+        console.log('notificationPermission', notificationPermission);
+        console.log('shouldShowToast', shouldShowToast(notification));
+        console.log('storeUnread', storeUnread);
 
         if (showBrowser && notificationPermission === 'granted') {
           await browserNotificationService.showNotification({
@@ -385,37 +394,35 @@ export const useRealtimeNotifications = ({
   }, [getNotificationsQueryKey, getUnreadNotificationsQueryKey, queryClient, workspaceId]);
 
   useEffect(() => {
+    // Only subscribe if we have a real member ID & workspace & user explicitly enabled
     if (!enabled || !workspaceMemberId || !workspaceId) {
       return;
     }
 
-    const now = Date.now();
-    const CLEANUP_THRESHOLD = 10 * 60 * 1000; // 10 minutes
-    processedNotificationsRef.current.forEach((ts, id) => {
-      if (now - ts > CLEANUP_THRESHOLD) {
-        processedNotificationsRef.current.delete(id);
-      }
-    });
+    // If there was a prior subscription, fully tear it down first
+    cleanupFnRef.current?.();
 
     const handler = notificationsRealtimeHandler;
     realtimeHandlerRef.current = handler;
 
-    const channelFactory = (sbClient: typeof supabase) =>
-      sbClient
+    // Build the exact channel name
+    const topic = `workspace_member:${workspaceMemberId}`;
+    console.log('[RealtimeNotifications] subscribing to topic', topic);
+
+    // Factory to create our supabase channel
+    const channelFactory = (sb: typeof supabase) =>
+      sb
         .channel(topic, { config: { broadcast: { self: false } } })
-        .on(
-          'broadcast',
-          { event: 'new_notification' },
-          ({ payload }: { payload: NewNotificationPayload }) => handleNewNotification(payload),
+        .on('broadcast', { event: 'new_notification' }, ({ payload }) =>
+          handleNewNotification(payload as any),
         )
-        .on(
-          'broadcast',
-          { event: 'notification_read' },
-          ({ payload }: { payload: NotificationReadPayload }) => handleNotificationRead(payload),
+        .on('broadcast', { event: 'notification_read' }, ({ payload }) =>
+          handleNotificationRead(payload as any),
         )
         .on('broadcast', { event: 'all_notifications_read' }, () => handleAllNotificationsRead());
 
-    const removeChannel = handler.addChannel(channelFactory, {
+    // Add it (this will overwrite any existing factory for the same topic)
+    handler.addChannel(channelFactory, {
       onSubscribe: () => {
         setConnectionStatus('SUBSCRIBED');
         setIsConnected(true);
@@ -434,25 +441,19 @@ export const useRealtimeNotifications = ({
       },
     });
 
-    const cleanup = handler.start();
-    cleanupFnRef.current = () => {
-      removeChannel();
-      cleanup();
-    };
+    // Kick off the handler (only starts once; subsequent calls are no-ops)
+    const stopAll = handler.start();
 
-    return () => {
-      cleanupFnRef.current?.();
+    // Save our cleanup to run when deps change or component unmounts
+    cleanupFnRef.current = () => {
+      console.log('[RealtimeNotifications] unsubscribing from topic', topic);
+      handler.removeChannel(topic);
+      stopAll();
       realtimeHandlerRef.current = null;
     };
-  }, [
-    enabled,
-    workspaceMemberId,
-    workspaceId,
-    topic,
-    handleNewNotification,
-    handleNotificationRead,
-    handleAllNotificationsRead,
-  ]);
+
+    return cleanupFnRef.current;
+  }, [enabled, workspaceMemberId, workspaceId]);
 
   const forceReconnect = useCallback(() => {
     realtimeHandlerRef.current?.reconnectChannel(topic);
