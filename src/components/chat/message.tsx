@@ -12,7 +12,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
 import type { Delta, Op } from 'quill';
 import { type FC, useEffect, useRef, useState } from 'react';
 
@@ -154,23 +153,62 @@ export const ImageAttachment: FC<ImageAttachmentProps> = ({
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [dimensions, setDimensions] = useState<{ width?: number; height?: number }>({});
 
   const filename = attachment.originalFilename || 'Uploaded image';
   const proxiedUrl = getProxiedUrl(attachment.storageUrl || '');
   const hasValidUrl = !!proxiedUrl;
 
-  // 1) Single = no fill: we give it max-width & max-height, let Image size itself
-  // 2) Multi/Thread = fill: we give it exact width/height classes
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+    setIsLoaded(true);
+  };
+
+  const getOptimalDimensions = () => {
+    if (isSingle) {
+      const maxWidth = 384; // max-w-md equivalent
+      const maxHeight = 384; // max-h-96 equivalent
+
+      if (dimensions.width && dimensions.height) {
+        const aspectRatio = dimensions.width / dimensions.height;
+        if (dimensions.width > maxWidth || dimensions.height > maxHeight) {
+          if (aspectRatio > 1) {
+            return {
+              width: Math.min(maxWidth, dimensions.width),
+              height: Math.min(maxWidth / aspectRatio, maxHeight),
+            };
+          } else {
+            return {
+              width: Math.min(maxHeight * aspectRatio, maxWidth),
+              height: Math.min(maxHeight, dimensions.height),
+            };
+          }
+        }
+      }
+      return {
+        width: Math.min(dimensions.width || maxWidth, maxWidth),
+        height: Math.min(dimensions.height || maxHeight, maxHeight),
+      };
+    }
+
+    // For multi/thread, use fixed dimensions
+    return isThread ? { width: 160, height: 112 } : { width: 192, height: 128 };
+  };
+
+  const optimalDims = getOptimalDimensions();
+
   if (isSingle) {
     const { maxWidthClass, maxHeightClass } = ATTACHMENT_CONFIG.SINGLE.image;
     return (
       <div
         className={cn(
-          'relative rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity',
+          'relative group/image rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity',
           maxWidthClass,
           maxHeightClass,
         )}
         onClick={hasValidUrl ? onOpenMediaViewer : undefined}
+        style={isLoaded ? { width: optimalDims.width, height: optimalDims.height } : undefined}
       >
         {!isLoaded && !hasError && hasValidUrl && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted">
@@ -184,20 +222,20 @@ export const ImageAttachment: FC<ImageAttachmentProps> = ({
             <span className="text-sm">Failed to load</span>
           </div>
         ) : (
-          <Image
+          <img
             src={proxiedUrl}
             alt={filename}
-            width={600}
-            height={400}
+            width={optimalDims.width}
+            height={optimalDims.height}
             className={cn('object-contain transition-opacity', !isLoaded && 'opacity-0')}
-            sizes="(max-width: 768px) 100vw, 600px"
-            priority={priority}
-            onLoad={() => setIsLoaded(true)}
+            loading={priority ? 'eager' : 'lazy'}
+            decoding="async"
+            onLoad={handleImageLoad}
             onError={() => setHasError(true)}
           />
         )}
 
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
           <Button
             variant="secondary"
             size="sm"
@@ -220,7 +258,7 @@ export const ImageAttachment: FC<ImageAttachmentProps> = ({
   return (
     <div
       className={cn(
-        'relative rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0',
+        'relative group/image rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0',
         widthClass,
         heightClass,
       )}
@@ -238,19 +276,20 @@ export const ImageAttachment: FC<ImageAttachmentProps> = ({
           <span className="text-sm">Failed to load</span>
         </div>
       ) : (
-        <Image
+        <img
           src={proxiedUrl}
           alt={filename}
-          fill
+          width={optimalDims.width}
+          height={optimalDims.height}
           className={cn('object-cover transition-opacity', !isLoaded && 'opacity-0')}
-          sizes={isThread ? '160px' : '192px'}
-          priority={priority}
-          onLoad={() => setIsLoaded(true)}
+          loading="lazy"
+          decoding="async"
+          onLoad={handleImageLoad}
           onError={() => setHasError(true)}
         />
       )}
 
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
         <Button
           variant="secondary"
           size="sm"
