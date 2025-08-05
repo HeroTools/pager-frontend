@@ -6,7 +6,9 @@ import type { CurrentUser } from '@/features/auth';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import type { UploadedAttachment } from '@/features/file-upload';
 import { getUserAvatar, getUserName } from '@/features/messages/helpers';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useParamIds } from '@/hooks/use-param-ids';
+import { cn } from '@/lib/utils';
 import type { Channel, Message } from '@/types/chat';
 import { ChatMember } from '../../features/members';
 import { ChatHeader } from './header';
@@ -93,6 +95,7 @@ export const Chat: FC<ChatProps> = ({
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const lastScrollTopRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
+  const isMobile = useIsMobile();
 
   // Check for drafts for each message
   const messagesWithDrafts = useMemo(() => {
@@ -205,7 +208,7 @@ export const Chat: FC<ChatProps> = ({
   }, [isLoadingMore]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={cn("flex flex-col h-full", isMobile && "pb-[120px]")}>
       <ChatHeader
         channel={channel}
         members={chatType === 'channel' ? (members as ChatMember[]) : []}
@@ -235,7 +238,7 @@ export const Chat: FC<ChatProps> = ({
         getUserAvatar={(userId) => getUserAvatar(userId, members)}
       />
 
-      <div className="p-4 border-t border-border-subtle">
+      <div className={isMobile ? "fixed bottom-14 left-0 right-0 bg-background" : "p-4 border-t"}>
         <Editor
           variant="create"
           workspaceId={workspaceId}

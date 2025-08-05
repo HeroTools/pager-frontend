@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import { useFileUpload } from '@/features/file-upload';
 import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useTypingStatus } from '@/hooks/use-typing-status';
 import { validateFile } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
@@ -90,6 +91,7 @@ const Editor = ({
   const [selectedText, setSelectedText] = useState('');
 
   const isAgentChat = !!agentConversationId;
+  const isMobile = useIsMobile();
 
   const { getDraft, setDraft, clearDraft } = useDraftsStore();
   const { entityId, entityType } = useMemo(() => {
@@ -611,6 +613,30 @@ const Editor = ({
     quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
     quill.root.addEventListener('blur', handleBlur);
 
+    // Mobile: Show toolbar only when text is selected
+    if (isMobile) {
+      // Hide toolbar initially on mobile
+      const toolbarEl = containerRef.current?.querySelector('.ql-toolbar');
+      if (toolbarEl) {
+        toolbarEl.classList.add('hidden');
+      }
+
+      const handleSelectionChange = (range: any) => {
+        const toolbarElement = containerRef.current?.querySelector('.ql-toolbar');
+        if (!toolbarElement) return;
+
+        if (range && range.length > 0) {
+          // Show toolbar when text is selected
+          toolbarElement.classList.remove('hidden');
+        } else {
+          // Hide toolbar when no selection
+          toolbarElement.classList.add('hidden');
+        }
+      };
+
+      quill.on(Quill.events.SELECTION_CHANGE, handleSelectionChange);
+    }
+
     if (entityId) {
       const draft = getDraft(workspaceId, entityId, parentMessageId);
       if (draft) {
@@ -626,6 +652,10 @@ const Editor = ({
     return () => {
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       quill.root.removeEventListener('blur', handleBlur);
+      
+      if (isMobile) {
+        quill.off(Quill.events.SELECTION_CHANGE);
+      }
 
       if (variant === 'create') {
         stopTyping();
@@ -646,6 +676,7 @@ const Editor = ({
     stopTyping,
     debouncedSetDraft,
     workspaceId,
+    isMobile,
   ]);
 
   const handleToolbarToggle = useCallback((): void => {
@@ -709,7 +740,8 @@ const Editor = ({
       <div
         ref={editorWrapperRef}
         className={cn(
-          'flex flex-col border border-border-default rounded-md overflow-hidden focus-within:border-border-strong transition-all duration-200 relative max-h-[calc(100%-36px)]',
+          'flex flex-col border border-border-default overflow-hidden focus-within:border-border-strong transition-all duration-200 relative max-h-[calc(100%-36px)]',
+          isMobile ? 'rounded-t-md' : 'rounded-md',
           !isAgentChat && isDragging && 'border-primary bg-accent/50',
         )}
         onDrop={handleDrop}
@@ -746,11 +778,13 @@ const Editor = ({
         )}
 
         <div className="flex px-2 pb-2 z-5">
-          <Hint label={isToolbarVisible ? 'Hide formatting' : 'Show formatting'}>
-            <Button disabled={disabled} size="sm" variant="ghost" onClick={handleToolbarToggle}>
-              <CaseSensitive className="size-4" />
-            </Button>
-          </Hint>
+          {!isMobile && (
+            <Hint label={isToolbarVisible ? 'Hide formatting' : 'Show formatting'}>
+              <Button disabled={disabled} size="sm" variant="ghost" onClick={handleToolbarToggle}>
+                <CaseSensitive className="size-4" />
+              </Button>
+            </Hint>
+          )}
 
           {!isAgentChat && (
             <>
@@ -815,7 +849,7 @@ const Editor = ({
         </div>
       </div>
 
-      {variant === 'create' && (
+      {variant === 'create' && !isMobile && (
         <div
           className={cn(
             'p-2 pb-0 text-[10px] text-muted-foreground flex justify-end opacity-0 transition',
