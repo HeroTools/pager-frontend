@@ -36,8 +36,7 @@ The following behaviors are not tolerated in our community:
 
 If you experience or witness unacceptable behavior, please report it to the project maintainers:
 
-- **Email**: conduct@herotools.com
-- **Create a private issue**: Contact @zachbresler or other maintainers directly on GitHub
+- **Create a private issue**: Contact the maintainers directly on GitHub
 
 When reporting, please include:
 
@@ -113,10 +112,6 @@ This Code of Conduct is adapted from:
 
 - [Contributor Covenant](https://contributor-covenant.org/) v2.1
 - [Django Code of Conduct](https://www.djangoproject.com/conduct/)
-
-## License
-
-This Code of Conduct is available under the [Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/).
 
 ---
 

@@ -173,17 +173,13 @@ export class RealtimeHandler<T extends SupabaseClient> {
     this.clearRetryTimer(topic);
 
     if (attempt >= this.maxRetryAttempts) {
-      console.error(`[RealtimeHandler] Max retry attempts reached for ${topic}`);
+      console.warn(`[RealtimeHandler] Max retry attempts reached for ${topic}`);
       return;
     }
 
     const backoff = Math.min(30000, Math.max(1000, 2 ** attempt * 1000)); // Min 1s, Max 30s
     const jitter = backoff * 0.1 * (Math.random() * 2 - 1); // +/- 10% jitter
     const delay = Math.max(0, backoff + jitter);
-
-    console.log(
-      `[RealtimeHandler] Scheduling resubscribe for ${topic} in ${delay}ms (attempt ${attempt + 1})`,
-    );
 
     const timer = setTimeout(() => {
       this.resubscribeToChannel(topic, attempt);
@@ -199,8 +195,6 @@ export class RealtimeHandler<T extends SupabaseClient> {
       console.warn(`[RealtimeHandler] No factory found for topic ${topic}`);
       return;
     }
-
-    console.log(`[RealtimeHandler] Resubscribing to ${topic} (attempt ${attempt + 1})`);
 
     this.unsubscribeFromChannel(topic);
     const channel = this.createChannel(factory);

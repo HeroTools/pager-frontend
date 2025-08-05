@@ -2,6 +2,8 @@
 
 A modern team communication platform with AI-powered features, built with Next.js and real-time collaboration capabilities.
 
+**🔗 [Backend Repository](https://github.com/HeroTools/pager-backend)**
+
 ## ✨ Features
 
 ### Core Communication
@@ -160,7 +162,6 @@ The application uses a custom design system built on Tailwind CSS v4.1 with:
 - **OKLCH Color Space** - Perceptually uniform colors for better accessibility
 - **CSS Custom Properties** - Dynamic theming with automatic dark mode
 - **Design Tokens** - Consistent spacing, typography, and color scales
-- **Glassmorphism Effects** - Modern frosted glass UI elements
 
 ### Key Design Principles
 
@@ -200,19 +201,6 @@ npm run build:production
 npm run analyze
 ```
 
-### Testing
-
-```bash
-# Run unit tests
-npm run test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run e2e tests
-npm run test:e2e
-```
-
 ## 🚀 Deployment
 
 ### Vercel (Recommended)
@@ -238,6 +226,8 @@ This frontend connects to:
 - **AWS Lambda Functions** - API endpoints via API Gateway
 - **Supabase** - PostgreSQL database, authentication, and real-time features
 - **OpenAI API** - AI agents and embedding generation
+
+👉 **Backend code:** [Pager Backend Repository](https://github.com/HeroTools/pager-backend)
 
 Ensure your backend services are deployed and environment variables are correctly configured.
 
@@ -329,8 +319,7 @@ Contact us for commercial inquiries.
 For development support:
 
 - Create an issue in this repository
-- Contact the development team
-- Check the project documentation
+- Contact the maintainers
 
 ---
 
