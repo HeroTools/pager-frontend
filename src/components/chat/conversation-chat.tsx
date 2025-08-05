@@ -38,6 +38,7 @@ const ConversationChat = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    refetch: refetchConversation,
   } = useGetConversationWithMessagesInfinite(workspaceId, conversationId);
 
   // Real-time subscription for incoming messages and typing indicators
@@ -265,6 +266,13 @@ const ConversationChat = () => {
         highlightMessageId={highlightMessageId}
         members={currentConversation?.members || []}
       />
+
+      {/* <RealtimeDebug
+        workspaceId={workspaceId}
+        conversationId={conversationId}
+        connectionStatus={connectionStatus}
+        isConnected={isConnected}
+      /> */}
     </div>
   );
 };

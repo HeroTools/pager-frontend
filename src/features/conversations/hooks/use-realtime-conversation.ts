@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import type { MessageWithUser } from '@/features/messages/types';
 import { messageRealtimeHandler, type RealtimeHandler } from '@/lib/realtime/realtime-handler';
 import type { supabase } from '@/lib/supabase/client';
 import type { ConversationWithMessagesAndMembers } from '../types';
-import type { MessageWithUser } from '@/features/messages/types';
 
 type ConnectionStatus = 'CONNECTING' | 'SUBSCRIBED' | 'RECONNECTING' | 'CLOSED' | 'ERROR';
 
