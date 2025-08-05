@@ -90,7 +90,7 @@ export interface Attachment extends BaseEntity {
   content_type?: string;
   size_bytes?: number;
   uploaded_by: string;
-  public_url?: string;
+  storage_url?: string;
   original_filename?: string;
   file_purpose?: string;
 }

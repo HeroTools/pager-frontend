@@ -103,7 +103,7 @@ export const useCreateChannelMessage = (workspaceId: string, channelId: string) 
         attachments:
           data.attachments?.map((attachment: UploadedAttachment) => ({
             id: attachment.id,
-            public_url: attachment.publicUrl,
+            storage_url: attachment.storageUrl,
             content_type: attachment.contentType,
             size_bytes: attachment.sizeBytes,
             s3_bucket: '',
@@ -436,7 +436,7 @@ export const useCreateConversationMessage = (workspaceId: string, conversationId
         attachments:
           data.attachments?.map((attachment: UploadedAttachment) => ({
             id: attachment.id,
-            public_url: attachment.publicUrl,
+            storage_url: attachment.storageUrl,
             content_type: attachment.contentType,
             size_bytes: attachment.sizeBytes,
             s3_bucket: '',

@@ -1,5 +1,3 @@
-import type { FC } from 'react';
-import { useCallback, useEffect, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,11 +7,14 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
+import { type FC, useCallback, useEffect, useState } from 'react';
 
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { Attachment } from '@/types/chat';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { useSignedUrl } from '@/features/file-upload/hooks/use-attachments';
+import { getProxiedUrl } from '@/lib/helpers/proxied-url';
 import { cn } from '@/lib/utils';
+import type { Attachment } from '@/types/chat';
 
 interface MediaViewerModalProps {
   isOpen: boolean;
@@ -39,7 +40,20 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
   const isImage = currentAttachment?.contentType?.startsWith('image/');
   const isVideo = currentAttachment?.contentType?.startsWith('video/');
 
-  // Document type detection
+  const proxiedUrl = getProxiedUrl(currentAttachment?.storageUrl || '');
+  const { data: previewURL } = useSignedUrl(
+    currentAttachment?.storageUrl?.split('files/')[1] || '',
+    [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ].includes(currentAttachment?.contentType || ''),
+  );
+
   const getDocumentType = (attachment: Attachment | undefined) => {
     if (!attachment) {
       return null;
@@ -148,10 +162,28 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
   const resetZoom = () => setZoom(1);
   const rotate = () => setRotation((prev) => (prev + 90) % 360);
 
-  const handleDownload = () => {
-    if (currentAttachment) {
+  const handleDownload = async () => {
+    if (!currentAttachment) return;
+
+    try {
+      // Fetch through the proxy to get the authenticated file
+      const response = await fetch(proxiedUrl);
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = currentAttachment.publicUrl;
+      link.href = url;
+      link.download = currentAttachment.originalFilename || 'download';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to direct proxy link
+      const link = document.createElement('a');
+      link.href = proxiedUrl;
       link.download = currentAttachment.originalFilename || 'download';
       link.target = '_blank';
       document.body.appendChild(link);
@@ -161,8 +193,8 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
   };
 
   const openInNewTab = () => {
-    if (currentAttachment) {
-      window.open(currentAttachment.publicUrl, '_blank');
+    if (proxiedUrl) {
+      window.open(proxiedUrl, '_blank');
     }
   };
 
@@ -174,14 +206,14 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
     const viewerUrl = (() => {
       switch (documentType) {
         case 'pdf':
-          return currentAttachment.publicUrl;
+          return `${proxiedUrl}#toolbar=0`;
         case 'word':
         case 'excel':
         case 'powerpoint':
-          // Use Microsoft Office Online viewer for Office documents
-          return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-            currentAttachment.publicUrl,
-          )}`;
+          if (previewURL) {
+            return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewURL)}`;
+          }
+          return null;
         default:
           return null;
       }
@@ -191,21 +223,6 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
       return null;
     }
 
-    if (documentType === 'pdf') {
-      return (
-        <iframe
-          src={viewerUrl}
-          className="w-full h-full border-0 rounded-lg"
-          onLoad={() => setIsLoading(false)}
-          onError={() => {
-            setIsLoading(false);
-            setHasError(true);
-          }}
-        />
-      );
-    }
-
-    // For Office documents
     return (
       <iframe
         src={viewerUrl}
@@ -226,7 +243,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-none w-[90vw] h-[90vh] p-0 bg-background/95 backdrop-blur-sm border-border rounded-lg"
+        className="max-w-none w-[90vw] h-[90vh] p-0 bg-background/95 backdrop-blur-sm border rounded-lg"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <DialogTitle className="sr-only">
@@ -244,7 +261,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border-border text-foreground transition-opacity duration-200',
+                  'absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border text-foreground transition-opacity duration-200',
                   showControls ? 'opacity-100' : 'opacity-0',
                 )}
                 onClick={goToPrevious}
@@ -255,7 +272,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border-border text-foreground transition-opacity duration-200',
+                  'absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 bg-card/80 hover:bg-card border text-foreground transition-opacity duration-200',
                   showControls ? 'opacity-100' : 'opacity-0',
                 )}
                 onClick={goToNext}
@@ -269,7 +286,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           {isImage && (
             <div
               className={cn(
-                'absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200',
+                'absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border rounded-lg p-2 transition-opacity duration-200',
                 showControls ? 'opacity-100' : 'opacity-0',
               )}
             >
@@ -282,7 +299,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <span className="text-foreground text-sm px-2 min-w-[60px] text-center">
+              <span className="text-foreground text-sm px-2 min-w-16 text-center">
                 {Math.round(zoom * 100)}%
               </span>
               <Button
@@ -317,7 +334,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           {isDocument && (
             <div
               className={cn(
-                'absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border border-border rounded-lg p-2 transition-opacity duration-200',
+                'absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card/80 border rounded-lg p-2 transition-opacity duration-200',
                 showControls ? 'opacity-100' : 'opacity-0',
               )}
             >
@@ -345,7 +362,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           {/* File info */}
           <div
             className={cn(
-              'absolute top-4 left-4 z-50 bg-card/80 border border-border rounded-lg p-3 text-foreground transition-opacity duration-200',
+              'absolute top-4 left-4 z-50 bg-card/80 border rounded-lg p-3 text-foreground transition-opacity duration-200',
               showControls ? 'opacity-100' : 'opacity-0',
             )}
           >
@@ -367,7 +384,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
           >
             {isLoading && !hasError && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border border-muted-foreground border-t-transparent rounded-full animate-spin" />
               </div>
             )}
 
@@ -384,7 +401,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                 <div className="flex gap-2 mt-4 justify-center">
                   <Button
                     variant="outline"
-                    className="border-border hover:bg-accent hover:text-accent-foreground"
+                    className="border hover:bg-accent hover:text-accent-foreground"
                     onClick={openInNewTab}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
@@ -392,7 +409,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
                   </Button>
                   <Button
                     variant="outline"
-                    className="border-border hover:bg-accent hover:text-accent-foreground"
+                    className="border hover:bg-accent hover:text-accent-foreground"
                     onClick={handleDownload}
                   >
                     <Download className="h-4 w-4 mr-2" />
@@ -402,7 +419,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
               </div>
             ) : isImage ? (
               <img
-                src={currentAttachment.publicUrl}
+                src={proxiedUrl}
                 alt={currentAttachment.originalFilename || 'Unknown Filename'}
                 className={cn(
                   'max-w-full max-h-full object-contain transition-all duration-200',
@@ -421,7 +438,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
               />
             ) : isVideo ? (
               <video
-                src={currentAttachment.publicUrl}
+                src={proxiedUrl}
                 className="max-w-full max-h-full object-contain"
                 autoPlay
                 controls
