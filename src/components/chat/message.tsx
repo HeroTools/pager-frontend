@@ -429,27 +429,10 @@ const DocumentAttachment: FC<{
   const previewUrl = getPreviewUrl(attachment.originalFilename || '');
   const canPreview = isViewableDocument(attachment.originalFilename || '');
 
-  // Debug logging
-  console.log('DocumentAttachment debug:', {
-    filename: attachment.originalFilename,
-    canPreview,
-    previewURL,
-    previewUrl,
-    storageUrl: attachment.storageUrl,
-  });
-
   const handleClick = () => {
-    console.log('DocumentAttachment clicked!', {
-      canPreview,
-      previewUrl,
-      onOpenMediaViewer: typeof onOpenMediaViewer,
-    });
-
     if (canPreview) {
-      console.log('Calling onOpenMediaViewer');
       onOpenMediaViewer();
     } else {
-      console.log('Opening in new tab');
       const proxiedUrl = getProxiedUrl(attachment.storageUrl || '');
       window.open(proxiedUrl, '_blank');
     }
@@ -532,7 +515,6 @@ const DocumentAttachment: FC<{
           size="sm"
           className="h-6 w-6 p-0 bg-background/80 hover:bg-background border-0"
           onClick={(e) => {
-            console.log('Download button clicked');
             e.stopPropagation();
             downloadFile(attachment.storageUrl || '', attachment.originalFilename || 'document');
           }}
@@ -548,7 +530,6 @@ const isDocumentFile = (attachment: Attachment): boolean => {
   const mimeType = attachment.contentType || '';
   const filename = attachment.originalFilename || '';
 
-  // Check MIME types
   const documentMimeTypes = [
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
@@ -559,12 +540,9 @@ const isDocumentFile = (attachment: Attachment): boolean => {
     'application/vnd.ms-powerpoint', // .ppt
   ];
 
-  // Check if mime type matches exactly
   if (documentMimeTypes.includes(mimeType)) {
     return true;
   }
-
-  // Fallback: check if mime type contains document-related keywords
   if (
     mimeType.includes('pdf') ||
     mimeType.includes('document') ||
@@ -578,7 +556,6 @@ const isDocumentFile = (attachment: Attachment): boolean => {
     return true;
   }
 
-  // Final fallback: check file extension
   return /\.(pdf|doc|docx|xls|xlsx|ppt|pptx)$/i.test(filename);
 };
 
