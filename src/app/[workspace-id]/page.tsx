@@ -1,11 +1,13 @@
 'use client';
 
-import { Loader, TriangleAlert } from 'lucide-react';
+import { Loader, SquarePen, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { WorkspaceSidebar } from '@/components/side-nav/workspace-sidebar';
 import { useGetUserChannels } from '@/features/channels/hooks/use-channels-mutations';
 import { useCreateChannelModal } from '@/features/channels/store/use-create-channel-modal';
+import { useConversationCreateStore } from '@/features/conversations/store/conversation-create-store';
 import { useCurrentMember } from '@/features/members/hooks/use-members';
 import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
 import { useIsMobile } from '@/hooks/use-is-mobile';
@@ -16,6 +18,7 @@ const WorkspaceIdPage = () => {
   const workspaceId = useWorkspaceId() as string;
   const { open, setOpen } = useCreateChannelModal();
   const isMobile = useIsMobile();
+  const { startConversationCreation } = useConversationCreateStore();
 
   const {
     data: currentMember,
@@ -84,8 +87,16 @@ const WorkspaceIdPage = () => {
   // On mobile, show the workspace sidebar as the home screen
   if (isMobile) {
     return (
-      <div className="h-full overflow-y-auto">
+      <div className="h-full overflow-y-auto relative">
         <WorkspaceSidebar />
+        {/* Floating action button for creating DMs */}
+        <Button
+          onClick={startConversationCreation}
+          className="fixed bottom-20 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+          size="icon"
+        >
+          <SquarePen className="h-6 w-6" />
+        </Button>
       </div>
     );
   }
