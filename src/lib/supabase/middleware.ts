@@ -68,6 +68,11 @@ export async function updateSession(request: NextRequest) {
       return supabaseResponse;
     }
 
+    // Allow register route with invitation parameter for authenticated users
+    if (pathname === '/register' && url.searchParams.has('invitation')) {
+      return supabaseResponse;
+    }
+
     // Redirect authenticated users to base route, which will handle workspace routing
     url.pathname = '/';
     url.searchParams.delete('redirectTo');

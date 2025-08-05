@@ -1,13 +1,14 @@
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import type { Metadata } from 'next';
+import localFont from 'next/font/local';
+
 import { Modals } from '@/components/modals';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import ReactQueryProvider from '@/components/react-query-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider } from '@/lib/auth/auth-provider';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import 'highlight.js/styles/github.css';
-import type { Metadata } from 'next';
-import localFont from 'next/font/local';
 import 'quill/dist/quill.snow.css';
 import './styles/globals.css';
 
@@ -23,7 +24,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Pager',
+  title: 'Pager - AI Powered Collaboration',
 };
 
 export default function RootLayout({

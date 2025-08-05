@@ -1,5 +1,5 @@
 import { differenceInMinutes, isSameDay, parseISO } from 'date-fns';
-import { type FC, Fragment, type RefObject, type UIEvent, useRef } from 'react';
+import { type CSSProperties, type FC, Fragment, type RefObject, type UIEvent, useRef } from 'react';
 
 import type { CurrentUser } from '@/features/auth';
 import { cn } from '@/lib/utils';
@@ -58,6 +58,11 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
     return !isSameDay(new Date(prevMessage.timestamp), new Date(message.timestamp));
   };
 
+  const containerStyle: CSSProperties = {
+    scrollBehavior: 'auto',
+    overscrollBehavior: 'none',
+  };
+
   return (
     <div
       ref={containerRef}
@@ -66,10 +71,7 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
         'flex-1 bg-chat',
         isEmojiPickerOpen() ? 'overflow-y-hidden' : 'overflow-y-auto',
       )}
-      style={{
-        scrollBehavior: 'auto',
-        overscrollBehavior: 'none',
-      }}
+      style={containerStyle}
     >
       <div className="pb-4">
         {isLoadingMore && (
@@ -79,7 +81,6 @@ export const ChatMessageList: FC<ChatMessageListProps> = ({
         )}
 
         {isLoading ? (
-          // Initial loading state with full skeleton conversation
           <div className="px-4 py-4 space-y-2">
             <SkeletonMessages count={15} />
           </div>

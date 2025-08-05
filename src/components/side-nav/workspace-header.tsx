@@ -32,7 +32,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
   return (
     <>
       <InviteModal open={inviteOpen} setOpen={setInviteOpen} name={workspace.name} />
-      <div className="flex items-center justify-between px-4 h-[49px] gap-0.5 border-b border-border-subtle">
+      <div className="flex items-center justify-between px-4 h-[49px] gap-0.5 border-b">
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button

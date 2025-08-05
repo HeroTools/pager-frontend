@@ -46,6 +46,14 @@ export interface Attachment {
   contentType: string;
   id: string;
   sizeBytes: number;
-  publicUrl: string;
+  storageUrl: string;
   originalFilename?: string;
+}
+
+export interface BaseAttachmentProps {
+  attachment: Attachment;
+  onOpenMediaViewer?: () => void;
+  isSingle?: boolean;
+  isThread?: boolean;
+  priority?: boolean;
 }

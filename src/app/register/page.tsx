@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { SignUpCard } from '@/features/auth/components/sign-up-card';
+import { useAuthStore } from '@/features/auth/stores/auth-store';
+import { useWorkspaceFromInviteToken } from '@/features/workspaces/hooks/use-workspaces';
 import { Loader } from 'lucide-react';
 import Image from 'next/image';
-import { SignUpCard } from '@/features/auth/components/sign-up-card';
-import { useWorkspaceFromInviteToken } from '@/features/workspaces/hooks/use-workspaces';
-import { useAuthStore } from '@/features/auth/stores/auth-store';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 
 const RegisterContent = () => {
   const router = useRouter();
@@ -32,7 +32,7 @@ const RegisterContent = () => {
 
   return (
     <div className="h-full flex flex-col gap-y-8 items-center justify-center p-8 rounded-lg shadow-sm bg-background">
-      <Image src="/logo.svg" width={60} height={60} alt="Logo" />
+      {/* <Image src="/logo.svg" width={60} height={60} alt="Logo" /> */}
       <div className="flex flex-col gap-y-4 items-center justify-center max-w-md">
         {inviteLoading ? (
           <Loader className="size-6 animate-spin text-muted-foreground" />

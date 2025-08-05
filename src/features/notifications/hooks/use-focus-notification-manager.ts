@@ -4,7 +4,7 @@ import { useMarkNotificationAsRead } from '@/features/notifications/hooks/use-no
 import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
 import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
 import { type InfiniteData, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 type NotificationsInfiniteData = InfiniteData<NotificationsResponse, string | undefined>;
 
@@ -14,13 +14,18 @@ export const useFocusNotificationManager = () => {
   const { currentEntityId, workspaceId, isFocused, getNotificationsToMarkAsRead } =
     useNotificationContext();
 
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isProcessingRef = useRef(false);
+  const lastEntityRef = useRef<string | null>(null);
+
   const markCurrentEntityNotificationsAsRead = useCallback(async () => {
-    if (!isFocused || !currentEntityId || !workspaceId) {
+    if (!isFocused || !currentEntityId || !workspaceId || isProcessingRef.current) {
       return;
     }
 
     try {
-      // Get all notifications from cache
+      isProcessingRef.current = true;
+
       const notificationsData = queryClient.getQueryData<NotificationsInfiniteData>(
         notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
       );
@@ -29,17 +34,14 @@ export const useFocusNotificationManager = () => {
         return;
       }
 
-      // Get all notifications from all pages
       const allNotifications: NotificationEntity[] = [];
       notificationsData.pages.forEach((page) => {
         allNotifications.push(...page.notifications);
       });
 
-      // Use the context hook to determine which notifications to mark as read
       const unreadNotificationIds = getNotificationsToMarkAsRead(allNotifications);
 
       if (unreadNotificationIds.length > 0) {
-        // Close browser notifications for these notifications
         unreadNotificationIds.forEach((id) => {
           browserNotificationService.closeNotification(id);
         });
@@ -51,6 +53,8 @@ export const useFocusNotificationManager = () => {
       }
     } catch (error) {
       console.error('Error marking notifications as read:', error);
+    } finally {
+      isProcessingRef.current = false;
     }
   }, [
     isFocused,
@@ -61,23 +65,39 @@ export const useFocusNotificationManager = () => {
     markAsReadMutation,
   ]);
 
-  // Mark notifications as read when focus changes or entity changes
-  useEffect(() => {
-    if (isFocused && currentEntityId) {
-      // Small delay to ensure data is settled
-      const timer = setTimeout(() => {
-        markCurrentEntityNotificationsAsRead();
-      }, 500);
-
-      return () => clearTimeout(timer);
+  const debouncedMarkAsRead = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
-  }, [isFocused, currentEntityId, markCurrentEntityNotificationsAsRead]);
 
-  // Also mark notifications as read when new ones arrive and we're focused
+    timeoutRef.current = setTimeout(() => {
+      markCurrentEntityNotificationsAsRead();
+    }, 1000);
+  }, [markCurrentEntityNotificationsAsRead]);
+
+  useEffect(() => {
+    const entityChanged = lastEntityRef.current !== currentEntityId;
+    lastEntityRef.current = currentEntityId;
+
+    if (isFocused && currentEntityId) {
+      if (entityChanged) {
+        debouncedMarkAsRead();
+      }
+    }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [isFocused, currentEntityId, debouncedMarkAsRead]);
+
   useEffect(() => {
     if (!isFocused || !workspaceId) {
       return;
     }
+
+    let timeoutId: NodeJS.Timeout;
 
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
       if (
@@ -85,15 +105,23 @@ export const useFocusNotificationManager = () => {
         event.query.queryKey[0] === notificationKeys.all[0] &&
         event.query.queryKey[1] === workspaceId
       ) {
-        // Debounce to avoid excessive calls
-        setTimeout(() => {
-          markCurrentEntityNotificationsAsRead();
-        }, 1000);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+
+        timeoutId = setTimeout(() => {
+          debouncedMarkAsRead();
+        }, 2000);
       }
     });
 
-    return unsubscribe;
-  }, [isFocused, workspaceId, queryClient, markCurrentEntityNotificationsAsRead]);
+    return () => {
+      unsubscribe();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isFocused, workspaceId, queryClient, debouncedMarkAsRead]);
 
   return {
     markCurrentEntityNotificationsAsRead,

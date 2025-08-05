@@ -6,10 +6,7 @@ import { toast } from 'sonner';
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
 import { useFocusNotificationManager } from '@/features/notifications/hooks/use-focus-notification-manager';
 import { useNotificationContext } from '@/features/notifications/hooks/use-notification-context';
-import {
-  type NotificationPermissionState,
-  useNotificationPermissions,
-} from '@/features/notifications/hooks/use-notification-permissions';
+import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
 import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
 import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
 import {
@@ -25,7 +22,6 @@ interface UseRealtimeNotificationsProps {
 }
 
 type NotificationsInfiniteData = InfiniteData<NotificationsResponse, string | undefined>;
-
 type ConnectionStatus = 'CONNECTING' | 'SUBSCRIBED' | 'CHANNEL_ERROR' | 'CLOSED' | 'TIMED_OUT';
 
 interface NewNotificationPayload {
@@ -39,22 +35,6 @@ interface NotificationReadPayload {
 
 interface UnreadCountData {
   unread_count: number;
-}
-
-interface NotificationHandlers {
-  handleNewNotification: (payload: NewNotificationPayload) => Promise<void>;
-  handleNotificationRead: (payload: NotificationReadPayload) => void;
-  handleAllNotificationsRead: () => void;
-}
-
-interface NotificationPermission {
-  permission: NotificationPermissionState;
-}
-
-interface NotificationContext {
-  shouldShowBrowserNotification: () => boolean;
-  shouldShowToast: (notification: NotificationEntity) => boolean;
-  shouldCreateUnreadNotification: (notification: NotificationEntity) => boolean;
 }
 
 export const useRealtimeNotifications = ({
@@ -71,11 +51,11 @@ export const useRealtimeNotifications = ({
   const realtimeHandlerRef = useRef<RealtimeHandler<typeof supabase> | null>(null);
   const processedNotificationsRef = useRef<Map<string, number>>(new Map());
   const cleanupFnRef = useRef<(() => void) | null>(null);
+  const isUpdatingCacheRef = useRef(false);
 
-  const { permission: notificationPermission } =
-    useNotificationPermissions() as NotificationPermission;
+  const { permission: notificationPermission } = useNotificationPermissions();
   const { shouldShowBrowserNotification, shouldShowToast, shouldCreateUnreadNotification } =
-    useNotificationContext() as NotificationContext;
+    useNotificationContext();
 
   useFocusNotificationManager();
 
@@ -102,56 +82,16 @@ export const useRealtimeNotifications = ({
     [workspaceId, router],
   );
 
-  const handlersRef = useRef<NotificationHandlers>({
-    handleNewNotification: async () => {},
-    handleNotificationRead: () => {},
-    handleAllNotificationsRead: () => {},
-  });
+  const updateNotificationCaches = useCallback(
+    (notification: NotificationEntity, isUnread: boolean) => {
+      if (isUpdatingCacheRef.current) {
+        return;
+      }
 
-  const handleNewNotification = useCallback(
-    async (payload: NewNotificationPayload): Promise<void> => {
+      isUpdatingCacheRef.current = true;
+
       try {
-        const notification = payload.notification;
-        const now = Date.now();
-        const DUPLICATE_WINDOW = 30 * 1000;
-
-        const last = processedNotificationsRef.current.get(notification.id);
-        if (last && now - last < DUPLICATE_WINDOW) {
-          // Duplicate notification ${notification.id} ignored
-          return;
-        }
-        processedNotificationsRef.current.set(notification.id, now);
-
-        if (processedNotificationsRef.current.size > 50) {
-          const entries = Array.from(processedNotificationsRef.current.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 25);
-          processedNotificationsRef.current = new Map(entries);
-        }
-
-        const showBrowser = shouldShowBrowserNotification();
-        const showToastFlag = shouldShowToast(notification);
-        const storeUnread = shouldCreateUnreadNotification(notification);
-
-        if (showBrowser && notificationPermission === 'granted') {
-          await browserNotificationService.showNotification({
-            notification,
-            workspaceId,
-            onClickCallback: () => handleNotificationClick(notification),
-          });
-        }
-
-        if (showToastFlag) {
-          toast.info(notification.title, {
-            description: notification.message,
-            action: {
-              label: 'View',
-              onClick: () => handleNotificationClick(notification),
-            },
-          });
-        }
-
-        const toStore: NotificationEntity = storeUnread
+        const toStore: NotificationEntity = isUnread
           ? notification
           : {
               ...notification,
@@ -177,16 +117,22 @@ export const useRealtimeNotifications = ({
               pageParams: [undefined],
             };
           }
-          const exists = old.pages[0].notifications.some((n) => n.id === notification.id);
+
+          const exists = old.pages.some((page) =>
+            page.notifications.some((n) => n.id === notification.id),
+          );
+
           if (exists) {
             return old;
           }
+
           const first = old.pages[0];
           const updatedFirst: NotificationsResponse = {
             ...first,
             notifications: [toStore, ...first.notifications],
             unread_count: first.unread_count + (toStore.is_read ? 0 : 1),
           };
+
           return { ...old, pages: [updatedFirst, ...old.pages.slice(1)] };
         });
 
@@ -211,24 +157,82 @@ export const useRealtimeNotifications = ({
                   pageParams: [undefined],
                 };
               }
-              const exists = old.pages[0].notifications.some((n) => n.id === notification.id);
+
+              const exists = old.pages.some((page) =>
+                page.notifications.some((n) => n.id === notification.id),
+              );
+
               if (exists) {
                 return old;
               }
+
               const first = old.pages[0];
               const updatedFirst: NotificationsResponse = {
                 ...first,
                 notifications: [toStore, ...first.notifications],
                 unread_count: first.unread_count + 1,
               };
+
               return { ...old, pages: [updatedFirst, ...old.pages.slice(1)] };
             },
           );
+
           queryClient.setQueryData<UnreadCountData>(
             notificationKeys.unreadCount(workspaceId),
             (old) => ({ unread_count: (old?.unread_count || 0) + 1 }),
           );
         }
+      } finally {
+        isUpdatingCacheRef.current = false;
+      }
+    },
+    [getNotificationsQueryKey, getUnreadNotificationsQueryKey, queryClient, workspaceId],
+  );
+
+  const handleNewNotification = useCallback(
+    async (payload: NewNotificationPayload): Promise<void> => {
+      try {
+        const notification = payload.notification;
+        const now = Date.now();
+        const DUPLICATE_WINDOW = 5000; // Reduced from 30s to 5s
+
+        const last = processedNotificationsRef.current.get(notification.id);
+        if (last && now - last < DUPLICATE_WINDOW) {
+          return;
+        }
+
+        processedNotificationsRef.current.set(notification.id, now);
+
+        if (processedNotificationsRef.current.size > 100) {
+          const entries = Array.from(processedNotificationsRef.current.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 50);
+          processedNotificationsRef.current = new Map(entries);
+        }
+
+        const showBrowser = shouldShowBrowserNotification();
+        const showToastFlag = shouldShowToast(notification);
+        const storeUnread = shouldCreateUnreadNotification(notification);
+
+        if (showBrowser && notificationPermission === 'granted') {
+          await browserNotificationService.showNotification({
+            notification,
+            workspaceId,
+            onClickCallback: () => handleNotificationClick(notification),
+          });
+        }
+
+        if (showToastFlag) {
+          toast.info(notification.title, {
+            description: notification.message,
+            action: {
+              label: 'View',
+              onClick: () => handleNotificationClick(notification),
+            },
+          });
+        }
+
+        updateNotificationCaches(notification, storeUnread);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         console.error('❌ Error handling new notification:', errorMessage);
@@ -241,14 +245,16 @@ export const useRealtimeNotifications = ({
       notificationPermission,
       handleNotificationClick,
       workspaceId,
-      getNotificationsQueryKey,
-      getUnreadNotificationsQueryKey,
-      queryClient,
+      updateNotificationCaches,
     ],
   );
 
   const handleNotificationRead = useCallback(
     (payload: NotificationReadPayload): void => {
+      if (isUpdatingCacheRef.current) {
+        return;
+      }
+
       try {
         const { notificationId, isRead } = payload;
 
@@ -256,10 +262,13 @@ export const useRealtimeNotifications = ({
           browserNotificationService.closeNotification(notificationId);
         }
 
+        isUpdatingCacheRef.current = true;
+
         queryClient.setQueryData<NotificationsInfiniteData>(getNotificationsQueryKey(), (old) => {
           if (!old?.pages?.length) {
             return old;
           }
+
           const newPages = old.pages.map(
             (page): NotificationsResponse => ({
               ...page,
@@ -274,6 +283,7 @@ export const useRealtimeNotifications = ({
               ),
             }),
           );
+
           return { ...old, pages: newPages };
         });
 
@@ -284,6 +294,7 @@ export const useRealtimeNotifications = ({
               if (!old?.pages?.length) {
                 return old;
               }
+
               const newPages = old.pages.map(
                 (page): NotificationsResponse => ({
                   ...page,
@@ -291,9 +302,11 @@ export const useRealtimeNotifications = ({
                   unread_count: Math.max(0, page.unread_count - 1),
                 }),
               );
+
               return { ...old, pages: newPages };
             },
           );
+
           queryClient.setQueryData<UnreadCountData>(
             notificationKeys.unreadCount(workspaceId),
             (old) => ({
@@ -304,13 +317,20 @@ export const useRealtimeNotifications = ({
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         console.error('❌ Error handling notification read:', errorMessage);
+      } finally {
+        isUpdatingCacheRef.current = false;
       }
     },
     [getNotificationsQueryKey, getUnreadNotificationsQueryKey, queryClient, workspaceId],
   );
 
   const handleAllNotificationsRead = useCallback((): void => {
+    if (isUpdatingCacheRef.current) {
+      return;
+    }
+
     try {
+      isUpdatingCacheRef.current = true;
       browserNotificationService.closeAllNotifications();
       const now = new Date().toISOString();
 
@@ -318,6 +338,7 @@ export const useRealtimeNotifications = ({
         if (!old?.pages?.length) {
           return old;
         }
+
         const newPages = old.pages.map(
           (page): NotificationsResponse => ({
             ...page,
@@ -329,6 +350,7 @@ export const useRealtimeNotifications = ({
             unread_count: 0,
           }),
         );
+
         return { ...old, pages: newPages };
       });
 
@@ -338,6 +360,7 @@ export const useRealtimeNotifications = ({
           if (!old?.pages?.length) {
             return old;
           }
+
           const newPages = old.pages.map(
             (page): NotificationsResponse => ({
               ...page,
@@ -345,6 +368,7 @@ export const useRealtimeNotifications = ({
               unread_count: 0,
             }),
           );
+
           return { ...old, pages: newPages };
         },
       );
@@ -355,82 +379,86 @@ export const useRealtimeNotifications = ({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error('❌ Error handling all notifications read:', errorMessage);
+    } finally {
+      isUpdatingCacheRef.current = false;
     }
   }, [getNotificationsQueryKey, getUnreadNotificationsQueryKey, queryClient, workspaceId]);
 
   useEffect(() => {
-    handlersRef.current = {
-      handleNewNotification,
-      handleNotificationRead,
-      handleAllNotificationsRead,
-    };
-  }, [handleNewNotification, handleNotificationRead, handleAllNotificationsRead]);
-
-  useEffect(() => {
+    // Only subscribe if we have a real member ID & workspace & user explicitly enabled
     if (!enabled || !workspaceMemberId || !workspaceId) {
       return;
     }
 
-    const now = Date.now();
-    const FIVE_MINUTES = 5 * 60 * 1000;
-    processedNotificationsRef.current.forEach((ts, id) => {
-      if (now - ts > FIVE_MINUTES) {
-        processedNotificationsRef.current.delete(id);
-      }
-    });
+    // If there was a prior subscription, fully tear it down first
+    cleanupFnRef.current?.();
 
     const handler = notificationsRealtimeHandler;
     realtimeHandlerRef.current = handler;
 
-    const channelFactory = (sbClient: typeof supabase) =>
-      sbClient
-        .channel(topic, { config: { broadcast: { self: false } } })
-        .on(
-          'broadcast',
-          { event: 'new_notification' },
-          ({ payload }: { payload: NewNotificationPayload }) =>
-            handlersRef.current.handleNewNotification(payload),
-        )
-        .on(
-          'broadcast',
-          { event: 'notification_read' },
-          ({ payload }: { payload: NotificationReadPayload }) =>
-            handlersRef.current.handleNotificationRead(payload),
-        )
-        .on('broadcast', { event: 'all_notifications_read' }, () =>
-          handlersRef.current.handleAllNotificationsRead(),
-        );
+    // Build the exact channel name
+    const topic = `workspace_member:${workspaceMemberId}`;
 
-    const removeChannel = handler.addChannel(channelFactory, {
-      onSubscribe: () => {
+    // Factory to create our supabase channel
+    const channelFactory = (sb: typeof supabase) => {
+      return sb
+        .channel(topic, {
+          config: {
+            broadcast: { self: false },
+            presence: { key: workspaceMemberId },
+          },
+        })
+        .on('broadcast', { event: 'new_notification' }, ({ payload }) => {
+          handleNewNotification(payload as any);
+        })
+        .on('broadcast', { event: 'notification_read' }, ({ payload }) => {
+          handleNotificationRead(payload as any);
+        })
+        .on('broadcast', { event: 'all_notifications_read' }, () => {
+          handleAllNotificationsRead();
+        });
+    };
+
+    // Add it (this will overwrite any existing factory for the same topic)
+    handler.addChannel(channelFactory, {
+      onSubscribe: (channel) => {
         setConnectionStatus('SUBSCRIBED');
         setIsConnected(true);
       },
-      onClose: () => {
+      onClose: (channel) => {
         setConnectionStatus('CLOSED');
         setIsConnected(false);
       },
-      onTimeout: () => {
+      onTimeout: (channel) => {
         setConnectionStatus('TIMED_OUT');
         setIsConnected(false);
       },
-      onError: () => {
+      onError: (channel, error) => {
         setConnectionStatus('CHANNEL_ERROR');
         setIsConnected(false);
       },
     });
 
-    const cleanup = handler.start();
-    cleanupFnRef.current = () => {
-      removeChannel();
-      cleanup();
-    };
+    // Kick off the handler (only starts once; subsequent calls are no-ops)
+    const stopAll = handler.start();
 
-    return () => {
-      cleanupFnRef.current?.();
+    // Save our cleanup to run when deps change or component unmounts
+    cleanupFnRef.current = () => {
+      handler.removeChannel(topic);
+      setIsConnected(false);
+      setConnectionStatus('CONNECTING');
       realtimeHandlerRef.current = null;
     };
-  }, [enabled, workspaceMemberId, workspaceId, topic]);
+
+    return cleanupFnRef.current;
+  }, [
+    enabled,
+    workspaceMemberId,
+    workspaceId,
+    handleNewNotification,
+    handleNotificationRead,
+    handleAllNotificationsRead,
+  ]);
 
   const forceReconnect = useCallback(() => {
     realtimeHandlerRef.current?.reconnectChannel(topic);

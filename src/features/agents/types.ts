@@ -95,7 +95,7 @@ export interface AgentMessageWithSender {
   attachments: Array<{
     id: string;
     original_filename: string;
-    public_url: string;
+    storage_url: string;
     content_type: string;
     size_bytes: number;
     order_index: number;

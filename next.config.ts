@@ -6,7 +6,12 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: ['ypkobnsdgcclemmiswkj.supabase.co'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'ypkobnsdgcclemmiswkj.supabase.co',
+      },
+    ],
   },
   async headers() {
     return [
