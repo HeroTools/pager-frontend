@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { type InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/features/notifications/api/notifications-api';
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
 import type {

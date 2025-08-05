@@ -23,14 +23,17 @@ export const SignInCard = ({ setFlow }: SignInCardProps) => {
   });
 
   const handlePasswordSignIn = form.handleSubmit(async ({ email, password }) => {
-    signIn.mutate({ email, password }, {
-      onSuccess: () => {
-        setIsRedirecting(true);
+    signIn.mutate(
+      { email, password },
+      {
+        onSuccess: () => {
+          setIsRedirecting(true);
+        },
+        onError: () => {
+          setIsRedirecting(false);
+        },
       },
-      onError: () => {
-        setIsRedirecting(false);
-      }
-    });
+    );
   });
 
   // Get loading state from the mutation or redirecting

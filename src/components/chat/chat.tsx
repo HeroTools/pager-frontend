@@ -208,7 +208,7 @@ export const Chat: FC<ChatProps> = ({
   }, [isLoadingMore]);
 
   return (
-    <div className={cn("flex flex-col h-full", isMobile && "pb-[120px]")}>
+    <div className={cn('flex flex-col h-full', isMobile && 'pb-[120px]')}>
       <ChatHeader
         channel={channel}
         members={chatType === 'channel' ? (members as ChatMember[]) : []}
@@ -238,7 +238,7 @@ export const Chat: FC<ChatProps> = ({
         getUserAvatar={(userId) => getUserAvatar(userId, members)}
       />
 
-      <div className={isMobile ? "fixed bottom-0 left-0 right-0 bg-background" : "p-4 border-t"}>
+      <div className={isMobile ? 'fixed bottom-0 left-0 right-0 bg-background' : 'p-4 border-t'}>
         <Editor
           variant="create"
           workspaceId={workspaceId}

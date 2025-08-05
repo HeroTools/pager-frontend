@@ -63,7 +63,19 @@ const WorkspaceIdPage = () => {
     } else if (!isMobile && !open && isAdmin) {
       setOpen(true);
     }
-  }, [isLoading, workspace, currentMember, isAdmin, channelId, open, setOpen, router, workspaceId, isMobile, hasMobileCheckCompleted]);
+  }, [
+    isLoading,
+    workspace,
+    currentMember,
+    isAdmin,
+    channelId,
+    open,
+    setOpen,
+    router,
+    workspaceId,
+    isMobile,
+    hasMobileCheckCompleted,
+  ]);
 
   if (isLoading) {
     return (

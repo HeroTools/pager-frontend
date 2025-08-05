@@ -652,7 +652,7 @@ const Editor = ({
     return () => {
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       quill.root.removeEventListener('blur', handleBlur);
-      
+
       if (isMobile) {
         quill.off(Quill.events.SELECTION_CHANGE);
       }

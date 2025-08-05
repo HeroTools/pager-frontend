@@ -215,8 +215,8 @@ export const Thread = ({ onClose }: ThreadProps) => {
       <div
         ref={scrollContainerRef}
         className={cn(
-          "flex-1 flex flex-col min-h-0 overflow-y-auto messages-scrollbar relative",
-          isMobile && "pb-[80px]"
+          'flex-1 flex flex-col min-h-0 overflow-y-auto messages-scrollbar relative',
+          isMobile && 'pb-[80px]',
         )}
       >
         <div className="flex-shrink-0 mt-2">
@@ -312,7 +312,13 @@ export const Thread = ({ onClose }: ThreadProps) => {
         }
       />
 
-      <div className={isMobile ? "absolute bottom-0 left-0 right-0 bg-background" : "px-4 py-4 border-t border-border-subtle bg-background"}>
+      <div
+        className={
+          isMobile
+            ? 'absolute bottom-0 left-0 right-0 bg-background'
+            : 'px-4 py-4 border-t border-border-subtle bg-background'
+        }
+      >
         <Editor
           variant="create"
           workspaceId={workspaceId}

@@ -134,12 +134,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
     <div className="flex items-center justify-between px-4 py-3 border-b">
       <div className="flex items-center gap-2">
         {isMobile && (
-          <Button
-            onClick={handleBack}
-            variant="ghost"
-            size="sm"
-            className="p-0 h-8 w-8"
-          >
+          <Button onClick={handleBack} variant="ghost" size="sm" className="p-0 h-8 w-8">
             <ChevronLeft className="h-5 w-5" />
           </Button>
         )}

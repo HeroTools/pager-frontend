@@ -92,16 +92,14 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
   };
 
   // Check if we're in a channel, DM, or agent conversation
-  const isInConversation = pathname && (
-    pathname.includes('/c-') || 
-    pathname.includes('/d-') || 
-    pathname.includes('/agents')
-  );
+  const isInConversation =
+    pathname &&
+    (pathname.includes('/c-') || pathname.includes('/d-') || pathname.includes('/agents'));
 
   // Mobile layout
   if (isMobile) {
     return (
-      <div className="h-full flex flex-col">        
+      <div className="h-full flex flex-col">
         {/* Notification Permission Banner */}
         {showPermissionBanner && (
           <div className="relative mt-12">
@@ -111,7 +109,12 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
               <AlertDescription className="flex flex-col gap-2">
                 <span className="text-xs">Get notified when you receive messages</span>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={handleDismissBanner} className="flex-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleDismissBanner}
+                    className="flex-1"
+                  >
                     Not now
                   </Button>
                   <Button size="sm" onClick={handleEnableNotifications} className="flex-1">
@@ -130,7 +133,9 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
 
         {/* Thread panel slides in from right on mobile */}
         {isThreadOpen() && openThreadMessageId && (
-          <div className={`fixed top-0 right-0 ${isInConversation ? 'bottom-0' : 'bottom-14'} w-full z-40 bg-background border-l`}>
+          <div
+            className={`fixed top-0 right-0 ${isInConversation ? 'bottom-0' : 'bottom-14'} w-full z-40 bg-background border-l`}
+          >
             <div className="h-full">
               <Thread onClose={() => setThreadOpen(null)} />
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, MessageSquare, FileText, Bell } from 'lucide-react';
+import { Bell, FileText, Home, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils/general';
@@ -22,12 +22,6 @@ export function MobileBottomNav() {
       isActive: pathname === `/${workspaceId}`,
     },
     {
-      icon: MessageSquare,
-      label: 'DMs',
-      href: `/${workspaceId}`,
-      isActive: pathname.includes('/dm-') || pathname.includes('/conversation'),
-    },
-    {
       icon: FileText,
       label: 'Drafts',
       href: `/${workspaceId}/drafts`,
@@ -47,7 +41,7 @@ export function MobileBottomNav() {
       <div className="flex h-14">
         {navItems.map((item) => {
           const Icon = item.icon;
-          
+
           if (item.onClick) {
             return (
               <button
@@ -55,7 +49,7 @@ export function MobileBottomNav() {
                 onClick={item.onClick}
                 className={cn(
                   'flex-1 flex flex-col items-center justify-center gap-0.5 text-muted-foreground transition-colors',
-                  item.isActive && 'text-foreground'
+                  item.isActive && 'text-foreground',
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -70,7 +64,7 @@ export function MobileBottomNav() {
               href={item.href}
               className={cn(
                 'flex-1 flex flex-col items-center justify-center gap-0.5 text-muted-foreground transition-colors',
-                item.isActive && 'text-foreground'
+                item.isActive && 'text-foreground',
               )}
             >
               <Icon className="h-5 w-5" />
