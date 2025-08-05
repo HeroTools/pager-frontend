@@ -38,6 +38,7 @@ const ConversationChat = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    refetch: refetchConversation,
   } = useGetConversationWithMessagesInfinite(workspaceId, conversationId);
 
   // Real-time subscription for incoming messages and typing indicators
@@ -242,7 +243,7 @@ const ConversationChat = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {!isConnected && (
+      {!isConnected && process.env.NODE_ENV === 'development' && (
         <div className="bg-warning/50 border-b border-warning px-4 py-2 text-sm text-warning">
           Reconnecting to real-time updates... (Status: {connectionStatus})
         </div>
@@ -265,6 +266,13 @@ const ConversationChat = () => {
         highlightMessageId={highlightMessageId}
         members={currentConversation?.members || []}
       />
+
+      {/* <RealtimeDebug
+        workspaceId={workspaceId}
+        conversationId={conversationId}
+        connectionStatus={connectionStatus}
+        isConnected={isConnected}
+      /> */}
     </div>
   );
 };

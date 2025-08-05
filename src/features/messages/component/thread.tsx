@@ -130,22 +130,23 @@ export const Thread = ({ onClose }: ThreadProps) => {
       return;
     }
 
-    try {
-      await createMessage.mutateAsync({
+    createMessage
+      .mutateAsync({
         body: content.body,
         attachments: content.attachments,
         parent_message_id: parentMessage.id,
         thread_id: parentMessage.threadId || parentMessage.id,
         message_type: 'thread',
         plain_text: content.plainText,
+      })
+      .then(() => {
+        setTimeout(() => scrollToBottom(), 100);
+        setEditorKey((prev) => prev + 1);
+      })
+      .catch((error) => {
+        console.error('Failed to send thread reply:', error);
+        toast.error('Failed to send reply. Please try again.');
       });
-
-      setTimeout(() => scrollToBottom(), 100);
-      setEditorKey((prev) => prev + 1);
-    } catch (error) {
-      console.error('Failed to send thread reply:', error);
-      toast.error('Failed to send reply. Please try again.');
-    }
   };
 
   const handleEdit = async (messageId: string, newContent: string) => {

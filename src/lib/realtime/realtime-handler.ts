@@ -17,6 +17,8 @@ export type RealtimeChannels = Map<Topic, RealtimeChannel>;
 
 export interface RealtimeHandlerConfig {
   inactiveTabTimeoutSeconds?: number;
+  maxRetryAttempts?: number;
+  enableVisibilityOptimization?: boolean;
 }
 
 export interface SubscriptionEventCallbacks {
@@ -47,21 +49,32 @@ const isTokenExpiredError = (err: Error): boolean => {
   return err.message?.includes('token has expired') ?? false;
 };
 
+const isNetworkError = (err: Error): boolean => {
+  return (err.message?.includes('network') || err.message?.includes('connection')) ?? false;
+};
+
 export class RealtimeHandler<T extends SupabaseClient> {
   private readonly inactiveTabTimeoutSeconds: number;
+  private readonly maxRetryAttempts: number;
+  private readonly enableVisibilityOptimization: boolean;
   private readonly supabaseClient: T;
 
   private readonly channelFactories: RealtimeChannelFactories<T> = new Map();
   private readonly channels: RealtimeChannels = new Map();
   private readonly subscriptionEventCallbacks: SubscriptionEventCallbacksMap = new Map();
   private readonly retryCounts: Map<Topic, number> = new Map();
+  private readonly retryTimers: Map<Topic, ReturnType<typeof setTimeout>> = new Map();
 
   private inactiveTabTimer?: ReturnType<typeof setTimeout>;
   private started = false;
+  private isTabVisible = true;
 
   constructor(supabaseClient: T, config?: RealtimeHandlerConfig) {
     this.supabaseClient = supabaseClient;
     this.inactiveTabTimeoutSeconds = config?.inactiveTabTimeoutSeconds ?? 600; // 10 minutes default
+    this.maxRetryAttempts = config?.maxRetryAttempts ?? 10;
+    this.enableVisibilityOptimization = config?.enableVisibilityOptimization ?? true;
+    this.isTabVisible = typeof document !== 'undefined' ? !document.hidden : true;
   }
 
   public addChannel(
@@ -90,10 +103,13 @@ export class RealtimeHandler<T extends SupabaseClient> {
   public removeChannel(topic: Topic): void {
     this.channelFactories.delete(topic);
     this.subscriptionEventCallbacks.delete(topic);
+    this.clearRetryTimer(topic);
     this.unsubscribeFromChannel(topic);
   }
 
   public reconnectChannel(topic: Topic): void {
+    this.clearRetryTimer(topic);
+    this.retryCounts.set(topic, 0);
     this.scheduleResubscribe(topic, 0);
   }
 
@@ -121,6 +137,7 @@ export class RealtimeHandler<T extends SupabaseClient> {
       }
 
       this.unsubscribeFromAllChannels();
+      this.clearAllRetryTimers();
       this.channelFactories.clear();
 
       if (this.inactiveTabTimer) {
@@ -137,23 +154,47 @@ export class RealtimeHandler<T extends SupabaseClient> {
     return channel;
   }
 
+  private clearRetryTimer(topic: Topic): void {
+    const timer = this.retryTimers.get(topic);
+    if (timer) {
+      clearTimeout(timer);
+      this.retryTimers.delete(topic);
+    }
+  }
+
+  private clearAllRetryTimers(): void {
+    for (const timer of this.retryTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.retryTimers.clear();
+  }
+
   private scheduleResubscribe(topic: Topic, attempt: number): void {
-    const backoff = Math.min(30000, 2 ** attempt * 1000); // Max 30s
+    this.clearRetryTimer(topic);
+
+    if (attempt >= this.maxRetryAttempts) {
+      console.warn(`[RealtimeHandler] Max retry attempts reached for ${topic}`);
+      return;
+    }
+
+    const backoff = Math.min(30000, Math.max(1000, 2 ** attempt * 1000)); // Min 1s, Max 30s
     const jitter = backoff * 0.1 * (Math.random() * 2 - 1); // +/- 10% jitter
     const delay = Math.max(0, backoff + jitter);
 
-    this.retryCounts.set(topic, attempt + 1);
-
-    setTimeout(() => {
-      this.resubscribeToChannel(topic);
+    const timer = setTimeout(() => {
+      this.resubscribeToChannel(topic, attempt);
     }, delay);
+
+    this.retryTimers.set(topic, timer);
+    this.retryCounts.set(topic, attempt + 1);
   }
 
-  private resubscribeToChannel(topic: Topic): void {
+  private resubscribeToChannel(topic: Topic, attempt: number = 0): void {
     const factory = this.channelFactories.get(topic);
     if (!factory) {
+      console.warn(`[RealtimeHandler] No factory found for topic ${topic}`);
       return;
-    } // Channel was likely removed
+    }
 
     this.unsubscribeFromChannel(topic);
     const channel = this.createChannel(factory);
@@ -161,9 +202,7 @@ export class RealtimeHandler<T extends SupabaseClient> {
   }
 
   private async subscribeToChannel(channel: RealtimeChannel): Promise<void> {
-    if (['joined', 'joining'].includes(channel.state)) {
-      return;
-    }
+    // Always try to subscribe, don't check state as it might be stale
 
     try {
       await this.refreshSessionIfNeeded();
@@ -208,11 +247,14 @@ export class RealtimeHandler<T extends SupabaseClient> {
     switch (status) {
       case REALTIME_SUBSCRIBE_STATES.SUBSCRIBED:
         this.retryCounts.set(topic, 0);
+        this.clearRetryTimer(topic);
         callbacks?.onSubscribe?.(channel);
         break;
 
       case REALTIME_SUBSCRIBE_STATES.CLOSED:
         callbacks?.onClose?.(channel);
+        // Always try to reconnect when channel closes
+        this.scheduleResubscribe(topic, attempt);
         break;
 
       case REALTIME_SUBSCRIBE_STATES.TIMED_OUT:
@@ -227,12 +269,11 @@ export class RealtimeHandler<T extends SupabaseClient> {
 
         this.unsubscribeFromChannel(topic);
 
-        if (typeof document !== 'undefined') {
-          if (!document.hidden || (err && isTokenExpiredError(err))) {
-            this.scheduleResubscribe(topic, attempt);
-          }
+        // Always retry on errors, but handle token expiry immediately
+        if (err && isTokenExpiredError(err)) {
+          this.scheduleResubscribe(topic, 0); // Immediate retry for token issues
         } else {
-          // Fallback for non-browser environments
+          // For other errors, use exponential backoff
           this.scheduleResubscribe(topic, attempt);
         }
         break;
@@ -240,25 +281,29 @@ export class RealtimeHandler<T extends SupabaseClient> {
   }
 
   private async refreshSessionIfNeeded(): Promise<void> {
-    const response = (await this.supabaseClient.auth.getSession()) as AuthResponse;
+    try {
+      const response = (await this.supabaseClient.auth.getSession()) as AuthResponse;
 
-    if (response.error) {
-      throw response.error;
-    }
+      if (response.error) {
+        throw response.error;
+      }
 
-    const token = response.data.session?.access_token;
-    if (!token) {
-      throw new Error('No session');
-    }
+      const token = response.data.session?.access_token;
+      if (!token) {
+        throw new Error('No session');
+      }
 
-    if (this.supabaseClient.realtime.accessTokenValue !== token) {
-      await this.supabaseClient.realtime.setAuth(token);
+      if (this.supabaseClient.realtime.accessTokenValue !== token) {
+        await this.supabaseClient.realtime.setAuth(token);
+      }
+    } catch (error) {
+      throw error;
     }
   }
 
   private addOnVisibilityChangeListener = (): (() => void) => {
-    if (typeof document === 'undefined') {
-      return () => {}; // No-op for non-browser environments
+    if (typeof document === 'undefined' || !this.enableVisibilityOptimization) {
+      return () => {};
     }
 
     const handler = (): void => {
@@ -270,19 +315,37 @@ export class RealtimeHandler<T extends SupabaseClient> {
   };
 
   private handleVisibilityChange = (): void => {
-    if (typeof document === 'undefined') {
+    if (typeof document === 'undefined' || !this.enableVisibilityOptimization) {
       return;
     }
 
-    if (document.hidden) {
+    const isNowVisible = !document.hidden;
+
+    if (this.isTabVisible === isNowVisible) {
+      return; // No change
+    }
+
+    this.isTabVisible = isNowVisible;
+
+    if (!isNowVisible) {
+      // Tab became hidden - set timer for eventual disconnect
       this.inactiveTabTimer = setTimeout(() => {
         this.unsubscribeFromAllChannels();
       }, this.inactiveTabTimeoutSeconds * 1000);
     } else {
+      // Tab became visible - cancel disconnect timer and ensure we're connected
       if (this.inactiveTabTimer) {
         clearTimeout(this.inactiveTabTimer);
+        this.inactiveTabTimer = undefined;
       }
-      this.resubscribeToAllChannels();
+
+      // Check if any channels are disconnected and reconnect
+      for (const topic of this.channelFactories.keys()) {
+        const channel = this.channels.get(topic);
+        if (!channel || !['joined', 'joining'].includes(channel.state)) {
+          this.scheduleResubscribe(topic, 0);
+        }
+      }
     }
   };
 
@@ -297,7 +360,14 @@ export class RealtimeHandler<T extends SupabaseClient> {
   };
 }
 
-export const messageRealtimeHandler = new RealtimeHandler(supabase);
+export const messageRealtimeHandler = new RealtimeHandler(supabase, {
+  inactiveTabTimeoutSeconds: 600, // 10 minutes
+  maxRetryAttempts: 10,
+  enableVisibilityOptimization: true,
+});
+
 export const notificationsRealtimeHandler = new RealtimeHandler(supabase, {
   inactiveTabTimeoutSeconds: 24 * 60 * 60, // 1 day
+  maxRetryAttempts: 15,
+  enableVisibilityOptimization: false, // Keep notifications always connected
 });

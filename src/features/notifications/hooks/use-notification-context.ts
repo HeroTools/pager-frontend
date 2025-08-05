@@ -1,11 +1,13 @@
-import { useCallback } from 'react';
-import { useParamIds } from '@/hooks/use-param-ids';
-import { useBrowserFocus } from '@/hooks/use-browser-focus';
 import type { NotificationEntity } from '@/features/notifications/types';
+import { useBrowserFocus } from '@/hooks/use-browser-focus';
+import { useParamIds } from '@/hooks/use-param-ids';
+import { useCallback, useRef } from 'react';
 
 export const useNotificationContext = () => {
   const { id: currentEntityId, type: currentEntityType, workspaceId } = useParamIds();
   const { isFocused } = useBrowserFocus();
+
+  const processingRef = useRef(new Set<string>());
 
   const isNotificationForCurrentEntity = useCallback(
     (notification: NotificationEntity): boolean => {
@@ -26,12 +28,11 @@ export const useNotificationContext = () => {
     [currentEntityId, currentEntityType],
   );
 
-  // browser notifications should show when tab not focused
   const shouldShowBrowserNotification = useCallback((): boolean => {
+    // Show browser notifications when tab is not focused
     return !isFocused;
   }, [isFocused]);
 
-  // Toast notifications should show when not focused OR not for current entity
   const shouldShowToast = useCallback(
     (notification: NotificationEntity): boolean => {
       return !isFocused || !isNotificationForCurrentEntity(notification);
@@ -39,9 +40,9 @@ export const useNotificationContext = () => {
     [isFocused, isNotificationForCurrentEntity],
   );
 
-  // Notifications should be marked as unread unless we're focused on the entity they're for
   const shouldCreateUnreadNotification = useCallback(
     (notification: NotificationEntity): boolean => {
+      // Don't create unread if user is viewing the exact entity
       return !isFocused || !isNotificationForCurrentEntity(notification);
     },
     [isFocused, isNotificationForCurrentEntity],
@@ -53,11 +54,22 @@ export const useNotificationContext = () => {
         return [];
       }
 
-      return notifications
+      const toMark = notifications
         .filter(
-          (notification) => !notification.is_read && isNotificationForCurrentEntity(notification),
+          (notification) =>
+            !notification.is_read &&
+            isNotificationForCurrentEntity(notification) &&
+            !processingRef.current.has(notification.id),
         )
         .map((notification) => notification.id);
+
+      toMark.forEach((id) => processingRef.current.add(id));
+
+      setTimeout(() => {
+        toMark.forEach((id) => processingRef.current.delete(id));
+      }, 5000);
+
+      return toMark;
     },
     [isFocused, currentEntityId, isNotificationForCurrentEntity],
   );

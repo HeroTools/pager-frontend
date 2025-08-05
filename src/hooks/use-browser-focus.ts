@@ -39,7 +39,7 @@ export const useBrowserFocus = (): UseBrowserFocusReturn => {
     // Also update focus state based on visibility
     if (isVisible && document.hasFocus()) {
       handleFocus();
-    } else if (!isVisible) {
+    } else if (!document.hasFocus() && !isVisible) {
       handleBlur();
     }
   }, [handleFocus, handleBlur]);

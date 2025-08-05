@@ -17,7 +17,7 @@ export interface PresignedUrlResponse {
   signed_url: string;
   token: string;
   path: string;
-  public_url: string;
+  storage_url: string;
   file_id: string;
   expires_in: number;
 }
@@ -37,8 +37,7 @@ export interface ConfirmUploadResponse {
     original_filename: string;
     content_type: string;
     size_bytes: number;
-    uploaded_by: string;
-    public_url: string;
+    storage_url: string;
     status: 'uploading' | 'uploaded' | 'failed' | 'orphaned';
     file_purpose:
       | 'attachments'
@@ -71,7 +70,7 @@ export interface UploadedAttachment {
   originalFilename: string;
   contentType: string;
   sizeBytes: number;
-  publicUrl: string;
+  storageUrl: string;
   uploadProgress: number;
   status: 'uploading' | 'completed' | 'error';
   error?: string;

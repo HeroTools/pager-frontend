@@ -38,7 +38,7 @@ const ChannelChat = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    refetch: refetchMessages,
+    refetch: refetchChannelMessages,
   } = useGetChannelWithMessagesInfinite(workspaceId, channelId);
 
   const {
@@ -125,11 +125,11 @@ const ChannelChat = () => {
 
   const handleRefreshData = useCallback(async () => {
     try {
-      await Promise.all([refetchMessages(), refetchChannel()]);
+      await Promise.all([refetchChannelMessages(), refetchChannel()]);
     } catch (error) {
       console.error('Failed to refresh channel data:', error);
     }
-  }, [refetchMessages, refetchChannel]);
+  }, [refetchChannelMessages, refetchChannel]);
 
   const isLoading = isLoadingMessages || isLoadingChannel || !currentUser;
   const error = messagesError || channelError;

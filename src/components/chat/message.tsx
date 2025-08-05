@@ -1,4 +1,3 @@
-import EmojiPicker from '@/components/emoji-picker';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Download,
@@ -13,11 +12,11 @@ import {
   Trash2,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
 import type { Delta, Op } from 'quill';
 import { type FC, useEffect, useRef, useState } from 'react';
 
 import { DeleteMessageModal } from '@/components/delete-message-modal';
+import EmojiPicker from '@/components/emoji-picker';
 import { MediaViewerModal } from '@/components/media-viewer-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -28,19 +27,45 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import InlineThinkingStatus from '@/features/agents/components/inline-thinking-status';
 import type { CurrentUser } from '@/features/auth/types';
+import { useSignedUrl } from '@/features/file-upload/hooks/use-attachments';
 import { useGetMembers } from '@/features/members';
 import { parseMessageContent } from '@/features/messages/helpers';
 import type { QuillDelta } from '@/features/messages/types';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { getFileIcon } from '@/lib/helpers';
+import { getProxiedUrl } from '@/lib/helpers/proxied-url';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
 import type { Attachment, Message } from '@/types/chat';
-import InlineThinkingStatus from '../../features/agents/components/inline-thinking-status';
 import { MessageContent } from './message-content';
 import { MessageReactions } from './message-reactions';
 import ThreadButton from './thread-button';
+
+const downloadFile = async (storageUrl: string, filename: string) => {
+  try {
+    const proxiedUrl = getProxiedUrl(storageUrl);
+    const response = await fetch(proxiedUrl);
+
+    if (!response.ok) throw new Error('Download failed');
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || 'download';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Download failed:', error);
+    // Fallback to opening in new tab
+    const proxiedUrl = getProxiedUrl(storageUrl);
+    window.open(proxiedUrl, '_blank');
+  }
+};
 
 const ATTACHMENT_CONFIG = {
   SINGLE: {
@@ -128,23 +153,62 @@ export const ImageAttachment: FC<ImageAttachmentProps> = ({
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [dimensions, setDimensions] = useState<{ width?: number; height?: number }>({});
 
   const filename = attachment.originalFilename || 'Uploaded image';
-  const url = attachment.publicUrl || '';
-  const hasValidUrl = !!url;
+  const proxiedUrl = getProxiedUrl(attachment.storageUrl || '');
+  const hasValidUrl = !!proxiedUrl;
 
-  // 1) Single = no fill: we give it max-width & max-height, let Image size itself
-  // 2) Multi/Thread = fill: we give it exact width/height classes
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+    setIsLoaded(true);
+  };
+
+  const getOptimalDimensions = () => {
+    if (isSingle) {
+      const maxWidth = 384; // max-w-md equivalent
+      const maxHeight = 384; // max-h-96 equivalent
+
+      if (dimensions.width && dimensions.height) {
+        const aspectRatio = dimensions.width / dimensions.height;
+        if (dimensions.width > maxWidth || dimensions.height > maxHeight) {
+          if (aspectRatio > 1) {
+            return {
+              width: Math.min(maxWidth, dimensions.width),
+              height: Math.min(maxWidth / aspectRatio, maxHeight),
+            };
+          } else {
+            return {
+              width: Math.min(maxHeight * aspectRatio, maxWidth),
+              height: Math.min(maxHeight, dimensions.height),
+            };
+          }
+        }
+      }
+      return {
+        width: Math.min(dimensions.width || maxWidth, maxWidth),
+        height: Math.min(dimensions.height || maxHeight, maxHeight),
+      };
+    }
+
+    // For multi/thread, use fixed dimensions
+    return isThread ? { width: 160, height: 112 } : { width: 192, height: 128 };
+  };
+
+  const optimalDims = getOptimalDimensions();
+
   if (isSingle) {
     const { maxWidthClass, maxHeightClass } = ATTACHMENT_CONFIG.SINGLE.image;
     return (
       <div
         className={cn(
-          'relative rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity',
+          'relative group/image rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity',
           maxWidthClass,
           maxHeightClass,
         )}
         onClick={hasValidUrl ? onOpenMediaViewer : undefined}
+        style={isLoaded ? { width: optimalDims.width, height: optimalDims.height } : undefined}
       >
         {!isLoaded && !hasError && hasValidUrl && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted">
@@ -158,28 +222,27 @@ export const ImageAttachment: FC<ImageAttachmentProps> = ({
             <span className="text-sm">Failed to load</span>
           </div>
         ) : (
-          <Image
-            src={url}
+          <img
+            src={proxiedUrl}
             alt={filename}
-            // pick a reasonable “intrinsic” size here that fits under max-w-md / max-h-96
-            width={600}
-            height={400}
+            width={optimalDims.width}
+            height={optimalDims.height}
             className={cn('object-contain transition-opacity', !isLoaded && 'opacity-0')}
-            sizes="(max-width: 768px) 100vw, 600px"
-            priority={priority}
-            onLoad={() => setIsLoaded(true)}
+            loading={priority ? 'eager' : 'lazy'}
+            decoding="async"
+            onLoad={handleImageLoad}
             onError={() => setHasError(true)}
           />
         )}
 
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
           <Button
             variant="secondary"
             size="sm"
             className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(url, '_blank');
+              downloadFile(attachment.storageUrl || '', filename);
             }}
           >
             <Download className="w-4 h-4 text-white" />
@@ -195,7 +258,7 @@ export const ImageAttachment: FC<ImageAttachmentProps> = ({
   return (
     <div
       className={cn(
-        'relative rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0',
+        'relative group/image rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0',
         widthClass,
         heightClass,
       )}
@@ -213,26 +276,27 @@ export const ImageAttachment: FC<ImageAttachmentProps> = ({
           <span className="text-sm">Failed to load</span>
         </div>
       ) : (
-        <Image
-          src={url}
+        <img
+          src={proxiedUrl}
           alt={filename}
-          fill
+          width={optimalDims.width}
+          height={optimalDims.height}
           className={cn('object-cover transition-opacity', !isLoaded && 'opacity-0')}
-          sizes={isThread ? '160px' : '192px'}
-          priority={priority}
-          onLoad={() => setIsLoaded(true)}
+          loading="lazy"
+          decoding="async"
+          onLoad={handleImageLoad}
           onError={() => setHasError(true)}
         />
       )}
 
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
         <Button
           variant="secondary"
           size="sm"
           className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
-            window.open(url, '_blank');
+            downloadFile(attachment.storageUrl || '', filename);
           }}
         >
           <Download className="w-4 h-4 text-white" />
@@ -252,6 +316,7 @@ const VideoAttachment: FC<{
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const config = getAttachmentConfig(isSingle, isThread);
+  const proxiedUrl = getProxiedUrl(attachment.storageUrl || '');
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -297,7 +362,7 @@ const VideoAttachment: FC<{
           </div>
         ) : (
           <video
-            src={attachment.publicUrl}
+            src={proxiedUrl}
             className={cn(
               'w-full h-full object-cover transition-opacity',
               !isLoaded && 'opacity-0',
@@ -323,7 +388,7 @@ const VideoAttachment: FC<{
           className="h-8 w-8 p-0 bg-black/20 hover:bg-black/40 border-0"
           onClick={(e) => {
             e.stopPropagation();
-            window.open(attachment.publicUrl, '_blank');
+            downloadFile(attachment.storageUrl || '', attachment.originalFilename || 'video');
           }}
         >
           <Download className="w-4 h-4 text-white" />
@@ -334,6 +399,8 @@ const VideoAttachment: FC<{
 };
 
 const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
+  const proxiedUrl = getProxiedUrl(attachment.storageUrl || '');
+
   return (
     <div className="bg-muted rounded-lg p-3 max-w-sm">
       <div className="flex items-center gap-3 mb-2">
@@ -347,7 +414,7 @@ const AudioAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
           )}
         </div>
       </div>
-      <audio src={attachment.publicUrl} className="w-full" controls preload="metadata">
+      <audio src={proxiedUrl} className="w-full" controls preload="metadata">
         Your browser does not support the audio tag.
       </audio>
     </div>
@@ -360,6 +427,7 @@ const DocumentAttachment: FC<{
 }> = ({ attachment, onOpenMediaViewer }) => {
   const [previewLoaded, setPreviewLoaded] = useState(false);
   const [previewError, setPreviewError] = useState(false);
+  const { data: previewURL } = useSignedUrl(attachment.storageUrl?.split('files/')[1] || '');
 
   const getFileColor = (filename: string) => {
     const extension = filename.split('.').pop()?.toLowerCase();
@@ -385,24 +453,29 @@ const DocumentAttachment: FC<{
     return ['pdf', 'doc', 'docx', 'xls', 'xlsx'].includes(extension || '');
   };
 
-  const getPreviewUrl = (attachment: Attachment) => {
-    const extension = attachment.originalFilename?.split('.').pop()?.toLowerCase();
+  const getPreviewUrl = (filename: string) => {
+    const ext = filename.split('.').pop()?.toLowerCase();
 
-    if (extension === 'pdf') {
-      return `${attachment.publicUrl}#toolbar=0`;
+    if (previewURL && ext === 'pdf') {
+      return `${previewURL}#toolbar=0`;
     }
-
-    if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension || '')) {
-      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-        attachment.publicUrl,
-      )}`;
+    if (previewURL && ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext || '')) {
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewURL)}`;
     }
-
     return null;
   };
 
-  const previewUrl = getPreviewUrl(attachment);
+  const previewUrl = getPreviewUrl(attachment.originalFilename || '');
   const canPreview = isViewableDocument(attachment.originalFilename || '');
+
+  const handleClick = () => {
+    if (canPreview) {
+      onOpenMediaViewer();
+    } else {
+      const proxiedUrl = getProxiedUrl(attachment.storageUrl || '');
+      window.open(proxiedUrl, '_blank');
+    }
+  };
 
   return (
     <div className="relative group/document w-48">
@@ -411,7 +484,7 @@ const DocumentAttachment: FC<{
           'rounded-lg border-2 cursor-pointer hover:shadow-md transition-all overflow-hidden',
           getFileColor(attachment.originalFilename || ''),
         )}
-        onClick={canPreview ? onOpenMediaViewer : () => window.open(attachment.publicUrl, '_blank')}
+        onClick={handleClick}
       >
         <div className="p-3 pb-2">
           <div className="flex items-center gap-2 mb-1">
@@ -482,7 +555,7 @@ const DocumentAttachment: FC<{
           className="h-6 w-6 p-0 bg-background/80 hover:bg-background border-0"
           onClick={(e) => {
             e.stopPropagation();
-            window.open(attachment.publicUrl, '_blank');
+            downloadFile(attachment.storageUrl || '', attachment.originalFilename || 'document');
           }}
         >
           <Download className="w-3 h-3 text-muted-foreground" />
@@ -492,11 +565,49 @@ const DocumentAttachment: FC<{
   );
 };
 
+const isDocumentFile = (attachment: Attachment): boolean => {
+  const mimeType = attachment.contentType || '';
+  const filename = attachment.originalFilename || '';
+
+  const documentMimeTypes = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    'application/msword', // .doc
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+    'application/vnd.ms-excel', // .xls
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+    'application/vnd.ms-powerpoint', // .ppt
+  ];
+
+  if (documentMimeTypes.includes(mimeType)) {
+    return true;
+  }
+  if (
+    mimeType.includes('pdf') ||
+    mimeType.includes('document') ||
+    mimeType.includes('spreadsheet') ||
+    mimeType.includes('presentation') ||
+    mimeType.includes('officedocument') ||
+    mimeType.includes('msword') ||
+    mimeType.includes('ms-excel') ||
+    mimeType.includes('ms-powerpoint')
+  ) {
+    return true;
+  }
+
+  return /\.(pdf|doc|docx|xls|xlsx|ppt|pptx)$/i.test(filename);
+};
+
 const GenericAttachment: FC<{ attachment: Attachment }> = ({ attachment }) => {
+  const handleClick = () => {
+    const proxiedUrl = getProxiedUrl(attachment.storageUrl || '');
+    window.open(proxiedUrl, '_blank');
+  };
+
   return (
     <div
       className="bg-muted rounded-lg p-3 max-w-sm hover:bg-muted/80 transition-colors cursor-pointer"
-      onClick={() => window.open(attachment.publicUrl, '_blank')}
+      onClick={handleClick}
     >
       <div className="flex items-center gap-3">
         <File className="w-5 h-5 text-muted-foreground" />
@@ -519,7 +630,6 @@ const AttachmentGrid: FC<{
 }> = ({ attachments, onOpenMediaViewer, isThread = false }) => {
   const renderAttachment = (attachment: Attachment, index: number, isSingle = false) => {
     const mimeType = attachment.contentType || '';
-    const filename = attachment.originalFilename || '';
 
     if (mimeType.startsWith('image/')) {
       return (
@@ -529,7 +639,7 @@ const AttachmentGrid: FC<{
           onOpenMediaViewer={() => onOpenMediaViewer(attachments, index)}
           isSingle={isSingle}
           isThread={isThread}
-          priority={true} // we shouldn't set priority to messages below the fold
+          priority={true}
         />
       );
     }
@@ -550,13 +660,7 @@ const AttachmentGrid: FC<{
       return <AudioAttachment key={attachment.id} attachment={attachment} />;
     }
 
-    if (
-      mimeType.includes('pdf') ||
-      mimeType.includes('document') ||
-      mimeType.includes('spreadsheet') ||
-      mimeType.includes('presentation') ||
-      filename.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx)$/i)
-    ) {
+    if (isDocumentFile(attachment)) {
       return (
         <DocumentAttachment
           key={attachment.id}
@@ -565,7 +669,6 @@ const AttachmentGrid: FC<{
         />
       );
     }
-
     return <GenericAttachment key={attachment.id} attachment={attachment} />;
   };
 

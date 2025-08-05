@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
+
 import { SignUpCard } from '@/features/auth/components/sign-up-card';
-import { useWorkspaceFromInviteToken } from '@/features/workspaces/hooks/use-workspaces';
 import { useAuthStore } from '@/features/auth/stores/auth-store';
+import { useWorkspaceFromInviteToken } from '@/features/workspaces/hooks/use-workspaces';
 
 const RegisterContent = () => {
   const router = useRouter();

@@ -51,26 +51,15 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     useNotificationPermissions();
 
   useEffect(() => {
-    let timer: NodeJS.Timeout | undefined;
-
-    // Show permission banner if:
+    // Show banner immediately when:
     // 1. Notifications are supported
-    // 2. Permission is "default" (not yet asked)
-    // 3. We haven't asked before in this session
-    // 4. User is logged in
-    if (isSupported && permission === 'default' && !hasAskedBefore && user?.workspace_member_id) {
-      // Show banner after a short delay to not overwhelm the user
-      timer = setTimeout(() => {
-        setShowPermissionBanner(true);
-      }, 5000);
+    // 2. We have a user (notifications will start)
+    // 3. Permission is still default (not granted/denied)
+    // 4. We haven't asked before in this session
+    if (isSupported && user?.workspace_member_id && permission === 'default' && !hasAskedBefore) {
+      setShowPermissionBanner(true);
     }
-
-    return () => {
-      if (timer) {
-        clearTimeout(timer);
-      }
-    };
-  }, [isSupported, permission, hasAskedBefore, user]);
+  }, [isSupported, user?.workspace_member_id, permission, hasAskedBefore]);
 
   const handleEnableNotifications = async () => {
     const result = await requestPermission();
