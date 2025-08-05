@@ -10,7 +10,7 @@ import parse, {
 } from 'html-react-parser';
 import { marked, type Tokens } from 'marked';
 import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { Hint } from '@/components/hint';
 
@@ -49,7 +49,6 @@ const detectContentFormat = (content: string): ContentFormat => {
     // Not JSON, continue with other checks
   }
 
-  // Check for common markdown patterns
   if (
     content.includes('# ') ||
     content.includes('## ') ||
@@ -72,7 +71,6 @@ const configureMarked = () => {
     gfm: true,
   });
 
-  // Custom renderer for better code block handling
   const renderer = new marked.Renderer();
 
   renderer.code = ({ text, lang }: Tokens.Code) => {
@@ -94,15 +92,63 @@ const configureMarked = () => {
   marked.use({ renderer });
 };
 
+const sanitizeHtml = (html: string): string => {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p',
+      'br',
+      'strong',
+      'b',
+      'em',
+      'i',
+      'u',
+      's',
+      'strike',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'ul',
+      'ol',
+      'li',
+      'blockquote',
+      'pre',
+      'code',
+      'a',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'th',
+      'td',
+      'img',
+      'div',
+      'span',
+    ],
+    ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class', 'src', 'alt'],
+    FORBID_ATTR: ['style'], // Remove all style attributes to prevent CSS issues
+    ADD_ATTR: ['target', 'rel'],
+    ALLOW_DATA_ATTR: false,
+  });
+};
+
 export const MessageContent = ({ content }: { content: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hooksConfigured = useRef(false);
 
-  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-    if (node.tagName === 'A') {
-      node.setAttribute('target', '_blank');
-      node.setAttribute('rel', 'noopener noreferrer');
+  useEffect(() => {
+    if (!hooksConfigured.current) {
+      DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+        if (node.tagName === 'A') {
+          node.setAttribute('target', '_blank');
+          node.setAttribute('rel', 'noopener noreferrer');
+        }
+      });
+      hooksConfigured.current = true;
     }
-  });
+  }, []);
 
   const cleanHtml = useMemo<string>(() => {
     if (!content.trim()) return '';
@@ -131,55 +177,22 @@ export const MessageContent = ({ content }: { content: string }) => {
             paragraphTag: 'p',
             linkTarget: '_blank',
             classPrefix: 'ql-',
-            inlineStyles: false,
+            inlineStyles: false, // Prevent inline styles
             multiLineCodeblock: true,
             multiLineHeader: true,
             multiLineBlockquote: true,
-            allowBackgroundClasses: true,
+            allowBackgroundClasses: false, // Disable background classes
           });
 
           const dirty = converter.convert();
-          const sanitized = DOMPurify.sanitize(dirty);
+          const sanitized = sanitizeHtml(dirty);
           return isContentEmpty(sanitized) ? '' : sanitized;
         }
 
         case 'markdown': {
           configureMarked();
           const htmlFromMarkdown = marked(content) as string;
-          const sanitized = DOMPurify.sanitize(htmlFromMarkdown, {
-            ALLOWED_TAGS: [
-              'p',
-              'br',
-              'strong',
-              'b',
-              'em',
-              'i',
-              'u',
-              's',
-              'strike',
-              'h1',
-              'h2',
-              'h3',
-              'h4',
-              'h5',
-              'h6',
-              'ul',
-              'ol',
-              'li',
-              'blockquote',
-              'pre',
-              'code',
-              'a',
-              'table',
-              'thead',
-              'tbody',
-              'tr',
-              'th',
-              'td',
-              'img',
-            ],
-            ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class', 'src', 'alt'],
-          });
+          const sanitized = sanitizeHtml(htmlFromMarkdown);
           return isContentEmpty(sanitized) ? '' : sanitized;
         }
 
@@ -188,46 +201,76 @@ export const MessageContent = ({ content }: { content: string }) => {
           const wrapped = /<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table)[^>]*>/i.test(content)
             ? content
             : `<p>${content}</p>`;
-          const sanitized = DOMPurify.sanitize(wrapped);
+          const sanitized = sanitizeHtml(wrapped);
           return isContentEmpty(sanitized) ? '' : sanitized;
         }
       }
     } catch (error) {
       console.error('Error processing message content:', error);
-      const sanitized = DOMPurify.sanitize(`<p>${content}</p>`);
+      const sanitized = sanitizeHtml(`<p>${content}</p>`);
       return isContentEmpty(sanitized) ? '' : sanitized;
     }
   }, [content]);
+
+  const replaceFn = useCallback((node: DOMNode): React.ReactElement | undefined => {
+    if (node.type === 'tag') {
+      const el = node as HtmlElement;
+
+      // Clean up any problematic attributes
+      const cleanAttribs = Object.keys(el.attribs || {}).reduce(
+        (acc, key) => {
+          const value = el.attribs[key];
+          // Skip style attributes and any numeric keys
+          if (key === 'style' || /^\d+$/.test(key)) {
+            return acc;
+          }
+          acc[key] = value;
+          return acc;
+        },
+        {} as Record<string, string>,
+      );
+
+      if (el.name === 'a') {
+        const href = cleanAttribs.href || '';
+        const key = `link-${href.slice(0, 50)}`;
+
+        return (
+          <Hint key={key} label={href} side="top" align="center">
+            <a {...cleanAttribs}>{domToReact(el.children as DOMNode[])}</a>
+          </Hint>
+        );
+      }
+    }
+    return undefined;
+  }, []);
 
   const parsedContent = useMemo<React.ReactNode>(() => {
     if (!cleanHtml) return null;
 
     const options: HTMLReactParserOptions = {
-      replace: (node) => {
-        if (node.type === 'tag' && (node as HtmlElement).name === 'a') {
-          const el = node as HtmlElement;
-          const href = el.attribs.href || '';
-          return (
-            <Hint key={href + Math.random()} label={href} side="top" align="center">
-              <a {...el.attribs}>{domToReact(el.children as DOMNode[], options)}</a>
-            </Hint>
-          );
-        }
-        return undefined;
-      },
+      replace: replaceFn,
     };
 
     return parse(cleanHtml, options);
-  }, [cleanHtml]);
+  }, [cleanHtml, replaceFn]);
 
   useEffect(() => {
-    if (!cleanHtml) return;
+    if (!cleanHtml || !containerRef.current) return;
 
-    // Handle code blocks that weren't processed by marked (for non-markdown content)
-    containerRef.current
-      ?.querySelectorAll('pre code:not(.hljs)')
-      .forEach((block) => hljs.highlightElement(block as HTMLElement));
-  }, [cleanHtml, parsedContent]);
+    const container = containerRef.current;
+    const codeBlocks = container.querySelectorAll('pre code:not(.hljs)');
+
+    try {
+      codeBlocks.forEach((block) => {
+        const element = block as HTMLElement;
+        if (element && typeof element.className === 'string') {
+          hljs.highlightElement(element);
+        }
+      });
+    } catch (error) {
+      console.warn('Error highlighting code blocks:', error);
+    }
+  }, [cleanHtml]);
 
   if (!cleanHtml) {
     return null;
