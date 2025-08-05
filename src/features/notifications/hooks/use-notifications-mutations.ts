@@ -1,4 +1,5 @@
-import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { type InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { notificationsApi } from '@/features/notifications/api/notifications-api';
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
 import type {
@@ -23,6 +24,7 @@ interface NotificationMutationContext {
   prevList?: NotificationsInfiniteData;
   prevUnread?: NotificationsInfiniteData;
   prevCount?: UnreadCountData;
+  optimisticUpdateApplied: boolean;
 }
 
 interface NotificationQueryKeys {
@@ -58,6 +60,12 @@ export function useMarkNotificationAsRead() {
 
       const now = new Date().toISOString();
 
+      const prevList = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.list);
+      const prevUnread = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.unread);
+      const prevCount = queryClient.getQueryData<UnreadCountData>(queryKeys.unreadCount);
+
+      let actualUnreadCount = 0;
+
       const updatePages = (
         data?: NotificationsInfiniteData,
       ): NotificationsInfiniteData | undefined => {
@@ -71,7 +79,8 @@ export function useMarkNotificationAsRead() {
             const unreadNotificationsBeingMarked = page.notifications.filter(
               (notification) => notificationIds.includes(notification.id) && !notification.is_read,
             );
-            const countRead = unreadNotificationsBeingMarked.length;
+
+            actualUnreadCount += unreadNotificationsBeingMarked.length;
 
             return {
               ...page,
@@ -80,7 +89,7 @@ export function useMarkNotificationAsRead() {
                   ? { ...notification, is_read: true, read_at: now }
                   : notification,
               ),
-              unread_count: Math.max(0, page.unread_count - countRead),
+              unread_count: Math.max(0, page.unread_count - unreadNotificationsBeingMarked.length),
             };
           }),
         };
@@ -95,31 +104,38 @@ export function useMarkNotificationAsRead() {
 
         return {
           ...data,
-          pages: data.pages.map((page) => ({
-            ...page,
-            notifications: page.notifications.filter(
-              (notification) => !notificationIds.includes(notification.id),
-            ),
-            unread_count: Math.max(0, page.unread_count - notificationIds.length),
-          })),
+          pages: data.pages.map((page) => {
+            const removedCount = page.notifications.filter((notification) =>
+              notificationIds.includes(notification.id),
+            ).length;
+
+            return {
+              ...page,
+              notifications: page.notifications.filter(
+                (notification) => !notificationIds.includes(notification.id),
+              ),
+              unread_count: Math.max(0, page.unread_count - removedCount),
+            };
+          }),
         };
       };
 
-      const prevList = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.list);
-      const prevUnread = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.unread);
-      const prevCount = queryClient.getQueryData<UnreadCountData>(queryKeys.unreadCount);
+      let optimisticUpdateApplied = false;
 
-      queryClient.setQueryData(queryKeys.list, updatePages);
-      queryClient.setQueryData(queryKeys.unread, removeFromUnreadPages);
+      if (prevList || prevUnread || prevCount) {
+        queryClient.setQueryData(queryKeys.list, updatePages);
+        queryClient.setQueryData(queryKeys.unread, removeFromUnreadPages);
 
-      if (prevCount) {
-        const unreadToMarkCount = notificationIds.length;
-        queryClient.setQueryData<UnreadCountData>(queryKeys.unreadCount, {
-          unread_count: Math.max(0, prevCount.unread_count - unreadToMarkCount),
-        });
+        if (prevCount && actualUnreadCount > 0) {
+          queryClient.setQueryData<UnreadCountData>(queryKeys.unreadCount, {
+            unread_count: Math.max(0, prevCount.unread_count - actualUnreadCount),
+          });
+        }
+
+        optimisticUpdateApplied = true;
       }
 
-      return { prevList, prevUnread, prevCount };
+      return { prevList, prevUnread, prevCount, optimisticUpdateApplied };
     },
 
     onError: (
@@ -127,6 +143,10 @@ export function useMarkNotificationAsRead() {
       { workspaceId }: MarkNotificationMutationParams,
       context?: NotificationMutationContext,
     ) => {
+      if (!context?.optimisticUpdateApplied) {
+        return;
+      }
+
       const queryKeys: NotificationQueryKeys = {
         list: notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
         unread: notificationKeys.unread(workspaceId),
@@ -147,16 +167,25 @@ export function useMarkNotificationAsRead() {
       console.error('Error marking notifications read:', errorMessage);
     },
 
-    onSettled: (_data, _error, { workspaceId }: MarkNotificationMutationParams) => {
+    onSuccess: (_data, { workspaceId }) => {
       const queryKeys: NotificationQueryKeys = {
         list: notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
         unread: notificationKeys.unread(workspaceId),
         unreadCount: notificationKeys.unreadCount(workspaceId),
       };
 
-      queryClient.invalidateQueries({ queryKey: queryKeys.list });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unread });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list,
+        refetchType: 'none',
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.unread,
+        refetchType: 'none',
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.unreadCount,
+        refetchType: 'none',
+      });
     },
   });
 }
@@ -181,6 +210,10 @@ export function useMarkAllNotificationsAsRead() {
       ]);
 
       const now = new Date().toISOString();
+
+      const prevList = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.list);
+      const prevUnread = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.unread);
+      const prevCount = queryClient.getQueryData<UnreadCountData>(queryKeys.unreadCount);
 
       const markAllRead = (
         data?: NotificationsInfiniteData,
@@ -220,20 +253,26 @@ export function useMarkAllNotificationsAsRead() {
         };
       };
 
-      const prevList = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.list);
-      const prevUnread = queryClient.getQueryData<NotificationsInfiniteData>(queryKeys.unread);
-      const prevCount = queryClient.getQueryData<UnreadCountData>(queryKeys.unreadCount);
+      let optimisticUpdateApplied = false;
 
-      queryClient.setQueryData(queryKeys.list, markAllRead);
-      queryClient.setQueryData(queryKeys.unread, clearUnreadPages);
-      queryClient.setQueryData<UnreadCountData>(queryKeys.unreadCount, {
-        unread_count: 0,
-      });
+      if (prevList || prevUnread || prevCount) {
+        queryClient.setQueryData(queryKeys.list, markAllRead);
+        queryClient.setQueryData(queryKeys.unread, clearUnreadPages);
+        queryClient.setQueryData<UnreadCountData>(queryKeys.unreadCount, {
+          unread_count: 0,
+        });
 
-      return { prevList, prevUnread, prevCount };
+        optimisticUpdateApplied = true;
+      }
+
+      return { prevList, prevUnread, prevCount, optimisticUpdateApplied };
     },
 
     onError: (err: Error, workspaceId: string, context?: NotificationMutationContext) => {
+      if (!context?.optimisticUpdateApplied) {
+        return;
+      }
+
       const queryKeys: NotificationQueryKeys = {
         list: notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
         unread: notificationKeys.unread(workspaceId),
@@ -254,16 +293,25 @@ export function useMarkAllNotificationsAsRead() {
       console.error('Error marking all notifications read:', errorMessage);
     },
 
-    onSettled: (_data, _error, workspaceId: string) => {
+    onSuccess: (_data, workspaceId: string) => {
       const queryKeys: NotificationQueryKeys = {
         list: notificationKeys.list(workspaceId, { limit: 50, unreadOnly: false }),
         unread: notificationKeys.unread(workspaceId),
         unreadCount: notificationKeys.unreadCount(workspaceId),
       };
 
-      queryClient.invalidateQueries({ queryKey: queryKeys.list });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unread });
-      queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list,
+        refetchType: 'none',
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.unread,
+        refetchType: 'none',
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.unreadCount,
+        refetchType: 'none',
+      });
     },
   });
 }
