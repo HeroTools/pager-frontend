@@ -238,7 +238,7 @@ export const Chat: FC<ChatProps> = ({
         getUserAvatar={(userId) => getUserAvatar(userId, members)}
       />
 
-      <div className={isMobile ? "fixed bottom-14 left-0 right-0 bg-background" : "p-4 border-t"}>
+      <div className={isMobile ? "fixed bottom-0 left-0 right-0 bg-background" : "p-4 border-t"}>
         <Editor
           variant="create"
           workspaceId={workspaceId}

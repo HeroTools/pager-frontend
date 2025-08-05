@@ -2,7 +2,7 @@
 
 import { Loader, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { WorkspaceSidebar } from '@/components/side-nav/workspace-sidebar';
 import { useGetUserChannels } from '@/features/channels/hooks/use-channels-mutations';
 import { useCreateChannelModal } from '@/features/channels/store/use-create-channel-modal';
@@ -42,8 +42,15 @@ const WorkspaceIdPage = () => {
   const isLoading = isWorkspaceLoading || isChannelsLoading || isMemberLoading;
   const hasError = workspaceError || channelsError || memberError;
 
+  const [hasMobileCheckCompleted, setHasMobileCheckCompleted] = useState(false);
+
   useEffect(() => {
-    if (isLoading || !workspace || !currentMember) {
+    // Mark mobile check as completed after first render
+    setHasMobileCheckCompleted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoading || !workspace || !currentMember || !hasMobileCheckCompleted) {
       return;
     }
 
@@ -53,7 +60,7 @@ const WorkspaceIdPage = () => {
     } else if (!isMobile && !open && isAdmin) {
       setOpen(true);
     }
-  }, [isLoading, workspace, currentMember, isAdmin, channelId, open, setOpen, router, workspaceId, isMobile]);
+  }, [isLoading, workspace, currentMember, isAdmin, channelId, open, setOpen, router, workspaceId, isMobile, hasMobileCheckCompleted]);
 
   if (isLoading) {
     return (

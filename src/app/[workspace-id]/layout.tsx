@@ -1,6 +1,7 @@
 'use client';
 
 import { Bell, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 import { MobileBottomNav } from '@/components/mobile/mobile-bottom-nav';
 import { ProfilePanel } from '@/components/profile-panel';
@@ -38,6 +39,7 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
   const { user } = useCurrentUser(workspaceId);
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
   const isMobile = useIsMobile();
+  const pathname = usePathname();
 
   useRealtimeNotifications({
     workspaceMemberId: user?.workspace_member_id || '',
@@ -89,6 +91,13 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     setNotificationsPanelOpen(false);
   };
 
+  // Check if we're in a channel, DM, or agent conversation
+  const isInConversation = pathname && (
+    pathname.includes('/c-') || 
+    pathname.includes('/d-') || 
+    pathname.includes('/agents')
+  );
+
   // Mobile layout
   if (isMobile) {
     return (
@@ -115,13 +124,13 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
         )}
 
         {/* Main content area with padding for fixed header and nav */}
-        <main className="flex-1 overflow-hidden pb-14">
+        <main className={`flex-1 overflow-hidden ${isInConversation ? '' : 'pb-14'}`}>
           {children}
         </main>
 
         {/* Thread panel slides in from right on mobile */}
         {isThreadOpen() && openThreadMessageId && (
-          <div className="fixed top-0 right-0 bottom-14 w-full z-40 bg-background border-l">
+          <div className={`fixed top-0 right-0 ${isInConversation ? 'bottom-0' : 'bottom-14'} w-full z-40 bg-background border-l`}>
             <div className="h-full">
               <Thread onClose={() => setThreadOpen(null)} />
             </div>
@@ -146,7 +155,7 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
           </div>
         )}
 
-        <MobileBottomNav />
+        {!isInConversation && <MobileBottomNav />}
       </div>
     );
   }
