@@ -105,10 +105,9 @@ export const useFileUpload = (workspaceId: string) => {
   const manualUploadMutation = useManualUpload();
   const confirmUploadMutation = useConfirmUpload();
 
-  // Use refs to track progress throttling more efficiently
-  const progressThrottleRefs = useRef<Map<number, { lastUpdate: number; rafId?: number }>>(
-    new Map(),
-  );
+  const progressThrottleRefs = useRef<
+    Map<number, { lastUpdate: number; timeout?: NodeJS.Timeout }>
+  >(new Map());
 
   const createThrottledProgressCallback = useCallback(
     (onFileProgress: (fileIndex: number, progress: UploadProgress) => void) => {
@@ -116,24 +115,23 @@ export const useFileUpload = (workspaceId: string) => {
         const now = Date.now();
         const progressInfo = progressThrottleRefs.current.get(fileIndex) || { lastUpdate: 0 };
 
-        // Cancel any pending RAF for this file
-        if (progressInfo.rafId) {
-          cancelAnimationFrame(progressInfo.rafId);
+        if (progressInfo.timeout) {
+          clearTimeout(progressInfo.timeout);
         }
 
-        // Update immediately for 100% or throttle others
-        if (progress.percentage === 100 || now - progressInfo.lastUpdate > 150) {
+        // Update immediately for 100% or if enough time has passed for progress
+        if (progress.percentage === 100 || now - progressInfo.lastUpdate > 50) {
           progressThrottleRefs.current.set(fileIndex, { lastUpdate: now });
           onFileProgress(fileIndex, progress);
         } else {
-          // Use RAF to batch updates and prevent blocking the main thread
-          const rafId = requestAnimationFrame(() => {
+          // Schedule update for progress
+          const timeout = setTimeout(() => {
             progressThrottleRefs.current.set(fileIndex, { lastUpdate: Date.now() });
             onFileProgress(fileIndex, progress);
-          });
+          }, 50);
           progressThrottleRefs.current.set(fileIndex, {
             lastUpdate: progressInfo.lastUpdate,
-            rafId,
+            timeout,
           });
         }
       };
@@ -148,8 +146,8 @@ export const useFileUpload = (workspaceId: string) => {
     ): Promise<FileUploadResult[]> => {
       // Clear previous progress tracking
       progressThrottleRefs.current.forEach((info) => {
-        if (info.rafId) {
-          cancelAnimationFrame(info.rafId);
+        if (info.timeout) {
+          clearTimeout(info.timeout);
         }
       });
       progressThrottleRefs.current.clear();
@@ -159,6 +157,9 @@ export const useFileUpload = (workspaceId: string) => {
       const processFile = async (file: File, index: number): Promise<FileUploadResult> => {
         try {
           const fileId = crypto.randomUUID();
+
+          // Phase 1: Getting presigned URL (0-5%)
+          throttledProgress(index, { loaded: 0, total: file.size, percentage: 0 });
 
           const presignedUrlResponse = await getPresignedUrlMutation.mutateAsync({
             workspaceId,
@@ -171,16 +172,35 @@ export const useFileUpload = (workspaceId: string) => {
 
           const { signed_url, file_id } = presignedUrlResponse;
 
+          // Phase 1 complete (5%)
+          throttledProgress(index, { loaded: 0, total: file.size, percentage: 5 });
+
+          // Phase 2: Upload to S3 (5-99%)
           await manualUploadMutation.mutateAsync({
             signedUrl: signed_url,
             file,
-            onProgress: (progress) => throttledProgress(index, progress),
+            onProgress: (progress) => {
+              // Map S3 upload progress (0-100%) to our phase 2 range (5-99%)
+              const mappedPercentage = 5 + progress.percentage * 0.94;
+              throttledProgress(index, {
+                loaded: progress.loaded,
+                total: progress.total,
+                percentage: Math.round(mappedPercentage),
+              });
+            },
           });
 
+          // Phase 2 complete (99%)
+          throttledProgress(index, { loaded: file.size, total: file.size, percentage: 99 });
+
+          // Phase 3: Confirming upload (99-100%)
           const confirmedAttachment = await confirmUploadMutation.mutateAsync({
             workspaceId,
             attachmentId: file_id,
           });
+
+          // Phase 3 complete (100%)
+          throttledProgress(index, { loaded: file.size, total: file.size, percentage: 100 });
 
           const fileData = confirmedAttachment.file;
 
@@ -210,8 +230,8 @@ export const useFileUpload = (workspaceId: string) => {
 
       // Clean up progress tracking after completion
       progressThrottleRefs.current.forEach((info) => {
-        if (info.rafId) {
-          cancelAnimationFrame(info.rafId);
+        if (info.timeout) {
+          clearTimeout(info.timeout);
         }
       });
       progressThrottleRefs.current.clear();

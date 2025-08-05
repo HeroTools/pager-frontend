@@ -130,9 +130,9 @@ const Editor = ({
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
 
-  // Use a Map to store progress updates to avoid frequent state updates
-  const progressMapRef = useRef<Map<string, number>>(new Map());
-  const progressUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Use individual progress tracking for updates
+  const progressTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const lastProgressUpdateRef = useRef<Map<string, number>>(new Map());
 
   const { uploadMultipleFiles } = useFileUpload(workspaceId);
 
@@ -192,7 +192,9 @@ const Editor = ({
       setImage(null);
       setAttachments([]);
       activeUploadBatchRef.current = null;
-      progressMapRef.current.clear();
+      progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+      progressTimeoutsRef.current.clear();
+      lastProgressUpdateRef.current.clear();
 
       if (variant === 'create') {
         stopTyping();
@@ -251,42 +253,52 @@ const Editor = ({
     handleSubmitRef.current = handleSubmit;
   });
 
-  // Batch progress updates to reduce re-renders
-  const flushProgressUpdates = useCallback(() => {
-    if (progressMapRef.current.size === 0) return;
-
-    setAttachments((prev) => {
-      let hasChanges = false;
-      const updated = prev.map((att, index) => {
-        const fileKey = `file-${index}`;
-        const newProgress = progressMapRef.current.get(fileKey);
-        if (newProgress !== undefined && newProgress !== att.uploadProgress) {
-          hasChanges = true;
-          return { ...att, uploadProgress: newProgress };
-        }
-        return att;
-      });
-
-      progressMapRef.current.clear();
-      return hasChanges ? updated : prev;
-    });
-  }, []);
-
-  const handleBatchedProgressUpdate = useCallback(
+  const handleProgressUpdate = useCallback(
     (fileIndex: number, progress: { percentage: number }) => {
       const fileKey = `file-${fileIndex}`;
-      progressMapRef.current.set(fileKey, progress.percentage);
+      const now = Date.now();
+      const lastUpdate = lastProgressUpdateRef.current.get(fileKey) || 0;
 
-      // Clear existing timeout
-      if (progressUpdateTimeoutRef.current) {
-        clearTimeout(progressUpdateTimeoutRef.current);
+      const existingTimeout = progressTimeoutsRef.current.get(fileKey);
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
       }
+      const shouldUpdateImmediately = progress.percentage === 100 || now - lastUpdate >= 100;
 
-      // Batch updates: flush immediately at 100% or after 200ms delay
-      const delay = progress.percentage === 100 ? 0 : 200;
-      progressUpdateTimeoutRef.current = setTimeout(flushProgressUpdates, delay);
+      const updateProgress = () => {
+        lastProgressUpdateRef.current.set(fileKey, Date.now());
+
+        setAttachments((prev) => {
+          const fileStartIndex = prev.findIndex((att) => att.status === 'uploading');
+          if (fileStartIndex === -1) return prev;
+
+          const targetIndex = fileStartIndex + fileIndex;
+          if (targetIndex >= prev.length) return prev;
+
+          const targetAttachment = prev[targetIndex];
+          if (targetAttachment.uploadProgress === progress.percentage) {
+            return prev; // No change needed
+          }
+
+          const updated = [...prev];
+          updated[targetIndex] = {
+            ...targetAttachment,
+            uploadProgress: progress.percentage,
+          };
+          return updated;
+        });
+
+        progressTimeoutsRef.current.delete(fileKey);
+      };
+
+      if (shouldUpdateImmediately) {
+        updateProgress();
+      } else {
+        const timeout = setTimeout(updateProgress, 80);
+        progressTimeoutsRef.current.set(fileKey, timeout);
+      }
     },
-    [flushProgressUpdates],
+    [],
   );
 
   const handleFiles = useCallback(
@@ -333,7 +345,7 @@ const Editor = ({
       setAttachments((prev) => [...prev, ...initialAttachments]);
 
       try {
-        const results = await uploadMultipleFiles(fileArray, handleBatchedProgressUpdate);
+        const results = await uploadMultipleFiles(fileArray, handleProgressUpdate);
 
         if (activeUploadBatchRef.current === batchId) {
           setAttachments((prev) => {
@@ -367,7 +379,9 @@ const Editor = ({
           });
 
           activeUploadBatchRef.current = null;
-          progressMapRef.current.clear();
+          progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+          progressTimeoutsRef.current.clear();
+          lastProgressUpdateRef.current.clear();
         }
       } catch (error) {
         if (activeUploadBatchRef.current === batchId) {
@@ -377,7 +391,9 @@ const Editor = ({
             ),
           );
           activeUploadBatchRef.current = null;
-          progressMapRef.current.clear();
+          progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+          progressTimeoutsRef.current.clear();
+          lastProgressUpdateRef.current.clear();
         }
       }
     },
@@ -387,7 +403,7 @@ const Editor = ({
       uploadMultipleFiles,
       maxFileSizeBytes,
       isAgentChat,
-      handleBatchedProgressUpdate,
+      handleProgressUpdate,
     ],
   );
 
@@ -665,11 +681,11 @@ const Editor = ({
     }
 
     return () => {
-      // Clear any pending progress updates
-      if (progressUpdateTimeoutRef.current) {
-        clearTimeout(progressUpdateTimeoutRef.current);
-      }
-      progressMapRef.current.clear();
+      const progressTimeouts = progressTimeoutsRef.current;
+      const lastProgressUpdate = lastProgressUpdateRef.current;
+      progressTimeouts.forEach((timeout) => clearTimeout(timeout));
+      progressTimeouts.clear();
+      lastProgressUpdate.clear();
 
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       quill.root.removeEventListener('blur', handleBlur);
@@ -693,7 +709,6 @@ const Editor = ({
     stopTyping,
     debouncedSetDraft,
     workspaceId,
-    // Removed attachments and related dependencies
   ]);
 
   const handleToolbarToggle = useCallback((): void => {
