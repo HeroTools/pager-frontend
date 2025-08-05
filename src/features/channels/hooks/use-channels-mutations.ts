@@ -74,11 +74,11 @@ export const useGetChannelWithMessagesInfinite = (
 
       return pagination.hasMore ? pagination.nextCursor : undefined;
     },
-    staleTime: Infinity,
-    gcTime: Infinity,
+    staleTime: 1000 * 30, // 30 seconds - allow refetch if data is older than this
+    gcTime: 1000 * 60 * 10, // 10 minutes - keep in memory for this long
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    refetchOnMount: 'always', // Always refetch when component mounts to catch missed messages
+    refetchOnReconnect: true, // Refetch when network reconnects
     initialPageParam: undefined as string | undefined,
     select: (data) => ({
       pages: data.pages,

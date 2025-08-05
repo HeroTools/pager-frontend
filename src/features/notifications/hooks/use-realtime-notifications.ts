@@ -385,70 +385,76 @@ export const useRealtimeNotifications = ({
   }, [getNotificationsQueryKey, getUnreadNotificationsQueryKey, queryClient, workspaceId]);
 
   useEffect(() => {
+    // Only subscribe if we have a real member ID & workspace & user explicitly enabled
     if (!enabled || !workspaceMemberId || !workspaceId) {
       return;
     }
 
-    const now = Date.now();
-    const CLEANUP_THRESHOLD = 10 * 60 * 1000; // 10 minutes
-    processedNotificationsRef.current.forEach((ts, id) => {
-      if (now - ts > CLEANUP_THRESHOLD) {
-        processedNotificationsRef.current.delete(id);
-      }
-    });
+    // If there was a prior subscription, fully tear it down first
+    cleanupFnRef.current?.();
 
     const handler = notificationsRealtimeHandler;
     realtimeHandlerRef.current = handler;
 
-    const channelFactory = (sbClient: typeof supabase) =>
-      sbClient
-        .channel(topic, { config: { broadcast: { self: false } } })
-        .on(
-          'broadcast',
-          { event: 'new_notification' },
-          ({ payload }: { payload: NewNotificationPayload }) => handleNewNotification(payload),
-        )
-        .on(
-          'broadcast',
-          { event: 'notification_read' },
-          ({ payload }: { payload: NotificationReadPayload }) => handleNotificationRead(payload),
-        )
-        .on('broadcast', { event: 'all_notifications_read' }, () => handleAllNotificationsRead());
+    // Build the exact channel name
+    const topic = `workspace_member:${workspaceMemberId}`;
 
-    const removeChannel = handler.addChannel(channelFactory, {
-      onSubscribe: () => {
+    // Factory to create our supabase channel
+    const channelFactory = (sb: typeof supabase) => {
+      return sb
+        .channel(topic, {
+          config: {
+            broadcast: { self: false },
+            presence: { key: workspaceMemberId },
+          },
+        })
+        .on('broadcast', { event: 'new_notification' }, ({ payload }) => {
+          handleNewNotification(payload as any);
+        })
+        .on('broadcast', { event: 'notification_read' }, ({ payload }) => {
+          handleNotificationRead(payload as any);
+        })
+        .on('broadcast', { event: 'all_notifications_read' }, () => {
+          handleAllNotificationsRead();
+        });
+    };
+
+    // Add it (this will overwrite any existing factory for the same topic)
+    handler.addChannel(channelFactory, {
+      onSubscribe: (channel) => {
         setConnectionStatus('SUBSCRIBED');
         setIsConnected(true);
       },
-      onClose: () => {
+      onClose: (channel) => {
         setConnectionStatus('CLOSED');
         setIsConnected(false);
       },
-      onTimeout: () => {
+      onTimeout: (channel) => {
         setConnectionStatus('TIMED_OUT');
         setIsConnected(false);
       },
-      onError: () => {
+      onError: (channel, error) => {
         setConnectionStatus('CHANNEL_ERROR');
         setIsConnected(false);
       },
     });
 
-    const cleanup = handler.start();
-    cleanupFnRef.current = () => {
-      removeChannel();
-      cleanup();
-    };
+    // Kick off the handler (only starts once; subsequent calls are no-ops)
+    const stopAll = handler.start();
 
-    return () => {
-      cleanupFnRef.current?.();
+    // Save our cleanup to run when deps change or component unmounts
+    cleanupFnRef.current = () => {
+      handler.removeChannel(topic);
+      setIsConnected(false);
+      setConnectionStatus('CONNECTING');
       realtimeHandlerRef.current = null;
     };
+
+    return cleanupFnRef.current;
   }, [
     enabled,
     workspaceMemberId,
     workspaceId,
-    topic,
     handleNewNotification,
     handleNotificationRead,
     handleAllNotificationsRead,

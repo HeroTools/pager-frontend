@@ -29,6 +29,7 @@ export const useNotificationContext = () => {
   );
 
   const shouldShowBrowserNotification = useCallback((): boolean => {
+    // Show browser notifications when tab is not focused
     return !isFocused;
   }, [isFocused]);
 
@@ -41,6 +42,7 @@ export const useNotificationContext = () => {
 
   const shouldCreateUnreadNotification = useCallback(
     (notification: NotificationEntity): boolean => {
+      // Don't create unread if user is viewing the exact entity
       return !isFocused || !isNotificationForCurrentEntity(notification);
     },
     [isFocused, isNotificationForCurrentEntity],
