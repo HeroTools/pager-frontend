@@ -65,7 +65,11 @@ const detectContentFormat = (content: string): ContentFormat => {
   return 'html';
 };
 
+let markedConfigured = false;
+
 const configureMarked = () => {
+  if (markedConfigured) return;
+
   marked.setOptions({
     breaks: true,
     gfm: true,
@@ -83,14 +87,17 @@ const configureMarked = () => {
     return `<code>${text}</code>`;
   };
 
-  renderer.link = ({ href, title, tokens }: Tokens.Link) => {
+  renderer.link = ({ href, title, text }: Tokens.Link) => {
     const cleanHref = href.startsWith('http') ? href : `https://${href}`;
     const titleAttr = title ? ` title="${title}"` : '';
-    return `<a href="${cleanHref}" target="_blank" rel="noopener noreferrer"${titleAttr}>${tokens}</a>`;
+    return `<a href="${cleanHref}" target="_blank" rel="noopener noreferrer"${titleAttr}>${text}</a>`;
   };
 
   marked.use({ renderer });
+  markedConfigured = true;
 };
+
+configureMarked();
 
 const sanitizeHtml = (html: string): string => {
   return DOMPurify.sanitize(html, {
@@ -128,10 +135,40 @@ const sanitizeHtml = (html: string): string => {
       'span',
     ],
     ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class', 'src', 'alt'],
-    FORBID_ATTR: ['style'], // Remove all style attributes to prevent CSS issues
+    FORBID_ATTR: ['style'],
     ADD_ATTR: ['target', 'rel'],
     ALLOW_DATA_ATTR: false,
   });
+};
+
+const preprocessSlackLinks = (input: string): string => {
+  if (!input || typeof input !== 'string') {
+    return input;
+  }
+
+  let processed = input;
+
+  // Handle HTML-encoded Slack links: &lt;url|label&gt;
+  processed = processed.replace(/&lt;([^|]+?)\|([^&]+?)&gt;/g, (match, url, label) => {
+    return `[${label.trim()}](${url.trim()})`;
+  });
+
+  // Handle regular Slack links: <url|label>
+  processed = processed.replace(/<([^|<>]+?)\|([^<>]+?)>/g, (match, url, label) => {
+    return `[${label.trim()}](${url.trim()})`;
+  });
+
+  // Handle URLs without labels: <url>
+  processed = processed.replace(/<(https?:\/\/[^<>\s]+)>/g, (match, url) => {
+    return `[${url}](${url})`;
+  });
+
+  // Fix malformed markdown links with pipes: [label](url|extra) -> [label](url)
+  processed = processed.replace(/\[([^\]]+?)\]\(([^|)]+?)\|[^)]*\)/g, (match, label, url) => {
+    return `[${label}](${url})`;
+  });
+
+  return processed;
 };
 
 export const MessageContent = ({ content }: { content: string }) => {
@@ -153,12 +190,13 @@ export const MessageContent = ({ content }: { content: string }) => {
   const cleanHtml = useMemo<string>(() => {
     if (!content.trim()) return '';
 
-    const format = detectContentFormat(content);
+    const preprocessed = preprocessSlackLinks(content);
+    const format = detectContentFormat(preprocessed);
 
     try {
       switch (format) {
         case 'delta': {
-          const delta = JSON.parse(content) as QuillDelta;
+          const delta = JSON.parse(preprocessed) as QuillDelta;
           if (isDeltaEmpty(delta)) return '';
 
           const normalized = delta.ops.map((op) => {
@@ -177,11 +215,11 @@ export const MessageContent = ({ content }: { content: string }) => {
             paragraphTag: 'p',
             linkTarget: '_blank',
             classPrefix: 'ql-',
-            inlineStyles: false, // Prevent inline styles
+            inlineStyles: false,
             multiLineCodeblock: true,
             multiLineHeader: true,
             multiLineBlockquote: true,
-            allowBackgroundClasses: false, // Disable background classes
+            allowBackgroundClasses: false,
           });
 
           const dirty = converter.convert();
@@ -190,17 +228,16 @@ export const MessageContent = ({ content }: { content: string }) => {
         }
 
         case 'markdown': {
-          configureMarked();
-          const htmlFromMarkdown = marked(content) as string;
+          const htmlFromMarkdown = marked(preprocessed) as string;
           const sanitized = sanitizeHtml(htmlFromMarkdown);
           return isContentEmpty(sanitized) ? '' : sanitized;
         }
 
         case 'html':
         default: {
-          const wrapped = /<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table)[^>]*>/i.test(content)
-            ? content
-            : `<p>${content}</p>`;
+          const wrapped = /<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table)[^>]*>/i.test(preprocessed)
+            ? preprocessed
+            : `<p>${preprocessed}</p>`;
           const sanitized = sanitizeHtml(wrapped);
           return isContentEmpty(sanitized) ? '' : sanitized;
         }
@@ -216,11 +253,9 @@ export const MessageContent = ({ content }: { content: string }) => {
     if (node.type === 'tag') {
       const el = node as HtmlElement;
 
-      // Clean up any problematic attributes
       const cleanAttribs = Object.keys(el.attribs || {}).reduce(
         (acc, key) => {
           const value = el.attribs[key];
-          // Skip style attributes and any numeric keys
           if (key === 'style' || /^\d+$/.test(key)) {
             return acc;
           }
