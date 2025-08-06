@@ -8,9 +8,9 @@ import { useCreateWorkspaceModal } from '@/features/workspaces/store/use-create-
 import { Skeleton } from '@/components/ui/skeleton';
 
 const SidebarSkeleton = () => (
-  <div className="w-64 bg-gray-50 border-r flex flex-col h-full">
+  <div className="w-64 bg-muted/30 border-r border-border flex flex-col h-full">
     {/* Workspace header */}
-    <div className="p-4 border-b">
+    <div className="p-4 border-b border-border bg-background/60">
       <div className="flex items-center gap-2">
         <Skeleton className="w-8 h-8 rounded" />
         <Skeleton className="h-6 w-20" />
@@ -52,7 +52,7 @@ const SidebarSkeleton = () => (
         <div className="space-y-1 ml-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="flex items-center gap-2 py-1">
-              <span className="text-gray-400">#</span>
+              <span className="text-muted-foreground">#</span>
               <Skeleton className="h-4 w-20" />
             </div>
           ))}
@@ -80,18 +80,18 @@ const SidebarSkeleton = () => (
     </div>
 
     {/* Invite button */}
-    <div className="p-4 border-t">
+    <div className="p-4 border-t border-border bg-background/60">
       <Skeleton className="h-8 w-full rounded" />
     </div>
   </div>
 );
 
 const MainContentSkeleton = () => (
-  <div className="flex-1 flex flex-col h-full">
+  <div className="flex-1 flex flex-col h-full bg-background">
     {/* Channel header */}
-    <div className="border-b p-4 flex items-center justify-between">
+    <div className="border-b border-border p-4 flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <span className="text-gray-400">#</span>
+        <span className="text-muted-foreground">#</span>
         <Skeleton className="h-6 w-16" />
       </div>
       <div className="flex items-center gap-2">
@@ -111,15 +111,15 @@ const MainContentSkeleton = () => (
               <Skeleton className="h-3 w-16" />
             </div>
             <Skeleton className="h-4 w-full max-w-md" />
-            {i === 2 && <Skeleton className="h-16 w-48 rounded border" />}
+            {i === 2 && <Skeleton className="h-16 w-48 rounded border border-border" />}
           </div>
         </div>
       ))}
     </div>
 
     {/* Message input */}
-    <div className="border-t p-4">
-      <div className="border rounded-lg p-3">
+    <div className="border-t border-border p-4">
+      <div className="border border-border rounded-lg p-3">
         <Skeleton className="h-4 w-32 mb-2" />
         <div className="flex items-center gap-2">
           <Skeleton className="w-6 h-6" />
@@ -151,7 +151,7 @@ export default function Home() {
   }, [workspaceId, isLoading, open, setOpen, router]);
 
   return (
-    <div className="h-screen flex bg-white">
+    <div className="h-screen flex bg-background">
       <SidebarSkeleton />
       <MainContentSkeleton />
     </div>
