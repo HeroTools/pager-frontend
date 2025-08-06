@@ -1,4 +1,4 @@
-import { Hash, Lock, LogOut, MoreVertical, Settings, Users } from 'lucide-react';
+import { ChevronLeft, Hash, Lock, LogOut, MoreVertical, Settings, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type FC, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -124,9 +124,16 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
     }
   };
 
+  const handleBack = () => {
+    router.push(`/${workspaceId}`);
+  };
+
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b">
       <div className="flex items-center gap-2">
+        <Button onClick={handleBack} variant="ghost" size="sm" className="p-0 h-8 w-8 md:hidden">
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
         {chatType === 'conversation' ? (
           // For conversations, show avatar(s) or names
           conversationDisplay?.type === 'group' ? (

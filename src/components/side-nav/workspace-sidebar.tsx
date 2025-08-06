@@ -68,14 +68,13 @@ export const WorkspaceSidebar = () => {
   }
 
   return (
-    <div className="flex flex-col h-full border-r">
+    <div className="flex flex-col h-full md:border-r">
       <WorkspaceHeader
         workspace={getWorkspace.data}
         isAdmin={getWorkspace.data.user_role === 'admin'}
       />
       <div className="flex flex-col h-full overflow-y-auto pb-12 gap-y-2">
-        <div className="flex flex-col px-2 mt-3">
-          <SidebarItem label="Threads" icon={MessageSquareText} id="threads" disabled />
+        <div className="hidden md:flex flex-col px-2 mt-3">
           <SidebarItem
             label="Drafts"
             icon={Pencil}

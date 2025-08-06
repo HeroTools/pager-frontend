@@ -26,7 +26,9 @@ export const RealtimeDebug = ({
   connectionStatus = 'UNKNOWN',
   isConnected = false,
 }: RealtimeDebugProps) => {
-  const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>(
+    'loading',
+  );
   const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [realtimeStatus, setRealtimeStatus] = useState<string>('UNKNOWN');
   const [networkStatus, setNetworkStatus] = useState<boolean>(navigator.onLine);
@@ -35,7 +37,10 @@ export const RealtimeDebug = ({
     // Check auth status
     const checkAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
         if (error) {
           console.error('Auth error:', error);
           setAuthStatus('unauthenticated');
@@ -70,7 +75,7 @@ export const RealtimeDebug = ({
     // Monitor network status
     const handleOnline = () => setNetworkStatus(true);
     const handleOffline = () => setNetworkStatus(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
@@ -84,8 +89,10 @@ export const RealtimeDebug = ({
   const getStatusIcon = (status: string, connected: boolean) => {
     if (!networkStatus) return <WifiOff className="h-4 w-4 text-red-500" />;
     if (connected) return <CheckCircle className="h-4 w-4 text-green-500" />;
-    if (status === 'CONNECTING' || status === 'RECONNECTING') return <RefreshCw className="h-4 w-4 text-yellow-500 animate-spin" />;
-    if (status === 'ERROR' || status === 'CHANNEL_ERROR') return <AlertCircle className="h-4 w-4 text-red-500" />;
+    if (status === 'CONNECTING' || status === 'RECONNECTING')
+      return <RefreshCw className="h-4 w-4 text-yellow-500 animate-spin" />;
+    if (status === 'ERROR' || status === 'CHANNEL_ERROR')
+      return <AlertCircle className="h-4 w-4 text-red-500" />;
     return <Wifi className="h-4 w-4 text-gray-500" />;
   };
 
