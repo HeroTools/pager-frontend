@@ -15,7 +15,6 @@ import { useChannelMembers } from '@/features/members/hooks/use-channel-members'
 import { useMessageOperations, useMessageReplies } from '@/features/messages/hooks/use-messages';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
 import { useToggleReaction } from '@/features/reactions';
-import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
@@ -61,7 +60,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
   const { isMessagePending } = useMessagesStore();
   const { workspaceId, id: entityId, type } = useParamIds();
   const { user: currentUser } = useCurrentUser(workspaceId);
-  const isMobile = useIsMobile();
 
   const { createMessage, updateMessage, deleteMessage } = useMessageOperations(
     workspaceId,
@@ -215,10 +213,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
 
       <div
         ref={scrollContainerRef}
-        className={cn(
-          'flex-1 flex flex-col min-h-0 overflow-y-auto messages-scrollbar relative',
-          isMobile && 'pb-[80px]',
-        )}
+        className="flex-1 flex flex-col min-h-0 overflow-y-auto messages-scrollbar relative pb-[80px] md:pb-0"
       >
         <div className="flex-shrink-0 mt-2">
           <div className="pb-2 relative">
@@ -313,13 +308,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
         }
       />
 
-      <div
-        className={
-          isMobile
-            ? 'absolute bottom-0 left-0 right-0 bg-background'
-            : 'px-4 py-4 border-t border-border-subtle bg-background'
-        }
-      >
+      <div className="absolute bottom-0 left-0 right-0 bg-background md:relative md:px-4 md:py-4 md:border-t md:border-border-subtle">
         <Editor
           variant="create"
           workspaceId={workspaceId}

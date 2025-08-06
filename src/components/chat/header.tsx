@@ -16,7 +16,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useCurrentUser } from '@/features/auth';
 import { useRemoveChannelMembers } from '@/features/channels';
 import { ChatMember } from '@/features/members';
-import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useParamIds } from '@/hooks/use-param-ids';
 import type { Channel } from '@/types/chat';
 
@@ -41,7 +40,6 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   const removeChannelMembers = useRemoveChannelMembers();
   const { user } = useCurrentUser(workspaceId);
   const router = useRouter();
-  const isMobile = useIsMobile();
 
   // Show up to 4 avatars, then a +N indicator
   const maxAvatars = 4;
@@ -133,11 +131,9 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b">
       <div className="flex items-center gap-2">
-        {isMobile && (
-          <Button onClick={handleBack} variant="ghost" size="sm" className="p-0 h-8 w-8">
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-        )}
+        <Button onClick={handleBack} variant="ghost" size="sm" className="p-0 h-8 w-8 md:hidden">
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
         {chatType === 'conversation' ? (
           // For conversations, show avatar(s) or names
           conversationDisplay?.type === 'group' ? (

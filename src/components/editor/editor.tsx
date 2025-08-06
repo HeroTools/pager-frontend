@@ -804,8 +804,8 @@ const Editor = ({
         ref={editorWrapperRef}
         className={cn(
           'flex flex-col border border-border-default overflow-hidden focus-within:border-border-strong transition-all duration-200 relative',
-          isMobile ? 'rounded-t-md' : 'rounded-md',
-          !isMobile && 'max-h-[calc(100%-36px)]',
+          'rounded-t-md md:rounded-md',
+          'md:max-h-[calc(100%-36px)]',
           !isAgentChat && isDragging && 'border-primary bg-accent/50',
         )}
         onDrop={handleDrop}
@@ -842,13 +842,14 @@ const Editor = ({
         )}
 
         <div className="flex px-2 pb-2 z-10 flex-shrink-0 items-center">
-          {!isMobile && (
+          {/* Desktop only: toolbar toggle button */}
+          <div className="hidden md:block">
             <Hint label={isToolbarVisible ? 'Hide formatting' : 'Show formatting'}>
               <Button disabled={disabled} size="sm" variant="ghost" onClick={handleToolbarToggle}>
                 <CaseSensitive className="size-4" />
               </Button>
             </Hint>
-          )}
+          </div>
 
           {!isAgentChat && (
             <>
@@ -913,9 +914,10 @@ const Editor = ({
         </div>
       </div>
 
-      {variant === 'create' && !isMobile && (
+      {variant === 'create' && (
         <div
           className={cn(
+            'hidden md:block',
             'p-2 pb-0 text-[10px] text-muted-foreground flex justify-end opacity-0 transition',
             !isEmpty && 'opacity-100',
           )}

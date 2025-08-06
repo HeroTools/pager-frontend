@@ -19,7 +19,6 @@ import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import { useChannelNotifications } from '@/features/notifications/hooks/use-channel-notifications';
 import { useConversationNotifications } from '@/features/notifications/hooks/use-conversation-notifications';
 import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
-import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/stores/ui-store';
 import { ChannelType } from '@/types/chat';
@@ -33,7 +32,6 @@ import { WorkspaceSection } from './workspace-section';
 export const WorkspaceSidebar = () => {
   const router = useRouter();
   const { workspaceId, id: entityId, agentId } = useParamIds();
-  const isMobile = useIsMobile();
 
   const getWorkspace = useGetWorkspace(workspaceId);
   const getUserChannels = useGetUserChannels(workspaceId);
@@ -70,23 +68,21 @@ export const WorkspaceSidebar = () => {
   }
 
   return (
-    <div className={`flex flex-col h-full ${isMobile ? '' : 'border-r'}`}>
+    <div className="flex flex-col h-full md:border-r">
       <WorkspaceHeader
         workspace={getWorkspace.data}
         isAdmin={getWorkspace.data.user_role === 'admin'}
       />
       <div className="flex flex-col h-full overflow-y-auto pb-12 gap-y-2">
-        {!isMobile && (
-          <div className="flex flex-col px-2 mt-3">
-            <SidebarItem
-              label="Drafts"
-              icon={Pencil}
-              id="drafts"
-              variant={entityId === 'drafts' ? 'active' : 'default'}
-              count={draftCount}
-            />
-          </div>
-        )}
+        <div className="hidden md:flex flex-col px-2 mt-3">
+          <SidebarItem
+            label="Drafts"
+            icon={Pencil}
+            id="drafts"
+            variant={entityId === 'drafts' ? 'active' : 'default'}
+            count={draftCount}
+          />
+        </div>
         <WorkspaceSection
           label="Channels"
           hint="New channel"

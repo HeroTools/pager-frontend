@@ -243,7 +243,7 @@ export const MediaViewerModal: FC<MediaViewerModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-none w-[90vw] h-[90vh] p-0 bg-background/95 backdrop-blur-sm border rounded-lg"
+        className="max-w-none w-full sm:w-[90vw] h-full sm:h-[90vh] p-0 bg-background/95 backdrop-blur-sm sm:border sm:rounded-lg"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <DialogTitle className="sr-only">

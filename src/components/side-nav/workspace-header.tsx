@@ -13,7 +13,6 @@ import {
 import { UserButton } from '@/features/auth';
 import { useConversationCreateStore } from '@/features/conversations/store/conversation-create-store';
 import type { WorkspaceEntity } from '@/features/workspaces/types';
-import { useIsMobile } from '@/hooks/use-is-mobile';
 import { InviteModal } from './invite-modal';
 
 interface WorkspaceHeaderProps {
@@ -24,7 +23,6 @@ interface WorkspaceHeaderProps {
 export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) => {
   const [inviteOpen, setInviteOpen] = useState(false);
   const router = useRouter();
-  const isMobile = useIsMobile();
 
   const { startConversationCreation } = useConversationCreateStore();
 
@@ -75,15 +73,16 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        {!isMobile ? (
-          <div className="flex items-center gap-0.5">
-            <Button variant="transparent" size="iconSm" onClick={startConversationCreation}>
-              <SquarePen className="size-4" />
-            </Button>
-          </div>
-        ) : (
+        {/* Desktop: New conversation button */}
+        <div className="hidden md:flex items-center gap-0.5">
+          <Button variant="transparent" size="iconSm" onClick={startConversationCreation}>
+            <SquarePen className="size-4" />
+          </Button>
+        </div>
+        {/* Mobile: User button */}
+        <div className="md:hidden">
           <UserButton workspaceId={workspace.id} size="sm" />
-        )}
+        </div>
       </div>
     </>
   );

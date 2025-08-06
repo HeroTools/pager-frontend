@@ -269,7 +269,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-2xl w-full h-[80vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-2xl w-full h-[90vh] sm:h-[80vh] flex flex-col p-0 overflow-hidden">
           <div className="p-6 pb-0">
             <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
               {channel.isPrivate ? <Lock className="w-5 h-5" /> : <Hash className="w-5 h-5" />}
@@ -282,7 +282,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
             onValueChange={(value) => setActiveTab(value as 'members' | 'settings')}
             className="flex-1 flex flex-col h-full"
           >
-            <div className="px-6">
+            <div className="px-4 sm:px-6">
               <TabsList className="w-full grid grid-cols-2">
                 <TabsTrigger value="members" className="flex items-center gap-2">
                   <Users className="w-4 h-4" /> Members{' '}
@@ -295,7 +295,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
             </div>
 
             <TabsContent value="members" className="flex-1 overflow-hidden flex flex-col mt-0">
-              <div className="p-6 pt-4 space-y-4">
+              <div className="p-4 sm:p-6 sm:pt-4 space-y-4">
                 <div className="flex items-center justify-between gap-7">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 h-4 -translate-y-1/2 text-muted-foreground" />
@@ -324,7 +324,8 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                     onClick={() => setIsAddingMembers(true)}
                   >
                     <Plus className="h-4 w-4" />
-                    Add people
+                    <span className="hidden sm:inline">Add people</span>
+                    <span className="sm:hidden">Add</span>
                   </Button>
                 </div>
 
