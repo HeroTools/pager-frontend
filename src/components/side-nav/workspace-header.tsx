@@ -33,7 +33,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
   return (
     <>
       <InviteModal open={inviteOpen} setOpen={setInviteOpen} name={workspace.name} />
-      <div className="flex items-center justify-between px-4 h-[49px] gap-0.5 border-b">
+      <div className="flex items-center justify-between p-3 md:px-4 md:h-[49px] gap-0.5 border-b">
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
@@ -80,7 +80,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
           </Button>
         </div>
         {/* Mobile: User button */}
-        <div className="md:hidden">
+        <div className="md:hidden pr-1">
           <UserButton workspaceId={workspace.id} size="sm" />
         </div>
       </div>
