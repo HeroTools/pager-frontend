@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { UserButton } from '@/features/auth';
 import { useConversationCreateStore } from '@/features/conversations/store/conversation-create-store';
 import type { WorkspaceEntity } from '@/features/workspaces/types';
 import { InviteModal } from './invite-modal';
@@ -32,7 +33,7 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
   return (
     <>
       <InviteModal open={inviteOpen} setOpen={setInviteOpen} name={workspace.name} />
-      <div className="flex items-center justify-between px-4 h-[49px] gap-0.5 border-b">
+      <div className="flex items-center justify-between p-3 md:px-4 md:h-[49px] gap-0.5 border-b">
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
@@ -72,10 +73,15 @@ export const WorkspaceHeader = ({ workspace, isAdmin }: WorkspaceHeaderProps) =>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <div className="flex items-center gap-0.5">
+        {/* Desktop: New conversation button */}
+        <div className="hidden md:flex items-center gap-0.5">
           <Button variant="transparent" size="iconSm" onClick={startConversationCreation}>
             <SquarePen className="size-4" />
           </Button>
+        </div>
+        {/* Mobile: User button */}
+        <div className="md:hidden pr-1">
+          <UserButton workspaceId={workspace.id} size="sm" />
         </div>
       </div>
     </>

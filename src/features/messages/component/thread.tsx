@@ -16,6 +16,7 @@ import { useMessageOperations, useMessageReplies } from '@/features/messages/hoo
 import { useMessagesStore } from '@/features/messages/store/messages-store';
 import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
+import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
 import type { Message } from '@/types/chat';
 import { formatDateLabel, getUserAvatar, getUserName, transformMessages } from '../helpers';
@@ -207,12 +208,12 @@ export const Thread = ({ onClose }: ThreadProps) => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
       <ThreadHeader onClose={onClose} title="Thread" />
 
       <div
         ref={scrollContainerRef}
-        className="flex-1 flex flex-col min-h-0 overflow-y-auto messages-scrollbar relative"
+        className="flex-1 flex flex-col min-h-0 overflow-y-auto messages-scrollbar relative pb-[80px] md:pb-0"
       >
         <div className="flex-shrink-0 mt-2">
           <div className="pb-2 relative">
@@ -307,7 +308,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
         }
       />
 
-      <div className="px-4 py-4 border-t border-border-subtle bg-background">
+      <div className="absolute bottom-0 left-0 right-0 bg-background md:relative md:px-4 md:py-4 md:border-t md:border-border-subtle">
         <Editor
           variant="create"
           workspaceId={workspaceId}

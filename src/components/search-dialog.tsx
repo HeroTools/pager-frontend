@@ -224,7 +224,7 @@ export const SearchDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-4xl w-full max-h-[90vh] sm:max-h-[80vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Search className="size-5" />

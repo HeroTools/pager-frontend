@@ -94,7 +94,7 @@ export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModal
     <>
       <ConfirmDialog />
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="p-0 bg-secondary overflow-hidden">
+        <DialogContent className="p-0 bg-secondary overflow-hidden sm:max-w-lg">
           <DialogHeader className="p-4 border-b">
             <DialogTitle>{initialVlaue}</DialogTitle>
           </DialogHeader>

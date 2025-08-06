@@ -7,6 +7,7 @@ import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import type { UploadedAttachment } from '@/features/file-upload';
 import { getUserAvatar, getUserName } from '@/features/messages/helpers';
 import { useParamIds } from '@/hooks/use-param-ids';
+import { cn } from '@/lib/utils';
 import type { Channel, Message } from '@/types/chat';
 import { ChatMember } from '../../features/members';
 import { ChatHeader } from './header';
@@ -205,7 +206,7 @@ export const Chat: FC<ChatProps> = ({
   }, [isLoadingMore]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full pb-[120px] md:pb-0">
       <ChatHeader
         channel={channel}
         members={chatType === 'channel' ? (members as ChatMember[]) : []}
@@ -235,7 +236,7 @@ export const Chat: FC<ChatProps> = ({
         getUserAvatar={(userId) => getUserAvatar(userId, members)}
       />
 
-      <div className="p-4 border-t border-border-subtle">
+      <div className="fixed bottom-0 left-0 right-0 bg-background md:relative md:p-4 md:border-t">
         <Editor
           variant="create"
           workspaceId={workspaceId}

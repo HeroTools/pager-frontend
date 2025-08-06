@@ -11,7 +11,12 @@ import { useCurrentUser } from '../hooks/use-current-user';
 import { Loader, LogOutIcon } from 'lucide-react';
 import { useSignOut } from '../hooks/use-auth-mutations';
 
-export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
+interface UserButtonProps {
+  workspaceId: string;
+  size?: 'sm' | 'md';
+}
+
+export const UserButton = ({ workspaceId, size = 'md' }: UserButtonProps) => {
   const { user, isLoading } = useCurrentUser(workspaceId);
 
   const signOut = useSignOut();
@@ -31,14 +36,16 @@ export const UserButton = ({ workspaceId }: { workspaceId: string }) => {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="outline-none relative cursor-pointer">
-        <Avatar className="rounded-md size-10 hover:opacity-75 transition">
+        <Avatar
+          className={`rounded-md hover:opacity-75 transition ${size === 'sm' ? 'size-8' : 'size-10'}`}
+        >
           <AvatarImage className="rounded-md" alt={user.name} src={user.image} />
-          <AvatarFallback className="rounded-md">
+          <AvatarFallback className="rounded-md text-sm">
             {user.name!.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="center" side="right" className="w-60">
+      <DropdownMenuContent align="end" side="bottom" className="w-60">
         <DropdownMenuItem onClick={handleSignOut} className="h-10">
           <LogOutIcon className="size-4 mr-2" />
           Log out

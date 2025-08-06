@@ -8,8 +8,8 @@ export const AuthScreen = () => {
   const { flow, setFlow } = useAuthStore();
 
   return (
-    <div className="h-full flex items-center justify-center bg-secondary">
-      <div className="md:h-auto md:w-[420px]">
+    <div className="h-full flex items-center justify-center bg-secondary px-4">
+      <div className="w-full max-w-[420px]">
         {flow === 'signIn' ? <SignInCard setFlow={setFlow} /> : <SignUpCard setFlow={setFlow} />}
       </div>
     </div>
