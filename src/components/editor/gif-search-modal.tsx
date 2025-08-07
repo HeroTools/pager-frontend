@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Search, TrendingUp } from 'lucide-react';
-import { useGifModal } from '@/stores/use-gif-modal';
+import { useGifModal } from '@/stores/gif-modal-store';
 import { getTrendingGifs, searchGifs, type TenorGif } from '@/lib/tenor';
 import { useDebouncedCallback } from 'use-debounce';
 

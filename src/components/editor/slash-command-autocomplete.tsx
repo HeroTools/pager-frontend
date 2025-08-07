@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import { useGifModal } from '@/stores/use-gif-modal';
+import { useGifModal } from '@/stores/gif-modal-store';
 import { Image } from 'lucide-react';
 
 interface SlashCommand {
