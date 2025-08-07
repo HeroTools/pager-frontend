@@ -12,7 +12,6 @@ import {
   Smile,
   Upload,
   Users,
-  WifiOff,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
@@ -30,9 +29,20 @@ export const MigrationImportPage = () => {
   const [step, setStep] = useState<'upload' | 'uploading' | 'processing' | 'complete'>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const migration = useStartMigration();
   const { data: allJobs, isLoading: jobsLoading } = useMigrationJobs(workspaceId);
+
+  const formatTimeAgo = (date: Date | null) => {
+    if (!date) return null;
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  };
 
   const handleBackClick = () => {
     router.push(`/${workspaceId}/settings`);
@@ -46,7 +56,6 @@ export const MigrationImportPage = () => {
       );
 
       if (activeJob) {
-        console.log('Found active migration job:', activeJob.jobId);
         setStep('processing');
       }
     }
@@ -55,6 +64,7 @@ export const MigrationImportPage = () => {
   // Update step based on migration state
   useEffect(() => {
     if (migration.currentJob) {
+      setLastUpdated(new Date());
       if (migration.currentJob.status === 'completed') {
         setStep('complete');
       } else if (migration.currentJob.status === 'failed') {
@@ -106,7 +116,6 @@ export const MigrationImportPage = () => {
         },
       });
     } catch (err: any) {
-      console.error('Migration error:', err);
       setError(err.message);
       setStep('upload');
 
@@ -314,21 +323,11 @@ export const MigrationImportPage = () => {
       (job) => job.status === 'pending' || job.status === 'processing',
     );
 
-    // Determine connection state
-    const isConnected = migration.isPolling || migration.currentJob !== null;
-    const hasActiveJob = activeJob !== undefined;
-
     return (
       <div className="max-w-lg mx-auto py-16">
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-full bg-brand-blue/10 flex items-center justify-center mx-auto mb-6">
-            {isConnected ? (
-              <Clock className="w-8 h-8 text-brand-blue animate-spin" />
-            ) : hasActiveJob ? (
-              <WifiOff className="w-8 h-8 text-yellow-600" />
-            ) : (
-              <Clock className="w-8 h-8 text-brand-blue" />
-            )}
+            <Clock className="w-8 h-8 text-brand-blue animate-spin" />
           </div>
           <div className="space-y-2">
             <h2 className="text-xl font-semibold">
@@ -339,9 +338,6 @@ export const MigrationImportPage = () => {
                 ? 'Your migration is being queued...'
                 : 'This usually takes 5-15 minutes'}
             </p>
-            {!isConnected && hasActiveJob && (
-              <p className="text-xs text-yellow-600">Reconnecting to migration in progress...</p>
-            )}
           </div>
         </div>
 
@@ -350,9 +346,24 @@ export const MigrationImportPage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Migration Progress</span>
-                <span className="text-xs text-text-subtle">
-                  {status === 'pending' ? 'Pending' : 'Processing'}
-                </span>
+                <div className="flex items-center gap-2">
+                  {migration.isPolling ? (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-blue-600 font-medium">Updating...</span>
+                    </div>
+                  ) : lastUpdated ? (
+                    <span className="text-xs text-text-subtle">
+                      Updated {formatTimeAgo(lastUpdated)}
+                    </span>
+                  ) : activeJob ? (
+                    <span className="text-xs text-text-subtle">Loading latest...</span>
+                  ) : (
+                    <span className="text-xs text-text-subtle">
+                      {status === 'pending' ? 'Pending' : 'Processing'}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {progress ? (
