@@ -779,7 +779,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   };
 
   const handleEditClick = () => {
-    const deltaContent = parseMessageContent(message.content);
+    const deltaContent = parseMessageContent(message.content, members);
     setEditingContent(deltaContent);
     setIsEditing(true);
     setIsDropdownOpen(false);

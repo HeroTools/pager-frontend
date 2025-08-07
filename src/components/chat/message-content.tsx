@@ -13,9 +13,10 @@ import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { Hint } from '@/components/hint';
+import { useUIStore } from '@/stores/ui-store';
 
 interface QuillDeltaOp {
-  insert?: string;
+  insert?: string | { mention?: { id: string; name: string; userId: string } };
   attributes?: {
     link?: string;
     [key: string]: unknown;
@@ -134,7 +135,7 @@ const sanitizeHtml = (html: string): string => {
       'div',
       'span',
     ],
-    ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class', 'src', 'alt'],
+    ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class', 'src', 'alt', 'data-member-id', 'data-user-id', 'data-name'],
     FORBID_ATTR: ['style'],
     ADD_ATTR: ['target', 'rel'],
     ALLOW_DATA_ATTR: false,
@@ -174,6 +175,7 @@ const preprocessSlackLinks = (input: string): string => {
 export const MessageContent = ({ content }: { content: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hooksConfigured = useRef(false);
+  const { setProfilePanelOpen } = useUIStore();
 
   useEffect(() => {
     if (!hooksConfigured.current) {
@@ -220,6 +222,13 @@ export const MessageContent = ({ content }: { content: string }) => {
             multiLineHeader: true,
             multiLineBlockquote: true,
             allowBackgroundClasses: false,
+            customTag: (format: string, op: any) => {
+              if (format === 'mention' && typeof op.insert === 'object' && op.insert.mention) {
+                const { id, name, userId } = op.insert.mention;
+                return `<span class="mention" data-member-id="${id}" data-user-id="${userId}" data-name="${name}">@${name}</span>`;
+              }
+              return undefined;
+            },
           });
 
           const dirty = converter.convert();
@@ -275,9 +284,25 @@ export const MessageContent = ({ content }: { content: string }) => {
           </Hint>
         );
       }
+      
+      if (el.name === 'span' && el.attribs.class === 'mention') {
+        const memberId = el.attribs['data-member-id'];
+        const userId = el.attribs['data-user-id'];
+        const name = el.attribs['data-name'];
+        return (
+          <span
+            key={`mention-${memberId}-${Math.random()}`}
+            className="inline-block bg-blue-500 text-white px-1.5 py-0.5 rounded text-sm cursor-pointer hover:bg-blue-600 transition-colors mx-0.5"
+            onClick={() => setProfilePanelOpen(memberId)}
+            title={`View ${name}'s profile`}
+          >
+            @{name}
+          </span>
+        );
+      }
     }
     return undefined;
-  }, []);
+  }, [setProfilePanelOpen]);
 
   const parsedContent = useMemo<React.ReactNode>(() => {
     if (!cleanHtml) return null;

@@ -18,6 +18,7 @@ import EmojiPicker from '@/components/emoji-picker';
 import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useUIStore } from '@/stores/ui-store';
 import { useFileUpload } from '@/features/file-upload';
 import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
 import { useIsMobile } from '@/hooks/use-is-mobile';
@@ -26,6 +27,8 @@ import { validateFile } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
+import MentionAutoComplete from './mention-auto-complete';
+import MentionBlot from './mention-blot';
 import { LinkDialog } from './link-dialog';
 
 type EditorValue = {
@@ -94,6 +97,7 @@ const Editor = ({
   const isMobile = useIsMobile();
 
   const { getDraft, setDraft, clearDraft } = useDraftsStore();
+  const { setProfilePanelOpen } = useUIStore();
   const { entityId, entityType } = useMemo(() => {
     if (channelId) return { entityId: channelId, entityType: 'channel' as const };
     if (conversationId) return { entityId: conversationId, entityType: 'conversation' as const };
@@ -155,7 +159,19 @@ const Editor = ({
     }
 
     const oldContents = quill.getContents();
-    const oldText = quill.getText();
+    // Extract plain text with mentions converted to <@id> format
+    const extractPlainTextWithMentions = (delta: any) => {
+      let text = '';
+      delta.ops.forEach((op: any) => {
+        if (typeof op.insert === 'string') {
+          text += op.insert;
+        } else if (op.insert?.mention) {
+          text += `<@${op.insert.mention.id}>`;
+        }
+      });
+      return text.trim();
+    };
+    const oldText = extractPlainTextWithMentions(oldContents);
     const oldImage = image;
     const oldAttachments = attachments;
     const body = JSON.stringify(oldContents);
@@ -484,6 +500,9 @@ const Editor = ({
       return;
     }
 
+    // Register MentionBlot
+    Quill.register(MentionBlot);
+
     const container = containerRef.current;
     const editorDiv = document.createElement('div');
     container.appendChild(editorDiv);
@@ -518,7 +537,9 @@ const Editor = ({
               handler(): boolean {
                 const emojiDropdownOpen =
                   quillRef.current && (quillRef.current as any).emojiDropdownOpen;
-                if (emojiDropdownOpen) {
+                const mentionDropdownOpen =
+                  quillRef.current && (quillRef.current as any).mentionDropdownOpen;
+                if (emojiDropdownOpen || mentionDropdownOpen) {
                   return true;
                 }
 
@@ -667,8 +688,14 @@ const Editor = ({
       }
     };
 
+    const handleMentionClick = (e: CustomEvent) => {
+      const { memberId } = e.detail;
+      setProfilePanelOpen(memberId);
+    };
+
     quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
     quill.root.addEventListener('blur', handleBlur);
+    quill.root.addEventListener('mentionClick', handleMentionClick as EventListener);
 
     // Mobile: Show toolbar only when text is selected
     if (isMobile) {
@@ -715,6 +742,7 @@ const Editor = ({
 
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       quill.root.removeEventListener('blur', handleBlur);
+      quill.root.removeEventListener('mentionClick', handleMentionClick as EventListener);
 
       if (isMobile) {
         quill.off(Quill.events.SELECTION_CHANGE);
@@ -740,6 +768,7 @@ const Editor = ({
     debouncedSetDraft,
     workspaceId,
     isMobile,
+    setProfilePanelOpen,
   ]);
 
   const handleToolbarToggle = useCallback((): void => {
@@ -927,7 +956,12 @@ const Editor = ({
         </div>
       )}
 
-      {!isAgentChat && <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />}
+      {!isAgentChat && (
+        <>
+          <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
+          <MentionAutoComplete quill={quillRef.current} containerRef={containerRef} />
+        </>
+      )}
       <LinkDialog
         isOpen={isLinkDialogOpen}
         onClose={handleLinkDialogClose}
