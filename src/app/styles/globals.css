@@ -385,7 +385,7 @@ body {
   }
 
   .ql-editor {
-    @apply !leading-6 !p-4 !text-foreground !font-normal !font-sans !text-sm !min-h-20 max-h-64 overflow-y-auto;
+    @apply !leading-6 !p-4 !text-foreground !font-normal !font-sans !text-base md:!text-sm !min-h-20 max-h-64 overflow-y-auto;
   }
 
   .ql-editor.ql-blank::before {

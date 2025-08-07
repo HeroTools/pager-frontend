@@ -26,6 +26,8 @@ import { validateFile } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
+import SlashCommandAutoComplete from './slash-command-autocomplete';
+import { GifSearchModal } from './gif-search-modal';
 import { LinkDialog } from './link-dialog';
 
 type EditorValue = {
@@ -518,7 +520,9 @@ const Editor = ({
               handler(): boolean {
                 const emojiDropdownOpen =
                   quillRef.current && (quillRef.current as any).emojiDropdownOpen;
-                if (emojiDropdownOpen) {
+                const commandDropdownOpen =
+                  quillRef.current && (quillRef.current as any).commandDropdownOpen;
+                if (emojiDropdownOpen || commandDropdownOpen) {
                   return true;
                 }
 
@@ -928,6 +932,10 @@ const Editor = ({
       )}
 
       {!isAgentChat && <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />}
+      {!isAgentChat && (
+        <SlashCommandAutoComplete quill={quillRef.current} containerRef={containerRef} />
+      )}
+      <GifSearchModal />
       <LinkDialog
         isOpen={isLinkDialogOpen}
         onClose={handleLinkDialogClose}
