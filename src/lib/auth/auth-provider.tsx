@@ -10,6 +10,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,35 +23,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const initializeAuth = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+        if (!error && session) {
+          setSession(session);
+          setUser(session.user);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
         router.push('/auth');
+      } else if (session) {
+        setSession(session);
+        setUser(session.user);
       }
-      setSession(session);
-      setUser(session?.user ?? null);
       setLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
+
       setUser(null);
       setSession(null);
       router.push('/auth');
@@ -65,16 +81,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: { session },
         error,
       } = await supabase.auth.refreshSession();
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
+
       if (session) {
         setUser(session.user);
         setSession(session);
       }
     } catch (error) {
-      console.error('Refresh error:', error);
-      await signOut();
+      console.error('Session refresh error:', error);
+      // Don't automatically sign out on refresh failure
+      // Let the app handle it based on the specific error
     }
   };
 

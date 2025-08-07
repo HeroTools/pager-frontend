@@ -70,7 +70,7 @@ export default function BrowseChannels() {
   const isLoading = isLoadingAvailable || isLoadingUser;
 
   // Filter by name (case-insensitive)
-  const displayedChannels = combinedChannels.filter((c) =>
+  const displayedChannels = combinedChannels?.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
   );
 

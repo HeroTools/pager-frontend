@@ -1,14 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Loader2, Search, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useDebouncedCallback } from 'use-debounce';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Search, TrendingUp } from 'lucide-react';
-import { useGifModal } from '@/stores/gif-modal-store';
 import { getTrendingGifs, searchGifs, type TenorGif } from '@/lib/tenor';
-import { useDebouncedCallback } from 'use-debounce';
+import { useGifModal } from '@/stores/gif-modal-store';
 
 export const GifSearchModal = () => {
   const { isOpen, closeGifModal, quillInstance, selectionIndex } = useGifModal();
