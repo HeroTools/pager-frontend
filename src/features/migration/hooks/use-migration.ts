@@ -1,6 +1,6 @@
 // features/migration/hooks/use-migration.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { channelsQueryKeys } from '@/features/channels/query-keys';
@@ -116,21 +116,30 @@ export const useStartMigration = () => {
 };
 
 /**
- * Hook to get job status
+ * Hook to get job status with smart polling
  */
 export const useJobStatus = (workspaceId: string, jobId: string | null) => {
-  return useQuery({
+  const [shouldPoll, setShouldPoll] = useState(true);
+
+  const query = useQuery({
     queryKey: ['migration', 'job-status', workspaceId, jobId],
     queryFn: () => (jobId ? migrationApi.getJobStatus(workspaceId, jobId) : null),
     enabled: !!jobId,
-    refetchInterval: (data) => {
-      // Stop polling if job is complete or failed
-      if (!data || data.status === 'completed' || data.status === 'failed') {
-        return false;
-      }
-      return 5000; // Poll every 5 seconds
-    },
+    refetchInterval: shouldPoll ? 5000 : false, // Poll every 5 seconds or stop
+    refetchIntervalInBackground: false,
   });
+
+  // Stop polling when job is complete or failed
+  useEffect(() => {
+    if (query.data) {
+      const status = query.data.status;
+      if (status === 'completed' || status === 'failed') {
+        setShouldPoll(false);
+      }
+    }
+  }, [query.data]);
+
+  return query;
 };
 
 /**
