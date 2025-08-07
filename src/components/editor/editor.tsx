@@ -159,7 +159,6 @@ const Editor = ({
     }
 
     const oldContents = quill.getContents();
-    // Extract plain text with mentions converted to <@id> format
     const extractPlainTextWithMentions = (delta: any) => {
       let text = '';
       delta.ops.forEach((op: any) => {

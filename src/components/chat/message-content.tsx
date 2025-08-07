@@ -135,37 +135,48 @@ const sanitizeHtml = (html: string): string => {
       'div',
       'span',
     ],
-    ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class', 'src', 'alt', 'data-member-id', 'data-user-id', 'data-name'],
+    ALLOWED_ATTR: [
+      'href',
+      'title',
+      'target',
+      'rel',
+      'class',
+      'src',
+      'alt',
+      'data-member-id',
+      'data-user-id',
+      'data-name',
+    ],
     FORBID_ATTR: ['style'],
     ADD_ATTR: ['target', 'rel'],
     ALLOW_DATA_ATTR: false,
   });
 };
 
-const preprocessSlackLinks = (input: string): string => {
+const preprocessLinks = (input: string): string => {
   if (!input || typeof input !== 'string') {
     return input;
   }
 
   let processed = input;
 
-  // Handle HTML-encoded Slack links: &lt;url|label&gt;
-  processed = processed.replace(/&lt;([^|]+?)\|([^&]+?)&gt;/g, (match, url, label) => {
+  // Handle HTML-encoded links: &lt;url|label&gt;
+  processed = processed.replace(/&lt;([^|]+?)\|([^&]+?)&gt;/g, (_, url, label) => {
     return `[${label.trim()}](${url.trim()})`;
   });
 
-  // Handle regular Slack links: <url|label>
-  processed = processed.replace(/<([^|<>]+?)\|([^<>]+?)>/g, (match, url, label) => {
+  // Handle links with labels: <url|label>
+  processed = processed.replace(/<([^|<>]+?)\|([^<>]+?)>/g, (_, url, label) => {
     return `[${label.trim()}](${url.trim()})`;
   });
 
-  // Handle URLs without labels: <url>
-  processed = processed.replace(/<(https?:\/\/[^<>\s]+)>/g, (match, url) => {
+  // Handle plain URLs: <url>
+  processed = processed.replace(/<(https?:\/\/[^<>\s]+)>/g, (_, url) => {
     return `[${url}](${url})`;
   });
 
-  // Fix malformed markdown links with pipes: [label](url|extra) -> [label](url)
-  processed = processed.replace(/\[([^\]]+?)\]\(([^|)]+?)\|[^)]*\)/g, (match, label, url) => {
+  // Fix malformed markdown links: [label](url|extra) -> [label](url)
+  processed = processed.replace(/\[([^\]]+?)\]\(([^|)]+?)\|[^)]*\)/g, (_, label, url) => {
     return `[${label}](${url})`;
   });
 
@@ -179,7 +190,7 @@ export const MessageContent = ({ content }: { content: string }) => {
 
   useEffect(() => {
     if (!hooksConfigured.current) {
-      DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+      DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
         if (node.tagName === 'A') {
           node.setAttribute('target', '_blank');
           node.setAttribute('rel', 'noopener noreferrer');
@@ -192,7 +203,7 @@ export const MessageContent = ({ content }: { content: string }) => {
   const cleanHtml = useMemo<string>(() => {
     if (!content.trim()) return '';
 
-    const preprocessed = preprocessSlackLinks(content);
+    const preprocessed = preprocessLinks(content);
     const format = detectContentFormat(preprocessed);
 
     try {
@@ -201,18 +212,34 @@ export const MessageContent = ({ content }: { content: string }) => {
           const delta = JSON.parse(preprocessed) as QuillDelta;
           if (isDeltaEmpty(delta)) return '';
 
-          const normalized = delta.ops.map((op) => {
-            if (op.attributes?.link) {
-              let url = String(op.attributes.link);
-              if (!/^https?:\/\//.test(url) && !url.startsWith('mailto:')) {
-                url = `https://${url}`;
-              }
-              op.attributes.link = url;
+          const mentions: Array<{
+            placeholder: string;
+            data: { id: string; name: string; userId: string };
+          }> = [];
+
+          const processedOps = delta.ops.map((op, index) => {
+            if (op.insert && typeof op.insert === 'object' && 'mention' in op.insert) {
+              const placeholder = `__MENTION_${index}_${Date.now()}__`;
+              mentions.push({ placeholder, data: op.insert.mention });
+              return { insert: placeholder };
             }
+
+            if (typeof op.insert === 'string' && op.attributes?.link) {
+              const url = String(op.attributes.link);
+              return {
+                ...op,
+                attributes: {
+                  ...op.attributes,
+                  link:
+                    /^https?:\/\//.test(url) || url.startsWith('mailto:') ? url : `https://${url}`,
+                },
+              };
+            }
+
             return op;
           });
 
-          const converter = new QuillDeltaToHtmlConverter(normalized, {
+          const converter = new QuillDeltaToHtmlConverter(processedOps, {
             encodeHtml: true,
             paragraphTag: 'p',
             linkTarget: '_blank',
@@ -222,17 +249,17 @@ export const MessageContent = ({ content }: { content: string }) => {
             multiLineHeader: true,
             multiLineBlockquote: true,
             allowBackgroundClasses: false,
-            customTag: (format: string, op: any) => {
-              if (format === 'mention' && typeof op.insert === 'object' && op.insert.mention) {
-                const { id, name, userId } = op.insert.mention;
-                return `<span class="mention" data-member-id="${id}" data-user-id="${userId}" data-name="${name}">@${name}</span>`;
-              }
-              return undefined;
-            },
           });
 
-          const dirty = converter.convert();
-          const sanitized = sanitizeHtml(dirty);
+          let html = converter.convert();
+
+          mentions.forEach(({ placeholder, data }) => {
+            const { id, name, userId } = data;
+            const mentionHtml = `<span class="mention" data-member-id="${id}" data-user-id="${userId}" data-name="${name}">@${name}</span>`;
+            html = html.replace(placeholder, mentionHtml);
+          });
+
+          const sanitized = sanitizeHtml(html);
           return isContentEmpty(sanitized) ? '' : sanitized;
         }
 
@@ -252,57 +279,58 @@ export const MessageContent = ({ content }: { content: string }) => {
         }
       }
     } catch (error) {
-      console.error('Error processing message content:', error);
       const sanitized = sanitizeHtml(`<p>${content}</p>`);
       return isContentEmpty(sanitized) ? '' : sanitized;
     }
   }, [content]);
 
-  const replaceFn = useCallback((node: DOMNode): React.ReactElement | undefined => {
-    if (node.type === 'tag') {
-      const el = node as HtmlElement;
+  const replaceFn = useCallback(
+    (node: DOMNode): React.ReactElement | undefined => {
+      if (node.type === 'tag') {
+        const el = node as HtmlElement;
 
-      const cleanAttribs = Object.keys(el.attribs || {}).reduce(
-        (acc, key) => {
-          const value = el.attribs[key];
-          if (key === 'style' || /^\d+$/.test(key)) {
+        const cleanAttribs = Object.keys(el.attribs || {}).reduce(
+          (acc, key) => {
+            const value = el.attribs[key];
+            if (key === 'style' || /^\d+$/.test(key)) {
+              return acc;
+            }
+            acc[key] = value;
             return acc;
-          }
-          acc[key] = value;
-          return acc;
-        },
-        {} as Record<string, string>,
-      );
-
-      if (el.name === 'a') {
-        const href = cleanAttribs.href || '';
-        const key = `link-${href.slice(0, 50)}`;
-
-        return (
-          <Hint key={key} label={href} side="top" align="center">
-            <a {...cleanAttribs}>{domToReact(el.children as DOMNode[])}</a>
-          </Hint>
+          },
+          {} as Record<string, string>,
         );
+
+        if (el.name === 'a') {
+          const href = cleanAttribs.href || '';
+          const key = `link-${href.slice(0, 50)}`;
+
+          return (
+            <Hint key={key} label={href} side="top" align="center">
+              <a {...cleanAttribs}>{domToReact(el.children as DOMNode[])}</a>
+            </Hint>
+          );
+        }
+
+        if (el.name === 'span' && el.attribs.class === 'mention') {
+          const memberId = el.attribs['data-member-id'];
+          const name = el.attribs['data-name'];
+          return (
+            <span
+              key={`mention-${memberId}-${Math.random()}`}
+              className="inline-block bg-blue-500 text-white px-1.5 py-0.5 rounded text-sm cursor-pointer hover:bg-blue-600 transition-colors mx-0.5"
+              onClick={() => setProfilePanelOpen(memberId)}
+              title={`View ${name}'s profile`}
+            >
+              @{name}
+            </span>
+          );
+        }
       }
-      
-      if (el.name === 'span' && el.attribs.class === 'mention') {
-        const memberId = el.attribs['data-member-id'];
-        const userId = el.attribs['data-user-id'];
-        const name = el.attribs['data-name'];
-        return (
-          <span
-            key={`mention-${memberId}-${Math.random()}`}
-            className="inline-block bg-blue-500 text-white px-1.5 py-0.5 rounded text-sm cursor-pointer hover:bg-blue-600 transition-colors mx-0.5"
-            onClick={() => setProfilePanelOpen(memberId)}
-            title={`View ${name}'s profile`}
-          >
-            @{name}
-          </span>
-        );
-      }
-    }
-    return undefined;
-  }, [setProfilePanelOpen]);
+      return undefined;
+    },
+    [setProfilePanelOpen],
+  );
 
   const parsedContent = useMemo<React.ReactNode>(() => {
     if (!cleanHtml) return null;
@@ -328,7 +356,7 @@ export const MessageContent = ({ content }: { content: string }) => {
         }
       });
     } catch (error) {
-      console.warn('Error highlighting code blocks:', error);
+      // Silently fail - highlighting is not critical
     }
   }, [cleanHtml]);
 

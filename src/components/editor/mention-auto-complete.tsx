@@ -66,10 +66,10 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
     if (!selection) {
       return null;
     }
-    
+
     const bounds = quill.getBounds(selection.index);
     const quillOffset = getQuillRootOffset();
-    
+
     return {
       left: quillOffset.left + bounds.left,
       top: quillOffset.top + bounds.top + bounds.height,
@@ -99,7 +99,7 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
         setMentionQuery(query);
         setShowMentionDropdown(true);
         setMentionDropdownIndex(0);
-        
+
         const pos = getCaretPosition();
         if (pos) {
           setDropdownPos(pos);
@@ -141,7 +141,7 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
                 quill.insertEmbed(sel.index - match[0].length, 'mention', {
                   id: member.id,
                   name: member.user.name,
-                  userId: member.user.id
+                  userId: member.user.id,
                 });
                 quill.insertText(sel.index - match[0].length + 1, ' ');
                 setShowMentionDropdown(false);
@@ -202,7 +202,7 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
         quill.insertEmbed(sel.index - match[0].length, 'mention', {
           id: member.id,
           name: member.user.name,
-          userId: member.user.id
+          userId: member.user.id,
         });
         quill.insertText(sel.index - match[0].length + 1, ' ');
         setShowMentionDropdown(false);
@@ -237,7 +237,7 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
               key={member.id}
               className={cn(
                 'flex items-center gap-2 px-3 py-2 cursor-pointer',
-                i === mentionDropdownIndex && 'bg-accent'
+                i === mentionDropdownIndex && 'bg-accent',
               )}
               onSelect={() => handleMentionClick(member)}
             >

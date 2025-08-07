@@ -12,13 +12,13 @@ class MentionBlot extends Embed {
   static blotName = 'mention';
   static tagName = 'span';
   static className = 'mention';
-  
+
   // This ensures the value is properly included when getContents() is called
   static value(node: HTMLSpanElement): any {
     return {
       id: node.getAttribute('data-member-id') || '',
       userId: node.getAttribute('data-user-id') || '',
-      name: node.getAttribute('data-name') || ''
+      name: node.getAttribute('data-name') || '',
     };
   }
 
@@ -38,35 +38,35 @@ class MentionBlot extends Embed {
     node.style.cursor = 'pointer';
     node.style.display = 'inline-block';
     node.style.margin = '0 2px';
-    
+
     // Add click handler to open profile panel
     node.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Dispatch custom event for mention click with workspace_member_id
       const event = new CustomEvent('mentionClick', {
         detail: {
           memberId: value.id, // This is the workspace_member_id
           userId: value.userId,
-          name: value.name
+          name: value.name,
         },
-        bubbles: true
+        bubbles: true,
       });
-      
+
       // Dispatch the event from the node itself, it will bubble up
       node.dispatchEvent(event);
     });
-    
+
     // Add hover effects
     node.addEventListener('mouseenter', () => {
       node.style.backgroundColor = '#2563eb';
     });
-    
+
     node.addEventListener('mouseleave', () => {
       node.style.backgroundColor = '#3b82f6';
     });
-    
+
     return node;
   }
 }
