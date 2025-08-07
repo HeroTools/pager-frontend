@@ -19,7 +19,7 @@ import React, { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useStartMigration } from '@/features/migration/hooks/use-migration';
+import { useMigrationJobs, useStartMigration } from '@/features/migration/hooks/use-migration';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { supabase } from '@/lib/supabase/client';
 
@@ -32,10 +32,42 @@ export const MigrationImportPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   const migration = useStartMigration();
+  const { data: allJobs, isLoading: jobsLoading } = useMigrationJobs(workspaceId);
 
   const handleBackClick = () => {
     router.push(`/${workspaceId}/settings`);
   };
+
+  // Check for active migration jobs on page load
+  useEffect(() => {
+    if (step === 'upload' && allJobs && !migration.isLoading && !jobsLoading) {
+      const activeJob = allJobs.find(
+        (job) => job.status === 'pending' || job.status === 'processing',
+      );
+
+      if (activeJob) {
+        console.log('Found active migration job:', activeJob.jobId);
+        setStep('processing');
+      }
+    }
+  }, [allJobs, step, migration.isLoading, jobsLoading]);
+
+  // Update step based on migration state
+  useEffect(() => {
+    if (migration.currentJob) {
+      if (migration.currentJob.status === 'completed') {
+        setStep('complete');
+      } else if (migration.currentJob.status === 'failed') {
+        setError(migration.currentJob.error || 'Migration failed');
+        setStep('upload');
+      } else if (
+        migration.currentJob.status === 'processing' ||
+        migration.currentJob.status === 'pending'
+      ) {
+        setStep('processing');
+      }
+    }
+  }, [migration.currentJob]);
 
   const handleFileUpload = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -89,18 +121,6 @@ export const MigrationImportPage = () => {
       }
     }
   };
-
-  // Update step based on migration state
-  useEffect(() => {
-    if (migration.currentJob) {
-      if (migration.currentJob.status === 'completed') {
-        setStep('complete');
-      } else if (migration.currentJob.status === 'failed') {
-        setError(migration.currentJob.error || 'Migration failed');
-        setStep('upload');
-      }
-    }
-  }, [migration.currentJob]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -290,15 +310,24 @@ export const MigrationImportPage = () => {
   if (step === 'processing') {
     const progress = migration.currentJob?.progress;
     const status = migration.currentJob?.status || 'pending';
+    const activeJob = allJobs?.find(
+      (job) => job.status === 'pending' || job.status === 'processing',
+    );
+
+    // Determine connection state
+    const isConnected = migration.isPolling || migration.currentJob !== null;
+    const hasActiveJob = activeJob !== undefined;
 
     return (
       <div className="max-w-lg mx-auto py-16">
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-full bg-brand-blue/10 flex items-center justify-center mx-auto mb-6">
-            {migration.isPolling ? (
+            {isConnected ? (
               <Clock className="w-8 h-8 text-brand-blue animate-spin" />
-            ) : (
+            ) : hasActiveJob ? (
               <WifiOff className="w-8 h-8 text-yellow-600" />
+            ) : (
+              <Clock className="w-8 h-8 text-brand-blue" />
             )}
           </div>
           <div className="space-y-2">
@@ -310,10 +339,8 @@ export const MigrationImportPage = () => {
                 ? 'Your migration is being queued...'
                 : 'This usually takes 5-15 minutes'}
             </p>
-            {!migration.isPolling && (
-              <p className="text-xs text-yellow-600">
-                Connection lost - migration continues in background
-              </p>
+            {!isConnected && hasActiveJob && (
+              <p className="text-xs text-yellow-600">Reconnecting to migration in progress...</p>
             )}
           </div>
         </div>
@@ -359,7 +386,8 @@ export const MigrationImportPage = () => {
               )}
 
               <p className="text-center text-xs text-text-subtle mt-4">
-                Processing {file?.name} ({(file?.size ? file.size / 1024 / 1024 : 0).toFixed(1)}MB)
+                Processing {file?.name || 'your Slack export'} (
+                {(file?.size ? file.size / 1024 / 1024 : 0).toFixed(1)}MB)
               </p>
             </CardContent>
           </Card>
@@ -406,7 +434,7 @@ export const MigrationImportPage = () => {
           </div>
 
           <p className="text-center text-xs text-text-subtle">
-            Please keep this page open while processing
+            Migration continues in background even if you close this page
           </p>
         </div>
       </div>

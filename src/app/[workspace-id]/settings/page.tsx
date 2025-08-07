@@ -19,7 +19,7 @@ const WorkspaceSettingsPage = () => {
   const workspaceId = useWorkspaceId();
   const { user, isLoading } = useCurrentUser(workspaceId);
   const { data: workspace } = useGetWorkspace(workspaceId);
-  const { data: migrationJobs } = useMigrationJobs(workspaceId);
+  const { data: migrationJobs, isLoading: jobsLoading } = useMigrationJobs(workspaceId);
 
   const handleBackClick = () => {
     router.back();
@@ -149,11 +149,16 @@ const WorkspaceSettingsPage = () => {
                         <h4 className="text-sm font-medium text-brand-blue mb-1">
                           Migration in Progress
                         </h4>
-                        <p className="text-xs text-brand-blue/80 leading-relaxed mb-3">
+                        <p className="text-xs text-brand-blue/80 leading-relaxed mb-2">
                           {activeMigration.status === 'pending'
                             ? 'Your migration is queued and will start shortly.'
                             : 'Your Slack data is being imported in the background.'}
                         </p>
+                        <div className="flex items-center gap-2 text-xs text-brand-blue/70 mb-3">
+                          <span>Job ID: {activeMigration.jobId}</span>
+                          <span>•</span>
+                          <span className="capitalize">{activeMigration.status}</span>
+                        </div>
                         <Button
                           variant="outline"
                           size="sm"
@@ -177,8 +182,16 @@ const WorkspaceSettingsPage = () => {
                           Process runs in background and takes 5-15 minutes.
                         </p>
                       </div>
-                      <Button onClick={handleMigrationClick} size="sm" disabled={!!activeMigration}>
-                        {activeMigration ? 'Migration in Progress' : 'Start Import'}
+                      <Button
+                        onClick={handleMigrationClick}
+                        size="sm"
+                        disabled={!!activeMigration || jobsLoading}
+                      >
+                        {activeMigration
+                          ? 'Migration in Progress'
+                          : jobsLoading
+                            ? 'Loading...'
+                            : 'Start Import'}
                       </Button>
                     </div>
                   </div>
@@ -196,7 +209,7 @@ const WorkspaceSettingsPage = () => {
               </CardContent>
             </Card>
 
-            {/* Migration Status Component */}
+            {/* Migration Status Component - Show if there are any migration jobs */}
             {migrationJobs && migrationJobs.length > 0 && (
               <MigrationStatus workspaceId={workspaceId} />
             )}
