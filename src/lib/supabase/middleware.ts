@@ -30,10 +30,17 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  // Attempt to get user, but handle errors gracefully
+  let user = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error) {
+      user = data.user;
+    }
+  } catch (error) {
+    // Log but don't fail the request
+    console.error('Middleware auth check error:', error);
+  }
 
   const url = request.nextUrl.clone();
   const pathname = url.pathname;
@@ -42,54 +49,46 @@ export async function updateSession(request: NextRequest) {
   const isPublicApiRoute = PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route));
   const isWorkspaceRoute = pathname.split('/').filter(Boolean).length === 1 && pathname !== '/';
 
+  // Always allow public API routes
   if (isPublicApiRoute) {
     return supabaseResponse;
   }
 
-  if (authError) {
-    if (!isPublicRoute) {
-      url.pathname = '/auth';
-      url.searchParams.set('error', 'session_expired');
-      return NextResponse.redirect(url);
-    }
+  // Redirect to auth if no user and trying to access protected route
+  if (!user && !isPublicRoute) {
+    url.pathname = '/auth';
+    url.searchParams.set('redirectTo', pathname);
+    return NextResponse.redirect(url);
   }
 
-  if (!user) {
-    if (!isPublicRoute) {
-      url.pathname = '/auth';
-      url.searchParams.set('redirectTo', pathname);
-      return NextResponse.redirect(url);
-    }
-    return supabaseResponse;
-  }
-
+  // Redirect authenticated users away from auth pages
   if (user && isPublicRoute && pathname !== '/auth/callback') {
+    // Allow certain conditions
     if (url.searchParams.has('error') || url.searchParams.has('message')) {
       return supabaseResponse;
     }
 
-    // Allow register route with invitation parameter for authenticated users
+    // Allow register route with invitation for authenticated users
     if (pathname === '/register' && url.searchParams.has('invitation')) {
       return supabaseResponse;
     }
 
-    // Redirect authenticated users to base route, which will handle workspace routing
+    // Redirect to home
     url.pathname = '/';
     url.searchParams.delete('redirectTo');
     return NextResponse.redirect(url);
   }
 
+  // Handle workspace routes
   if (isWorkspaceRoute) {
     const workspaceId = pathname.split('/')[1] || pathname.slice(2);
 
     if (!workspaceId) {
-      // Redirect to base route instead of non-existent /workspaces
-      // The base route component will handle proper workspace routing
       url.pathname = '/';
       return NextResponse.redirect(url);
     }
 
-    // Add workspace ID to headers for server components
+    // Add workspace ID to headers
     const response = NextResponse.next({
       request: {
         headers: new Headers(request.headers),
@@ -97,16 +96,12 @@ export async function updateSession(request: NextRequest) {
     });
     response.headers.set('x-workspace-id', workspaceId);
 
+    // Copy cookies from supabase response
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       response.cookies.set(cookie.name, cookie.value);
     });
 
     return response;
-  }
-
-  // Handle root path for authenticated users - let it through to the component
-  if (user && pathname === '/') {
-    return supabaseResponse;
   }
 
   return supabaseResponse;
@@ -118,6 +113,12 @@ export async function middleware(request: NextRequest) {
   } catch (error) {
     console.error('Middleware error:', error);
 
+    // For API routes, return error response
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    // For page routes, redirect to auth with error
     const url = request.nextUrl.clone();
     url.pathname = '/auth';
     url.searchParams.set('error', 'middleware_error');

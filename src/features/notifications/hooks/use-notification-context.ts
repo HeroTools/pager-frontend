@@ -50,7 +50,7 @@ export const useNotificationContext = () => {
 
   const getNotificationsToMarkAsRead = useCallback(
     (notifications: NotificationEntity[]): string[] => {
-      if (!isFocused || !currentEntityId) {
+      if (!isFocused || !currentEntityId || !notifications) {
         return [];
       }
 

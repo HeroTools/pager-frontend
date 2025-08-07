@@ -385,7 +385,7 @@ body {
   }
 
   .ql-editor {
-    @apply !leading-6 !p-4 !text-foreground !font-normal !font-sans !text-sm !min-h-20 max-h-64 overflow-y-auto;
+    @apply !leading-6 !p-4 !text-foreground !font-normal !font-sans !text-base md:!text-sm !min-h-20 max-h-64 overflow-y-auto;
   }
 
   .ql-editor.ql-blank::before {
@@ -395,6 +395,29 @@ body {
   /* Hide default Quill link tooltip since we use custom dialog */
   .ql-tooltip {
     @apply !hidden;
+  }
+
+  .ql-custom .ql-editor img {
+    max-width: 300px;
+    max-height: 200px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+
+  /* Optional: Add hover effect for better UX */
+  .ql-custom .ql-editor img:hover {
+    opacity: 0.9;
+    cursor: pointer;
+  }
+
+  /* For mobile, make them smaller */
+  @media (max-width: 768px) {
+    .ql-custom .ql-editor img {
+      max-width: 200px;
+      max-height: 150px;
+    }
   }
 
   .message-content {
@@ -669,13 +692,23 @@ body {
     margin: 1.5rem 0;
   }
 
-  /* Images with proper spacing */
   .message-content img {
-    max-width: 100%;
+    max-width: 400px;
+    max-height: 300px;
+    width: auto;
     height: auto;
+    object-fit: contain;
     border-radius: 0.375rem;
     margin: 1rem 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  /* For mobile, make them smaller in messages too */
+  @media (max-width: 768px) {
+    .message-content img {
+      max-width: 300px;
+      max-height: 200px;
+    }
   }
 
   /* Subscript and superscript */

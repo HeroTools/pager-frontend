@@ -5,6 +5,9 @@ const getThreadMembers = (
   members: MemberWithUser[],
 ): MemberWithUser[] => {
   const idSet = new Set(threadParticipantIds);
+  if (!members) {
+    return [];
+  }
   return members.filter((member) => idSet.has(member.user.id));
 };
 

@@ -53,11 +53,11 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
     const { conversation, members: conversationMembers } = conversationData;
     const otherMembers =
       conversation.other_members ||
-      conversationMembers.filter((member: any) => member.user.id !== currentUser.id);
+      conversationMembers?.filter((member: any) => member.user.id !== currentUser.id);
 
     if (conversation.is_group_conversation) {
       // Group DM: show comma-separated names of other members
-      const names = otherMembers.map((m: any) => m.workspace_member?.user?.name || m.user?.name);
+      const names = otherMembers?.map((m: any) => m.workspace_member?.user?.name || m.user?.name);
       const uniqueNames = Array.from(new Set(names));
       const displayNames =
         uniqueNames.length < names.length

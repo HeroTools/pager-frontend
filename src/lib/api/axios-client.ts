@@ -6,114 +6,180 @@ import axios, {
 } from 'axios';
 import { supabase } from '@/lib/supabase/client';
 
-// ——————— CONFIG ———————
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
-// ——————— REFRESH QUEUE ———————
-let isRefreshing = false;
-let refreshPromise: Promise<string | null> | null = null;
-const subscribers: Array<(token: string | null) => void> = [];
-
-function subscribeTokenRefresh(cb: (token: string | null) => void) {
-  subscribers.push(cb);
+// Token refresh state management
+interface RefreshState {
+  isRefreshing: boolean;
+  refreshPromise: Promise<string | null> | null;
 }
 
-function onRefreshed(token: string | null) {
-  subscribers.forEach((cb) => cb(token));
-  subscribers.length = 0;
-}
+const refreshState: RefreshState = {
+  isRefreshing: false,
+  refreshPromise: null,
+};
 
-// ——————— TOKEN REFRESHER ———————
-async function refreshAccessToken(): Promise<string | null> {
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-  if (sessionError || !session) {
-    console.error('[Auth] getSession failed', sessionError);
-    return null;
-  }
+// Queue for requests waiting for token refresh
+const failedQueue: Array<{
+  resolve: (token: string | null) => void;
+  reject: (error: any) => void;
+}> = [];
 
-  const now = Math.floor(Date.now() / 1000);
-  const fiveMin = 5 * 60;
-  if (session.expires_at && session.expires_at - now < fiveMin) {
-    const { data: newSession, error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshError || !newSession.session) {
-      console.error('[Auth] refreshSession failed', refreshError);
+const processQueue = (error: Error | null, token: string | null = null) => {
+  failedQueue.forEach((promise) => {
+    if (error) {
+      promise.reject(error);
+    } else {
+      promise.resolve(token);
+    }
+  });
+  failedQueue.length = 0;
+};
+
+/**
+ * Get a fresh access token, refreshing if necessary
+ */
+async function getAccessToken(): Promise<string | null> {
+  try {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error || !session) {
       return null;
     }
-    return newSession.session.access_token;
-  }
 
-  return session.access_token;
+    // Check if token needs refresh (5 minutes before expiry)
+    const now = Math.floor(Date.now() / 1000);
+    const expiresAt = session.expires_at || 0;
+    const shouldRefresh = expiresAt - now < 300; // 5 minutes buffer
+
+    if (shouldRefresh) {
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshData.session) {
+        console.error('Token refresh failed:', refreshError);
+        return null;
+      }
+      return refreshData.session.access_token;
+    }
+
+    return session.access_token;
+  } catch (error) {
+    console.error('Failed to get access token:', error);
+    return null;
+  }
 }
 
-// ——————— AXIOS INSTANCE ———————
+// Create axios instance
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 30000, // 30 second timeout
 });
 
-// ——————— REQUEST INTERCEPTOR ———————
+// Request interceptor
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    // Wrap existing headers in AxiosHeaders so we can mutate them
-    const headers = new AxiosHeaders(config.headers);
+    // Skip auth for public endpoints
+    const isPublicEndpoint =
+      config.url?.includes('/public/') ||
+      config.url?.includes('/auth/sign-') ||
+      config.url?.includes('/auth/register');
 
-    // Kick off (or reuse) token refresh
-    if (!isRefreshing) {
-      isRefreshing = true;
-      refreshPromise = refreshAccessToken().then((token) => {
-        isRefreshing = false;
-        onRefreshed(token);
-        return token;
-      });
+    if (isPublicEndpoint) {
+      return config;
     }
 
-    // Wait for refresh to complete (or return existing token)
-    const token = await refreshPromise;
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
+    try {
+      // If already refreshing, wait for it
+      if (refreshState.isRefreshing && refreshState.refreshPromise) {
+        const token = await refreshState.refreshPromise;
+        if (token) {
+          const headers = new AxiosHeaders(config.headers);
+          headers.set('Authorization', `Bearer ${token}`);
+          config.headers = headers;
+        }
+        return config;
+      }
 
-    // Assign the AxiosHeaders instance back—TS sees all methods present
-    config.headers = headers;
-    return config;
+      // Get token (will refresh if needed)
+      const token = await getAccessToken();
+      if (token) {
+        const headers = new AxiosHeaders(config.headers);
+        headers.set('Authorization', `Bearer ${token}`);
+        config.headers = headers;
+      }
+
+      return config;
+    } catch (error) {
+      // Log but don't block the request
+      console.error('Request interceptor error:', error);
+      return config;
+    }
   },
-  (error) => Promise.reject(error),
+  (error: any) => Promise.reject(error),
 );
 
-// ——————— RESPONSE INTERCEPTOR ———————
+// Response interceptor
 api.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
+  (response: any) => response,
+  async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Don't retry if no config or already retried
+    if (!originalRequest || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // Only retry on 401 unauthorized
+    if (error.response?.status === 401) {
       originalRequest._retry = true;
 
-      if (!isRefreshing) {
-        isRefreshing = true;
-        refreshPromise = refreshAccessToken().then((token) => {
-          isRefreshing = false;
-          onRefreshed(token);
-          return token;
-        });
+      // If not already refreshing, start refresh
+      if (!refreshState.isRefreshing) {
+        refreshState.isRefreshing = true;
+
+        refreshState.refreshPromise = supabase.auth
+          .refreshSession()
+          .then(({ data, error }) => {
+            if (error || !data.session) {
+              processQueue(error || new Error('No session'), null);
+              // Clear session on refresh failure
+              supabase.auth.signOut();
+              return null;
+            }
+            processQueue(null, data.session.access_token);
+            return data.session.access_token;
+          })
+          .catch((err: any) => {
+            processQueue(err, null);
+            return null;
+          })
+          .finally(() => {
+            refreshState.isRefreshing = false;
+            refreshState.refreshPromise = null;
+          });
       }
 
+      // Wait for refresh to complete
       return new Promise((resolve, reject) => {
-        subscribeTokenRefresh((newToken) => {
-          if (newToken) {
-            // Build a new AxiosHeaders for the retry
-            const retryHeaders = new AxiosHeaders(originalRequest.headers);
-            retryHeaders.set('Authorization', `Bearer ${newToken}`);
-            originalRequest.headers = retryHeaders;
-            resolve(api(originalRequest));
-          } else {
-            reject(error);
-          }
+        failedQueue.push({
+          resolve: (token: string | null) => {
+            if (token) {
+              const headers = new AxiosHeaders(originalRequest.headers);
+              headers.set('Authorization', `Bearer ${token}`);
+              originalRequest.headers = headers;
+              resolve(api(originalRequest));
+            } else {
+              reject(error);
+            }
+          },
+          reject,
         });
       });
     }

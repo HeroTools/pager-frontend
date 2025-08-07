@@ -29,7 +29,9 @@ import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
 import MentionAutoComplete from './mention-auto-complete';
 import MentionBlot from './mention-blot';
+import { GifSearchModal } from './gif-search-modal';
 import { LinkDialog } from './link-dialog';
+import SlashCommandAutoComplete from './slash-command-autocomplete';
 
 type EditorValue = {
   image: File | null;
@@ -92,6 +94,7 @@ const Editor = ({
     null,
   );
   const [selectedText, setSelectedText] = useState('');
+  const [hasEmbeds, setHasEmbeds] = useState(false);
 
   const isAgentChat = !!agentConversationId;
   const isMobile = useIsMobile();
@@ -113,10 +116,13 @@ const Editor = ({
     enabled: variant === 'create',
   });
 
-  // Optimize these calculations to prevent unnecessary re-renders
   const isEmpty = useMemo(
-    () => !image && attachments.length === 0 && text.replace(/\s*/g, '').trim().length === 0,
-    [text, image, attachments.length],
+    () =>
+      !image &&
+      attachments.length === 0 &&
+      !hasEmbeds &&
+      text.replace(/\s*/g, '').trim().length === 0,
+    [text, image, attachments.length, hasEmbeds],
   );
 
   const hasUploadsInProgress = useMemo(
@@ -208,6 +214,7 @@ const Editor = ({
       setText('');
       setImage(null);
       setAttachments([]);
+      setHasEmbeds(false);
       activeUploadBatchRef.current = null;
       progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
       progressTimeoutsRef.current.clear();
@@ -260,6 +267,16 @@ const Editor = ({
       }
     }
   }, 500);
+
+  const checkForEmbeds = useCallback((quill: Quill) => {
+    const contents = quill.getContents();
+    const embedsPresent =
+      contents.ops?.some(
+        (op: any) =>
+          op.insert && typeof op.insert === 'object' && (op.insert.image || op.insert.video),
+      ) || false;
+    setHasEmbeds(embedsPresent);
+  }, []);
 
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
@@ -536,9 +553,14 @@ const Editor = ({
               handler(): boolean {
                 const emojiDropdownOpen =
                   quillRef.current && (quillRef.current as any).emojiDropdownOpen;
+            
                 const mentionDropdownOpen =
                   quillRef.current && (quillRef.current as any).mentionDropdownOpen;
-                if (emojiDropdownOpen || mentionDropdownOpen) {
+
+                const commandDropdownOpen =
+                  quillRef.current && (quillRef.current as any).commandDropdownOpen;
+        
+                if (emojiDropdownOpen || commandDropdownOpen || mentionDropdownOpen) {
                   return true;
                 }
 
@@ -548,6 +570,7 @@ const Editor = ({
                 const empty =
                   !addedImage &&
                   attachmentsRef.current.length === 0 &&
+                  !hasEmbeds &&
                   currentText.replace(/\s*/g, '').trim().length === 0;
 
                 if (!empty) {
@@ -562,7 +585,7 @@ const Editor = ({
               key: 'Enter',
               shiftKey: true,
               handler(range: unknown): boolean {
-                const quill = quillRef.current!;
+                const quill = quillRef.current;
                 const rangeObj = range as { index?: number } | null;
                 const index = rangeObj?.index ?? quill.getLength();
                 quill.insertText(index, '\n');
@@ -667,6 +690,9 @@ const Editor = ({
       const currentText = quill.getText();
       setText(currentText);
       debouncedSetDraft();
+
+      // Check for embeds whenever content changes
+      checkForEmbeds(quill);
 
       if (source === 'user') {
         handleTextChange();
@@ -961,6 +987,10 @@ const Editor = ({
           <MentionAutoComplete quill={quillRef.current} containerRef={containerRef} />
         </>
       )}
+      {!isAgentChat && (
+        <SlashCommandAutoComplete quill={quillRef.current} containerRef={containerRef} />
+      )}
+      <GifSearchModal />
       <LinkDialog
         isOpen={isLinkDialogOpen}
         onClose={handleLinkDialogClose}
