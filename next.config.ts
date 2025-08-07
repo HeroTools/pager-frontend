@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'ypkobnsdgcclemmiswkj.supabase.co',
       },
+      {
+        protocol: 'https',
+        hostname: 'media.tenor.com',
+      },
     ],
   },
   async headers() {
