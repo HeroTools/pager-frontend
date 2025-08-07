@@ -1,25 +1,49 @@
+// features/migration/types.ts
 export interface StartMigrationData {
   storageKey: string;
   filename: string;
   fileSize: number;
 }
 
-export interface MigrationResult {
+export interface MigrationJobResponse {
   success: boolean;
-  results: {
-    usersCreated: number;
-    channelsCreated: number;
-    conversationsCreated: number;
-    messagesImported: number;
-    reactionsAdded: number;
-    errors: string[];
-  };
+  jobId: string;
   message: string;
+  estimatedProcessingTime: string;
 }
 
-export interface MigrationStatus {
+export interface MigrationProgress {
+  usersCreated: number;
+  channelsCreated: number;
+  conversationsCreated: number;
+  messagesImported: number;
+  reactionsAdded: number;
+}
+
+export interface MigrationJobStatus {
+  jobId: string;
+  workspaceId: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
-  progress?: number;
-  currentStep?: string;
+  progress?: MigrationProgress;
   error?: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+}
+
+export interface MigrationJobStatusResponse {
+  success: boolean;
+  job: MigrationJobStatus;
+}
+
+export interface MigrationJobsResponse {
+  success: boolean;
+  jobs: MigrationJobStatus[];
+}
+
+// Legacy interface for backwards compatibility
+export interface MigrationResult {
+  success: boolean;
+  results: MigrationProgress;
+  message: string;
 }

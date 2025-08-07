@@ -1,13 +1,15 @@
 'use client';
 
-import { ArrowLeft, Settings, Upload, Users } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Settings, Upload, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { MigrationStatus } from '@/components/migration/migration-status';
 import { PreferenceModal } from '@/components/side-nav/preference-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCurrentUser } from '@/features/auth';
+import { useMigrationJobs } from '@/features/migration/hooks/use-migration';
 import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 
@@ -17,6 +19,7 @@ const WorkspaceSettingsPage = () => {
   const workspaceId = useWorkspaceId();
   const { user, isLoading } = useCurrentUser(workspaceId);
   const { data: workspace } = useGetWorkspace(workspaceId);
+  const { data: migrationJobs } = useMigrationJobs(workspaceId);
 
   const handleBackClick = () => {
     router.back();
@@ -25,6 +28,11 @@ const WorkspaceSettingsPage = () => {
   const handleMigrationClick = () => {
     router.push(`/${workspaceId}/settings/import`);
   };
+
+  // Check if there's an active migration
+  const activeMigration = migrationJobs?.find(
+    (job) => job.status === 'pending' || job.status === 'processing',
+  );
 
   if (isLoading) {
     return (
@@ -133,6 +141,32 @@ const WorkspaceSettingsPage = () => {
                 </div>
               </CardHeader>
               <CardContent className="pt-0 space-y-4">
+                {activeMigration && (
+                  <div className="p-4 rounded-lg bg-brand-blue/5 border border-brand-blue/20">
+                    <div className="flex items-start gap-3">
+                      <RefreshCw className="w-4 h-4 text-brand-blue animate-spin mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-brand-blue mb-1">
+                          Migration in Progress
+                        </h4>
+                        <p className="text-xs text-brand-blue/80 leading-relaxed mb-3">
+                          {activeMigration.status === 'pending'
+                            ? 'Your migration is queued and will start shortly.'
+                            : 'Your Slack data is being imported in the background.'}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/${workspaceId}/settings/import`)}
+                          className="h-7 text-xs"
+                        >
+                          View Progress
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-4 rounded-lg bg-muted/50 border border-border-subtle">
                   <div className="flex items-start gap-3">
                     <div className="space-y-3">
@@ -140,11 +174,11 @@ const WorkspaceSettingsPage = () => {
                         <h4 className="text-sm font-medium mb-1">Import from Slack</h4>
                         <p className="text-xs text-text-subtle leading-relaxed">
                           Upload your Slack export to migrate channels, messages, and team members.
-                          Process typically takes 5-15 minutes.
+                          Process runs in background and takes 5-15 minutes.
                         </p>
                       </div>
-                      <Button onClick={handleMigrationClick} size="sm">
-                        Start Import
+                      <Button onClick={handleMigrationClick} size="sm" disabled={!!activeMigration}>
+                        {activeMigration ? 'Migration in Progress' : 'Start Import'}
                       </Button>
                     </div>
                   </div>
@@ -161,6 +195,11 @@ const WorkspaceSettingsPage = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Migration Status Component */}
+            {migrationJobs && migrationJobs.length > 0 && (
+              <MigrationStatus workspaceId={workspaceId} />
+            )}
 
             <Card className="border-border-subtle opacity-60">
               <CardHeader className="pb-3">

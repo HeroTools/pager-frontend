@@ -1,4 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+// features/migration/hooks/use-migration.ts
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
 import { channelsQueryKeys } from '@/features/channels/query-keys';
@@ -6,7 +8,7 @@ import { conversationsQueryKeys } from '@/features/conversations/query-keys';
 import { membersQueryKeys } from '@/features/members/query-keys';
 import { workspacesQueryKeys } from '@/features/workspaces/query-keys';
 import { migrationApi } from '../api/migration-api';
-import type { MigrationResult, StartMigrationData } from '../types';
+import type { MigrationJobResponse, MigrationJobStatus, StartMigrationData } from '../types';
 
 export interface StartMigrationParams {
   workspaceId: string;
@@ -14,43 +16,129 @@ export interface StartMigrationParams {
 }
 
 /**
- * Hook to start Slack migration
+ * Hook to start migration and poll for completion
  */
 export const useStartMigration = () => {
   const queryClient = useQueryClient();
+  const [currentJob, setCurrentJob] = useState<MigrationJobStatus | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
 
-  return useMutation<MigrationResult, Error, StartMigrationParams>({
+  const startMutation = useMutation<MigrationJobResponse, Error, StartMigrationParams>({
     mutationFn: ({ workspaceId, data }) => migrationApi.startSlackMigration(workspaceId, data),
 
-    onSuccess: (result, variables) => {
+    onSuccess: async (response, variables) => {
       const { workspaceId } = variables;
 
-      // Invalidate all workspace-related data since we've imported new content
-      queryClient.invalidateQueries({
-        queryKey: workspacesQueryKeys.workspace(workspaceId),
-      });
+      try {
+        setIsPolling(true);
 
-      // Invalidate all channels queries to show new imported channels
-      queryClient.invalidateQueries({
-        queryKey: channelsQueryKeys.channels(workspaceId),
-      });
+        // Start polling for job completion
+        const finalStatus = await migrationApi.pollJobCompletion(
+          workspaceId,
+          response.jobId,
+          (status) => {
+            setCurrentJob(status);
+          },
+        );
 
-      queryClient.invalidateQueries({
-        queryKey: channelsQueryKeys.userChannels(workspaceId),
-      });
+        if (finalStatus.status === 'completed') {
+          // Invalidate all workspace-related data since we've imported new content
+          queryClient.invalidateQueries({
+            queryKey: workspacesQueryKeys.workspace(workspaceId),
+          });
 
-      queryClient.invalidateQueries({
-        queryKey: conversationsQueryKeys.conversations(workspaceId),
-      });
+          queryClient.invalidateQueries({
+            queryKey: channelsQueryKeys.channels(workspaceId),
+          });
 
-      // Invalidate workspace members to show new imported users
-      queryClient.invalidateQueries({
-        queryKey: membersQueryKeys.members(workspaceId),
-      });
+          queryClient.invalidateQueries({
+            queryKey: channelsQueryKeys.userChannels(workspaceId),
+          });
+
+          queryClient.invalidateQueries({
+            queryKey: conversationsQueryKeys.conversations(workspaceId),
+          });
+
+          queryClient.invalidateQueries({
+            queryKey: membersQueryKeys.members(workspaceId),
+          });
+
+          toast.success('Migration completed successfully!');
+        } else if (finalStatus.status === 'failed') {
+          toast.error(finalStatus.error || 'Migration failed');
+        }
+
+        setCurrentJob(finalStatus);
+      } catch (error) {
+        console.error('Polling error:', error);
+        toast.error('Lost connection to migration job. Please check status manually.');
+      } finally {
+        setIsPolling(false);
+      }
     },
 
-    onError: () => {
-      toast.error('Migration failed. Please try again.');
+    onError: (error) => {
+      console.error('Migration start error:', error);
+      toast.error('Failed to start migration. Please try again.');
+      setIsPolling(false);
     },
+  });
+
+  const reset = useCallback(() => {
+    setCurrentJob(null);
+    setIsPolling(false);
+    startMutation.reset();
+  }, [startMutation]);
+
+  return {
+    mutate: startMutation.mutate,
+    mutateAsync: startMutation.mutateAsync,
+    isLoading: startMutation.isPending,
+    isPolling,
+    currentJob,
+    error: startMutation.error,
+    data:
+      currentJob?.status === 'completed'
+        ? {
+            success: true,
+            results: currentJob.progress || {
+              usersCreated: 0,
+              channelsCreated: 0,
+              conversationsCreated: 0,
+              messagesImported: 0,
+              reactionsAdded: 0,
+            },
+            message: 'Migration completed successfully',
+          }
+        : undefined,
+    reset,
+  };
+};
+
+/**
+ * Hook to get job status
+ */
+export const useJobStatus = (workspaceId: string, jobId: string | null) => {
+  return useQuery({
+    queryKey: ['migration', 'job-status', workspaceId, jobId],
+    queryFn: () => (jobId ? migrationApi.getJobStatus(workspaceId, jobId) : null),
+    enabled: !!jobId,
+    refetchInterval: (data) => {
+      // Stop polling if job is complete or failed
+      if (!data || data.status === 'completed' || data.status === 'failed') {
+        return false;
+      }
+      return 5000; // Poll every 5 seconds
+    },
+  });
+};
+
+/**
+ * Hook to get all migration jobs for a workspace
+ */
+export const useMigrationJobs = (workspaceId: string) => {
+  return useQuery({
+    queryKey: ['migration', 'jobs', workspaceId],
+    queryFn: () => migrationApi.getAllJobs(workspaceId),
   });
 };
