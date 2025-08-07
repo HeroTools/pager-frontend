@@ -9,7 +9,10 @@ export interface TenorGif {
   content_description: string;
   media_formats: {
     gif: { url: string };
-    tinygif: { url: string };
+    tinygif: {
+      url: string;
+      dims?: [number, number];
+    };
   };
 }
 

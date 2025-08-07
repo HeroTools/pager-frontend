@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Search, TrendingUp } from 'lucide-react';
 import { useGifModal } from '@/stores/use-gif-modal';
 import { getTrendingGifs, searchGifs, type TenorGif } from '@/lib/tenor';
-import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from 'use-debounce';
 
 export const GifSearchModal = () => {
@@ -15,7 +15,6 @@ export const GifSearchModal = () => {
   const [query, setQuery] = useState('');
   const [gifs, setGifs] = useState<TenorGif[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const [nextPos, setNextPos] = useState<string | undefined>();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const currentQueryRef = useRef('');
@@ -34,10 +33,18 @@ export const GifSearchModal = () => {
 
         if (currentQueryRef.current === searchQuery) {
           if (append) {
-            setGifs((prev) => [...prev, ...data.results]);
+            setGifs((prev) => {
+              const existingIds = new Set(prev.map((g) => g.id));
+              const newGifs = data.results.filter((gif: TenorGif) => !existingIds.has(gif.id));
+              return [...prev, ...newGifs];
+            });
           } else {
-            setGifs(data.results);
-            setSelectedIndex(0);
+            // Remove duplicates from initial load
+            const uniqueGifs = data.results.filter(
+              (gif: TenorGif, index: number, self: TenorGif[]) =>
+                index === self.findIndex((g) => g.id === gif.id),
+            );
+            setGifs(uniqueGifs);
           }
           setNextPos(data.next);
         }
@@ -74,7 +81,6 @@ export const GifSearchModal = () => {
 
       closeGifModal();
       setQuery('');
-      setSelectedIndex(0);
     },
     [quillInstance, selectionIndex, closeGifModal],
   );
@@ -94,41 +100,6 @@ export const GifSearchModal = () => {
     observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
   }, [loading, nextPos, loadGifs]);
-
-  useEffect(() => {
-    if (!isOpen || gifs.length === 0) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const columns = 3;
-      const total = gifs.length;
-
-      switch (e.key) {
-        case 'ArrowRight':
-          e.preventDefault();
-          setSelectedIndex((i) => Math.min(i + 1, total - 1));
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          setSelectedIndex((i) => Math.max(i - 1, 0));
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          setSelectedIndex((i) => Math.min(i + columns, total - 1));
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setSelectedIndex((i) => Math.max(i - columns, 0));
-          break;
-        case 'Enter':
-          e.preventDefault();
-          if (gifs[selectedIndex]) insertGif(gifs[selectedIndex]);
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, gifs, selectedIndex, insertGif]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeGifModal()}>
@@ -161,28 +132,36 @@ export const GifSearchModal = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-3 gap-2">
-                {gifs.map((gif, index) => (
-                  <button
-                    key={gif.id}
-                    onClick={() => insertGif(gif)}
-                    className={cn(
-                      'relative aspect-square overflow-hidden rounded-lg transition-all',
-                      'hover:ring-2 hover:ring-primary hover:ring-offset-2',
-                      'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-                      index === selectedIndex && 'ring-2 ring-primary ring-offset-2',
-                    )}
-                    aria-label={gif.content_description || gif.title}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={gif.media_formats.tinygif.url}
-                      alt={gif.content_description || gif.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  </button>
-                ))}
+              <div className="columns-3 gap-2" style={{ columnFill: 'balance' }}>
+                {gifs.map((gif, index) => {
+                  const aspectRatio = gif.media_formats.tinygif.dims
+                    ? gif.media_formats.tinygif.dims[1] / gif.media_formats.tinygif.dims[0]
+                    : 1;
+                  const height = Math.round(200 * aspectRatio);
+
+                  return (
+                    <button
+                      key={`${gif.id}-${index}`}
+                      onClick={() => insertGif(gif)}
+                      className="relative mb-2 block w-full overflow-hidden rounded-lg cursor-pointer bg-muted/20 hover:opacity-90 transition-opacity"
+                      aria-label={gif.content_description || gif.title}
+                      style={{
+                        breakInside: 'avoid',
+                        height: `${height}px`,
+                      }}
+                    >
+                      <Image
+                        src={gif.media_formats.tinygif.url}
+                        alt={gif.content_description || gif.title}
+                        fill
+                        sizes="(max-width: 768px) 33vw, 200px"
+                        className="object-cover"
+                        loading="lazy"
+                        unoptimized
+                      />
+                    </button>
+                  );
+                })}
               </div>
               {nextPos && (
                 <div ref={loadMoreRef} className="flex justify-center py-4">
