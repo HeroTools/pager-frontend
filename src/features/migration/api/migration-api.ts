@@ -1,4 +1,3 @@
-// features/migration/api/migration-api.ts
 import api from '@/lib/api/axios-client';
 import type {
   MigrationJobResponse,

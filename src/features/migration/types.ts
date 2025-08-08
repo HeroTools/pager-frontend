@@ -1,4 +1,3 @@
-// features/migration/types.ts
 export interface StartMigrationData {
   storageKey: string;
   filename: string;

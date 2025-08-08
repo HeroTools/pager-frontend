@@ -1,4 +1,3 @@
-// features/migration/hooks/use-migration.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';

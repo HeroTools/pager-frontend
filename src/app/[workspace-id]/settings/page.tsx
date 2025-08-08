@@ -4,11 +4,11 @@ import { ArrowLeft, RefreshCw, Settings, Upload, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import { MigrationStatus } from '@/components/migration/migration-status';
 import { PreferenceModal } from '@/components/side-nav/preference-modal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCurrentUser } from '@/features/auth';
+import { MigrationStatus } from '@/features/migration/components/migration-status';
 import { useMigrationJobs } from '@/features/migration/hooks/use-migration';
 import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';

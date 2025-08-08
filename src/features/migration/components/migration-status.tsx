@@ -1,4 +1,3 @@
-// components/migration/migration-status.tsx
 'use client';
 
 import { formatDistanceToNow } from 'date-fns';
