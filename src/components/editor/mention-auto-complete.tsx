@@ -137,9 +137,10 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
               const match = textBefore.match(/@([a-zA-Z0-9._-]*)(?:\n)?$/);
               if (match) {
                 quill.deleteText(sel.index - match[0].length, match[0].length);
-                // Insert mention as a custom blot with member data
+                // Insert mention as a custom blot with member data including name
                 quill.insertEmbed(sel.index - match[0].length, 'mention', {
                   id: member.id,
+                  name: member.profile?.display_name || member.profile?.full_name || member.user?.email?.split('@')[0] || 'Unknown',
                 });
                 quill.insertText(sel.index - match[0].length + 1, ' ');
                 setShowMentionDropdown(false);
@@ -196,9 +197,10 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
       const match = textBefore.match(/@([a-zA-Z0-9._-]*)(?:\n)?$/);
       if (match) {
         quill.deleteText(sel.index - match[0].length, match[0].length);
-        // Insert mention as a custom blot with member data
+        // Insert mention as a custom blot with member data including name
         quill.insertEmbed(sel.index - match[0].length, 'mention', {
           id: member.id,
+          name: member.profile?.display_name || member.profile?.full_name || member.user?.email?.split('@')[0] || 'Unknown',
         });
         quill.insertText(sel.index - match[0].length + 1, ' ');
         setShowMentionDropdown(false);

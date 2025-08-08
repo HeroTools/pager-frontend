@@ -4,6 +4,7 @@ const Embed = Quill.import('blots/embed') as any;
 
 interface MentionValue {
   id: string; // workspace_member_id
+  name?: string; 
 }
 
 class MentionBlot extends Embed {
@@ -22,7 +23,8 @@ class MentionBlot extends Embed {
     const node = super.create(value) as HTMLSpanElement;
     node.setAttribute('data-member-id', value.id);
     node.setAttribute('contenteditable', 'false');
-    node.textContent = `@${value.id}`; // Placeholder until name is resolved
+    // Use name if available, otherwise show ID as placeholder
+    node.textContent = value.name ? `@${value.name}` : `@${value.id}`;
 
     // Use Tailwind classes for styling
     node.className =

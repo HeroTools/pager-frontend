@@ -283,23 +283,29 @@ const Editor = ({
     setHasEmbeds(embedsPresent);
   }, []);
 
-  // Resolve mention names from member data using the lookup map
-  const resolveMentionNames = useCallback(() => {
-    if (!quillRef.current || memberLookup.size === 0) return;
+  // Process Delta to include mention names before rendering
+  const processMentionsDelta = useCallback((delta: Delta | Op[]): Delta | Op[] => {
+    if (memberLookup.size === 0) return delta;
 
-    const mentionNodes = containerRef.current?.querySelectorAll('.mention[data-member-id]');
-    mentionNodes?.forEach((node) => {
-      const memberId = node.getAttribute('data-member-id');
-      if (memberId) {
-        const memberName = memberLookup.get(memberId);
+    const ops = Array.isArray(delta) ? delta : (delta as Delta).ops || [];
+    
+    return ops.map(op => {
+      if (op.insert?.mention?.id) {
+        const memberName = memberLookup.get(op.insert.mention.id);
         if (memberName) {
-          const currentText = node.textContent || '';
-          // Update if showing ID or placeholder
-          if (currentText === `@${memberId}` || currentText === '@...') {
-            node.textContent = `@${memberName}`;
-          }
+          // Add the name to the mention data
+          return {
+            ...op,
+            insert: {
+              mention: {
+                ...op.insert.mention,
+                name: memberName
+              }
+            }
+          };
         }
       }
+      return op;
     });
   }, [memberLookup]);
 
@@ -312,10 +318,19 @@ const Editor = ({
     handleSubmitRef.current = handleSubmit;
   });
 
-  // Resolve names when members data loads
+  // Re-process content when members data loads
   useEffect(() => {
-    resolveMentionNames();
-  }, [members, resolveMentionNames]);
+    if (!quillRef.current || memberLookup.size === 0) return;
+    
+    // Get current content and reprocess it with member names
+    const currentContent = quillRef.current.getContents();
+    const processedContent = processMentionsDelta(currentContent);
+    
+    // Only update if there were mentions to process
+    if (JSON.stringify(currentContent) !== JSON.stringify(processedContent)) {
+      quillRef.current.setContents(processedContent, 'silent');
+    }
+  }, [members, processMentionsDelta]);
 
   const handleProgressUpdate = useCallback(
     (fileIndex: number, progress: { percentage: number }) => {
@@ -644,7 +659,9 @@ const Editor = ({
         console.error('Error parsing draft content', e);
       }
     }
-    quill.setContents(initialContent, 'silent');
+    // Process mentions in initial content if we have member data
+    const processedContent = memberLookup.size > 0 ? processMentionsDelta(initialContent) : initialContent;
+    quill.setContents(processedContent, 'silent');
     setText(quill.getText());
 
     quill.root.addEventListener(
@@ -784,7 +801,9 @@ const Editor = ({
       if (draft) {
         try {
           const delta = JSON.parse(draft.content);
-          quill.setContents(delta, 'silent');
+          // Process mentions in draft content
+          const processedDelta = memberLookup.size > 0 ? processMentionsDelta(delta) : delta;
+          quill.setContents(processedDelta, 'silent');
         } catch (e) {
           console.error('Error parsing draft content', e);
         }
