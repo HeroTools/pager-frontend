@@ -12,7 +12,7 @@ interface SlashCommand {
 }
 
 interface SlashCommandAutoCompleteProps {
-  quill: any; 
+  quill: any;
   containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -162,7 +162,7 @@ const SlashCommandAutoComplete = ({ quill, containerRef }: SlashCommandAutoCompl
 
   useEffect(() => {
     if (quill) {
-      (quill as any).commandDropdownOpen = isOpen; 
+      (quill as any).commandDropdownOpen = isOpen;
     }
   }, [isOpen, quill]);
 
