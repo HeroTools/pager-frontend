@@ -185,7 +185,7 @@ const preprocessLinks = (input: string): string => {
   return processed;
 };
 
-export const MessageContent = ({ content }: { content: string }) => {
+export const MessageContent = ({ content, currentUserId }: { content: string; currentUserId?: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hooksConfigured = useRef(false);
   const { setProfilePanelOpen } = useUIStore();
@@ -324,10 +324,19 @@ export const MessageContent = ({ content }: { content: string }) => {
         if (el.name === 'span' && el.attribs.class === 'mention') {
           const memberId = el.attribs['data-member-id'];
           const memberName = memberLookup.get(memberId) || 'Unknown';
+          const member = members.find(m => m.id === memberId);
+          const isCurrentUser = member?.user?.id === currentUserId;
+          
+          // Techy minimalist styling to match editor
+          const baseClasses = 'inline-block px-1 py-0 rounded text-sm cursor-pointer transition-colors mx-0.5';
+          const colorClasses = isCurrentUser 
+            ? 'bg-green-500/20 text-green-500 hover:bg-green-500/90' 
+            : 'bg-blue-500/20 text-blue-500 hover:bg-blue-500/90';
+          
           return (
             <span
               key={`mention-${memberId}-${Math.random()}`}
-              className="inline-block bg-blue-500 text-white px-1.5 py-0.5 rounded text-sm cursor-pointer hover:bg-blue-600 transition-colors mx-0.5"
+              className={`${baseClasses} ${colorClasses}`}
               onClick={() => setProfilePanelOpen(memberId)}
               title={`View ${memberName}'s profile`}
             >

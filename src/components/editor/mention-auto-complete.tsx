@@ -10,9 +10,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 interface MentionAutoCompleteProps {
   quill: any; // Quill instance
   containerRef: React.RefObject<HTMLDivElement | null>;
+  currentUserId: string;
 }
 
-const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) => {
+const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAutoCompleteProps) => {
   const [mentionQuery, setMentionQuery] = useState('');
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const [mentionDropdownIndex, setMentionDropdownIndex] = useState(0);
@@ -136,13 +137,18 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
               const textBefore = quill.getText(0, sel.index);
               const match = textBefore.match(/@([a-zA-Z0-9._-]*)(?:\n)?$/);
               if (match) {
-                quill.deleteText(sel.index - match[0].length, match[0].length);
-                // Insert mention as a custom blot with member data including name
-                quill.insertEmbed(sel.index - match[0].length, 'mention', {
+                const insertPosition = sel.index - match[0].length;
+                quill.deleteText(insertPosition, match[0].length);
+                // Insert mention as a custom blot with ID and temporary name for display
+                quill.insertEmbed(insertPosition, 'mention', {
                   id: member.id,
-                  name: member.profile?.display_name || member.profile?.full_name || member.user?.email?.split('@')[0] || 'Unknown',
+                  name: member.user?.name || 'Unknown',
+                  isCurrentUser: member.user?.id === currentUserId,
                 });
-                quill.insertText(sel.index - match[0].length + 1, ' ');
+                // Move cursor after the mention and add a space
+                quill.setSelection(insertPosition + 1, 0);
+                quill.insertText(insertPosition + 1, ' ');
+                quill.setSelection(insertPosition + 2, 0);
                 setShowMentionDropdown(false);
                 setMentionQuery('');
                 setMentionDropdownIndex(0);
@@ -196,13 +202,17 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
       const textBefore = quill.getText(0, sel.index);
       const match = textBefore.match(/@([a-zA-Z0-9._-]*)(?:\n)?$/);
       if (match) {
-        quill.deleteText(sel.index - match[0].length, match[0].length);
-        // Insert mention as a custom blot with member data including name
-        quill.insertEmbed(sel.index - match[0].length, 'mention', {
+        const insertPosition = sel.index - match[0].length;
+        quill.deleteText(insertPosition, match[0].length);
+        quill.insertEmbed(insertPosition, 'mention', {
           id: member.id,
-          name: member.profile?.display_name || member.profile?.full_name || member.user?.email?.split('@')[0] || 'Unknown',
+          name: member.user?.name || 'Unknown',
+          isCurrentUser: member.user?.id === currentUserId,
         });
-        quill.insertText(sel.index - match[0].length + 1, ' ');
+        // Move cursor after the mention and add a space
+        quill.setSelection(insertPosition + 1, 0);
+        quill.insertText(insertPosition + 1, ' ');
+        quill.setSelection(insertPosition + 2, 0);
         setShowMentionDropdown(false);
         setMentionQuery('');
         setMentionDropdownIndex(0);
@@ -219,13 +229,10 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
 
   return (
     <div
+      className="fixed z-[100] w-80 shadow-lg"
       style={{
-        position: 'fixed',
         left: dropdownPos.left,
         bottom: `${window.innerHeight - dropdownPos.top - 20}px`,
-        zIndex: 100,
-        width: 320,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       }}
     >
       <Command>
@@ -246,6 +253,11 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm">{member.user.name}</span>
+              {member.user?.id === currentUserId && (
+                <span className="ml-1 px-1 py-0.5 rounded bg-muted text-xs text-muted-foreground border border-border">
+                  you
+                </span>
+              )}
             </CommandItem>
           ))}
           {filteredMembers.length === 0 && (

@@ -105,7 +105,10 @@ const Editor = ({
   const { setProfilePanelOpen } = useUIStore();
   const { data: members = [] } = useGetMembers(workspaceId);
 
-  const memberLookup = useMemo(() => createMemberLookupMap(members), [members]);
+  const memberLookup = useMemo(() => {
+    const lookup = createMemberLookupMap(members);
+    return lookup;
+  }, [members]);
   const { entityId, entityType } = useMemo(() => {
     if (channelId) return { entityId: channelId, entityType: 'channel' as const };
     if (conversationId) return { entityId: conversationId, entityType: 'conversation' as const };
@@ -170,18 +173,7 @@ const Editor = ({
     }
 
     const oldContents = quill.getContents();
-    const extractPlainTextWithMentions = (delta: any) => {
-      let text = '';
-      delta.ops.forEach((op: any) => {
-        if (typeof op.insert === 'string') {
-          text += op.insert;
-        } else if (op.insert?.mention) {
-          text += `<@${op.insert.mention.id}>`;
-        }
-      });
-      return text.trim();
-    };
-    const oldText = extractPlainTextWithMentions(oldContents);
+    const plainText = getPlainTextFromDelta(oldContents);
     const oldImage = image;
     const oldAttachments = attachments;
     const body = JSON.stringify(oldContents);
@@ -203,7 +195,7 @@ const Editor = ({
         image: oldImage,
         body,
         attachments: attachmentsForSubmit,
-        plainText: oldText,
+        plainText,
       });
 
       if (result instanceof Promise) {
@@ -229,8 +221,9 @@ const Editor = ({
         stopTyping();
       }
     } catch (err) {
+      console.error('Failed to submit message:', err);
       quill.setContents(oldContents);
-      setText(oldText);
+      setText(plainText);
       setImage(oldImage);
       setAttachments(oldAttachments);
 
@@ -283,30 +276,26 @@ const Editor = ({
     setHasEmbeds(embedsPresent);
   }, []);
 
-  // Process Delta to include mention names before rendering
-  const processMentionsDelta = useCallback((delta: Delta | Op[]): Delta | Op[] => {
-    if (memberLookup.size === 0) return delta;
-
-    const ops = Array.isArray(delta) ? delta : (delta as Delta).ops || [];
+  const getPlainTextFromDelta = useCallback((delta: any): string => {
+    const ops = delta.ops || [];
+    let text = '';
     
-    return ops.map(op => {
-      if (op.insert?.mention?.id) {
-        const memberName = memberLookup.get(op.insert.mention.id);
-        if (memberName) {
-          // Add the name to the mention data
-          return {
-            ...op,
-            insert: {
-              mention: {
-                ...op.insert.mention,
-                name: memberName
-              }
-            }
-          };
+    ops.forEach((op: any) => {
+      if (typeof op.insert === 'string') {
+        text += op.insert;
+      } else if (op.insert?.mention) {
+        const memberId = op.insert.mention.id;
+        const name = memberLookup.get(memberId);
+        
+        if (name) {
+          text += name;
+        } else {
+          text += 'Unknown User';
         }
       }
-      return op;
     });
+    
+    return text.trim();
   }, [memberLookup]);
 
   useLayoutEffect(() => {
@@ -318,19 +307,22 @@ const Editor = ({
     handleSubmitRef.current = handleSubmit;
   });
 
-  // Re-process content when members data loads
+  // Update mention displays when members data loads
   useEffect(() => {
-    if (!quillRef.current || memberLookup.size === 0) return;
+    if (!containerRef.current || memberLookup.size === 0) return;
     
-    // Get current content and reprocess it with member names
-    const currentContent = quillRef.current.getContents();
-    const processedContent = processMentionsDelta(currentContent);
-    
-    // Only update if there were mentions to process
-    if (JSON.stringify(currentContent) !== JSON.stringify(processedContent)) {
-      quillRef.current.setContents(processedContent, 'silent');
-    }
-  }, [members, processMentionsDelta]);
+    // Update all mention elements to show names instead of IDs
+    const mentionElements = containerRef.current.querySelectorAll('.mention[data-member-id]');
+    mentionElements.forEach((element) => {
+      const memberId = element.getAttribute('data-member-id');
+      if (memberId) {
+        const memberName = memberLookup.get(memberId);
+        if (memberName) {
+          element.textContent = `@${memberName}`;
+        }
+      }
+    });
+  }, [memberLookup]);
 
   const handleProgressUpdate = useCallback(
     (fileIndex: number, progress: { percentage: number }) => {
@@ -659,9 +651,7 @@ const Editor = ({
         console.error('Error parsing draft content', e);
       }
     }
-    // Process mentions in initial content if we have member data
-    const processedContent = memberLookup.size > 0 ? processMentionsDelta(initialContent) : initialContent;
-    quill.setContents(processedContent, 'silent');
+    quill.setContents(initialContent, 'silent');
     setText(quill.getText());
 
     quill.root.addEventListener(
@@ -738,11 +728,7 @@ const Editor = ({
       setText(currentText);
       debouncedSetDraft();
 
-      // Check for embeds whenever content changes
       checkForEmbeds(quill);
-
-      // Resolve mention names
-      resolveMentionNames();
 
       if (source === 'user') {
         handleTextChange();
@@ -801,9 +787,7 @@ const Editor = ({
       if (draft) {
         try {
           const delta = JSON.parse(draft.content);
-          // Process mentions in draft content
-          const processedDelta = memberLookup.size > 0 ? processMentionsDelta(delta) : delta;
-          quill.setContents(processedDelta, 'silent');
+          quill.setContents(delta, 'silent');
         } catch (e) {
           console.error('Error parsing draft content', e);
         }
@@ -847,7 +831,6 @@ const Editor = ({
     isMobile,
     setProfilePanelOpen,
     checkForEmbeds,
-    resolveMentionNames,
   ]);
 
   const handleToolbarToggle = useCallback((): void => {
@@ -1038,7 +1021,7 @@ const Editor = ({
       {!isAgentChat && (
         <>
           <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
-          <MentionAutoComplete quill={quillRef.current} containerRef={containerRef} />
+          <MentionAutoComplete quill={quillRef.current} containerRef={containerRef} currentUserId={userId} />
         </>
       )}
       {!isAgentChat && (
