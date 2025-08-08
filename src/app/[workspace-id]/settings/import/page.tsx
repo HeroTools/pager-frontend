@@ -8,16 +8,17 @@ import {
   CloudUpload,
   FileText,
   MessageSquare,
+  RefreshCw,
   Smile,
   Upload,
   Users,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useStartMigration } from '@/features/migration/hooks/use-migration';
+import { useMigrationJobs, useStartMigration } from '@/features/migration/hooks/use-migration';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { supabase } from '@/lib/supabase/client';
 
@@ -28,12 +29,55 @@ export const MigrationImportPage = () => {
   const [step, setStep] = useState<'upload' | 'uploading' | 'processing' | 'complete'>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const startMigration = useStartMigration();
+  const migration = useStartMigration();
+  const { data: allJobs, isLoading: jobsLoading } = useMigrationJobs(workspaceId);
+
+  const formatTimeAgo = (date: Date | null) => {
+    if (!date) return null;
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  };
 
   const handleBackClick = () => {
     router.push(`/${workspaceId}/settings`);
   };
+
+  // Check for active migration jobs on page load
+  useEffect(() => {
+    if (step === 'upload' && allJobs && !migration.isLoading && !jobsLoading) {
+      const activeJob = allJobs.find(
+        (job) => job.status === 'pending' || job.status === 'processing',
+      );
+
+      if (activeJob) {
+        setStep('processing');
+      }
+    }
+  }, [allJobs, step, migration.isLoading, jobsLoading]);
+
+  // Update step based on migration state
+  useEffect(() => {
+    if (migration.currentJob) {
+      setLastUpdated(new Date());
+      if (migration.currentJob.status === 'completed') {
+        setStep('complete');
+      } else if (migration.currentJob.status === 'failed') {
+        setError(migration.currentJob.error || 'Migration failed');
+        setStep('upload');
+      } else if (
+        migration.currentJob.status === 'processing' ||
+        migration.currentJob.status === 'pending'
+      ) {
+        setStep('processing');
+      }
+    }
+  }, [migration.currentJob]);
 
   const handleFileUpload = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -63,7 +107,7 @@ export const MigrationImportPage = () => {
 
       setStep('processing');
 
-      await startMigration.mutateAsync({
+      await migration.mutateAsync({
         workspaceId,
         data: {
           storageKey: uploadData.path,
@@ -71,15 +115,11 @@ export const MigrationImportPage = () => {
           fileSize: selectedFile.size,
         },
       });
-
-      setStep('complete');
-
-      await supabase.storage.from('files').remove([uploadData.path]);
     } catch (err: any) {
-      console.error('Migration error:', err);
       setError(err.message);
       setStep('upload');
 
+      // Cleanup uploaded file on error
       if (file) {
         const timestamp = Date.now();
         const filename = `/${workspaceId}/slack-exports/${timestamp}-${file.name}`;
@@ -106,6 +146,12 @@ export const MigrationImportPage = () => {
     if (selectedFile) {
       handleFileUpload(selectedFile);
     }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    setStep('upload');
+    migration.reset();
   };
 
   if (step === 'upload') {
@@ -135,7 +181,7 @@ export const MigrationImportPage = () => {
             <div className="p-4 rounded-lg border border-destructive/20 bg-destructive/5">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium text-destructive">Migration Failed</p>
                   <p className="text-sm text-destructive/80 mt-1">{error}</p>
                   {error.includes('100MB') && (
@@ -144,6 +190,10 @@ export const MigrationImportPage = () => {
                     </p>
                   )}
                 </div>
+                <Button variant="outline" size="sm" onClick={handleRetry} className="ml-2">
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Retry
+                </Button>
               </div>
             </div>
           )}
@@ -267,6 +317,12 @@ export const MigrationImportPage = () => {
   }
 
   if (step === 'processing') {
+    const progress = migration.currentJob?.progress;
+    const status = migration.currentJob?.status || 'pending';
+    const activeJob = allJobs?.find(
+      (job) => job.status === 'pending' || job.status === 'processing',
+    );
+
     return (
       <div className="max-w-lg mx-auto py-16">
         <div className="text-center mb-8">
@@ -275,34 +331,107 @@ export const MigrationImportPage = () => {
           </div>
           <div className="space-y-2">
             <h2 className="text-xl font-semibold">Processing Migration</h2>
-            <p className="text-sm text-text-subtle">This usually takes 2-10 minutes</p>
+            <p className="text-sm text-text-subtle">This usually takes 5-15 minutes</p>
           </div>
         </div>
 
         <div className="space-y-6">
           <Card className="border-border-subtle">
             <CardContent className="p-6">
-              <div className="w-full bg-muted rounded-full h-2 mb-4">
-                <div className="bg-brand-blue h-2 rounded-full animate-pulse w-3/4" />
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Migration Progress</span>
+                <div className="flex items-center gap-2">
+                  {migration.isPolling ? (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-blue-600 font-medium">Updating...</span>
+                    </div>
+                  ) : lastUpdated ? (
+                    <span className="text-xs text-text-subtle">
+                      Updated {formatTimeAgo(lastUpdated)}
+                    </span>
+                  ) : activeJob ? (
+                    <span className="text-xs text-text-subtle">Loading latest...</span>
+                  ) : (
+                    <span className="text-xs text-text-subtle">
+                      {status === 'pending' ? 'Pending' : 'Processing'}
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-center text-xs text-text-subtle">
-                Processing {file?.name} ({(file?.size ? file.size / 1024 / 1024 : 0).toFixed(1)}MB)
+
+              {progress ? (
+                <div className="space-y-3">
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div
+                      className="bg-brand-blue h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min(
+                          ((progress.usersCreated +
+                            progress.channelsCreated +
+                            progress.messagesImported) /
+                            100) *
+                            100,
+                          90,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>Users: {progress.usersCreated}</div>
+                    <div>Channels: {progress.channelsCreated}</div>
+                    <div>Messages: {progress.messagesImported}</div>
+                    <div>Reactions: {progress.reactionsAdded}</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full bg-muted rounded-full h-2 mb-4">
+                  <div className="bg-brand-blue h-2 rounded-full animate-pulse w-1/4" />
+                </div>
+              )}
+
+              <p className="text-center text-xs text-text-subtle mt-4">
+                Processing {file?.name || 'your Slack export'} (
+                {(file?.size ? file.size / 1024 / 1024 : 0).toFixed(1)}MB)
               </p>
             </CardContent>
           </Card>
 
           <div className="grid grid-cols-2 gap-4">
             {[
-              { icon: Users, label: 'Users', color: 'text-brand-blue' },
-              { icon: MessageSquare, label: 'Channels', color: 'text-brand-green' },
-              { icon: FileText, label: 'Messages', color: 'text-text-warning' },
-              { icon: Smile, label: 'Reactions', color: 'text-purple-500' },
-            ].map(({ icon: Icon, label, color }) => (
+              {
+                icon: Users,
+                label: 'Users',
+                color: 'text-brand-blue',
+                count: progress?.usersCreated || 0,
+              },
+              {
+                icon: MessageSquare,
+                label: 'Channels',
+                color: 'text-brand-green',
+                count: progress?.channelsCreated || 0,
+              },
+              {
+                icon: FileText,
+                label: 'Messages',
+                color: 'text-text-warning',
+                count: progress?.messagesImported || 0,
+              },
+              {
+                icon: Smile,
+                label: 'Reactions',
+                color: 'text-purple-500',
+                count: progress?.reactionsAdded || 0,
+              },
+            ].map(({ icon: Icon, label, color, count }) => (
               <Card key={label} className="border-border-subtle">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Icon className={`w-6 h-6 ${color}`} />
-                    <span className="text-sm font-medium">{label}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon className={`w-5 h-5 ${color}`} />
+                      <span className="text-sm font-medium">{label}</span>
+                    </div>
+                    <span className="text-sm font-semibold">{count}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -310,7 +439,7 @@ export const MigrationImportPage = () => {
           </div>
 
           <p className="text-center text-xs text-text-subtle">
-            Please keep this page open while processing
+            Migration continues in background even if you close this page
           </p>
         </div>
       </div>
@@ -318,7 +447,7 @@ export const MigrationImportPage = () => {
   }
 
   if (step === 'complete') {
-    const results = startMigration.data?.results;
+    const results = migration.data?.results;
 
     return (
       <div className="max-w-lg mx-auto py-16">
@@ -366,14 +495,6 @@ export const MigrationImportPage = () => {
                   <div className="text-xs text-text-subtle">Messages</div>
                 </div>
               </div>
-
-              {results.errors && results.errors.length > 0 && (
-                <div className="mt-4 p-3 bg-text-warning/5 border border-text-warning/20 rounded-lg">
-                  <p className="text-xs font-medium text-text-warning">
-                    {results.errors.length} items had issues during migration
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
         )}
