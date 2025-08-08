@@ -3,6 +3,18 @@ import { supabase } from '@/lib/supabase/client';
 import { usePresenceStore, type UserPresence } from '@/stores/presence-store';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
+// Helper to validate presence data
+const isValidPresence = (data: unknown): data is UserPresence => {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'userId' in data &&
+    'workspaceMemberId' in data &&
+    'status' in data &&
+    'lastSeen' in data
+  );
+};
+
 interface UsePresenceOptions {
   workspaceId: string;
   userId: string;
@@ -21,7 +33,8 @@ export function usePresence({
   enabled = true,
 }: UsePresenceOptions) {
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const { setPresence, setPresences, setMyPresence, clearPresences } = usePresenceStore();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { setPresence, setPresences, setMyPresence } = usePresenceStore();
 
   const trackPresence = useCallback(async () => {
     if (!channelRef.current) return;
@@ -110,16 +123,8 @@ export function usePresence({
         Object.entries(newState).forEach(([key, presenceArray]) => {
           if (Array.isArray(presenceArray) && presenceArray.length > 0) {
             const latestPresence = presenceArray[presenceArray.length - 1];
-            // Validate the presence object has required fields
-            if (
-              latestPresence &&
-              typeof latestPresence === 'object' &&
-              'userId' in latestPresence &&
-              'workspaceMemberId' in latestPresence &&
-              'status' in latestPresence &&
-              'lastSeen' in latestPresence
-            ) {
-              presences.push(latestPresence as UserPresence);
+            if (isValidPresence(latestPresence)) {
+              presences.push(latestPresence);
             }
           }
         });
@@ -129,31 +134,24 @@ export function usePresence({
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         if (newPresences && newPresences.length > 0) {
           const latestPresence = newPresences[newPresences.length - 1];
-          if (
-            latestPresence &&
-            typeof latestPresence === 'object' &&
-            'userId' in latestPresence &&
-            'workspaceMemberId' in latestPresence &&
-            'status' in latestPresence &&
-            'lastSeen' in latestPresence
-          ) {
-            setPresence(key, latestPresence as unknown as UserPresence);
+          if (isValidPresence(latestPresence)) {
+            setPresence(key, latestPresence);
           }
         }
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
         if (leftPresences && leftPresences.length > 0) {
           const leftPresence = leftPresences[0];
-          if (
-            leftPresence &&
-            typeof leftPresence === 'object' &&
-            'userId' in leftPresence &&
-            'workspaceMemberId' in leftPresence &&
-            'lastSeen' in leftPresence
-          ) {
+          // For leave events, we might not have the full data
+          const basePresence = leftPresence as Partial<UserPresence>;
+          if (basePresence?.userId && basePresence?.workspaceMemberId) {
             setPresence(key, {
-              ...(leftPresence as unknown as UserPresence),
+              userId: basePresence.userId,
+              workspaceMemberId: basePresence.workspaceMemberId,
               status: 'offline',
+              lastSeen: basePresence.lastSeen || new Date().toISOString(),
+              currentChannelId: basePresence.currentChannelId,
+              currentConversationId: basePresence.currentConversationId,
             });
           }
         }
@@ -164,18 +162,22 @@ export function usePresence({
         }
       });
 
-    // Handle tab visibility
     const handleVisibilityChange = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
       if (document.hidden) {
-        // Don't immediately go away, just track the state
-        setTimeout(
+        timeoutRef.current = setTimeout(
           () => {
             if (document.hidden) {
               updatePresence({ status: 'away' });
             }
+            timeoutRef.current = null;
           },
           5 * 60 * 1000,
-        ); // 5 minutes
+        );
       } else {
         updatePresence({ status: 'online' });
       }
@@ -186,27 +188,21 @@ export function usePresence({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
 
-      if (channelRef.current) {
-        const channel = channelRef.current;
-        channelRef.current = null; // Clear ref first
-
-        // Untrack presence first, then remove channel
-        untrackPresence()
-          .then(() => {
-            try {
-              supabase.removeChannel(channel);
-            } catch (error) {
-              // Silently handle cleanup errors
-            }
-          })
-          .catch(() => {
-            // Silently handle untrack errors
-          });
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
 
-      // Don't clear all presences - other users might still be online!
-      // Only clear if this is the last instance
-      // clearPresences();
+      if (channelRef.current) {
+        const channel = channelRef.current;
+        channelRef.current = null;
+
+        untrackPresence()
+          .then(() => supabase.removeChannel(channel))
+          .catch(() => {
+            // Silently handle cleanup errors
+          });
+      }
     };
   }, [
     enabled,
@@ -215,17 +211,19 @@ export function usePresence({
     workspaceMemberId,
     setPresence,
     setPresences,
-    clearPresences,
     trackPresence,
     updatePresence,
     untrackPresence,
   ]);
 
-  // Update location when it changes
   useEffect(() => {
-    if (channelRef.current && (channelId || conversationId)) {
-      updatePresence({ channelId, conversationId });
-    }
+    const timer = setTimeout(() => {
+      if (channelRef.current && (channelId || conversationId)) {
+        updatePresence({ channelId, conversationId });
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [channelId, conversationId, updatePresence]);
 
   return {
@@ -240,4 +238,9 @@ export function useUserPresence(workspaceMemberId: string) {
   );
 
   return presence;
+}
+
+export function useIsUserOnline(workspaceMemberId: string): boolean {
+  const presence = useUserPresence(workspaceMemberId);
+  return presence?.status === 'online';
 }

@@ -17,8 +17,6 @@ interface PresenceState {
   setPresences: (presences: UserPresence[]) => void;
   removePresence: (userId: string) => void;
   setMyPresence: (presence: UserPresence) => void;
-  updateMyStatus: (status: 'online' | 'away' | 'offline') => void;
-  updateMyLocation: (location: { channelId?: string; conversationId?: string }) => void;
   clearPresences: () => void;
   getPresenceByWorkspaceMemberId: (workspaceMemberId: string) => UserPresence | undefined;
 }
@@ -55,31 +53,6 @@ export const usePresenceStore = create<PresenceState>()(
 
       setMyPresence: (presence) => set(() => ({ myPresence: presence })),
 
-      updateMyStatus: (status) =>
-        set((state) => {
-          if (!state.myPresence) return state;
-          return {
-            myPresence: {
-              ...state.myPresence,
-              status,
-              lastSeen: new Date().toISOString(),
-            },
-          };
-        }),
-
-      updateMyLocation: (location) =>
-        set((state) => {
-          if (!state.myPresence) return state;
-          return {
-            myPresence: {
-              ...state.myPresence,
-              currentChannelId: location.channelId,
-              currentConversationId: location.conversationId,
-              lastSeen: new Date().toISOString(),
-            },
-          };
-        }),
-
       clearPresences: () =>
         set(() => ({
           presences: new Map(),
@@ -87,14 +60,13 @@ export const usePresenceStore = create<PresenceState>()(
         })),
 
       getPresenceByWorkspaceMemberId: (workspaceMemberId) => {
+        if (!workspaceMemberId) return undefined;
+
         const state = get();
-        // Search through all presences to find matching workspaceMemberId
-        for (const presence of state.presences.values()) {
-          if (presence && presence.workspaceMemberId === workspaceMemberId) {
-            return presence;
-          }
-        }
-        return undefined;
+        // Use Array.from for better performance with large Maps
+        return Array.from(state.presences.values()).find(
+          (presence) => presence?.workspaceMemberId === workspaceMemberId,
+        );
       },
     }),
     {
