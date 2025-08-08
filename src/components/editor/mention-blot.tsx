@@ -4,8 +4,6 @@ const Embed = Quill.import('blots/embed') as any;
 
 interface MentionValue {
   id: string; // workspace_member_id
-  name: string;
-  userId: string;
 }
 
 class MentionBlot extends Embed {
@@ -17,54 +15,28 @@ class MentionBlot extends Embed {
   static value(node: HTMLSpanElement): any {
     return {
       id: node.getAttribute('data-member-id') || '',
-      userId: node.getAttribute('data-user-id') || '',
-      name: node.getAttribute('data-name') || '',
     };
   }
 
   static create(value: MentionValue) {
     const node = super.create(value) as HTMLSpanElement;
-    // Store the actual mention format that will be saved to the database
-    node.setAttribute('data-mention', `<@${value.id}>`);
     node.setAttribute('data-member-id', value.id);
-    node.setAttribute('data-user-id', value.userId);
-    node.setAttribute('data-name', value.name);
-    node.textContent = `@${value.name}`;
-    node.style.backgroundColor = '#3b82f6';
-    node.style.color = 'white';
-    node.style.padding = '2px 6px';
-    node.style.borderRadius = '4px';
-    node.style.fontSize = '14px';
-    node.style.cursor = 'pointer';
-    node.style.display = 'inline-block';
-    node.style.margin = '0 2px';
+    node.setAttribute('contenteditable', 'false');
+    node.textContent = `@${value.id}`; // Placeholder until name is resolved
 
-    // Add click handler to open profile panel
+    // Use Tailwind classes for styling
+    node.className =
+      'mention inline-block bg-blue-500 text-white px-1.5 py-0.5 rounded text-sm cursor-pointer hover:bg-blue-600 transition-colors mx-0.5';
+
     node.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-
-      // Dispatch custom event for mention click with workspace_member_id
-      const event = new CustomEvent('mentionClick', {
-        detail: {
-          memberId: value.id, // This is the workspace_member_id
-          userId: value.userId,
-          name: value.name,
-        },
-        bubbles: true,
-      });
-
-      // Dispatch the event from the node itself, it will bubble up
-      node.dispatchEvent(event);
-    });
-
-    // Add hover effects
-    node.addEventListener('mouseenter', () => {
-      node.style.backgroundColor = '#2563eb';
-    });
-
-    node.addEventListener('mouseleave', () => {
-      node.style.backgroundColor = '#3b82f6';
+      node.dispatchEvent(
+        new CustomEvent('mentionClick', {
+          detail: { memberId: value.id },
+          bubbles: true,
+        }),
+      );
     });
 
     return node;

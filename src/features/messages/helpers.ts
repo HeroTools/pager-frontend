@@ -3,7 +3,7 @@ import { useUIStore } from '@/stores/ui-store';
 import type { Attachment, Author, Message } from '@/types/chat';
 import type { Attachment as AttachmentType } from '@/types/database';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
-import { ChatMember } from '../members';
+import { ChatMember, MemberWithUser } from '../members';
 import type { Reaction, User } from '../reactions/types';
 import type { MessageWithUser, QuillDelta, QuillOp } from './types';
 
@@ -78,7 +78,7 @@ export const formatDateLabel = (dateInput: string | Date): string => {
  */
 export const parseMessageContent = (
   content: string | null | undefined,
-  members?: ChatMember[],
+  members?: ChatMember[] | MemberWithUser[],
 ): QuillDelta => {
   if (!content || content.trim() === '') {
     return { ops: [{ insert: '\n' }] };
@@ -130,7 +130,7 @@ const isValidDelta = (obj: unknown): obj is QuillDelta => {
 /**
  * Helper function to convert mentions in a single op
  */
-const convertMentionsInOp = (op: QuillOp, members?: ChatMember[]): QuillOp[] => {
+const convertMentionsInOp = (op: QuillOp, members?: ChatMember[] | MemberWithUser[]): QuillOp[] => {
   if (typeof op.insert !== 'string') return [op];
 
   const text = op.insert;
@@ -148,17 +148,12 @@ const convertMentionsInOp = (op: QuillOp, members?: ChatMember[]): QuillOp[] => 
       });
     }
 
-    // Find member data
+    // Add the mention as a mention blot with only ID
     const memberId = match[1];
-    const member = members?.find((m) => m.workspace_member.id === memberId);
-
-    // Add the mention as a mention blot
     ops.push({
       insert: {
         mention: {
           id: memberId,
-          name: member?.workspace_member.user.name || 'Unknown Member',
-          userId: member?.workspace_member.user.id || '',
         },
       },
     });
@@ -180,7 +175,10 @@ const convertMentionsInOp = (op: QuillOp, members?: ChatMember[]): QuillOp[] => 
 /**
  * Creates a delta from plain text with mention conversion
  */
-const createPlainTextDeltaWithMentions = (text: string, members?: ChatMember[]): QuillDelta => {
+const createPlainTextDeltaWithMentions = (
+  text: string,
+  members?: ChatMember[] | MemberWithUser[],
+): QuillDelta => {
   const cleanText = text.trim();
   const ops: QuillOp[] = [];
 
@@ -195,17 +193,12 @@ const createPlainTextDeltaWithMentions = (text: string, members?: ChatMember[]):
       ops.push({ insert: cleanText.substring(lastIndex, match.index) });
     }
 
-    // Find member data
+    // Add the mention as a mention blot with only ID
     const memberId = match[1];
-    const member = members?.find((m) => m.workspace_member.id === memberId);
-
-    // Add the mention as a mention blot
     ops.push({
       insert: {
         mention: {
           id: memberId,
-          name: member?.workspace_member.user.name || 'Unknown Member',
-          userId: member?.workspace_member.user.id || '',
         },
       },
     });

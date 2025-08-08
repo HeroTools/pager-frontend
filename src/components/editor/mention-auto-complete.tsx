@@ -140,8 +140,6 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
                 // Insert mention as a custom blot with member data
                 quill.insertEmbed(sel.index - match[0].length, 'mention', {
                   id: member.id,
-                  name: member.user.name,
-                  userId: member.user.id,
                 });
                 quill.insertText(sel.index - match[0].length + 1, ' ');
                 setShowMentionDropdown(false);
@@ -201,8 +199,6 @@ const MentionAutoComplete = ({ quill, containerRef }: MentionAutoCompleteProps) 
         // Insert mention as a custom blot with member data
         quill.insertEmbed(sel.index - match[0].length, 'mention', {
           id: member.id,
-          name: member.user.name,
-          userId: member.user.id,
         });
         quill.insertText(sel.index - match[0].length + 1, ' ');
         setShowMentionDropdown(false);

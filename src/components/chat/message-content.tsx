@@ -14,9 +14,12 @@ import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { Hint } from '@/components/hint';
 import { useUIStore } from '@/stores/ui-store';
+import { useGetMembers } from '@/features/members/hooks/use-members';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { createMemberLookupMap } from '@/lib/helpers/members';
 
 interface QuillDeltaOp {
-  insert?: string | { mention?: { id: string; name: string; userId: string } };
+  insert?: string | { mention?: { id: string } };
   attributes?: {
     link?: string;
     [key: string]: unknown;
@@ -144,7 +147,6 @@ const sanitizeHtml = (html: string): string => {
       'src',
       'alt',
       'data-member-id',
-      'data-user-id',
       'data-name',
     ],
     FORBID_ATTR: ['style'],
@@ -187,6 +189,11 @@ export const MessageContent = ({ content }: { content: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hooksConfigured = useRef(false);
   const { setProfilePanelOpen } = useUIStore();
+  const workspaceId = useWorkspaceId();
+  const { data: members = [] } = useGetMembers(workspaceId || '');
+
+  // Create a memoized lookup map for performance
+  const memberLookup = useMemo(() => createMemberLookupMap(members), [members]);
 
   useEffect(() => {
     if (!hooksConfigured.current) {
@@ -214,13 +221,16 @@ export const MessageContent = ({ content }: { content: string }) => {
 
           const mentions: Array<{
             placeholder: string;
-            data: { id: string; name: string; userId: string };
+            id: string;
+            name: string;
           }> = [];
 
           const processedOps = delta.ops.map((op, index) => {
             if (op.insert && typeof op.insert === 'object' && 'mention' in op.insert) {
               const placeholder = `__MENTION_${index}_${Date.now()}__`;
-              mentions.push({ placeholder, data: op.insert.mention });
+              const memberId = op.insert.mention.id;
+              const memberName = memberLookup.get(memberId) || 'Unknown';
+              mentions.push({ placeholder, id: memberId, name: memberName });
               return { insert: placeholder };
             }
 
@@ -253,9 +263,8 @@ export const MessageContent = ({ content }: { content: string }) => {
 
           let html = converter.convert();
 
-          mentions.forEach(({ placeholder, data }) => {
-            const { id, name, userId } = data;
-            const mentionHtml = `<span class="mention" data-member-id="${id}" data-user-id="${userId}" data-name="${name}">@${name}</span>`;
+          mentions.forEach(({ placeholder, id, name }) => {
+            const mentionHtml = `<span class="mention" data-member-id="${id}">@${name}</span>`;
             html = html.replace(placeholder, mentionHtml);
           });
 
@@ -282,7 +291,7 @@ export const MessageContent = ({ content }: { content: string }) => {
       const sanitized = sanitizeHtml(`<p>${content}</p>`);
       return isContentEmpty(sanitized) ? '' : sanitized;
     }
-  }, [content]);
+  }, [content, memberLookup]);
 
   const replaceFn = useCallback(
     (node: DOMNode): React.ReactElement | undefined => {
@@ -314,22 +323,22 @@ export const MessageContent = ({ content }: { content: string }) => {
 
         if (el.name === 'span' && el.attribs.class === 'mention') {
           const memberId = el.attribs['data-member-id'];
-          const name = el.attribs['data-name'];
+          const memberName = memberLookup.get(memberId) || 'Unknown';
           return (
             <span
               key={`mention-${memberId}-${Math.random()}`}
               className="inline-block bg-blue-500 text-white px-1.5 py-0.5 rounded text-sm cursor-pointer hover:bg-blue-600 transition-colors mx-0.5"
               onClick={() => setProfilePanelOpen(memberId)}
-              title={`View ${name}'s profile`}
+              title={`View ${memberName}'s profile`}
             >
-              @{name}
+              @{memberName}
             </span>
           );
         }
       }
       return undefined;
     },
-    [setProfilePanelOpen],
+    [setProfilePanelOpen, memberLookup],
   );
 
   const parsedContent = useMemo<React.ReactNode>(() => {

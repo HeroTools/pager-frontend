@@ -20,10 +20,12 @@ import { Button } from '@/components/ui/button';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import { useUIStore } from '@/stores/ui-store';
 import { useFileUpload } from '@/features/file-upload';
+import { useGetMembers } from '@/features/members/hooks/use-members';
 import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useTypingStatus } from '@/hooks/use-typing-status';
 import { validateFile } from '@/lib/helpers';
+import { createMemberLookupMap } from '@/lib/helpers/members';
 import { cn } from '@/lib/utils';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
@@ -101,6 +103,9 @@ const Editor = ({
 
   const { getDraft, setDraft, clearDraft } = useDraftsStore();
   const { setProfilePanelOpen } = useUIStore();
+  const { data: members = [] } = useGetMembers(workspaceId);
+
+  const memberLookup = useMemo(() => createMemberLookupMap(members), [members]);
   const { entityId, entityType } = useMemo(() => {
     if (channelId) return { entityId: channelId, entityType: 'channel' as const };
     if (conversationId) return { entityId: conversationId, entityType: 'conversation' as const };
@@ -278,6 +283,26 @@ const Editor = ({
     setHasEmbeds(embedsPresent);
   }, []);
 
+  // Resolve mention names from member data using the lookup map
+  const resolveMentionNames = useCallback(() => {
+    if (!quillRef.current || memberLookup.size === 0) return;
+
+    const mentionNodes = containerRef.current?.querySelectorAll('.mention[data-member-id]');
+    mentionNodes?.forEach((node) => {
+      const memberId = node.getAttribute('data-member-id');
+      if (memberId) {
+        const memberName = memberLookup.get(memberId);
+        if (memberName) {
+          const currentText = node.textContent || '';
+          // Update if showing ID or placeholder
+          if (currentText === `@${memberId}` || currentText === '@...') {
+            node.textContent = `@${memberName}`;
+          }
+        }
+      }
+    });
+  }, [memberLookup]);
+
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
     placeholderRef.current = placeholder;
@@ -286,6 +311,11 @@ const Editor = ({
     attachmentsRef.current = attachments;
     handleSubmitRef.current = handleSubmit;
   });
+
+  // Resolve names when members data loads
+  useEffect(() => {
+    resolveMentionNames();
+  }, [members, resolveMentionNames]);
 
   const handleProgressUpdate = useCallback(
     (fileIndex: number, progress: { percentage: number }) => {
@@ -553,13 +583,13 @@ const Editor = ({
               handler(): boolean {
                 const emojiDropdownOpen =
                   quillRef.current && (quillRef.current as any).emojiDropdownOpen;
-            
+
                 const mentionDropdownOpen =
                   quillRef.current && (quillRef.current as any).mentionDropdownOpen;
 
                 const commandDropdownOpen =
                   quillRef.current && (quillRef.current as any).commandDropdownOpen;
-        
+
                 if (emojiDropdownOpen || commandDropdownOpen || mentionDropdownOpen) {
                   return true;
                 }
@@ -694,6 +724,9 @@ const Editor = ({
       // Check for embeds whenever content changes
       checkForEmbeds(quill);
 
+      // Resolve mention names
+      resolveMentionNames();
+
       if (source === 'user') {
         handleTextChange();
 
@@ -794,6 +827,8 @@ const Editor = ({
     workspaceId,
     isMobile,
     setProfilePanelOpen,
+    checkForEmbeds,
+    resolveMentionNames,
   ]);
 
   const handleToolbarToggle = useCallback((): void => {
