@@ -330,14 +330,8 @@ export const MigrationImportPage = () => {
             <Clock className="w-8 h-8 text-brand-blue animate-spin" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold">
-              {status === 'pending' ? 'Queuing Migration' : 'Processing Migration'}
-            </h2>
-            <p className="text-sm text-text-subtle">
-              {status === 'pending'
-                ? 'Your migration is being queued...'
-                : 'This usually takes 5-15 minutes'}
-            </p>
+            <h2 className="text-xl font-semibold">Processing Migration</h2>
+            <p className="text-sm text-text-subtle">This usually takes 5-15 minutes</p>
           </div>
         </div>
 
