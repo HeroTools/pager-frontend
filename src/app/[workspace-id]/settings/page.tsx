@@ -1,12 +1,15 @@
 'use client';
 
-import { ArrowLeft, RefreshCw, Settings, Upload, Users } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Info, RefreshCw, Settings, Upload, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { PreferenceModal } from '@/components/side-nav/preference-modal';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/features/auth';
 import { MigrationStatus } from '@/features/migration/components/migration-status';
 import { useMigrationJobs } from '@/features/migration/hooks/use-migration';
@@ -17,34 +20,63 @@ const WorkspaceSettingsPage = () => {
   const [preferenceOpen, setPreferenceOpen] = useState(false);
   const router = useRouter();
   const workspaceId = useWorkspaceId();
+
   const { user, isLoading } = useCurrentUser(workspaceId);
   const { data: workspace } = useGetWorkspace(workspaceId);
   const { data: migrationJobs, isLoading: jobsLoading } = useMigrationJobs(workspaceId);
 
-  const handleBackClick = () => {
-    router.back();
-  };
+  const handleBackClick = () => router.back();
+  const handleMigrationClick = () => router.push(`/${workspaceId}/settings/import`);
 
-  const handleMigrationClick = () => {
-    router.push(`/${workspaceId}/settings/import`);
-  };
+  const activeMigration = useMemo(
+    () => migrationJobs?.find((j) => j.status === 'pending' || j.status === 'processing'),
+    [migrationJobs],
+  );
 
-  // Check if there's an active migration
-  const activeMigration = migrationJobs?.find(
-    (job) => job.status === 'pending' || job.status === 'processing',
+  const hasCompletedMigrations = useMemo(
+    () => migrationJobs?.some((j) => j.status === 'completed'),
+    [migrationJobs],
   );
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-6">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
-            <Settings className="w-8 h-8 text-muted-foreground animate-spin" />
+      <div className="flex items-center justify-center min-h-[60vh] px-4">
+        <div className="w-full max-w-3xl space-y-4">
+          <div className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-muted-foreground animate-spin" />
+            <p className="text-sm text-muted-foreground">Loading workspace settings…</p>
           </div>
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Loading</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">Loading workspace settings...</p>
-          </div>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-7 w-7" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-64" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <Skeleton className="h-8 w-28" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-7 w-7" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-56" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-8 w-28" />
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -52,20 +84,18 @@ const WorkspaceSettingsPage = () => {
 
   if (user?.role !== 'admin') {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-6">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
-            <Settings className="w-8 h-8 text-muted-foreground" />
+      <div className="flex items-center justify-center min-h-[60vh] px-4">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto">
+            <Settings className="w-7 h-7 text-muted-foreground" />
           </div>
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Access Restricted</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">
-              Only workspace administrators can access settings.
-            </p>
-          </div>
+          <h3 className="text-base font-semibold">Access Restricted</h3>
+          <p className="text-sm text-muted-foreground">
+            Only workspace administrators can access settings.
+          </p>
           <Button variant="outline" onClick={handleBackClick} size="sm">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Workspace
+            Back
           </Button>
         </div>
       </div>
@@ -77,165 +107,174 @@ const WorkspaceSettingsPage = () => {
       <PreferenceModal
         open={preferenceOpen}
         setOpen={setPreferenceOpen}
-        initialVlaue={workspace?.name}
+        initialValue={workspace?.name}
       />
 
-      <div className="max-w-2xl mx-auto">
-        <div className="py-8 border-b border-border-subtle">
-          <div className="flex items-center gap-3 mb-6">
-            <Button variant="ghost" size="sm" onClick={handleBackClick}>
-              <ArrowLeft className="w-4 h-4" />
+      <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
+        <div className="py-4 sm:py-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Button variant="ghost" size="icon" onClick={handleBackClick} className="h-8 w-8">
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="h-4 w-px bg-border-subtle" />
-            <span className="text-sm text-text-subtle">Settings</span>
+            <span className="text-xs sm:text-sm text-muted-foreground">Settings</span>
           </div>
-
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Workspace Settings</h1>
-            <p className="text-sm text-text-subtle">
-              Manage preferences and data for {workspace?.name}
+          <div className="mb-8">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-2">
+              Workspace Settings
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Manage preferences and data for <span className="font-medium">{workspace?.name}</span>
             </p>
           </div>
-        </div>
 
-        <div className="py-8 space-y-6">
-          <div className="space-y-4">
-            <Card className="border-border-subtle hover:border-border-default transition-colors">
-              <CardHeader className="pb-3">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Upload className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold">Import Data</CardTitle>
+                      <CardDescription className="text-sm">
+                        Bring messages and channels from Slack (zip export)
+                      </CardDescription>
+                    </div>
+                  </div>
+                  {hasCompletedMigrations && !activeMigration && (
+                    <Badge variant="secondary" className="text-xs">
+                      Previously imported
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                {activeMigration && (
+                  <Alert>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <AlertDescription className="ml-2">
+                      <div className="space-y-1">
+                        <div className="font-medium">Migration in progress</div>
+                        <div className="text-xs text-muted-foreground">
+                          {activeMigration.status === 'pending'
+                            ? 'Queued and will start shortly'
+                            : 'Importing your Slack export in the background'}
+                          . Job ID: {activeMigration.jobId}
+                        </div>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <div className="flex items-start gap-2 mb-3">
+                    <Info className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                    <div className="text-sm text-muted-foreground">
+                      Most imports complete within 5–15 minutes. You can continue working while it
+                      runs.
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      'Users and profiles',
+                      'Public channels',
+                      'Message history',
+                      'Reactions & threads',
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    onClick={handleMigrationClick}
+                    size="default"
+                    disabled={!!activeMigration || jobsLoading}
+                  >
+                    {activeMigration ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Migration in progress
+                      </>
+                    ) : jobsLoading ? (
+                      'Loading…'
+                    ) : hasCompletedMigrations ? (
+                      'Import again'
+                    ) : (
+                      'Start import'
+                    )}
+                  </Button>
+
+                  {!activeMigration && (
+                    <Button variant="outline" size="default">
+                      Learn about supported formats
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                    <Settings className="w-4 h-4 text-foreground" />
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-medium">Workspace Preferences</CardTitle>
-                    <CardDescription className="text-xs text-text-subtle">
-                      Update your workspace name and settings
+                    <CardTitle className="text-lg font-semibold">Workspace Preferences</CardTitle>
+                    <CardDescription className="text-sm">
+                      Update your workspace name or delete your workspace
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent>
                 <Button
                   onClick={() => setPreferenceOpen(true)}
                   variant="outline"
-                  size="sm"
-                  className="h-8 text-xs"
+                  size="default"
+                  className="font-medium"
                 >
-                  Edit Preferences
+                  Edit preferences
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="border-border-subtle hover:border-border-default transition-colors">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md flex items-center justify-center">
-                    <Upload className="w-4 h-4 text-card-foreground" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-sm font-medium">Import Data</CardTitle>
-                    <CardDescription className="text-xs text-text-subtle">
-                      Migrate your team&apos;s data from Slack or other platforms
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-4">
-                {activeMigration && (
-                  <div className="p-4 rounded-lg bg-brand-blue/5 border border-brand-blue/20">
-                    <div className="flex items-start gap-3">
-                      <RefreshCw className="w-4 h-4 text-brand-blue animate-spin mt-0.5" />
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium text-brand-blue mb-1">
-                          Migration in Progress
-                        </h4>
-                        <p className="text-xs text-brand-blue/80 leading-relaxed mb-2">
-                          {activeMigration.status === 'pending'
-                            ? 'Your migration is queued and will start shortly.'
-                            : 'Your Slack data is being imported in the background.'}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-brand-blue/70 mb-3">
-                          <span>Job ID: {activeMigration.jobId}</span>
-                          <span>•</span>
-                          <span className="capitalize">{activeMigration.status}</span>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/${workspaceId}/settings/import`)}
-                          className="h-7 text-xs"
-                        >
-                          View Progress
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="p-4 rounded-lg bg-muted/50 border border-border-subtle">
-                  <div className="flex items-start gap-3">
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="text-sm font-medium mb-1">Import from Slack</h4>
-                        <p className="text-xs text-text-subtle leading-relaxed">
-                          Upload your Slack export to migrate channels, messages, and team members.
-                          Process runs in background and takes 5-15 minutes.
-                        </p>
-                      </div>
-                      <Button
-                        onClick={handleMigrationClick}
-                        size="sm"
-                        disabled={!!activeMigration || jobsLoading}
-                      >
-                        {activeMigration
-                          ? 'Migration in Progress'
-                          : jobsLoading
-                            ? 'Loading...'
-                            : 'Start Import'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-md bg-muted/30 border border-border-subtle">
-                  <h5 className="text-xs font-medium text-foreground mb-2">Migration includes:</h5>
-                  <div className="grid grid-cols-2 gap-1 text-xs text-text-subtle">
-                    <div>✓ Users and profiles</div>
-                    <div>✓ All channels</div>
-                    <div>✓ Message history</div>
-                    <div>✓ Reactions & threads</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Migration Status Component - Show if there are any migration jobs */}
             {migrationJobs && migrationJobs.length > 0 && (
               <MigrationStatus workspaceId={workspaceId} />
             )}
 
-            <Card className="border-border-subtle opacity-60">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-                    <Users className="w-4 h-4 text-muted-foreground" />
+            <Card className="opacity-75">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                      <Users className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold text-muted-foreground">
+                        Team Management
+                      </CardTitle>
+                      <CardDescription className="text-sm">
+                        Manage workspace members and permissions
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Team Management
-                    </CardTitle>
-                    <CardDescription className="text-xs text-text-subtle">
-                      Manage workspace members and permissions
-                    </CardDescription>
-                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    Coming soon
+                  </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                <Button variant="outline" size="sm" disabled>
-                  Manage Members
-                  <span className="ml-2 px-1.5 py-0.5 bg-muted rounded text-[10px] text-text-subtle">
-                    Soon
-                  </span>
+              <CardContent>
+                <Button variant="outline" size="default" disabled className="font-medium">
+                  Manage members
                 </Button>
               </CardContent>
             </Card>
