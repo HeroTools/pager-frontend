@@ -1,5 +1,9 @@
 'use client';
 
+import { Bell, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { type ReactNode, useEffect, useState } from 'react';
+
 import { MobileBottomNav } from '@/components/mobile/mobile-bottom-nav';
 import { ProfilePanel } from '@/components/profile-panel';
 import { NotificationsSidebar } from '@/components/side-nav/notifications-sidebar';
@@ -16,9 +20,6 @@ import { useRealtimeNotifications } from '@/features/notifications/hooks/use-rea
 import { usePresence } from '@/hooks/use-presence';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useUIStore } from '@/stores/ui-store';
-import { Bell, X } from 'lucide-react';
-import { usePathname } from 'next/navigation';
-import { type ReactNode, useEffect, useState } from 'react';
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;
