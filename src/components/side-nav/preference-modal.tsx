@@ -21,12 +21,12 @@ import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { RESERVED_NAMES } from '@/lib/constants';
 
 interface PreferenceModalProps {
-  initialVlaue: string;
+  initialValue: string;
   open: boolean;
   setOpen: (open: boolean) => void;
 }
 
-export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModalProps) => {
+export const PreferenceModal = ({ initialValue, open, setOpen }: PreferenceModalProps) => {
   const router = useRouter();
   const [ConfirmDialog, confirm] = useConfirm('Are you sure?', 'This action is irreversible');
 
@@ -35,7 +35,7 @@ export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModal
 
   const form = useForm({
     defaultValues: {
-      name: initialVlaue,
+      name: initialValue,
     },
   });
   const value = form.watch('name');
@@ -96,7 +96,7 @@ export const PreferenceModal = ({ initialVlaue, open, setOpen }: PreferenceModal
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="p-0 bg-secondary overflow-hidden sm:max-w-lg">
           <DialogHeader className="p-4 border-b">
-            <DialogTitle>{initialVlaue}</DialogTitle>
+            <DialogTitle>{initialValue}</DialogTitle>
           </DialogHeader>
           <div className="px-4 pb-4 flex flex-col gap-y-2">
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
