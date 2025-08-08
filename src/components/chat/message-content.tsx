@@ -330,8 +330,8 @@ export const MessageContent = ({ content, currentUserId }: { content: string; cu
           // Techy minimalist styling to match editor
           const baseClasses = 'inline-block px-1 py-0 rounded text-sm cursor-pointer transition-colors mx-0.5';
           const colorClasses = isCurrentUser 
-            ? 'bg-green-500/20 text-green-500 hover:bg-green-500/90' 
-            : 'bg-blue-500/20 text-blue-500 hover:bg-blue-500/90';
+            ? 'bg-green-500/20 text-green-500 hover:bg-green-500/40' 
+            : 'bg-blue-500/20 text-blue-500 hover:bg-blue-500/40';
           
           return (
             <span

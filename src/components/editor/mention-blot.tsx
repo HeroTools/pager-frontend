@@ -31,10 +31,10 @@ class MentionBlot extends Embed {
     
     if (value.isCurrentUser) {
       // Subtle blue background with dark text for self-mentions
-      node.className = `${baseClasses} bg-green-500/20 text-green-500 hover:bg-green-500/90`;
+      node.className = `${baseClasses} bg-green-500/20 text-green-500 hover:bg-green-500/40`;
     } else {
       // Very subtle gray background with normal text for other mentions
-      node.className = `${baseClasses} bg-blue-500/20 text-blue-500 hover:bg-blue-500/90`;
+      node.className = `${baseClasses} bg-blue-500/20 text-blue-500 hover:bg-blue-500/40`;
     }
 
     node.addEventListener('click', (e) => {
