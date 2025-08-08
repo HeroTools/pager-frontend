@@ -74,9 +74,12 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
       // DM: show other person's avatar
       const otherMember = otherMembers[0];
       const user = otherMember.workspace_member?.user || otherMember.user;
+      // Use workspace_member_id field, not id
+      const workspaceMemberId = otherMember.workspace_member?.id || otherMember.workspace_member_id;
       return {
         type: 'dm',
         user: user,
+        workspaceMemberId: workspaceMemberId,
       };
     } else {
       // Self-conversation: show current user's avatar
@@ -84,9 +87,12 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
         (member: any) => member.user.id === currentUser.id,
       );
       const user = selfMember?.workspace_member?.user || selfMember?.user || currentUser;
+      // Use workspace_member_id field, not id
+      const workspaceMemberId = selfMember?.workspace_member?.id || selfMember?.workspace_member_id;
       return {
         type: 'self',
         user: user,
+        workspaceMemberId: workspaceMemberId,
       };
     }
   };
@@ -141,7 +147,12 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
             <></>
           ) : (
             // DM or Self: show avatar
-            <Avatar className="w-6 h-6">
+            <Avatar
+              className="w-6 h-6"
+              workspaceMemberId={conversationDisplay?.workspaceMemberId}
+              showPresence={true}
+              presenceSize="sm"
+            >
               <AvatarImage
                 src={conversationDisplay?.user?.image || undefined}
                 alt={conversationDisplay?.user?.name}
@@ -179,7 +190,12 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
             {visibleMembers.map((member) => (
               <Tooltip key={member.id}>
                 <TooltipTrigger asChild>
-                  <Avatar className="h-7 w-7 border-2 border-background bg-muted">
+                  <Avatar
+                    className="h-7 w-7 border-2 border-background bg-muted"
+                    workspaceMemberId={member.workspace_member.id}
+                    showPresence={true}
+                    presenceSize="sm"
+                  >
                     {member.workspace_member.user.image ? (
                       <AvatarImage
                         src={member.workspace_member.user.image}

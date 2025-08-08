@@ -158,8 +158,8 @@ const ConversationChat = () => {
 
   // Transform data for chat component
   const conversationChannel = transformConversation(
-    currentConversation.members,
-    currentConversation.other_members,
+    currentConversation?.members || [],
+    currentConversation?.other_members || [],
     conversationId,
   );
 

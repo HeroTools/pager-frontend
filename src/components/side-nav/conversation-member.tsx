@@ -115,8 +115,20 @@ export const ConversationItem = ({
       asChild
     >
       <Link href={`/${workspaceId}/d-${conversation.id}`} onClick={handleConversationClick}>
-        <div className="relative">
-          <Avatar className="size-5 rounded-md mr-1">
+        <div className="relative mr-1">
+          <Avatar
+            className="size-5 rounded-md"
+            workspaceMemberId={
+              !conversation.is_group_conversation && conversation.other_members.length === 1
+                ? conversation.other_members[0]?.workspace_member.id
+                : !conversation.is_group_conversation && conversation.other_members.length === 0
+                  ? conversation.members[0]?.workspace_member.id // Self conversation
+                  : undefined
+            }
+            showPresence={!conversation.is_group_conversation}
+            presenceSize="sm"
+            presencePosition="bottom-right"
+          >
             <AvatarImage className="rounded-md" src={display.image || undefined} />
             <AvatarFallback className="rounded-md bg-muted text-muted-foreground text-xs">
               {display.initials}
