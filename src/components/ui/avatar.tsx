@@ -1,10 +1,10 @@
 'use client';
 
-import * as React from 'react';
 import * as AvatarPrimitive from '@radix-ui/react-avatar';
+import * as React from 'react';
 
-import { cn } from '@/lib/utils';
 import { useUserPresence } from '@/hooks/use-presence';
+import { cn } from '@/lib/utils';
 
 interface AvatarProps extends React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root> {
   workspaceMemberId?: string;
@@ -27,7 +27,6 @@ const Avatar = React.forwardRef<React.ComponentRef<typeof AvatarPrimitive.Root>,
     ref,
   ) => {
     const presence = useUserPresence(workspaceMemberId || '');
-    // Default to offline if no presence data
     const presenceStatus = presence?.status || 'offline';
     const shouldShowPresence = showPresence && workspaceMemberId;
 
@@ -110,4 +109,4 @@ const AvatarFallback = React.forwardRef<
 ));
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
 
-export { Avatar, AvatarImage, AvatarFallback };
+export { Avatar, AvatarFallback, AvatarImage };

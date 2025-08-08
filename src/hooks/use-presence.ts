@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { usePresenceStore, type UserPresence } from '@/stores/presence-store';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useCallback, useEffect, useRef } from 'react';
 
-// Helper to validate presence data
 const isValidPresence = (data: unknown): data is UserPresence => {
   return (
     data !== null &&
