@@ -151,7 +151,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
               className="w-6 h-6"
               workspaceMemberId={conversationDisplay?.workspaceMemberId}
               showPresence={true}
-              presenceSize="sm"
+              presenceSize="md"
             >
               <AvatarImage
                 src={conversationDisplay?.user?.image || undefined}
@@ -193,8 +193,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
                   <Avatar
                     className="h-7 w-7 border-2 border-background bg-muted"
                     workspaceMemberId={member.workspace_member.id}
-                    showPresence={true}
-                    presenceSize="sm"
+                    showPresence={false}
                   >
                     {member.workspace_member.user.image ? (
                       <AvatarImage

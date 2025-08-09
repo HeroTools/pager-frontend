@@ -38,21 +38,21 @@ const Avatar = React.forwardRef<React.ComponentRef<typeof AvatarPrimitive.Root>,
     };
 
     const presencePositionClasses = {
-      'bottom-right': 'bottom-0 right-0',
-      'top-right': 'top-0 right-0',
-      'bottom-left': 'bottom-0 left-0',
-      'top-left': 'top-0 left-0',
+      'bottom-right': 'bottom-0 right-0 translate-x-1 translate-y-1',
+      'top-right': 'top-0 right-0 translate-x-1 -translate-y-1',
+      'bottom-left': 'bottom-0 left-0 -translate-x-1 translate-y-1',
+      'top-left': 'top-0 left-0 -translate-x-1 -translate-y-1',
     };
 
     const getPresenceClasses = (status: string) => {
       switch (status) {
         case 'online':
-          return 'bg-text-success ring-1 ring-text-success/30';
+          return 'bg-text-success';
         case 'away':
-          return 'bg-text-warning ring-1 ring-text-warning/30';
+          return 'bg-text-warning';
         case 'offline':
         default:
-          return 'bg-text-subtle ring-1 ring-text-subtle/30';
+          return 'bg-gray-400';
       }
     };
 
@@ -68,7 +68,7 @@ const Avatar = React.forwardRef<React.ComponentRef<typeof AvatarPrimitive.Root>,
         {shouldShowPresence && (
           <span
             className={cn(
-              'absolute block rounded-full border-2 border-background',
+              'absolute block rounded-full border-2 border-background z-10',
               presenceSizeClasses[presenceSize],
               presencePositionClasses[presencePosition],
               getPresenceClasses(presenceStatus),

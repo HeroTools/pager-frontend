@@ -126,7 +126,7 @@ export const ConversationItem = ({
                   : undefined
             }
             showPresence={!conversation.is_group_conversation}
-            presenceSize="sm"
+            presenceSize="md"
             presencePosition="bottom-right"
           >
             <AvatarImage className="rounded-md" src={display.image || undefined} />
