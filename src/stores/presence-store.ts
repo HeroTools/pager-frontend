@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
 
 export interface UserPresence {
   userId: string;
@@ -21,56 +20,49 @@ interface PresenceState {
   getPresenceByWorkspaceMemberId: (workspaceMemberId: string) => UserPresence | undefined;
 }
 
-export const usePresenceStore = create<PresenceState>()(
-  devtools(
-    (set, get) => ({
+export const usePresenceStore = create<PresenceState>()((set, get) => ({
+  presences: new Map(),
+  myPresence: null,
+
+  setPresence: (userId, presence) =>
+    set((state) => {
+      const newPresences = new Map(state.presences);
+      newPresences.set(userId, presence);
+      return { presences: newPresences };
+    }),
+
+  setPresences: (presences) =>
+    set(() => {
+      const newPresences = new Map();
+      presences.forEach((presence) => {
+        // Store by userId (for Supabase compatibility)
+        newPresences.set(presence.userId, presence);
+      });
+      return { presences: newPresences };
+    }),
+
+  removePresence: (userId) =>
+    set((state) => {
+      const newPresences = new Map(state.presences);
+      newPresences.delete(userId);
+      return { presences: newPresences };
+    }),
+
+  setMyPresence: (presence) => set(() => ({ myPresence: presence })),
+
+  clearPresences: () =>
+    set(() => ({
       presences: new Map(),
       myPresence: null,
+    })),
 
-      setPresence: (userId, presence) =>
-        set((state) => {
-          const newPresences = new Map(state.presences);
-          newPresences.set(userId, presence);
-          return { presences: newPresences };
-        }),
+  getPresenceByWorkspaceMemberId: (workspaceMemberId) => {
+    if (!workspaceMemberId) return undefined;
 
-      setPresences: (presences) =>
-        set(() => {
-          const newPresences = new Map();
-          presences.forEach((presence) => {
-            // Store by userId (for Supabase compatibility)
-            newPresences.set(presence.userId, presence);
-          });
-          return { presences: newPresences };
-        }),
-
-      removePresence: (userId) =>
-        set((state) => {
-          const newPresences = new Map(state.presences);
-          newPresences.delete(userId);
-          return { presences: newPresences };
-        }),
-
-      setMyPresence: (presence) => set(() => ({ myPresence: presence })),
-
-      clearPresences: () =>
-        set(() => ({
-          presences: new Map(),
-          myPresence: null,
-        })),
-
-      getPresenceByWorkspaceMemberId: (workspaceMemberId) => {
-        if (!workspaceMemberId) return undefined;
-
-        const state = get();
-        // Use Array.from for better performance with large Maps
-        return Array.from(state.presences.values()).find(
-          (presence) => presence?.workspaceMemberId === workspaceMemberId,
-        );
-      },
-    }),
-    {
-      name: 'presence-store',
-    },
-  ),
-);
+    const state = get();
+    // Use Array.from for better performance with large Maps
+    return Array.from(state.presences.values()).find(
+      (presence) => presence?.workspaceMemberId === workspaceMemberId,
+    );
+  },
+}));
