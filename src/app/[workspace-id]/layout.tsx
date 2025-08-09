@@ -3,6 +3,7 @@
 import { Bell, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
+
 import { MobileBottomNav } from '@/components/mobile/mobile-bottom-nav';
 import { ProfilePanel } from '@/components/profile-panel';
 import { NotificationsSidebar } from '@/components/side-nav/notifications-sidebar';
@@ -16,6 +17,7 @@ import { useCurrentUser } from '@/features/auth';
 import { Thread } from '@/features/messages/component/thread';
 import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
 import { useRealtimeNotifications } from '@/features/notifications/hooks/use-realtime-notifications';
+import { usePresence } from '@/hooks/use-presence';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useUIStore } from '@/stores/ui-store';
 
@@ -35,7 +37,7 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
   } = useUIStore();
 
   const workspaceId = useWorkspaceId();
-  const { user } = useCurrentUser(workspaceId);
+  const { user, isLoading: isUserLoading } = useCurrentUser(workspaceId);
   const [showPermissionBanner, setShowPermissionBanner] = useState(false);
   const pathname = usePathname();
 
@@ -43,6 +45,13 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     workspaceMemberId: user?.workspace_member_id || '',
     workspaceId: workspaceId || '',
     enabled: !!user?.workspace_member_id && !!workspaceId,
+  });
+
+  usePresence({
+    workspaceId: workspaceId || '',
+    userId: user?.id || '',
+    workspaceMemberId: user?.workspace_member_id || '',
+    enabled: !isUserLoading && !!user?.id && !!user?.workspace_member_id && !!workspaceId,
   });
 
   const { permission, requestPermission, isSupported, hasAskedBefore, setHasAskedBefore } =

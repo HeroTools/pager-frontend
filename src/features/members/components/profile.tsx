@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useGetMembers } from '@/features/members';
 import { useConversations } from '@/features/conversations/hooks/use-conversations';
+import { useUserPresence } from '@/hooks/use-presence';
 
 interface ProfileProps {
   memberId: string;
@@ -18,27 +19,15 @@ interface ProfileProps {
 const STATUS_CONFIG = {
   online: { colorClass: 'bg-text-success', label: 'Active' },
   away: { colorClass: 'bg-text-warning', label: 'Away' },
-  busy: { colorClass: 'bg-text-destructive', label: 'Busy' },
   offline: { colorClass: 'bg-text-subtle', label: 'Offline' },
 } as const;
-
-const renderStatusIndicator = (status: string | null | undefined) => {
-  const memberStatus = status || 'offline';
-  const config = STATUS_CONFIG[memberStatus as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.offline;
-
-  return (
-    <>
-      <div className={`size-2 rounded-full ${config.colorClass}`}></div>
-      <span className="text-sm text-muted-foreground">{config.label}</span>
-    </>
-  );
-};
 
 export const Profile = ({ memberId, onClose }: ProfileProps) => {
   const workspaceId = useWorkspaceId() as string;
   const router = useRouter();
   const getMembers = useGetMembers(workspaceId);
   const { conversations = [], createConversation } = useConversations(workspaceId);
+  const presence = useUserPresence(memberId);
 
   const member = useMemo(
     () => getMembers.data?.find((m) => m.id === memberId),
@@ -123,7 +112,7 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
 
       <div className="flex flex-col p-6 space-y-6">
         <div className="flex justify-center">
-          <Avatar className="size-48 rounded-2xl">
+          <Avatar className="size-48 rounded-2xl" showPresence={false}>
             <AvatarImage
               src={member.user.image || undefined}
               className="rounded-2xl object-cover"
@@ -138,7 +127,14 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
           <h1 className="text-2xl font-bold text-foreground">{member.user.name}</h1>
         </div>
 
-        {/* <div className="flex items-center gap-2">{renderStatusIndicator(member.status)}</div> */}
+        <div className="flex items-center gap-2">
+          <div
+            className={`size-2 rounded-full ${STATUS_CONFIG[presence?.status || 'offline'].colorClass}`}
+          ></div>
+          <span className="text-sm text-muted-foreground">
+            {STATUS_CONFIG[presence?.status || 'offline'].label}
+          </span>
+        </div>
 
         <div className="flex flex-col gap-4">
           <Button variant="outline" className="flex-1 gap-2" onClick={handleMessage}>

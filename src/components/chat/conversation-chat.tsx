@@ -144,7 +144,6 @@ const ConversationChat = () => {
     );
   }
 
-  // Handle error states
   if (error || !conversationWithMessages) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
@@ -156,14 +155,12 @@ const ConversationChat = () => {
     );
   }
 
-  // Transform data for chat component
   const conversationChannel = transformConversation(
-    currentConversation.members,
-    currentConversation.other_members,
+    currentConversation?.members || [],
+    currentConversation?.other_members || [],
     conversationId,
   );
 
-  // Handle message sending with real-time integration
   const handleSendMessage = async (content: {
     body: string;
     attachments: UploadedAttachment[];

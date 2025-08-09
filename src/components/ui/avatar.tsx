@@ -1,20 +1,85 @@
 'use client';
 
-import * as React from 'react';
 import * as AvatarPrimitive from '@radix-ui/react-avatar';
+import * as React from 'react';
 
+import { useUserPresence } from '@/hooks/use-presence';
 import { cn } from '@/lib/utils';
 
-const Avatar = React.forwardRef<
-  React.ComponentRef<typeof AvatarPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Root
-    ref={ref}
-    className={cn('relative flex h-10 w-10 shrink-0 overflow-hidden rounded-md', className)}
-    {...props}
-  />
-));
+interface AvatarProps extends React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root> {
+  workspaceMemberId?: string;
+  showPresence?: boolean;
+  presencePosition?: 'bottom-right' | 'top-right' | 'bottom-left' | 'top-left';
+  presenceSize?: 'sm' | 'md' | 'lg';
+}
+
+const Avatar = React.forwardRef<React.ComponentRef<typeof AvatarPrimitive.Root>, AvatarProps>(
+  (
+    {
+      className,
+      workspaceMemberId,
+      showPresence = true,
+      presencePosition = 'bottom-right',
+      presenceSize = 'md',
+      children,
+      ...props
+    },
+    ref,
+  ) => {
+    const presence = useUserPresence(workspaceMemberId || '');
+    const presenceStatus = presence?.status || 'offline';
+    const shouldShowPresence = showPresence && workspaceMemberId;
+
+    const presenceSizeClasses = {
+      sm: 'h-2 w-2',
+      md: 'h-2.5 w-2.5',
+      lg: 'h-3 w-3',
+    };
+
+    const presencePositionClasses = {
+      'bottom-right': 'bottom-0 right-0 translate-x-1 translate-y-1',
+      'top-right': 'top-0 right-0 translate-x-1 -translate-y-1',
+      'bottom-left': 'bottom-0 left-0 -translate-x-1 translate-y-1',
+      'top-left': 'top-0 left-0 -translate-x-1 -translate-y-1',
+    };
+
+    const getPresenceClasses = (status: string) => {
+      switch (status) {
+        case 'online':
+          return 'bg-text-success';
+        case 'away':
+          return 'bg-text-warning';
+        case 'offline':
+        default:
+          return 'bg-gray-400';
+      }
+    };
+
+    return (
+      <div className="relative inline-block">
+        <AvatarPrimitive.Root
+          ref={ref}
+          className={cn('relative flex h-10 w-10 shrink-0 overflow-hidden rounded-md', className)}
+          {...props}
+        >
+          {children}
+        </AvatarPrimitive.Root>
+        {shouldShowPresence && (
+          <span
+            className={cn(
+              'absolute block rounded-full border-2 border-background z-10',
+              presenceSizeClasses[presenceSize],
+              presencePositionClasses[presencePosition],
+              getPresenceClasses(presenceStatus),
+              'transition-colors duration-200',
+            )}
+            aria-label={`User is ${presenceStatus}`}
+          />
+        )}
+      </div>
+    );
+  },
+);
 Avatar.displayName = AvatarPrimitive.Root.displayName;
 
 const AvatarImage = React.forwardRef<
@@ -44,4 +109,4 @@ const AvatarFallback = React.forwardRef<
 ));
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
 
-export { Avatar, AvatarImage, AvatarFallback };
+export { Avatar, AvatarFallback, AvatarImage };
