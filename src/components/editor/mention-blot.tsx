@@ -13,10 +13,11 @@ class MentionBlot extends Embed {
   static tagName = 'span';
   static className = 'mention';
 
-  // This ensures the value is properly included when getContents() is called
-  static value(node: HTMLSpanElement): any {
+  // This method is called by Quill when serializing the blot to Delta
+  static value(domNode: HTMLSpanElement): any {
+    // Return the mention data that will appear in the Delta
     return {
-      id: node.getAttribute('data-member-id') || '',
+      id: domNode.getAttribute('data-member-id') || '',
     };
   }
 
@@ -27,8 +28,9 @@ class MentionBlot extends Embed {
     node.textContent = `@${value.name || value.id}`;
 
     // Techy minimalist styling: subtle backgrounds with good contrast
-    const baseClasses = 'mention inline-block px-1 py-0 rounded text-sm cursor-pointer transition-colors mx-0.5';
-    
+    const baseClasses =
+      'mention inline-block px-1 py-0 rounded text-sm cursor-pointer transition-colors mx-0.5';
+
     if (value.isCurrentUser) {
       // Subtle blue background with dark text for self-mentions
       node.className = `${baseClasses} bg-green-500/20 text-green-500 hover:bg-green-500/40`;

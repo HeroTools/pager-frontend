@@ -130,6 +130,7 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
         if (filteredMembers.length > 0) {
           e.preventDefault();
           e.stopPropagation();
+          e.stopImmediatePropagation();
           const member = filteredMembers[mentionDropdownIndexRef.current];
           if (member) {
             const sel = quill.getSelection();
@@ -153,18 +154,15 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
                 setMentionQuery('');
                 setMentionDropdownIndex(0);
                 setDropdownPos(null);
-                e.preventDefault();
-                e.stopPropagation();
               } else {
                 setShowMentionDropdown(false);
                 setMentionQuery('');
                 setMentionDropdownIndex(0);
                 setDropdownPos(null);
-                e.preventDefault();
-                e.stopPropagation();
               }
             }
           }
+          return false; // Explicitly return false to prevent any further handling
         }
       } else if (e.key === 'Escape') {
         setShowMentionDropdown(false);
@@ -177,12 +175,12 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
 
     // Add event listeners
     quill.on('text-change', handleTextChange);
-    quill.root.addEventListener('keydown', handleKeyDown);
+    quill.root.addEventListener('keydown', handleKeyDown, true); // Use capture phase
 
     // Cleanup
     return () => {
       quill.off('text-change', handleTextChange);
-      quill.root.removeEventListener('keydown', handleKeyDown);
+      quill.root.removeEventListener('keydown', handleKeyDown, true); // Remove from capture phase
     };
   }, [quill, members]);
 

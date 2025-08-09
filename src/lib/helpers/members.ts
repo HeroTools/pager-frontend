@@ -7,8 +7,7 @@ import type { MemberWithUser } from '@/features/members/types';
 export const createMemberLookupMap = (members: any[]): Map<string, string> => {
   const map = new Map<string, string>();
   members.forEach((member) => {
-    const name = member.user?.name ||
-                 'Unknown';
+    const name = member.user?.name || 'Unknown';
     map.set(member.id, name);
   });
   return map;

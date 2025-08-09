@@ -19,7 +19,7 @@ import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { createMemberLookupMap } from '@/lib/helpers/members';
 
 interface QuillDeltaOp {
-  insert?: string | { mention?: { id: string } };
+  insert?: string | { mention?: { id: string } } | { image?: string };
   attributes?: {
     link?: string;
     [key: string]: unknown;
@@ -41,7 +41,15 @@ const isContentEmpty = (html: string): boolean => {
 
 const isDeltaEmpty = (delta: QuillDelta): boolean =>
   !delta.ops ||
-  delta.ops.every((op) => (typeof op.insert === 'string' ? op.insert.trim().length === 0 : true));
+  delta.ops.every((op) => {
+    if (typeof op.insert === 'string') {
+      return op.insert.trim().length === 0;
+    } else if (op.insert && typeof op.insert === 'object') {
+      // Has embeds (mentions, images, etc.) - not empty
+      return false;
+    }
+    return true;
+  });
 
 const detectContentFormat = (content: string): ContentFormat => {
   try {
@@ -185,7 +193,13 @@ const preprocessLinks = (input: string): string => {
   return processed;
 };
 
-export const MessageContent = ({ content, currentUserId }: { content: string; currentUserId?: string }) => {
+export const MessageContent = ({
+  content,
+  currentUserId,
+}: {
+  content: string;
+  currentUserId?: string;
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hooksConfigured = useRef(false);
   const { setProfilePanelOpen } = useUIStore();
@@ -225,12 +239,26 @@ export const MessageContent = ({ content, currentUserId }: { content: string; cu
             name: string;
           }> = [];
 
+          const embeds: Array<{
+            placeholder: string;
+            html: string;
+          }> = [];
+
           const processedOps = delta.ops.map((op, index) => {
             if (op.insert && typeof op.insert === 'object' && 'mention' in op.insert) {
               const placeholder = `__MENTION_${index}_${Date.now()}__`;
-              const memberId = op.insert.mention.id;
+              const memberId =
+                typeof op.insert.mention === 'object' ? op.insert.mention.id : op.insert.mention;
               const memberName = memberLookup.get(memberId) || 'Unknown';
               mentions.push({ placeholder, id: memberId, name: memberName });
+              return { insert: placeholder };
+            }
+
+            if (op.insert && typeof op.insert === 'object' && 'image' in op.insert) {
+              const placeholder = `__IMAGE_${index}_${Date.now()}__`;
+              const imageUrl = op.insert.image;
+              const imageHtml = `<img src="${imageUrl}" alt="Embedded image" class="max-w-full h-auto rounded-lg" />`;
+              embeds.push({ placeholder, html: imageHtml });
               return { insert: placeholder };
             }
 
@@ -266,6 +294,10 @@ export const MessageContent = ({ content, currentUserId }: { content: string; cu
           mentions.forEach(({ placeholder, id, name }) => {
             const mentionHtml = `<span class="mention" data-member-id="${id}">@${name}</span>`;
             html = html.replace(placeholder, mentionHtml);
+          });
+
+          embeds.forEach(({ placeholder, html: embedHtml }) => {
+            html = html.replace(placeholder, embedHtml);
           });
 
           const sanitized = sanitizeHtml(html);
@@ -324,15 +356,16 @@ export const MessageContent = ({ content, currentUserId }: { content: string; cu
         if (el.name === 'span' && el.attribs.class === 'mention') {
           const memberId = el.attribs['data-member-id'];
           const memberName = memberLookup.get(memberId) || 'Unknown';
-          const member = members.find(m => m.id === memberId);
+          const member = members.find((m: any) => m.id === memberId);
           const isCurrentUser = member?.user?.id === currentUserId;
-          
+
           // Techy minimalist styling to match editor
-          const baseClasses = 'inline-block px-1 py-0 rounded text-sm cursor-pointer transition-colors mx-0.5';
-          const colorClasses = isCurrentUser 
-            ? 'bg-green-500/20 text-green-500 hover:bg-green-500/40' 
+          const baseClasses =
+            'inline-block px-1 py-0 rounded text-sm cursor-pointer transition-colors mx-0.5';
+          const colorClasses = isCurrentUser
+            ? 'bg-green-500/20 text-green-500 hover:bg-green-500/40'
             : 'bg-blue-500/20 text-blue-500 hover:bg-blue-500/40';
-          
+
           return (
             <span
               key={`mention-${memberId}-${Math.random()}`}

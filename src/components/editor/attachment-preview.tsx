@@ -29,27 +29,30 @@ const AttachmentPreview = memo(
     const deleteAttachment = useDeleteAttachment();
 
     const removeAttachment = useCallback(
-      async (attachmentId: string) => {
+      (attachmentId: string) => {
         const attachment = attachments.find((att) => att.id === attachmentId);
         if (!attachment) {
           return;
         }
 
+        setAttachments((prev) => prev.filter((att) => att.id !== attachmentId));
+
         if (attachment.status === 'completed' && !attachmentId.startsWith('upload-')) {
-          try {
-            await deleteAttachment.mutateAsync({
+          deleteAttachment
+            .mutateAsync({
               attachmentId,
               workspaceId,
+            })
+            .catch((error: any) => {
+              // Ignore 404 errors - attachment might not exist on backend yet
+              // or might have already been cleaned up
+              if (error?.response?.status !== 404) {
+                console.error('Failed to delete attachment from backend:', error);
+              }
+              // Don't restore the attachment even if delete fails
+              // The user's intent was to remove it
             });
-          } catch (error) {
-            console.error('Failed to delete attachment:', error);
-          }
         }
-
-        setAttachments((prev) => {
-          const newState = prev.filter((att) => att.id !== attachmentId);
-          return newState;
-        });
       },
       [attachments, deleteAttachment, workspaceId, setAttachments],
     );

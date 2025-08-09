@@ -124,20 +124,7 @@ const Editor = ({
     enabled: variant === 'create',
   });
 
-  const isEmpty = useMemo(
-    () =>
-      !image &&
-      attachments.length === 0 &&
-      !hasEmbeds &&
-      text.replace(/\s*/g, '').trim().length === 0,
-    [text, image, attachments.length, hasEmbeds],
-  );
-
-  const hasUploadsInProgress = useMemo(
-    () => attachments.some((att) => att.status === 'uploading'),
-    [attachments],
-  );
-
+  // Move ref declarations before useMemo hooks
   const activeUploadBatchRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
@@ -149,6 +136,40 @@ const Editor = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
+
+  const isEmpty = useMemo(() => {
+    // Check if we have any attachments or images
+    if (image || attachments.length > 0) return false;
+
+    // Check if we have actual content in the editor
+    const quill = quillRef.current;
+    if (!quill) {
+      // If no quill instance yet, check if text has content or if hasEmbeds is true
+      return text.trim().length === 0 && !hasEmbeds;
+    }
+
+    const contents = quill.getContents();
+    const ops = contents.ops || [];
+
+    // Check for any meaningful content (text, mentions, images, videos, etc.)
+    const hasContent = ops.some((op: any) => {
+      if (typeof op.insert === 'string') {
+        // Has text content
+        return op.insert.trim().length > 0;
+      } else if (op.insert && typeof op.insert === 'object') {
+        // Has embeds (mentions, images, videos, etc.)
+        return true;
+      }
+      return false;
+    });
+
+    return !hasContent;
+  }, [text, image, attachments.length, hasEmbeds]);
+
+  const hasUploadsInProgress = useMemo(
+    () => attachments.some((att) => att.status === 'uploading'),
+    [attachments],
+  );
 
   // Use individual progress tracking for updates
   const progressTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -276,27 +297,42 @@ const Editor = ({
     setHasEmbeds(embedsPresent);
   }, []);
 
-  const getPlainTextFromDelta = useCallback((delta: any): string => {
-    const ops = delta.ops || [];
-    let text = '';
-    
-    ops.forEach((op: any) => {
-      if (typeof op.insert === 'string') {
-        text += op.insert;
-      } else if (op.insert?.mention) {
-        const memberId = op.insert.mention.id;
-        const name = memberLookup.get(memberId);
-        
-        if (name) {
-          text += name;
-        } else {
-          text += 'Unknown User';
+  const getPlainTextFromDelta = useCallback(
+    (delta: any): string => {
+      const ops = delta.ops || [];
+      let text = '';
+
+      ops.forEach((op: any) => {
+        if (typeof op.insert === 'string') {
+          text += op.insert;
+        } else if (op.insert?.mention) {
+          const memberId = op.insert.mention.id;
+          const name = memberLookup.get(memberId);
+
+          if (name) {
+            text += name;
+          } else {
+            text += 'Unknown User';
+          }
+        } else if (op.insert?.image) {
+          // Add placeholder text for images/GIFs
+          text += '[Image]';
         }
+      });
+
+      // If we only have whitespace or nothing, but have embeds, ensure we have some text
+      const trimmedText = text.trim();
+      if (
+        trimmedText.length === 0 &&
+        delta.ops?.some((op: any) => op.insert && typeof op.insert === 'object')
+      ) {
+        return ' '; // Return a space to ensure plain_text is not empty
       }
-    });
-    
-    return text.trim();
-  }, [memberLookup]);
+
+      return trimmedText;
+    },
+    [memberLookup],
+  );
 
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
@@ -310,7 +346,7 @@ const Editor = ({
   // Update mention displays when members data loads
   useEffect(() => {
     if (!containerRef.current || memberLookup.size === 0) return;
-    
+
     // Update all mention elements to show names instead of IDs
     const mentionElements = containerRef.current.querySelectorAll('.mention[data-member-id]');
     mentionElements.forEach((element) => {
@@ -547,6 +583,23 @@ const Editor = ({
     [linkSelection, handleLinkFormat],
   );
 
+  const handleGifSelect = useCallback(
+    (gif: any) => {
+      if (isAgentChat) return;
+
+      const quill = quillRef.current;
+      if (!quill) return;
+
+      const selection = quill.getSelection();
+      const index = selection?.index ?? quill.getLength() - 1;
+
+      quill.insertEmbed(index, 'image', gif.media_formats.gif.url);
+      quill.setSelection(index + 1);
+      quill.focus();
+    },
+    [isAgentChat],
+  );
+
   // Remove attachments from useEffect dependencies to prevent re-initialization
   useEffect(() => {
     if (!containerRef.current) {
@@ -602,15 +655,31 @@ const Editor = ({
                 }
 
                 const addedImage = imageElementRef.current?.files?.[0] || null;
-                const currentText = quillRef.current?.getText() || '';
 
-                const empty =
-                  !addedImage &&
-                  attachmentsRef.current.length === 0 &&
-                  !hasEmbeds &&
-                  currentText.replace(/\s*/g, '').trim().length === 0;
+                // Check if we have any content to send
+                const hasAttachments = attachmentsRef.current.length > 0;
+                const hasImage = !!addedImage;
 
-                if (!empty) {
+                // Check for meaningful content in Delta (text, mentions, embeds)
+                const quill = quillRef.current;
+                let hasDeltaContent = false;
+                if (quill) {
+                  const contents = quill.getContents();
+                  const ops = contents.ops || [];
+                  hasDeltaContent = ops.some((op: any) => {
+                    if (typeof op.insert === 'string') {
+                      return op.insert.trim().length > 0;
+                    } else if (op.insert && typeof op.insert === 'object') {
+                      // Has embeds (mentions, images, videos, etc.)
+                      return true;
+                    }
+                    return false;
+                  });
+                }
+
+                const canSend = hasImage || hasAttachments || hasDeltaContent;
+
+                if (canSend) {
                   handleSubmitRef.current();
                   return false;
                 }
@@ -1021,11 +1090,19 @@ const Editor = ({
       {!isAgentChat && (
         <>
           <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
-          <MentionAutoComplete quill={quillRef.current} containerRef={containerRef} currentUserId={userId} />
+          <MentionAutoComplete
+            quill={quillRef.current}
+            containerRef={containerRef}
+            currentUserId={userId}
+          />
         </>
       )}
       {!isAgentChat && (
-        <SlashCommandAutoComplete quill={quillRef.current} containerRef={containerRef} />
+        <SlashCommandAutoComplete
+          quill={quillRef.current}
+          containerRef={containerRef}
+          onGifSelect={handleGifSelect}
+        />
       )}
       <GifSearchModal />
       <LinkDialog
