@@ -1,5 +1,3 @@
-'use client';
-
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
 import parse, {
@@ -13,10 +11,10 @@ import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { Hint } from '@/components/hint';
-import { useUIStore } from '@/stores/ui-store';
 import { useGetMembers } from '@/features/members/hooks/use-members';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { createMemberLookupMap } from '@/lib/helpers/members';
+import { useUIStore } from '@/stores/ui-store';
 
 interface QuillDeltaOp {
   insert?: string | { mention?: { id: string } } | { image?: string };
@@ -33,11 +31,46 @@ interface QuillDelta {
 
 type ContentFormat = 'delta' | 'markdown' | 'html';
 
+interface ProcessedContent {
+  html: string;
+  isEmpty: boolean;
+}
+
+interface MentionData {
+  placeholder: string;
+  id: string;
+  name: string;
+}
+
+interface EmbedData {
+  placeholder: string;
+  url: string;
+}
+
+const ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:'];
+
+const isValidUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return ALLOWED_PROTOCOLS.includes(parsed.protocol);
+  } catch {
+    return false;
+  }
+};
+
+const escapeHtml = (unsafe: string): string => {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 const isContentEmpty = (html: string): boolean => {
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
-  // Check for text content OR images/videos
-  const hasText = tmp.textContent?.trim().length > 0;
+  const hasText = !!tmp.textContent?.trim();
   const hasImages = tmp.querySelectorAll('img, video').length > 0;
   return !hasText && !hasImages;
 };
@@ -46,9 +79,8 @@ const isDeltaEmpty = (delta: QuillDelta): boolean =>
   !delta.ops ||
   delta.ops.every((op) => {
     if (typeof op.insert === 'string') {
-      return op.insert.trim().length === 0;
+      return !op.insert.trim();
     } else if (op.insert && typeof op.insert === 'object') {
-      // Has embeds (mentions, images, etc.) - not empty
       return false;
     }
     return true;
@@ -61,24 +93,208 @@ const detectContentFormat = (content: string): ContentFormat => {
       return 'delta';
     }
   } catch {
-    // Not JSON, continue with other checks
+    // Continue to other format checks
   }
 
-  if (
-    content.includes('# ') ||
-    content.includes('## ') ||
-    content.includes('**') ||
-    content.includes('```') ||
-    content.includes('- ') ||
-    content.includes('* ') ||
-    /^\d+\. /.test(content) ||
-    (content.includes('[') && content.includes(']('))
-  ) {
+  const markdownPatterns = [
+    /^#{1,6}\s/m,
+    /\*\*.*\*\*/,
+    /```[\s\S]*```/,
+    /^[-*+]\s/m,
+    /^\d+\.\s/m,
+    /\[.*\]\(.*\)/,
+  ];
+
+  if (markdownPatterns.some((pattern) => pattern.test(content))) {
     return 'markdown';
   }
 
   return 'html';
 };
+
+class ContentProcessor {
+  private memberLookup: Map<string, string>;
+
+  constructor(memberLookup: Map<string, string>) {
+    this.memberLookup = memberLookup;
+  }
+
+  private preprocessLinks(input: string): string {
+    if (!input || typeof input !== 'string') {
+      return input;
+    }
+
+    return input
+      .replace(/&lt;([^|]+?)\|([^&]+?)&gt;/g, (_, url, label) => `[${label.trim()}](${url.trim()})`)
+      .replace(/<([^|<>]+?)\|([^<>]+?)>/g, (_, url, label) => `[${label.trim()}](${url.trim()})`)
+      .replace(/<(https?:\/\/[^<>\s]+)>/g, (_, url) => `[${url}](${url})`)
+      .replace(/\[([^\]]+?)\]\(([^|)]+?)\|[^)]*\)/g, (_, label, url) => `[${label}](${url})`);
+  }
+
+  private sanitizeHtml(html: string): string {
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: [
+        'p',
+        'br',
+        'strong',
+        'b',
+        'em',
+        'i',
+        'u',
+        's',
+        'strike',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'ul',
+        'ol',
+        'li',
+        'blockquote',
+        'pre',
+        'code',
+        'a',
+        'table',
+        'thead',
+        'tbody',
+        'tr',
+        'th',
+        'td',
+        'img',
+        'div',
+        'span',
+      ],
+      ALLOWED_ATTR: [
+        'href',
+        'title',
+        'target',
+        'rel',
+        'class',
+        'src',
+        'alt',
+        'data-member-id',
+        'data-name',
+      ],
+      FORBID_ATTR: ['style'],
+      ADD_ATTR: ['target', 'rel'],
+      ALLOW_DATA_ATTR: false,
+    });
+  }
+
+  private processDeltaContent(delta: QuillDelta): ProcessedContent {
+    if (isDeltaEmpty(delta)) {
+      return { html: '', isEmpty: true };
+    }
+
+    const mentions: MentionData[] = [];
+    const embeds: EmbedData[] = [];
+
+    const processedOps = delta.ops.map((op, index) => {
+      if (op.insert && typeof op.insert === 'object') {
+        if ('mention' in op.insert) {
+          const placeholder = `__MENTION_${index}_${Date.now()}__`;
+          const memberId =
+            typeof op.insert.mention === 'object' ? op.insert.mention.id : op.insert.mention;
+          const memberName = this.memberLookup.get(memberId) || 'Unknown';
+          mentions.push({ placeholder, id: memberId, name: memberName });
+          return { insert: placeholder };
+        }
+
+        if ('image' in op.insert) {
+          const placeholder = `__IMAGE_${index}_${Date.now()}__`;
+          embeds.push({ placeholder, url: op.insert.image });
+          return { insert: placeholder };
+        }
+      }
+
+      if (typeof op.insert === 'string' && op.attributes?.link) {
+        const url = String(op.attributes.link);
+        if (isValidUrl(url)) {
+          return {
+            ...op,
+            attributes: {
+              ...op.attributes,
+              link: url.startsWith('http') || url.startsWith('mailto:') ? url : `https://${url}`,
+            },
+          };
+        }
+      }
+
+      return op;
+    });
+
+    const converter = new QuillDeltaToHtmlConverter(processedOps, {
+      encodeHtml: true,
+      paragraphTag: 'p',
+      linkTarget: '_blank',
+      classPrefix: 'ql-',
+      inlineStyles: false,
+      multiLineCodeblock: true,
+      multiLineHeader: true,
+      multiLineBlockquote: true,
+      allowBackgroundClasses: false,
+    });
+
+    let html = converter.convert();
+
+    mentions.forEach(({ placeholder, id, name }) => {
+      const mentionHtml = `<span class="mention" data-member-id="${escapeHtml(id)}">@${escapeHtml(name)}</span>`;
+      html = html.replace(placeholder, mentionHtml);
+    });
+
+    embeds.forEach(({ placeholder, url }) => {
+      if (isValidUrl(url)) {
+        const imageHtml = `<img src="${escapeHtml(url)}" alt="Embedded image" class="max-w-full h-auto rounded-lg" />`;
+        html = html.replace(placeholder, imageHtml);
+      }
+    });
+
+    const sanitized = this.sanitizeHtml(html);
+    return { html: sanitized, isEmpty: isContentEmpty(sanitized) };
+  }
+
+  private processMarkdownContent(content: string): ProcessedContent {
+    const htmlFromMarkdown = marked(content) as string;
+    const sanitized = this.sanitizeHtml(htmlFromMarkdown);
+    return { html: sanitized, isEmpty: isContentEmpty(sanitized) };
+  }
+
+  private processHtmlContent(content: string): ProcessedContent {
+    const wrapped = /<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table)[^>]*>/i.test(content)
+      ? content
+      : `<p>${content}</p>`;
+    const sanitized = this.sanitizeHtml(wrapped);
+    return { html: sanitized, isEmpty: isContentEmpty(sanitized) };
+  }
+
+  process(content: string): ProcessedContent {
+    if (!content.trim()) {
+      return { html: '', isEmpty: true };
+    }
+
+    const preprocessed = this.preprocessLinks(content);
+    const format = detectContentFormat(preprocessed);
+
+    try {
+      switch (format) {
+        case 'delta': {
+          const delta = JSON.parse(preprocessed) as QuillDelta;
+          return this.processDeltaContent(delta);
+        }
+        case 'markdown':
+          return this.processMarkdownContent(preprocessed);
+        case 'html':
+        default:
+          return this.processHtmlContent(preprocessed);
+      }
+    } catch (error) {
+      const sanitized = this.sanitizeHtml(`<p>${escapeHtml(content)}</p>`);
+      return { html: sanitized, isEmpty: isContentEmpty(sanitized) };
+    }
+  }
+}
 
 let markedConfigured = false;
 
@@ -98,14 +314,13 @@ const configureMarked = () => {
     return `<pre><code class="hljs language-${validLanguage}">${highlighted}</code></pre>`;
   };
 
-  renderer.codespan = ({ text }: Tokens.Codespan) => {
-    return `<code>${text}</code>`;
-  };
+  renderer.codespan = ({ text }: Tokens.Codespan) => `<code>${text}</code>`;
 
   renderer.link = ({ href, title, text }: Tokens.Link) => {
+    if (!isValidUrl(href)) return text;
     const cleanHref = href.startsWith('http') ? href : `https://${href}`;
-    const titleAttr = title ? ` title="${title}"` : '';
-    return `<a href="${cleanHref}" target="_blank" rel="noopener noreferrer"${titleAttr}>${text}</a>`;
+    const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+    return `<a href="${escapeHtml(cleanHref)}" target="_blank" rel="noopener noreferrer"${titleAttr}>${text}</a>`;
   };
 
   marked.use({ renderer });
@@ -113,88 +328,6 @@ const configureMarked = () => {
 };
 
 configureMarked();
-
-const sanitizeHtml = (html: string): string => {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      'p',
-      'br',
-      'strong',
-      'b',
-      'em',
-      'i',
-      'u',
-      's',
-      'strike',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'ul',
-      'ol',
-      'li',
-      'blockquote',
-      'pre',
-      'code',
-      'a',
-      'table',
-      'thead',
-      'tbody',
-      'tr',
-      'th',
-      'td',
-      'img',
-      'div',
-      'span',
-    ],
-    ALLOWED_ATTR: [
-      'href',
-      'title',
-      'target',
-      'rel',
-      'class',
-      'src',
-      'alt',
-      'data-member-id',
-      'data-name',
-    ],
-    FORBID_ATTR: ['style'],
-    ADD_ATTR: ['target', 'rel'],
-    ALLOW_DATA_ATTR: false,
-  });
-};
-
-const preprocessLinks = (input: string): string => {
-  if (!input || typeof input !== 'string') {
-    return input;
-  }
-
-  let processed = input;
-
-  // Handle HTML-encoded links: &lt;url|label&gt;
-  processed = processed.replace(/&lt;([^|]+?)\|([^&]+?)&gt;/g, (_, url, label) => {
-    return `[${label.trim()}](${url.trim()})`;
-  });
-
-  // Handle links with labels: <url|label>
-  processed = processed.replace(/<([^|<>]+?)\|([^<>]+?)>/g, (_, url, label) => {
-    return `[${label.trim()}](${url.trim()})`;
-  });
-
-  // Handle plain URLs: <url>
-  processed = processed.replace(/<(https?:\/\/[^<>\s]+)>/g, (_, url) => {
-    return `[${url}](${url})`;
-  });
-
-  // Fix malformed markdown links: [label](url|extra) -> [label](url)
-  processed = processed.replace(/\[([^\]]+?)\]\(([^|)]+?)\|[^)]*\)/g, (_, label, url) => {
-    return `[${label}](${url})`;
-  });
-
-  return processed;
-};
 
 export const MessageContent = ({
   content,
@@ -209,8 +342,11 @@ export const MessageContent = ({
   const workspaceId = useWorkspaceId();
   const { data: members = [] } = useGetMembers(workspaceId || '');
 
-  // Create a memoized lookup map for performance
   const memberLookup = useMemo(() => createMemberLookupMap(members), [members]);
+
+  const processor = useMemo(() => new ContentProcessor(memberLookup), [memberLookup]);
+
+  const processedContent = useMemo(() => processor.process(content), [processor, content]);
 
   useEffect(() => {
     if (!hooksConfigured.current) {
@@ -224,179 +360,62 @@ export const MessageContent = ({
     }
   }, []);
 
-  const cleanHtml = useMemo<string>(() => {
-    if (!content.trim()) return '';
-
-    const preprocessed = preprocessLinks(content);
-    const format = detectContentFormat(preprocessed);
-
-    try {
-      switch (format) {
-        case 'delta': {
-          const delta = JSON.parse(preprocessed) as QuillDelta;
-          if (isDeltaEmpty(delta)) return '';
-
-          const mentions: Array<{
-            placeholder: string;
-            id: string;
-            name: string;
-          }> = [];
-
-          const embeds: Array<{
-            placeholder: string;
-            url: string;
-          }> = [];
-
-          const processedOps = delta.ops.map((op, index) => {
-            if (op.insert && typeof op.insert === 'object' && 'mention' in op.insert) {
-              const placeholder = `__MENTION_${index}_${Date.now()}__`;
-              const memberId =
-                typeof op.insert.mention === 'object' ? op.insert.mention.id : op.insert.mention;
-              const memberName = memberLookup.get(memberId) || 'Unknown';
-              mentions.push({ placeholder, id: memberId, name: memberName });
-              return { insert: placeholder };
-            }
-
-            if (op.insert && typeof op.insert === 'object' && 'image' in op.insert) {
-              const placeholder = `__IMAGE_${index}_${Date.now()}__`;
-              embeds.push({ placeholder, url: op.insert.image });
-              return { insert: placeholder };
-            }
-
-            if (typeof op.insert === 'string' && op.attributes?.link) {
-              const url = String(op.attributes.link);
-              return {
-                ...op,
-                attributes: {
-                  ...op.attributes,
-                  link:
-                    /^https?:\/\//.test(url) || url.startsWith('mailto:') ? url : `https://${url}`,
-                },
-              };
-            }
-
-            return op;
-          });
-
-          const converter = new QuillDeltaToHtmlConverter(processedOps, {
-            encodeHtml: true,
-            paragraphTag: 'p',
-            linkTarget: '_blank',
-            classPrefix: 'ql-',
-            inlineStyles: false,
-            multiLineCodeblock: true,
-            multiLineHeader: true,
-            multiLineBlockquote: true,
-            allowBackgroundClasses: false,
-          });
-
-          let html = converter.convert();
-
-          mentions.forEach(({ placeholder, id, name }) => {
-            const mentionHtml = `<span class="mention" data-member-id="${id}">@${name}</span>`;
-            html = html.replace(placeholder, mentionHtml);
-          });
-
-          embeds.forEach(({ placeholder, url }) => {
-            const imageHtml = `<img src="${url}" alt="Embedded image" class="max-w-full h-auto rounded-lg" />`;
-            html = html.replace(placeholder, imageHtml);
-          });
-
-          const sanitized = sanitizeHtml(html);
-          return isContentEmpty(sanitized) ? '' : sanitized;
-        }
-
-        case 'markdown': {
-          const htmlFromMarkdown = marked(preprocessed) as string;
-          const sanitized = sanitizeHtml(htmlFromMarkdown);
-          return isContentEmpty(sanitized) ? '' : sanitized;
-        }
-
-        case 'html':
-        default: {
-          const wrapped = /<(p|div|h[1-6]|ul|ol|li|blockquote|pre|table)[^>]*>/i.test(preprocessed)
-            ? preprocessed
-            : `<p>${preprocessed}</p>`;
-          const sanitized = sanitizeHtml(wrapped);
-          return isContentEmpty(sanitized) ? '' : sanitized;
-        }
-      }
-    } catch (error) {
-      const sanitized = sanitizeHtml(`<p>${content}</p>`);
-      return isContentEmpty(sanitized) ? '' : sanitized;
-    }
-  }, [content, memberLookup]);
-
   const replaceFn = useCallback(
     (node: DOMNode): React.ReactElement | undefined => {
-      if (node.type === 'tag') {
-        const el = node as HtmlElement;
+      if (node.type !== 'tag') return undefined;
 
-        const cleanAttribs = Object.keys(el.attribs || {}).reduce(
-          (acc, key) => {
-            const value = el.attribs[key];
-            if (key === 'style' || /^\d+$/.test(key)) {
-              return acc;
-            }
-            acc[key] = value;
-            return acc;
-          },
-          {} as Record<string, string>,
+      const el = node as HtmlElement;
+      const cleanAttribs = Object.fromEntries(
+        Object.entries(el.attribs || {}).filter(([key]) => key !== 'style' && !/^\d+$/.test(key)),
+      );
+
+      if (el.name === 'a') {
+        const href = cleanAttribs.href || '';
+        return (
+          <Hint key={`link-${href.slice(0, 50)}`} label={href} side="top" align="center">
+            <a {...cleanAttribs}>{domToReact(el.children as DOMNode[])}</a>
+          </Hint>
         );
-
-        if (el.name === 'a') {
-          const href = cleanAttribs.href || '';
-          const key = `link-${href.slice(0, 50)}`;
-
-          return (
-            <Hint key={key} label={href} side="top" align="center">
-              <a {...cleanAttribs}>{domToReact(el.children as DOMNode[])}</a>
-            </Hint>
-          );
-        }
-
-        if (el.name === 'span' && el.attribs.class === 'mention') {
-          const memberId = el.attribs['data-member-id'];
-          const memberName = memberLookup.get(memberId) || 'Unknown';
-          const member = members.find((m: any) => m.id === memberId);
-          const isCurrentUser = member?.user?.id === currentUserId;
-
-          // Techy minimalist styling to match editor
-          const baseClasses =
-            'inline-block px-1 py-0 rounded text-sm cursor-pointer transition-colors mx-0.5';
-          const colorClasses = isCurrentUser
-            ? 'bg-green-500/20 text-green-500 hover:bg-green-500/40'
-            : 'bg-blue-500/20 text-blue-500 hover:bg-blue-500/40';
-
-          return (
-            <span
-              key={`mention-${memberId}-${Math.random()}`}
-              className={`${baseClasses} ${colorClasses}`}
-              onClick={() => setProfilePanelOpen(memberId)}
-              title={`View ${memberName}'s profile`}
-            >
-              @{memberName}
-            </span>
-          );
-        }
       }
+
+      if (el.name === 'span' && el.attribs.class === 'mention') {
+        const memberId = el.attribs['data-member-id'];
+        const memberName = memberLookup.get(memberId) || 'Unknown';
+        const member = members.find((m: any) => m.id === memberId);
+        const isCurrentUser = member?.user?.id === currentUserId;
+
+        const baseClasses =
+          'inline-block px-1 py-0 rounded text-sm cursor-pointer transition-colors mx-0.5';
+        const colorClasses = isCurrentUser
+          ? 'bg-green-500/20 text-green-500 hover:bg-green-500/40'
+          : 'bg-blue-500/20 text-blue-500 hover:bg-blue-500/40';
+
+        return (
+          <span
+            key={`mention-${memberId}-${Math.random()}`}
+            className={`${baseClasses} ${colorClasses}`}
+            onClick={() => setProfilePanelOpen(memberId)}
+            title={`View ${memberName}'s profile`}
+          >
+            @{memberName}
+          </span>
+        );
+      }
+
       return undefined;
     },
-    [setProfilePanelOpen, memberLookup],
+    [setProfilePanelOpen, memberLookup, members, currentUserId],
   );
 
   const parsedContent = useMemo<React.ReactNode>(() => {
-    if (!cleanHtml) return null;
+    if (processedContent.isEmpty) return null;
 
-    const options: HTMLReactParserOptions = {
-      replace: replaceFn,
-    };
-
-    return parse(cleanHtml, options);
-  }, [cleanHtml, replaceFn]);
+    const options: HTMLReactParserOptions = { replace: replaceFn };
+    return parse(processedContent.html, options);
+  }, [processedContent.html, processedContent.isEmpty, replaceFn]);
 
   useEffect(() => {
-    if (!cleanHtml || !containerRef.current) return;
+    if (processedContent.isEmpty || !containerRef.current) return;
 
     const container = containerRef.current;
     const codeBlocks = container.querySelectorAll('pre code:not(.hljs)');
@@ -404,16 +423,16 @@ export const MessageContent = ({
     try {
       codeBlocks.forEach((block) => {
         const element = block as HTMLElement;
-        if (element && typeof element.className === 'string') {
+        if (element?.className && typeof element.className === 'string') {
           hljs.highlightElement(element);
         }
       });
-    } catch (error) {
-      // Silently fail - highlighting is not critical
+    } catch {
+      // Highlighting failure is non-critical
     }
-  }, [cleanHtml]);
+  }, [processedContent.html, processedContent.isEmpty]);
 
-  if (!cleanHtml) {
+  if (processedContent.isEmpty) {
     return null;
   }
 
