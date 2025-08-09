@@ -36,7 +36,10 @@ type ContentFormat = 'delta' | 'markdown' | 'html';
 const isContentEmpty = (html: string): boolean => {
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
-  return tmp.textContent?.trim().length === 0;
+  // Check for text content OR images/videos
+  const hasText = tmp.textContent?.trim().length > 0;
+  const hasImages = tmp.querySelectorAll('img, video').length > 0;
+  return !hasText && !hasImages;
 };
 
 const isDeltaEmpty = (delta: QuillDelta): boolean =>
@@ -241,7 +244,7 @@ export const MessageContent = ({
 
           const embeds: Array<{
             placeholder: string;
-            html: string;
+            url: string;
           }> = [];
 
           const processedOps = delta.ops.map((op, index) => {
@@ -256,9 +259,7 @@ export const MessageContent = ({
 
             if (op.insert && typeof op.insert === 'object' && 'image' in op.insert) {
               const placeholder = `__IMAGE_${index}_${Date.now()}__`;
-              const imageUrl = op.insert.image;
-              const imageHtml = `<img src="${imageUrl}" alt="Embedded image" class="max-w-full h-auto rounded-lg" />`;
-              embeds.push({ placeholder, html: imageHtml });
+              embeds.push({ placeholder, url: op.insert.image });
               return { insert: placeholder };
             }
 
@@ -296,8 +297,9 @@ export const MessageContent = ({
             html = html.replace(placeholder, mentionHtml);
           });
 
-          embeds.forEach(({ placeholder, html: embedHtml }) => {
-            html = html.replace(placeholder, embedHtml);
+          embeds.forEach(({ placeholder, url }) => {
+            const imageHtml = `<img src="${url}" alt="Embedded image" class="max-w-full h-auto rounded-lg" />`;
+            html = html.replace(placeholder, imageHtml);
           });
 
           const sanitized = sanitizeHtml(html);
