@@ -211,12 +211,6 @@ const WorkspaceSettingsPage = () => {
                       'Start import'
                     )}
                   </Button>
-
-                  {!activeMigration && (
-                    <Button variant="outline" size="default">
-                      Learn about supported formats
-                    </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>
