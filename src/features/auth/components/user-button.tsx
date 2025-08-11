@@ -38,6 +38,9 @@ export const UserButton = ({ workspaceId, size = 'md' }: UserButtonProps) => {
       <DropdownMenuTrigger className="outline-none relative cursor-pointer">
         <Avatar
           className={`rounded-md hover:opacity-75 transition ${size === 'sm' ? 'size-8' : 'size-10'}`}
+          workspaceMemberId={user.workspace_member_id}
+          showPresence={true}
+          presenceSize={size === 'sm' ? 'sm' : 'md'}
         >
           <AvatarImage className="rounded-md" alt={user.name} src={user.image} />
           <AvatarFallback className="rounded-md text-sm">
