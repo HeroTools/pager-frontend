@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Command, CommandItem, CommandList } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
-import { useGetMembers } from '@/features/members/hooks/use-members';
-import { useWorkspaceId } from '@/hooks/use-workspace-id';
-import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
-import { MemberWithUser } from '@/features/members/types';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useGetMembers } from '@/features/members/hooks/use-members';
+import { MemberWithUser } from '@/features/members/types';
+import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { cn } from '@/lib/utils';
 
 interface MentionAutoCompleteProps {
-  quill: any; // Quill instance
+  quill: any;
   containerRef: React.RefObject<HTMLDivElement | null>;
   currentUserId: string;
 }
@@ -17,14 +16,14 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
   const [mentionQuery, setMentionQuery] = useState('');
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const [mentionDropdownIndex, setMentionDropdownIndex] = useState(0);
+  const [isKeyboardNavigation, setIsKeyboardNavigation] = useState(true);
   const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number } | null>(null);
 
-  // Add refs for latest values to avoid stale closure issues
   const mentionQueryRef = useRef(mentionQuery);
   const showMentionDropdownRef = useRef(showMentionDropdown);
   const mentionDropdownIndexRef = useRef(mentionDropdownIndex);
+  const isKeyboardNavigationRef = useRef(isKeyboardNavigation);
 
-  // Keep refs in sync with state
   useEffect(() => {
     mentionQueryRef.current = mentionQuery;
   }, [mentionQuery]);
@@ -34,12 +33,13 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
   useEffect(() => {
     mentionDropdownIndexRef.current = mentionDropdownIndex;
   }, [mentionDropdownIndex]);
+  useEffect(() => {
+    isKeyboardNavigationRef.current = isKeyboardNavigation;
+  }, [isKeyboardNavigation]);
 
   const workspaceId = useWorkspaceId();
-  const { data: workspace } = useGetWorkspace(workspaceId || '');
   const { data: members = [] } = useGetMembers(workspaceId || '');
 
-  // Helper: get Quill root offset relative to the page
   const getQuillRootOffset = () => {
     if (!containerRef.current) {
       return { left: 0, top: 0 };
@@ -48,20 +48,20 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
     return { left: rect.left + window.scrollX, top: rect.top + window.scrollY };
   };
 
-  // Helper: filter members (only show active/non-deactivated members)
   const getFilteredMembers = (query: string) => {
     if (!members || members.length === 0) {
       return [];
     }
+
     const filteredMembers = members.filter((member: MemberWithUser) => {
       const isActive = !member.is_deactivated;
       const matchesQuery = member.user.name.toLowerCase().includes(query.toLowerCase());
       return isActive && matchesQuery;
     });
-    return filteredMembers.slice(0, 10); // Limit to 10 results
+
+    return filteredMembers.slice(0, 10);
   };
 
-  // Helper: get caret position for dropdown positioning
   const getCaretPosition = () => {
     const selection = quill.getSelection();
     if (!selection) {
@@ -82,7 +82,6 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
       return;
     }
 
-    // Handle text changes for @ detection
     const handleTextChange = () => {
       const sel = quill.getSelection();
       if (!sel) {
@@ -100,6 +99,7 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
         setMentionQuery(query);
         setShowMentionDropdown(true);
         setMentionDropdownIndex(0);
+        setIsKeyboardNavigation(true);
 
         const pos = getCaretPosition();
         if (pos) {
@@ -112,7 +112,6 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
       }
     };
 
-    // Handle keyboard events for dropdown navigation
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!showMentionDropdownRef.current) {
         return;
@@ -122,9 +121,11 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
+        setIsKeyboardNavigation(true);
         setMentionDropdownIndex((prev) => Math.min(prev + 1, filteredMembers.length - 1));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
+        setIsKeyboardNavigation(true);
         setMentionDropdownIndex((prev) => Math.max(prev - 1, 0));
       } else if (e.key === 'Enter') {
         if (filteredMembers.length > 0) {
@@ -140,51 +141,49 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
               if (match) {
                 const insertPosition = sel.index - match[0].length;
                 quill.deleteText(insertPosition, match[0].length);
-                // Insert mention as a custom blot with ID and temporary name for display
                 quill.insertEmbed(insertPosition, 'mention', {
                   id: member.id,
                   name: member.user?.name || 'Unknown',
                   isCurrentUser: member.user?.id === currentUserId,
                 });
-                // Move cursor after the mention and add a space
                 quill.setSelection(insertPosition + 1, 0);
                 quill.insertText(insertPosition + 1, ' ');
                 quill.setSelection(insertPosition + 2, 0);
                 setShowMentionDropdown(false);
                 setMentionQuery('');
                 setMentionDropdownIndex(0);
+                setIsKeyboardNavigation(false);
                 setDropdownPos(null);
               } else {
                 setShowMentionDropdown(false);
                 setMentionQuery('');
                 setMentionDropdownIndex(0);
+                setIsKeyboardNavigation(false);
                 setDropdownPos(null);
               }
             }
           }
-          return false; // Explicitly return false to prevent any further handling
+          return false;
         }
       } else if (e.key === 'Escape') {
         setShowMentionDropdown(false);
         setMentionQuery('');
         setMentionDropdownIndex(0);
+        setIsKeyboardNavigation(false);
         setDropdownPos(null);
         e.preventDefault();
       }
     };
 
-    // Add event listeners
     quill.on('text-change', handleTextChange);
-    quill.root.addEventListener('keydown', handleKeyDown, true); // Use capture phase
+    quill.root.addEventListener('keydown', handleKeyDown, true);
 
-    // Cleanup
     return () => {
       quill.off('text-change', handleTextChange);
-      quill.root.removeEventListener('keydown', handleKeyDown, true); // Remove from capture phase
+      quill.root.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [quill, members]);
 
-  // Expose showMentionDropdown state to parent for keyboard binding check
   useEffect(() => {
     if (quill) {
       (quill as any).mentionDropdownOpen = showMentionDropdown;
@@ -207,13 +206,13 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
           name: member.user?.name || 'Unknown',
           isCurrentUser: member.user?.id === currentUserId,
         });
-        // Move cursor after the mention and add a space
         quill.setSelection(insertPosition + 1, 0);
         quill.insertText(insertPosition + 1, ' ');
         quill.setSelection(insertPosition + 2, 0);
         setShowMentionDropdown(false);
         setMentionQuery('');
         setMentionDropdownIndex(0);
+        setIsKeyboardNavigation(false);
         setDropdownPos(null);
       }
     }
@@ -227,42 +226,50 @@ const MentionAutoComplete = ({ quill, containerRef, currentUserId }: MentionAuto
 
   return (
     <div
-      className="fixed z-[100] w-80 shadow-lg"
+      className="fixed z-[100] w-80 shadow-lg bg-popover text-popover-foreground rounded-md border"
       style={{
         left: dropdownPos.left,
         bottom: `${window.innerHeight - dropdownPos.top - 20}px`,
       }}
     >
-      <Command>
-        <CommandList>
-          {filteredMembers.map((member, i) => (
-            <CommandItem
-              key={member.id}
-              className={cn(
-                'flex items-center gap-2 px-3 py-2 cursor-pointer',
-                i === mentionDropdownIndex && 'bg-accent',
-              )}
-              onSelect={() => handleMentionClick(member)}
-            >
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={member.user.image || ''} />
-                <AvatarFallback className="text-xs">
-                  {member.user.name?.[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm">{member.user.name}</span>
-              {member.user?.id === currentUserId && (
-                <span className="ml-1 px-1 py-0.5 rounded bg-muted text-xs text-muted-foreground border border-border">
-                  you
-                </span>
-              )}
-            </CommandItem>
-          ))}
-          {filteredMembers.length === 0 && (
-            <div className="px-3 py-2 text-sm text-muted-foreground">No members found</div>
-          )}
-        </CommandList>
-      </Command>
+      <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+        {filteredMembers.map((member, i) => (
+          <div
+            key={member.id}
+            className={cn(
+              'relative flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none',
+              i === mentionDropdownIndex
+                ? 'bg-accent text-accent-foreground'
+                : 'hover:bg-accent/50',
+            )}
+            onClick={() => handleMentionClick(member)}
+            onMouseEnter={() => {
+              setIsKeyboardNavigation(false);
+              setMentionDropdownIndex(i);
+            }}
+            onMouseLeave={() => {
+              setIsKeyboardNavigation(true);
+              setMentionDropdownIndex(0);
+            }}
+          >
+            <Avatar className="h-6 w-6 mr-2">
+              <AvatarImage src={member.user.image || ''} />
+              <AvatarFallback className="text-xs">
+                {member.user.name?.[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm">{member.user.name}</span>
+            {member.user?.id === currentUserId && (
+              <span className="ml-1 px-1 py-0.5 rounded bg-muted text-xs text-muted-foreground border border-border">
+                you
+              </span>
+            )}
+          </div>
+        ))}
+        {filteredMembers.length === 0 && (
+          <div className="px-3 py-2 text-sm text-muted-foreground">No members found</div>
+        )}
+      </div>
     </div>
   );
 };
