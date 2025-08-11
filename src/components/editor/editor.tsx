@@ -24,7 +24,12 @@ import { useGetMembers } from '@/features/members/hooks/use-members';
 import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useTypingStatus } from '@/hooks/use-typing-status';
-import { validateFile } from '@/lib/helpers';
+import {
+  enrichDeltaWithMentions,
+  getPlainTextFromDelta as getDeltaPlainText,
+  hasDeltaContent as checkDeltaContent,
+  validateFile,
+} from '@/lib/helpers';
 import { createMemberLookupMap } from '@/lib/helpers/members';
 import { cn } from '@/lib/utils';
 import AttachmentPreview from './attachment-preview';
@@ -137,28 +142,16 @@ const Editor = ({
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
 
-  // Helper to check if Delta has meaningful content
-  const hasDeltaContent = useCallback((delta: Delta | null): boolean => {
-    if (!delta) return false;
-    const ops = delta.ops || [];
-    return ops.some((op: any) => {
-      if (typeof op.insert === 'string') {
-        return op.insert.trim().length > 0;
-      }
-      return op.insert && typeof op.insert === 'object';
-    });
-  }, []);
-
   const isEmpty = useMemo(() => {
     if (image || attachments.length > 0) return false;
-    
+
     const quill = quillRef.current;
     if (!quill) {
       return text.trim().length === 0 && !hasEmbeds;
     }
-    
-    return !hasDeltaContent(quill.getContents());
-  }, [text, image, attachments.length, hasEmbeds, hasDeltaContent]);
+
+    return !checkDeltaContent(quill.getContents());
+  }, [text, image, attachments.length, hasEmbeds]);
 
   const hasUploadsInProgress = useMemo(
     () => attachments.some((att) => att.status === 'uploading'),
@@ -262,13 +255,13 @@ const Editor = ({
 
   const debouncedSetDraft = useDebouncedCallback(() => {
     if (!entityId || !entityType) return;
-    
+
     const quill = quillRef.current;
     if (!quill) return;
-    
+
     const contents = quill.getContents();
-    
-    if (!hasDeltaContent(contents)) {
+
+    if (!checkDeltaContent(contents)) {
       clearDraft(workspaceId, entityId, parentMessageId);
     } else {
       setDraft(
@@ -281,7 +274,7 @@ const Editor = ({
         parentAuthorName,
       );
     }
-  }, 500, [entityId, entityType, workspaceId, parentMessageId, parentAuthorName, hasDeltaContent, clearDraft, setDraft]);
+  }, 500);
 
   const checkForEmbeds = useCallback((quill: Quill) => {
     const contents = quill.getContents();
@@ -294,25 +287,8 @@ const Editor = ({
   }, []);
 
   const getPlainTextFromDelta = useCallback(
-    (delta: Delta): string => {
-      const ops = delta.ops || [];
-      let text = '';
-
-      ops.forEach((op: any) => {
-        if (typeof op.insert === 'string') {
-          text += op.insert;
-        } else if (op.insert?.mention) {
-          text += memberLookup.get(op.insert.mention.id) || 'Unknown User';
-        } else if (op.insert?.image) {
-          text += '[Image]';
-        }
-      });
-
-      const trimmedText = text.trim();
-      // Ensure we have some text for embeds-only content
-      return trimmedText || (hasDeltaContent(delta) ? ' ' : '');
-    },
-    [memberLookup, hasDeltaContent],
+    (delta: Delta): string => getDeltaPlainText(delta, memberLookup),
+    [memberLookup],
   );
 
   useLayoutEffect(() => {
@@ -641,7 +617,7 @@ const Editor = ({
                 const hasAttachments = attachmentsRef.current.length > 0;
                 const hasImage = !!addedImage;
                 const quill = quillRef.current;
-                const hasContent = quill ? hasDeltaContent(quill.getContents()) : false;
+                const hasContent = quill ? checkDeltaContent(quill.getContents()) : false;
                 const canSend = hasImage || hasAttachments || hasContent;
 
                 if (canSend) {
@@ -676,37 +652,18 @@ const Editor = ({
       innerRef.current = quill;
     }
 
-    const enrichMentions = (content: any) => {
-      if (!content?.ops) return content;
-      return {
-        ...content,
-        ops: content.ops.map((op: any) => {
-          if (!op.insert?.mention) return op;
-          return {
-            ...op,
-            insert: {
-              mention: {
-                id: op.insert.mention.id,
-                name: memberLookup.get(op.insert.mention.id) || 'Unknown User'
-              }
-            }
-          };
-        })
-      };
-    };
-
     // Load initial content (from draft or default)
     let initialContent: Delta | Op[] = defaultValueRef.current;
     const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
-    
+
     if (draft?.content) {
       try {
-        initialContent = enrichMentions(JSON.parse(draft.content));
+        initialContent = enrichDeltaWithMentions(JSON.parse(draft.content), memberLookup);
       } catch (e) {
         console.error('Error parsing draft content', e);
       }
     }
-    
+
     quill.setContents(initialContent, 'silent');
     setText(quill.getText());
 
@@ -877,7 +834,6 @@ const Editor = ({
     checkForEmbeds,
     memberLookup,
     getDraft,
-    hasDeltaContent,
   ]);
 
   const handleToolbarToggle = useCallback((): void => {

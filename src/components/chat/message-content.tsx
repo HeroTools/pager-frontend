@@ -7,12 +7,14 @@ import parse, {
   HTMLReactParserOptions,
 } from 'html-react-parser';
 import { marked, type Tokens } from 'marked';
+import type { Delta } from 'quill';
 import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { Hint } from '@/components/hint';
 import { useGetMembers } from '@/features/members/hooks/use-members';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { isDeltaEmpty } from '@/lib/helpers';
 import { createMemberLookupMap } from '@/lib/helpers/members';
 import { useUIStore } from '@/stores/ui-store';
 
@@ -74,17 +76,6 @@ const isContentEmpty = (html: string): boolean => {
   const hasImages = tmp.querySelectorAll('img, video').length > 0;
   return !hasText && !hasImages;
 };
-
-const isDeltaEmpty = (delta: QuillDelta): boolean =>
-  !delta.ops ||
-  delta.ops.every((op) => {
-    if (typeof op.insert === 'string') {
-      return !op.insert.trim();
-    } else if (op.insert && typeof op.insert === 'object') {
-      return false;
-    }
-    return true;
-  });
 
 const detectContentFormat = (content: string): ContentFormat => {
   try {
@@ -184,7 +175,7 @@ class ContentProcessor {
   }
 
   private processDeltaContent(delta: QuillDelta): ProcessedContent {
-    if (isDeltaEmpty(delta)) {
+    if (isDeltaEmpty(delta as Delta)) {
       return { html: '', isEmpty: true };
     }
 
