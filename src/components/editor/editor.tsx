@@ -58,12 +58,9 @@ interface EditorProps {
   parentAuthorName?: string;
 }
 
-const TLDs = ['com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'dev', 'app', 'xyz', 'info', 'biz'];
-const URL_REGEX = new RegExp(
-  `(?:https?:\\/\\/)?(?:localhost(?:\\d{1,5})?|\\w[\\w-]*\\.(?:${TLDs.join('|')})\\b)(?:\\/[^\\s]*)?`,
-  'i',
-);
-const AUTO_LINK_URL_REGEX = new RegExp(URL_REGEX.source, 'gi');
+
+const URL_REGEX = /(?:(?:https?:\/\/)?(?:(?:www|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*\.[a-zA-Z]{2,}|localhost)(?::[0-9]{1,5})?(?:\/[^\s]*)?)/i;
+const AUTO_LINK_URL_REGEX = /(?:(?:https?:\/\/)?(?:(?:www|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*\.[a-zA-Z]{2,}|localhost)(?::[0-9]{1,5})?(?:\/[^\s]*)?)/gi;
 
 const Editor = ({
   variant = 'create',
