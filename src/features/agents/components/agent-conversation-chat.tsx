@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Loader } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -201,10 +201,9 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
       }
 
       removePendingMessage(optimisticId);
-      console.log('✅ Message sent successfully');
     } catch (error) {
       removePendingMessage(optimisticId);
-      console.error('❌ Failed to send message:', error);
+      console.error('Failed to send message:', error);
       toast.error('Failed to send message. Please try again.');
     }
   };
@@ -267,7 +266,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         currentUser={currentUser}
         chatType="agent"
         conversationData={conversationWithMessages?.pages?.[0]}
-        isLoading={isInitialLoading || (isLoadingMessages && !!currentConversationId)}
+        isLoading={isInitialLoading || isLoadingMessages}
         isDisabled={isPending || isInitialLoading}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}

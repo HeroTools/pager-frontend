@@ -100,7 +100,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   const conversationDisplay = chatType === 'conversation' ? getConversationHeaderDisplay() : null;
 
   const currentChannelMember = useMemo(() => {
-    return members.find((member) => member.workspace_member.user.id === user.id);
+    return members.find((member) => member.workspace_member.user.id === user?.id);
   }, [user, members]);
 
   const handleLeaveChannel = async () => {

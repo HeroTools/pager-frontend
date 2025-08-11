@@ -30,7 +30,6 @@ import EmojiAutoComplete from './emoji-auto-complete';
 import { GifSearchModal } from './gif-search-modal';
 import { LinkDialog } from './link-dialog';
 import SlashCommandAutoComplete from './slash-command-autocomplete';
-import { StaticToolbar } from './static-toolbar';
 
 type EditorValue = {
   image: File | null;
@@ -92,7 +91,6 @@ const Editor = ({
   );
   const [selectedText, setSelectedText] = useState('');
   const [hasEmbeds, setHasEmbeds] = useState(false);
-  const [isQuillReady, setIsQuillReady] = useState(false);
 
   const isAgentChat = !!agentConversationId;
   const isMobile = useIsMobile();
@@ -595,7 +593,6 @@ const Editor = ({
       if (innerRef) {
         innerRef.current = quill;
       }
-      setIsQuillReady(true);
 
       const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
       let initialContent: Delta | Op[] = defaultValueRef.current;
@@ -752,7 +749,6 @@ const Editor = ({
       if (innerRef) {
         innerRef.current = null;
       }
-      setIsQuillReady(false);
     };
   }, [
     variant,
@@ -849,28 +845,9 @@ const Editor = ({
           </div>
         )}
 
-        <div ref={containerRef} className="ql-custom max-h-80 overflow-y-auto">
-          {!isQuillReady && <StaticToolbar />}
-        </div>
-      </div>
-
-      {!isAgentChat && attachments.length > 0 && (
-        <div className="px-2 pb-2">
-          <div className="flex flex-wrap">
-            {attachments.map((attachment) => (
-              <AttachmentPreview
-                key={attachment.id}
-                attachment={attachment}
-                attachments={attachments}
-                workspaceId={workspaceId}
-                setAttachments={setAttachments}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex px-2 pb-2 z-10 flex-shrink-0 items-center">
+        <div ref={containerRef} className="ql-custom max-h-80 overflow-y-auto" />
+        
+        <div className="flex px-2 py-2 z-10 flex-shrink-0 items-center border-t border-border-subtle">
         {/* Desktop only: toolbar toggle button */}
         <div className="hidden md:block">
           <Hint label={isToolbarVisible ? 'Hide formatting' : 'Show formatting'}>
@@ -940,7 +917,24 @@ const Editor = ({
             <SendHorizontal className="size-4" />
           </Button>
         )}
+        </div>
       </div>
+
+      {!isAgentChat && attachments.length > 0 && (
+        <div className="px-2 pb-2">
+          <div className="flex flex-wrap">
+            {attachments.map((attachment) => (
+              <AttachmentPreview
+                key={attachment.id}
+                attachment={attachment}
+                attachments={attachments}
+                workspaceId={workspaceId}
+                setAttachments={setAttachments}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {variant === 'create' && !isMobile && (
         <div
