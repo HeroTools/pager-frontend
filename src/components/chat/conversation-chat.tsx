@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Loader } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 
@@ -133,19 +133,10 @@ const ConversationChat = () => {
     };
   };
 
-  const isLoading = isLoadingMessages || !currentUser;
+  const isInitialLoading = !currentUser;
   const error = messagesError;
 
-  if (isLoading || !currentUser) {
-    return (
-      <div className="h-full flex-1 flex items-center justify-center">
-        <Loader className="animate-spin size-5 text-muted-foreground" />
-      </div>
-    );
-  }
-
-  // Handle error states
-  if (error || !conversationWithMessages) {
+  if (error && !isInitialLoading) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
@@ -156,10 +147,10 @@ const ConversationChat = () => {
     );
   }
 
-  // Transform data for chat component
+  // Transform data for chat component - use placeholder data while loading
   const conversationChannel = transformConversation(
-    currentConversation.members,
-    currentConversation.other_members,
+    currentConversation?.members || [],
+    currentConversation?.other_members || [],
     conversationId,
   );
 
@@ -255,7 +246,8 @@ const ConversationChat = () => {
         currentUser={currentUser}
         chatType="conversation"
         conversationData={conversationWithMessages?.pages?.[0]}
-        isLoading={false}
+        isLoading={isInitialLoading || isLoadingMessages}
+        isDisabled={isInitialLoading}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}

@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Loader } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo } from 'react';
 
@@ -131,18 +131,27 @@ const ChannelChat = () => {
     }
   }, [refetchChannelMessages, refetchChannel]);
 
-  const isLoading = isLoadingMessages || isLoadingChannel || !currentUser;
+  // Initial loading state - only for critical data
+  const isInitialLoading = isLoadingChannel || !currentUser;
   const error = messagesError || channelError;
 
-  if (isLoading) {
-    return (
-      <div className="h-full flex-1 flex items-center justify-center">
-        <Loader className="animate-spin size-5 text-muted-foreground" />
-      </div>
-    );
-  }
+  const channel = useMemo(() => {
+    if (channelDetails) {
+      return transformChannel(channelDetails);
+    }
+    // Placeholder channel while loading
+    return {
+      id: channelId,
+      name: 'Loading...',
+      description: '',
+      isPrivate: false,
+      type: ChannelType.PUBLIC,
+      memberCount: 0,
+      isDefault: false,
+    };
+  }, [channelDetails, channelId, transformChannel]);
 
-  if (error || !channelWithMessages || !channelDetails) {
+  if (error && !isInitialLoading) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
@@ -158,8 +167,6 @@ const ChannelChat = () => {
       </div>
     );
   }
-
-  const channel = transformChannel(channelDetails);
 
   const handleSendMessage = async (content: {
     body: string;
@@ -251,7 +258,8 @@ const ChannelChat = () => {
         currentUser={currentUser}
         chatType="channel"
         members={members}
-        isLoading={false}
+        isLoading={isInitialLoading || isLoadingMessages}
+        isDisabled={isInitialLoading}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
