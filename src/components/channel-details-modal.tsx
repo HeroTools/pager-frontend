@@ -147,7 +147,7 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
   }, [channelMembers]);
 
   const currentChannelMember = useMemo(() => {
-    return channelMembers.find((member) => member.workspace_member.user.id === user.id);
+    return channelMembers.find((member) => member.workspace_member.user.id === user?.id);
   }, [user, channelMembers]);
 
   const isChannelAdmin = useMemo(() => {

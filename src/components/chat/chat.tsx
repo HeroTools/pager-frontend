@@ -41,6 +41,9 @@ interface ChatProps {
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
+  loading: () => (
+    <div className="h-[120px] bg-background border border-border-default rounded-md animate-pulse" />
+  ),
 });
 
 const getPlaceholderText = (chatType: string, channelName: string) => {
@@ -79,6 +82,7 @@ export const Chat: FC<ChatProps> = ({
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const lastScrollTopRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
+  const [editorKey, setEditorKey] = useState(() => `editor-${Date.now()}`);
 
   // Check for drafts for each message
   const messagesWithDrafts = useMemo(() => {
@@ -223,6 +227,7 @@ export const Chat: FC<ChatProps> = ({
 
       <div className="fixed bottom-0 left-0 right-0 bg-background md:relative md:p-4 md:border-t">
         <Editor
+          key={editorKey}
           variant="create"
           workspaceId={workspaceId}
           placeholder={getPlaceholderText(chatType, channel.name)}

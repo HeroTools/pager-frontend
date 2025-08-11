@@ -512,6 +512,11 @@ const Editor = ({
 
     import('quill').then(({ default: Quill }) => {
       if (!container || quillRef.current) return;
+      
+      // Check if container already has Quill initialized
+      if (container.querySelector('.ql-editor')) {
+        return;
+      }
 
       // Create editor container
       const editorDiv = document.createElement('div');
@@ -743,6 +748,11 @@ const Editor = ({
 
       if (variant === 'create') {
         stopTyping();
+      }
+      
+      // Clean up DOM
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
       }
 
       quillRef.current = null;
