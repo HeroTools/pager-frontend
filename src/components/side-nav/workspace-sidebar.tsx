@@ -1,4 +1,4 @@
-import { AlertTriangle, HashIcon, Loader, Lock, MessageSquareText, Pencil } from 'lucide-react';
+import { AlertTriangle, HashIcon, Loader, Lock, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -68,7 +68,7 @@ export const WorkspaceSidebar = () => {
   }
 
   return (
-    <div className="flex flex-col h-full md:border-r">
+    <div className="flex flex-col h-full ">
       <WorkspaceHeader
         workspace={getWorkspace.data}
         isAdmin={getWorkspace.data.user_role === 'admin'}
