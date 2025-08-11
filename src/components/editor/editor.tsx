@@ -129,8 +129,7 @@ const Editor = ({
     enabled: variant === 'create',
   });
 
-  // Move ref declarations before useMemo hooks
-  const activeUploadBatchRef = useRef<string | null>(null);
+  const activeUploadBatchesRef = useRef<Map<string, string[]>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
   const onSubmitRef = useRef(onSubmit);
@@ -220,7 +219,7 @@ const Editor = ({
       setImage(null);
       setAttachments([]);
       setHasEmbeds(false);
-      activeUploadBatchRef.current = null;
+      activeUploadBatchesRef.current.clear();
       progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
       progressTimeoutsRef.current.clear();
       lastProgressUpdateRef.current.clear();
@@ -317,9 +316,9 @@ const Editor = ({
     });
   }, [memberLookup]);
 
-  const handleProgressUpdate = useCallback(
-    (fileIndex: number, progress: { percentage: number }) => {
-      const fileKey = `file-${fileIndex}`;
+  const createProgressHandler = useCallback((batchFileIds: string[]) => {
+    return (fileIndex: number, progress: { percentage: number }) => {
+      const fileKey = `${batchFileIds[0]}-${fileIndex}`;
       const now = Date.now();
       const lastUpdate = lastProgressUpdateRef.current.get(fileKey) || 0;
 
@@ -333,11 +332,10 @@ const Editor = ({
         lastProgressUpdateRef.current.set(fileKey, Date.now());
 
         setAttachments((prev) => {
-          const fileStartIndex = prev.findIndex((att) => att.status === 'uploading');
-          if (fileStartIndex === -1) return prev;
+          const targetId = batchFileIds[fileIndex];
+          const targetIndex = prev.findIndex((att) => att.id === targetId);
 
-          const targetIndex = fileStartIndex + fileIndex;
-          if (targetIndex >= prev.length) return prev;
+          if (targetIndex === -1) return prev;
 
           const targetAttachment = prev[targetIndex];
           if (targetAttachment.uploadProgress === progress.percentage) {
@@ -361,9 +359,8 @@ const Editor = ({
         const timeout = setTimeout(updateProgress, 80);
         progressTimeoutsRef.current.set(fileKey, timeout);
       }
-    },
-    [],
-  );
+    };
+  }, []);
 
   const handleFiles = useCallback(
     async (files: FileList): Promise<void> => {
@@ -391,9 +388,10 @@ const Editor = ({
       }
 
       const batchId = `batch-${Date.now()}-${Math.random()}`;
-      activeUploadBatchRef.current = batchId;
 
       const fileIds = fileArray.map(() => `upload-${Date.now()}-${Math.random()}`);
+
+      activeUploadBatchesRef.current.set(batchId, fileIds);
 
       const initialAttachments: ManagedAttachment[] = fileArray.map((file, index) => ({
         id: fileIds[index],
@@ -409,14 +407,16 @@ const Editor = ({
       setAttachments((prev) => [...prev, ...initialAttachments]);
 
       try {
-        const results = await uploadMultipleFiles(fileArray, handleProgressUpdate);
+        const progressHandler = createProgressHandler(fileIds);
+        const results = await uploadMultipleFiles(fileArray, progressHandler);
 
-        if (activeUploadBatchRef.current === batchId) {
+        if (activeUploadBatchesRef.current.has(batchId)) {
+          const batchFileIds = activeUploadBatchesRef.current.get(batchId)!;
+
           setAttachments((prev) => {
-            const fileStartIndex = prev.length - fileArray.length;
-            return prev.map((att, index) => {
-              const fileIndex = index - fileStartIndex;
-              if (fileIndex < 0 || fileIndex >= results.length) {
+            return prev.map((att) => {
+              const fileIndex = batchFileIds.indexOf(att.id);
+              if (fileIndex === -1 || fileIndex >= results.length) {
                 return att;
               }
 
@@ -442,19 +442,24 @@ const Editor = ({
             });
           });
 
-          activeUploadBatchRef.current = null;
+          activeUploadBatchesRef.current.delete(batchId);
           progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
           progressTimeoutsRef.current.clear();
           lastProgressUpdateRef.current.clear();
         }
       } catch (error) {
-        if (activeUploadBatchRef.current === batchId) {
+        if (activeUploadBatchesRef.current.has(batchId)) {
+          const batchFileIds = activeUploadBatchesRef.current.get(batchId)!;
+
           setAttachments((prev) =>
             prev.map((att) =>
-              fileIds.includes(att.id) ? { ...att, status: 'error', error: 'Upload failed' } : att,
+              batchFileIds.includes(att.id)
+                ? { ...att, status: 'error', error: 'Upload failed' }
+                : att,
             ),
           );
-          activeUploadBatchRef.current = null;
+
+          activeUploadBatchesRef.current.delete(batchId);
           progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
           progressTimeoutsRef.current.clear();
           lastProgressUpdateRef.current.clear();
@@ -467,7 +472,7 @@ const Editor = ({
       uploadMultipleFiles,
       maxFileSizeBytes,
       isAgentChat,
-      handleProgressUpdate,
+      createProgressHandler,
     ],
   );
 
@@ -888,7 +893,12 @@ const Editor = ({
             type="file"
             multiple
             ref={fileInputRef}
-            onChange={(e) => e.target.files && handleFiles(e.target.files)}
+            onChange={(e) => {
+              if (e.target.files) {
+                handleFiles(e.target.files);
+                e.target.value = '';
+              }
+            }}
             className="hidden"
           />
         </>

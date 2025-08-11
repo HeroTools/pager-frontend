@@ -39,10 +39,7 @@ export const isDeltaEmpty = (delta: Delta | null): boolean => {
 /**
  * Enriches mention ops with names from a member lookup map
  */
-export const enrichDeltaWithMentions = (
-  content: any,
-  memberLookup: Map<string, string>,
-): any => {
+export const enrichDeltaWithMentions = (content: any, memberLookup: Map<string, string>): any => {
   if (!content || !content.ops) return content || [];
 
   return {
@@ -70,7 +67,10 @@ export const enrichDeltaWithMentions = (
 /**
  * Extracts plain text from a Delta, resolving mentions to names
  */
-export const getPlainTextFromDelta = (delta: Delta | null, memberLookup: Map<string, string>): string => {
+export const getPlainTextFromDelta = (
+  delta: Delta | null,
+  memberLookup: Map<string, string>,
+): string => {
   if (!delta) return '';
   const ops = delta.ops || [];
   let text = '';
