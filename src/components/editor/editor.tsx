@@ -137,34 +137,28 @@ const Editor = ({
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
 
-  const isEmpty = useMemo(() => {
-    // Check if we have any attachments or images
-    if (image || attachments.length > 0) return false;
+  // Helper to check if Delta has meaningful content
+  const hasDeltaContent = useCallback((delta: Delta | null): boolean => {
+    if (!delta) return false;
+    const ops = delta.ops || [];
+    return ops.some((op: any) => {
+      if (typeof op.insert === 'string') {
+        return op.insert.trim().length > 0;
+      }
+      return op.insert && typeof op.insert === 'object';
+    });
+  }, []);
 
-    // Check if we have actual content in the editor
+  const isEmpty = useMemo(() => {
+    if (image || attachments.length > 0) return false;
+    
     const quill = quillRef.current;
     if (!quill) {
-      // If no quill instance yet, check if text has content or if hasEmbeds is true
       return text.trim().length === 0 && !hasEmbeds;
     }
-
-    const contents = quill.getContents();
-    const ops = contents.ops || [];
-
-    // Check for any meaningful content (text, mentions, images, videos, etc.)
-    const hasContent = ops.some((op: any) => {
-      if (typeof op.insert === 'string') {
-        // Has text content
-        return op.insert.trim().length > 0;
-      } else if (op.insert && typeof op.insert === 'object') {
-        // Has embeds (mentions, images, videos, etc.)
-        return true;
-      }
-      return false;
-    });
-
-    return !hasContent;
-  }, [text, image, attachments.length, hasEmbeds]);
+    
+    return !hasDeltaContent(quill.getContents());
+  }, [text, image, attachments.length, hasEmbeds, hasDeltaContent]);
 
   const hasUploadsInProgress = useMemo(
     () => attachments.some((att) => att.status === 'uploading'),
@@ -261,31 +255,33 @@ const Editor = ({
     entityId,
     workspaceId,
     parentMessageId,
+    clearDraft,
   ]);
 
   const handleSubmitRef = useRef(handleSubmit);
 
   const debouncedSetDraft = useDebouncedCallback(() => {
-    if (entityId && entityType) {
-      const quill = quillRef.current;
-      if (quill) {
-        const value = JSON.stringify(quill.getContents());
-        if (quill.getText().trim().length === 0) {
-          clearDraft(workspaceId, entityId, parentMessageId);
-        } else {
-          setDraft(
-            workspaceId,
-            entityId,
-            value,
-            quill.getText().trim(),
-            entityType,
-            parentMessageId,
-            parentAuthorName,
-          );
-        }
-      }
+    if (!entityId || !entityType) return;
+    
+    const quill = quillRef.current;
+    if (!quill) return;
+    
+    const contents = quill.getContents();
+    
+    if (!hasDeltaContent(contents)) {
+      clearDraft(workspaceId, entityId, parentMessageId);
+    } else {
+      setDraft(
+        workspaceId,
+        entityId,
+        JSON.stringify(contents),
+        quill.getText().trim() || ' ', // Ensure plain text is not empty for mention-only drafts
+        entityType,
+        parentMessageId,
+        parentAuthorName,
+      );
     }
-  }, 500);
+  }, 500, [entityId, entityType, workspaceId, parentMessageId, parentAuthorName, hasDeltaContent, clearDraft, setDraft]);
 
   const checkForEmbeds = useCallback((quill: Quill) => {
     const contents = quill.getContents();
@@ -298,7 +294,7 @@ const Editor = ({
   }, []);
 
   const getPlainTextFromDelta = useCallback(
-    (delta: any): string => {
+    (delta: Delta): string => {
       const ops = delta.ops || [];
       let text = '';
 
@@ -306,32 +302,17 @@ const Editor = ({
         if (typeof op.insert === 'string') {
           text += op.insert;
         } else if (op.insert?.mention) {
-          const memberId = op.insert.mention.id;
-          const name = memberLookup.get(memberId);
-
-          if (name) {
-            text += name;
-          } else {
-            text += 'Unknown User';
-          }
+          text += memberLookup.get(op.insert.mention.id) || 'Unknown User';
         } else if (op.insert?.image) {
-          // Add placeholder text for images/GIFs
           text += '[Image]';
         }
       });
 
-      // If we only have whitespace or nothing, but have embeds, ensure we have some text
       const trimmedText = text.trim();
-      if (
-        trimmedText.length === 0 &&
-        delta.ops?.some((op: any) => op.insert && typeof op.insert === 'object')
-      ) {
-        return ' '; // Return a space to ensure plain_text is not empty
-      }
-
-      return trimmedText;
+      // Ensure we have some text for embeds-only content
+      return trimmedText || (hasDeltaContent(delta) ? ' ' : '');
     },
-    [memberLookup],
+    [memberLookup, hasDeltaContent],
   );
 
   useLayoutEffect(() => {
@@ -659,25 +640,9 @@ const Editor = ({
                 // Check if we have any content to send
                 const hasAttachments = attachmentsRef.current.length > 0;
                 const hasImage = !!addedImage;
-
-                // Check for meaningful content in Delta (text, mentions, embeds)
                 const quill = quillRef.current;
-                let hasDeltaContent = false;
-                if (quill) {
-                  const contents = quill.getContents();
-                  const ops = contents.ops || [];
-                  hasDeltaContent = ops.some((op: any) => {
-                    if (typeof op.insert === 'string') {
-                      return op.insert.trim().length > 0;
-                    } else if (op.insert && typeof op.insert === 'object') {
-                      // Has embeds (mentions, images, videos, etc.)
-                      return true;
-                    }
-                    return false;
-                  });
-                }
-
-                const canSend = hasImage || hasAttachments || hasDeltaContent;
+                const hasContent = quill ? hasDeltaContent(quill.getContents()) : false;
+                const canSend = hasImage || hasAttachments || hasContent;
 
                 if (canSend) {
                   handleSubmitRef.current();
@@ -711,15 +676,37 @@ const Editor = ({
       innerRef.current = quill;
     }
 
-    const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
+    const enrichMentions = (content: any) => {
+      if (!content?.ops) return content;
+      return {
+        ...content,
+        ops: content.ops.map((op: any) => {
+          if (!op.insert?.mention) return op;
+          return {
+            ...op,
+            insert: {
+              mention: {
+                id: op.insert.mention.id,
+                name: memberLookup.get(op.insert.mention.id) || 'Unknown User'
+              }
+            }
+          };
+        })
+      };
+    };
+
+    // Load initial content (from draft or default)
     let initialContent: Delta | Op[] = defaultValueRef.current;
+    const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
+    
     if (draft?.content) {
       try {
-        initialContent = JSON.parse(draft.content);
+        initialContent = enrichMentions(JSON.parse(draft.content));
       } catch (e) {
         console.error('Error parsing draft content', e);
       }
     }
+    
     quill.setContents(initialContent, 'silent');
     setText(quill.getText());
 
@@ -792,7 +779,7 @@ const Editor = ({
       }, 0);
     };
 
-    const textChangeHandler = (delta: Delta, oldDelta: Delta, source: string) => {
+    const textChangeHandler = (_delta: Delta, _oldDelta: Delta, source: string) => {
       const currentText = quill.getText();
       setText(currentText);
       debouncedSetDraft();
@@ -851,18 +838,6 @@ const Editor = ({
       quill.on(Quill.events.SELECTION_CHANGE, handleSelectionChange);
     }
 
-    if (entityId) {
-      const draft = getDraft(workspaceId, entityId, parentMessageId);
-      if (draft) {
-        try {
-          const delta = JSON.parse(draft.content);
-          quill.setContents(delta, 'silent');
-        } catch (e) {
-          console.error('Error parsing draft content', e);
-        }
-      }
-    }
-
     return () => {
       const progressTimeouts = progressTimeoutsRef.current;
       const lastProgressUpdate = lastProgressUpdateRef.current;
@@ -900,6 +875,9 @@ const Editor = ({
     isMobile,
     setProfilePanelOpen,
     checkForEmbeds,
+    memberLookup,
+    getDraft,
+    hasDeltaContent,
   ]);
 
   const handleToolbarToggle = useCallback((): void => {
