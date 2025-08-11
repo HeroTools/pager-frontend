@@ -58,9 +58,10 @@ interface EditorProps {
   parentAuthorName?: string;
 }
 
-
-const URL_REGEX = /(?:(?:https?:\/\/)?(?:(?:www|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*\.[a-zA-Z]{2,}|localhost)(?::[0-9]{1,5})?(?:\/[^\s]*)?)/i;
-const AUTO_LINK_URL_REGEX = /(?:(?:https?:\/\/)?(?:(?:www|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*\.[a-zA-Z]{2,}|localhost)(?::[0-9]{1,5})?(?:\/[^\s]*)?)/gi;
+const URL_REGEX =
+  /(?:(?:https?:\/\/)?(?:(?:www|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*\.[a-zA-Z]{2,}|localhost)(?::[0-9]{1,5})?(?:\/[^\s]*)?)/i;
+const AUTO_LINK_URL_REGEX =
+  /(?:(?:https?:\/\/)?(?:(?:www|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*\.[a-zA-Z]{2,}|localhost)(?::[0-9]{1,5})?(?:\/[^\s]*)?)/gi;
 
 const Editor = ({
   variant = 'create',
