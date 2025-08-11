@@ -250,7 +250,7 @@ export const MessageContent = ({ content }: { content: string }) => {
   }, [content]);
 
   const linkCounterRef = useRef(0);
-  
+
   const replaceFn = useCallback((node: DOMNode): React.ReactElement | undefined => {
     if (node.type === 'tag') {
       const el = node as HtmlElement;

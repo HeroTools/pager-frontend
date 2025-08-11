@@ -145,19 +145,17 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     };
   };
 
-  // Transform agent data for chat component - use placeholder data while loading
   const agentChannel = transformAgentToChannel(
     agent || {
       id: agentId,
-      name: 'AI Agent',
-      description: 'Loading...',
+      name: agent?.name || 'AI Agent',
+      description: agent?.description || '',
     },
   );
 
   const isLoading = !currentUser || isLoadingAgents || isLoadingMessages;
   const error = messagesError;
 
-  // Handle critical error states only
   if (error && !isLoading) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
@@ -190,7 +188,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
       const response = await createMessage({
         message: content.plainText,
         _optimisticId: optimisticId,
-        _tempConversationId: queryConversationId, // Pass the temp conversation ID!
+        _tempConversationId: queryConversationId,
       });
 
       if (!currentConversationId && response.conversation?.id) {
@@ -251,7 +249,6 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     }
   };
 
-  // Handle loading more messages (when user scrolls up)
   const handleLoadMore = () => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -276,7 +273,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         hasMoreMessages={hasNextPage}
         isLoadingMore={isFetchingNextPage}
         highlightMessageId={highlightMessageId}
-        members={[]} // No members to display for agent conversations
+        members={[]}
       />
     </div>
   );

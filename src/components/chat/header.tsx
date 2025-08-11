@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { ChannelDetailsModal } from '@/components/channel-details-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   conversationData,
   currentUser,
 }) => {
+  const isLoading = !channel.name;
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<'members' | 'settings'>('members');
   const { workspaceId } = useParamIds();
@@ -168,11 +170,15 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
         ) : (
           <Hash className="w-4 h-4 text-muted-foreground" />
         )}
-        <h2 className="font-semibold text-lg text-foreground">
-          {chatType === 'conversation' && conversationDisplay?.type === 'group'
-            ? conversationDisplay.names
-            : channel.name}
-        </h2>
+        {isLoading ? (
+          <Skeleton className="h-6 w-32" />
+        ) : (
+          <h2 className="font-semibold text-lg text-foreground">
+            {chatType === 'conversation' && conversationDisplay?.type === 'group'
+              ? conversationDisplay.names
+              : channel.name}
+          </h2>
+        )}
       </div>
 
       <div className="flex items-center gap-3">

@@ -512,7 +512,7 @@ const Editor = ({
 
     import('quill').then(({ default: Quill }) => {
       if (!container || quillRef.current) return;
-      
+
       // Check if container already has Quill initialized
       if (container.querySelector('.ql-editor')) {
         return;
@@ -749,7 +749,7 @@ const Editor = ({
       if (variant === 'create') {
         stopTyping();
       }
-      
+
       // Clean up DOM
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
@@ -856,77 +856,77 @@ const Editor = ({
         )}
 
         <div ref={containerRef} className="ql-custom max-h-80 overflow-y-auto" />
-        
+
         <div className="flex px-2 py-2 z-10 flex-shrink-0 items-center border-t border-border-subtle">
-        {/* Desktop only: toolbar toggle button */}
-        <div className="hidden md:block">
-          <Hint label={isToolbarVisible ? 'Hide formatting' : 'Show formatting'}>
-            <Button disabled={disabled} size="sm" variant="ghost" onClick={handleToolbarToggle}>
-              <CaseSensitive className="size-4" />
-            </Button>
-          </Hint>
-        </div>
-
-        {!isAgentChat && (
-          <>
-            <EmojiPicker
-              onSelect={handleEmojiSelect}
-              trigger={
-                <Button disabled={disabled} size="sm" variant="ghost">
-                  <Smile className="size-4" />
-                </Button>
-              }
-            />
-
-            <Hint label="Attach files">
-              <Button
-                disabled={disabled}
-                size="sm"
-                variant="ghost"
-                onClick={() => fileInputRef.current?.click()}
-                className={cn(attachments.length > 0 && 'bg-accent text-accent-foreground')}
-              >
-                <Paperclip className="size-4" />
-                {attachments.length > 0 && (
-                  <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1 min-w-4 h-4 flex items-center justify-center">
-                    {attachments.length}
-                  </span>
-                )}
+          {/* Desktop only: toolbar toggle button */}
+          <div className="hidden md:block">
+            <Hint label={isToolbarVisible ? 'Hide formatting' : 'Show formatting'}>
+              <Button disabled={disabled} size="sm" variant="ghost" onClick={handleToolbarToggle}>
+                <CaseSensitive className="size-4" />
               </Button>
             </Hint>
-          </>
-        )}
-
-        {variant === 'update' ? (
-          <div className="ml-auto flex items-center gap-x-2">
-            <Button variant="outline" size="sm" onClick={handleCancel} disabled={disabled}>
-              Cancel
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSubmit}
-              disabled={disabled || isEmpty || hasUploadsInProgress}
-              className="bg-primary hover:bg-primary/80 text-primary-foreground"
-            >
-              Save
-            </Button>
           </div>
-        ) : (
-          <Button
-            disabled={disabled || isEmpty || hasUploadsInProgress}
-            onClick={handleSubmit}
-            className={cn(
-              'ml-auto',
-              isEmpty || hasUploadsInProgress
-                ? 'text-muted-foreground'
-                : 'bg-primary hover:bg-primary/80 text-primary-foreground',
-            )}
-            size="sm"
-          >
-            <SendHorizontal className="size-4" />
-          </Button>
-        )}
+
+          {!isAgentChat && (
+            <>
+              <EmojiPicker
+                onSelect={handleEmojiSelect}
+                trigger={
+                  <Button disabled={disabled} size="sm" variant="ghost">
+                    <Smile className="size-4" />
+                  </Button>
+                }
+              />
+
+              <Hint label="Attach files">
+                <Button
+                  disabled={disabled}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(attachments.length > 0 && 'bg-accent text-accent-foreground')}
+                >
+                  <Paperclip className="size-4" />
+                  {attachments.length > 0 && (
+                    <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1 min-w-4 h-4 flex items-center justify-center">
+                      {attachments.length}
+                    </span>
+                  )}
+                </Button>
+              </Hint>
+            </>
+          )}
+
+          {variant === 'update' ? (
+            <div className="ml-auto flex items-center gap-x-2">
+              <Button variant="outline" size="sm" onClick={handleCancel} disabled={disabled}>
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSubmit}
+                disabled={disabled || isEmpty || hasUploadsInProgress}
+                className="bg-primary hover:bg-primary/80 text-primary-foreground"
+              >
+                Save
+              </Button>
+            </div>
+          ) : (
+            <Button
+              disabled={disabled || isEmpty || hasUploadsInProgress}
+              onClick={handleSubmit}
+              className={cn(
+                'ml-auto',
+                isEmpty || hasUploadsInProgress
+                  ? 'text-muted-foreground'
+                  : 'bg-primary hover:bg-primary/80 text-primary-foreground',
+              )}
+              size="sm"
+            >
+              <SendHorizontal className="size-4" />
+            </Button>
+          )}
         </div>
       </div>
 

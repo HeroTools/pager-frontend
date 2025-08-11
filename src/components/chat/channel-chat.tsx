@@ -138,10 +138,9 @@ const ChannelChat = () => {
     if (channelDetails) {
       return transformChannel(channelDetails);
     }
-    // Placeholder channel while loading
     return {
       id: channelId,
-      name: 'Loading...',
+      name: '',
       description: '',
       isPrivate: false,
       type: ChannelType.PUBLIC,
