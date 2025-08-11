@@ -68,7 +68,7 @@ export const WorkspaceSidebar = () => {
   }
 
   return (
-    <div className="flex flex-col h-full ">
+    <div className="flex flex-col h-full">
       <WorkspaceHeader
         workspace={getWorkspace.data}
         isAdmin={getWorkspace.data.user_role === 'admin'}
