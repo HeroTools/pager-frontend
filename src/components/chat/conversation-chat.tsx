@@ -133,10 +133,10 @@ const ConversationChat = () => {
     };
   };
 
-  const isInitialLoading = !currentUser;
+  const isLoading = !currentUser || isLoadingMessages;
   const error = messagesError;
 
-  if (error && !isInitialLoading) {
+  if (error && !isLoading) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
@@ -243,8 +243,8 @@ const ConversationChat = () => {
         currentUser={currentUser}
         chatType="conversation"
         conversationData={conversationWithMessages?.pages?.[0]}
-        isLoading={isInitialLoading || isLoadingMessages}
-        isDisabled={isInitialLoading}
+        isLoading={isLoading}
+        isDisabled={isLoading}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}

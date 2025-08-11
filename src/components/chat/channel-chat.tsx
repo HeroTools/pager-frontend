@@ -131,8 +131,7 @@ const ChannelChat = () => {
     }
   }, [refetchChannelMessages, refetchChannel]);
 
-  // Initial loading state - only for critical data
-  const isInitialLoading = isLoadingChannel || !currentUser;
+  const isLoading = !currentUser || isLoadingChannel || isLoadingMessages;
   const error = messagesError || channelError;
 
   const channel = useMemo(() => {
@@ -151,7 +150,7 @@ const ChannelChat = () => {
     };
   }, [channelDetails, channelId, transformChannel]);
 
-  if (error && !isInitialLoading) {
+  if (error && !isLoading) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
@@ -258,8 +257,8 @@ const ChannelChat = () => {
         currentUser={currentUser}
         chatType="channel"
         members={members}
-        isLoading={isInitialLoading || isLoadingMessages}
-        isDisabled={isInitialLoading}
+        isLoading={isLoading}
+        isDisabled={isLoading}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}

@@ -154,11 +154,11 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     },
   );
 
-  const isInitialLoading = !currentUser;
+  const isLoading = !currentUser || isLoadingAgents || isLoadingMessages;
   const error = messagesError;
 
   // Handle critical error states only
-  if (error && !isInitialLoading) {
+  if (error && !isLoading) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
@@ -266,8 +266,8 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         currentUser={currentUser}
         chatType="agent"
         conversationData={conversationWithMessages?.pages?.[0]}
-        isLoading={isInitialLoading || isLoadingMessages || isLoadingAgents}
-        isDisabled={isPending || isInitialLoading}
+        isLoading={isLoading}
+        isDisabled={isPending || isLoading}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
