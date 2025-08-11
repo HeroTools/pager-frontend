@@ -888,6 +888,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           !isSystemMsg && 'cursor-pointer hover:opacity-80',
         )}
         onClick={handleAvatarClick}
+        showPresence={false}
       >
         {systemAvatar ? (
           <AvatarImage src={systemAvatar} />

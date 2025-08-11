@@ -345,6 +345,9 @@ export const ChannelDetailsModal: FC<ChannelDetailsModalProps> = ({
                                   setProfilePanelOpen(member.workspace_member.id);
                                   onClose();
                                 }}
+                                workspaceMemberId={member.workspace_member.id}
+                                showPresence={true}
+                                presenceSize="md"
                               >
                                 {member.workspace_member.user.image ? (
                                   <AvatarImage
