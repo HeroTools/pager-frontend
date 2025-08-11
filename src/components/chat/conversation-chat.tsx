@@ -146,15 +146,12 @@ const ConversationChat = () => {
       </div>
     );
   }
-
-  // Transform data for chat component - use placeholder data while loading
   const conversationChannel = transformConversation(
     currentConversation?.members || [],
     currentConversation?.other_members || [],
     conversationId,
   );
 
-  // Handle message sending with real-time integration
   const handleSendMessage = async (content: {
     body: string;
     attachments: UploadedAttachment[];

@@ -844,6 +844,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                   setProfilePanelOpen(workspaceMember.id);
                 }
               }}
+              showPresence={false}
             >
               <AvatarImage src={message.author.avatar} />
               <AvatarFallback className="text-sm">
