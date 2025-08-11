@@ -145,31 +145,27 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     };
   };
 
-  const isLoading = isLoadingAgents || !currentUser;
+  // Transform agent data for chat component - use placeholder data while loading
+  const agentChannel = transformAgentToChannel(
+    agent || {
+      id: agentId,
+      name: 'AI Agent',
+      description: 'Loading...',
+    },
+  );
+
+  const isInitialLoading = isLoadingAgents || !currentUser;
   const error = messagesError;
 
-  if (isLoading) {
-    return (
-      <div className="h-full flex-1 flex items-center justify-center">
-        <Loader className="animate-spin size-5 text-muted-foreground" />
-      </div>
-    );
-  }
-
-  // Handle error states
-  if (error || !agents) {
+  // Handle critical error states only
+  if (error && !isInitialLoading) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
-        <span className="text-muted-foreground text-sm">
-          {error ? 'Failed to load conversation' : 'Agent not found'}
-        </span>
+        <span className="text-muted-foreground text-sm">Failed to load conversation</span>
       </div>
     );
   }
-
-  // Transform agent data for chat component
-  const agentChannel = transformAgentToChannel(agent);
 
   const handleSendMessage = async (content: {
     body: string;
@@ -271,8 +267,8 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         currentUser={currentUser}
         chatType="agent"
         conversationData={conversationWithMessages?.pages?.[0]}
-        isLoading={isLoadingMessages && !!currentConversationId}
-        isDisabled={isPending}
+        isLoading={isInitialLoading || (isLoadingMessages && !!currentConversationId)}
+        isDisabled={isPending || isInitialLoading}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}

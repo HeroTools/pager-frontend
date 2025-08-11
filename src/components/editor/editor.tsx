@@ -1,6 +1,7 @@
 import hljs from 'highlight.js';
 import { CaseSensitive, Paperclip, SendHorizontal, Smile } from 'lucide-react';
-import Quill, { type Delta, type QuillOptions } from 'quill';
+import type Quill from 'quill';
+import type { Delta, QuillOptions } from 'quill';
 import type { Op } from 'quill/core';
 import {
   type RefObject,
@@ -29,6 +30,7 @@ import EmojiAutoComplete from './emoji-auto-complete';
 import { GifSearchModal } from './gif-search-modal';
 import { LinkDialog } from './link-dialog';
 import SlashCommandAutoComplete from './slash-command-autocomplete';
+import { StaticToolbar } from './static-toolbar';
 
 type EditorValue = {
   image: File | null;
@@ -92,6 +94,7 @@ const Editor = ({
   );
   const [selectedText, setSelectedText] = useState('');
   const [hasEmbeds, setHasEmbeds] = useState(false);
+  const [isQuillReady, setIsQuillReady] = useState(false);
 
   const isAgentChat = !!agentConversationId;
   const isMobile = useIsMobile();
@@ -138,7 +141,7 @@ const Editor = ({
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
 
-  // Use individual progress tracking for updates
+  // Progress throttling for file uploads
   const progressTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const lastProgressUpdateRef = useRef<Map<string, number>>(new Map());
 
@@ -278,10 +281,13 @@ const Editor = ({
       const now = Date.now();
       const lastUpdate = lastProgressUpdateRef.current.get(fileKey) || 0;
 
+      // Clear any existing timeout for this file
       const existingTimeout = progressTimeoutsRef.current.get(fileKey);
       if (existingTimeout) {
         clearTimeout(existingTimeout);
       }
+
+      // Update immediately if it's complete or enough time has passed
       const shouldUpdateImmediately = progress.percentage === 100 || now - lastUpdate >= 100;
 
       const updateProgress = () => {
@@ -313,7 +319,8 @@ const Editor = ({
       if (shouldUpdateImmediately) {
         updateProgress();
       } else {
-        const timeout = setTimeout(updateProgress, 80);
+        // Throttle the update
+        const timeout = setTimeout(updateProgress, 100);
         progressTimeoutsRef.current.set(fileKey, timeout);
       }
     },
@@ -495,134 +502,143 @@ const Editor = ({
     [linkSelection, handleLinkFormat],
   );
 
-  // Remove attachments from useEffect dependencies to prevent re-initialization
   useEffect(() => {
-    if (!containerRef.current) {
+    if (typeof window === 'undefined' || !containerRef.current) {
       return;
     }
 
     const container = containerRef.current;
-    const editorDiv = document.createElement('div');
-    container.appendChild(editorDiv);
 
-    const options: QuillOptions = {
-      theme: 'snow',
-      placeholder: placeholderRef.current,
-      modules: {
-        syntax: { hljs },
-        toolbar: {
-          container: [
-            ['bold', 'italic', 'underline', 'strike'],
-            ['blockquote', 'code-block'],
-            [{ list: 'ordered' }, { list: 'bullet' }, 'link'],
-          ],
-          handlers: {
-            link: function () {
-              const range = this.quill.getSelection();
-              if (range) {
-                const selectedText = this.quill.getText(range.index, range.length);
-                setLinkSelection({ index: range.index, length: range.length });
-                setSelectedText(selectedText);
-                setIsLinkDialogOpen(true);
-              }
+    // Prevent multiple initializations
+    if (quillRef.current) {
+      return;
+    }
+
+    import('quill').then(({ default: Quill }) => {
+      if (!container || quillRef.current) return;
+
+      // Create editor container
+      const editorDiv = document.createElement('div');
+      container.appendChild(editorDiv);
+
+      const options: QuillOptions = {
+        theme: 'snow',
+        placeholder: placeholderRef.current,
+        modules: {
+          syntax: { hljs },
+          toolbar: {
+            container: [
+              ['bold', 'italic', 'underline', 'strike'],
+              ['blockquote', 'code-block'],
+              [{ list: 'ordered' }, { list: 'bullet' }, 'link'],
+            ],
+            handlers: {
+              link: function () {
+                const range = this.quill.getSelection();
+                if (range) {
+                  const selectedText = this.quill.getText(range.index, range.length);
+                  setLinkSelection({ index: range.index, length: range.length });
+                  setSelectedText(selectedText);
+                  setIsLinkDialogOpen(true);
+                }
+              },
             },
           },
-        },
-        keyboard: {
-          bindings: {
-            enterSubmit: {
-              key: 'Enter',
-              handler(): boolean {
-                const emojiDropdownOpen =
-                  quillRef.current && (quillRef.current as any).emojiDropdownOpen;
-                const commandDropdownOpen =
-                  quillRef.current && (quillRef.current as any).commandDropdownOpen;
-                if (emojiDropdownOpen || commandDropdownOpen) {
+          keyboard: {
+            bindings: {
+              enterSubmit: {
+                key: 'Enter',
+                handler(): boolean {
+                  const emojiDropdownOpen =
+                    quillRef.current && (quillRef.current as any).emojiDropdownOpen;
+                  const commandDropdownOpen =
+                    quillRef.current && (quillRef.current as any).commandDropdownOpen;
+                  if (emojiDropdownOpen || commandDropdownOpen) {
+                    return true;
+                  }
+
+                  const addedImage = imageElementRef.current?.files?.[0] || null;
+                  const currentText = quillRef.current?.getText() || '';
+
+                  const empty =
+                    !addedImage &&
+                    attachmentsRef.current.length === 0 &&
+                    !hasEmbeds &&
+                    currentText.replace(/\s*/g, '').trim().length === 0;
+
+                  if (!empty) {
+                    handleSubmitRef.current();
+                    return false;
+                  }
+
                   return true;
-                }
-
-                const addedImage = imageElementRef.current?.files?.[0] || null;
-                const currentText = quillRef.current?.getText() || '';
-
-                const empty =
-                  !addedImage &&
-                  attachmentsRef.current.length === 0 &&
-                  !hasEmbeds &&
-                  currentText.replace(/\s*/g, '').trim().length === 0;
-
-                if (!empty) {
-                  handleSubmitRef.current();
-                  return false;
-                }
-
-                return true;
+                },
               },
-            },
-            linebreak: {
-              key: 'Enter',
-              shiftKey: true,
-              handler(range: unknown): boolean {
-                const quill = quillRef.current;
-                const rangeObj = range as { index?: number } | null;
-                const index = rangeObj?.index ?? quill.getLength();
-                quill.insertText(index, '\n');
-                quill.setSelection(index + 1);
-                return false;
+              linebreak: {
+                key: 'Enter',
+                shiftKey: true,
+                handler(range: unknown): boolean {
+                  const quill = quillRef.current;
+                  const rangeObj = range as { index?: number } | null;
+                  const index = rangeObj?.index ?? quill.getLength();
+                  quill.insertText(index, '\n');
+                  quill.setSelection(index + 1);
+                  return false;
+                },
               },
             },
           },
         },
-      },
-    };
+      };
 
-    const quill = new Quill(editorDiv, options);
-    quillRef.current = quill;
-    quill.focus();
-    if (innerRef) {
-      innerRef.current = quill;
-    }
-
-    const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
-    let initialContent: Delta | Op[] = defaultValueRef.current;
-    if (draft?.content) {
-      try {
-        initialContent = JSON.parse(draft.content);
-      } catch (e) {
-        console.error('Error parsing draft content', e);
+      const quill = new Quill(editorDiv, options);
+      quillRef.current = quill;
+      quill.focus();
+      if (innerRef) {
+        innerRef.current = quill;
       }
-    }
-    quill.setContents(initialContent, 'silent');
-    setText(quill.getText());
+      setIsQuillReady(true);
 
-    quill.root.addEventListener(
-      'paste',
-      (e: ClipboardEvent) => {
-        const selection = quill.getSelection();
-
-        if (!selection || selection.length === 0) {
-          return;
+      const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
+      let initialContent: Delta | Op[] = defaultValueRef.current;
+      if (draft?.content) {
+        try {
+          initialContent = JSON.parse(draft.content);
+        } catch (e) {
+          console.error('Error parsing draft content', e);
         }
+      }
+      quill.setContents(initialContent, 'silent');
+      setText(quill.getText());
 
-        const clipboardData = e.clipboardData;
-        if (!clipboardData) {
-          return;
-        }
+      quill.root.addEventListener(
+        'paste',
+        (e: ClipboardEvent) => {
+          const selection = quill.getSelection();
 
-        const pastedData = clipboardData.getData('text/plain');
+          if (!selection || selection.length === 0) {
+            return;
+          }
 
-        if (URL_REGEX.test(pastedData)) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
+          const clipboardData = e.clipboardData;
+          if (!clipboardData) {
+            return;
+          }
 
-          quill.formatText(selection.index, selection.length, 'link', pastedData);
-          quill.setSelection(selection.index + selection.length, 0);
-        }
-      },
-      true,
-    );
+          const pastedData = clipboardData.getData('text/plain');
 
-    const handleTextChange = () => {
-      setTimeout(() => {
+          if (URL_REGEX.test(pastedData)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
+            quill.formatText(selection.index, selection.length, 'link', pastedData);
+            quill.setSelection(selection.index + selection.length, 0);
+          }
+        },
+        true,
+      );
+
+      const handleTextChange = () => {
         const selection = quill.getSelection();
         if (!selection) return;
 
@@ -660,98 +676,85 @@ const Editor = ({
             url.startsWith('http') || url.startsWith('localhost') ? url : `https://` + url;
           quill.formatText(urlIndexInEditor, url.length, 'link', formattedUrl, 'silent');
         }
-      }, 0);
-    };
+      };
 
-    const textChangeHandler = (delta: Delta, oldDelta: Delta, source: string) => {
-      const currentText = quill.getText();
-      setText(currentText);
-      debouncedSetDraft();
+      const textChangeHandler = (_delta: Delta, _oldDelta: Delta, source: string) => {
+        const currentText = quill.getText();
+        setText(currentText);
+        debouncedSetDraft();
 
-      // Check for embeds whenever content changes
-      checkForEmbeds(quill);
+        // Check for embeds whenever content changes
+        checkForEmbeds(quill);
 
-      if (source === 'user') {
-        handleTextChange();
+        if (source === 'user') {
+          handleTextChange();
 
-        if (variant === 'create') {
-          if (currentText.trim().length > 0) {
-            startTyping();
-          } else {
-            stopTyping();
+          if (variant === 'create') {
+            if (currentText.trim().length > 0) {
+              startTyping();
+            } else {
+              stopTyping();
+            }
           }
-        }
-      }
-    };
-
-    const handleBlur = () => {
-      if (variant === 'create') {
-        stopTyping();
-      }
-    };
-
-    quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
-    quill.root.addEventListener('blur', handleBlur);
-
-    // Mobile: Show toolbar only when text is selected
-    if (isMobile) {
-      // Hide toolbar initially on mobile
-      const toolbarEl = containerRef.current?.querySelector('.ql-toolbar');
-      if (toolbarEl) {
-        toolbarEl.classList.add('hidden');
-      }
-
-      const handleSelectionChange = (range: any) => {
-        const toolbarElement = containerRef.current?.querySelector('.ql-toolbar');
-        if (!toolbarElement) return;
-
-        if (range && range.length > 0) {
-          // Show toolbar when text is selected
-          toolbarElement.classList.remove('hidden');
-        } else {
-          // Hide toolbar when no selection
-          toolbarElement.classList.add('hidden');
         }
       };
 
-      quill.on(Quill.events.SELECTION_CHANGE, handleSelectionChange);
-    }
-
-    if (entityId) {
-      const draft = getDraft(workspaceId, entityId, parentMessageId);
-      if (draft) {
-        try {
-          const delta = JSON.parse(draft.content);
-          quill.setContents(delta, 'silent');
-        } catch (e) {
-          console.error('Error parsing draft content', e);
+      const handleBlur = () => {
+        if (variant === 'create') {
+          stopTyping();
         }
+      };
+
+      quill.on('text-change', textChangeHandler);
+      quill.root.addEventListener('blur', handleBlur);
+
+      // Mobile: Show toolbar only when text is selected
+      if (isMobile) {
+        // Hide toolbar initially on mobile
+        const toolbarEl = containerRef.current?.querySelector('.ql-toolbar');
+        if (toolbarEl) {
+          toolbarEl.classList.add('hidden');
+        }
+
+        const handleSelectionChange = (range: any) => {
+          const toolbarElement = containerRef.current?.querySelector('.ql-toolbar');
+          if (!toolbarElement) return;
+
+          if (range && range.length > 0) {
+            // Show toolbar when text is selected
+            toolbarElement.classList.remove('hidden');
+          } else {
+            // Hide toolbar when no selection
+            toolbarElement.classList.add('hidden');
+          }
+        };
+
+        quill.on('selection-change', handleSelectionChange);
       }
-    }
+    });
 
     return () => {
-      const progressTimeouts = progressTimeoutsRef.current;
-      const lastProgressUpdate = lastProgressUpdateRef.current;
-      progressTimeouts.forEach((timeout) => clearTimeout(timeout));
-      progressTimeouts.clear();
-      lastProgressUpdate.clear();
+      // Clean up progress timeouts
+      progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+      progressTimeoutsRef.current.clear();
+      lastProgressUpdateRef.current.clear();
 
-      quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
-      quill.root.removeEventListener('blur', handleBlur);
-
-      if (isMobile) {
-        quill.off(Quill.events.SELECTION_CHANGE);
+      const quill = quillRef.current;
+      if (quill) {
+        // Clean up event listeners
+        quill.off('text-change');
+        quill.off('selection-change');
       }
 
       if (variant === 'create') {
         stopTyping();
       }
 
-      container.innerHTML = '';
       quillRef.current = null;
       if (innerRef) {
         innerRef.current = null;
       }
+      setIsQuillReady(false);
     };
   }, [
     variant,
@@ -763,6 +766,8 @@ const Editor = ({
     debouncedSetDraft,
     workspaceId,
     isMobile,
+    getDraft,
+    checkForEmbeds,
   ]);
 
   const handleToolbarToggle = useCallback((): void => {
@@ -846,95 +851,97 @@ const Editor = ({
           </div>
         )}
 
-        <div ref={containerRef} className="ql-custom max-h-80 overflow-y-auto" />
+        <div ref={containerRef} className="ql-custom max-h-80 overflow-y-auto">
+          {!isQuillReady && <StaticToolbar />}
+        </div>
+      </div>
 
-        {!isAgentChat && attachments.length > 0 && (
-          <div className="px-2 pb-2">
-            <div className="flex flex-wrap">
-              {attachments.map((attachment) => (
-                <AttachmentPreview
-                  key={attachment.id}
-                  attachment={attachment}
-                  attachments={attachments}
-                  workspaceId={workspaceId}
-                  setAttachments={setAttachments}
-                />
-              ))}
-            </div>
+      {!isAgentChat && attachments.length > 0 && (
+        <div className="px-2 pb-2">
+          <div className="flex flex-wrap">
+            {attachments.map((attachment) => (
+              <AttachmentPreview
+                key={attachment.id}
+                attachment={attachment}
+                attachments={attachments}
+                workspaceId={workspaceId}
+                setAttachments={setAttachments}
+              />
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="flex px-2 pb-2 z-10 flex-shrink-0 items-center">
-          {/* Desktop only: toolbar toggle button */}
-          <div className="hidden md:block">
-            <Hint label={isToolbarVisible ? 'Hide formatting' : 'Show formatting'}>
-              <Button disabled={disabled} size="sm" variant="ghost" onClick={handleToolbarToggle}>
-                <CaseSensitive className="size-4" />
+      <div className="flex px-2 pb-2 z-10 flex-shrink-0 items-center">
+        {/* Desktop only: toolbar toggle button */}
+        <div className="hidden md:block">
+          <Hint label={isToolbarVisible ? 'Hide formatting' : 'Show formatting'}>
+            <Button disabled={disabled} size="sm" variant="ghost" onClick={handleToolbarToggle}>
+              <CaseSensitive className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+
+        {!isAgentChat && (
+          <>
+            <EmojiPicker
+              onSelect={handleEmojiSelect}
+              trigger={
+                <Button disabled={disabled} size="sm" variant="ghost">
+                  <Smile className="size-4" />
+                </Button>
+              }
+            />
+
+            <Hint label="Attach files">
+              <Button
+                disabled={disabled}
+                size="sm"
+                variant="ghost"
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(attachments.length > 0 && 'bg-accent text-accent-foreground')}
+              >
+                <Paperclip className="size-4" />
+                {attachments.length > 0 && (
+                  <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1 min-w-4 h-4 flex items-center justify-center">
+                    {attachments.length}
+                  </span>
+                )}
               </Button>
             </Hint>
-          </div>
+          </>
+        )}
 
-          {!isAgentChat && (
-            <>
-              <EmojiPicker
-                onSelect={handleEmojiSelect}
-                trigger={
-                  <Button disabled={disabled} size="sm" variant="ghost">
-                    <Smile className="size-4" />
-                  </Button>
-                }
-              />
-
-              <Hint label="Attach files">
-                <Button
-                  disabled={disabled}
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => fileInputRef.current?.click()}
-                  className={cn(attachments.length > 0 && 'bg-accent text-accent-foreground')}
-                >
-                  <Paperclip className="size-4" />
-                  {attachments.length > 0 && (
-                    <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1 min-w-4 h-4 flex items-center justify-center">
-                      {attachments.length}
-                    </span>
-                  )}
-                </Button>
-              </Hint>
-            </>
-          )}
-
-          {variant === 'update' ? (
-            <div className="ml-auto flex items-center gap-x-2">
-              <Button variant="outline" size="sm" onClick={handleCancel} disabled={disabled}>
-                Cancel
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSubmit}
-                disabled={disabled || isEmpty || hasUploadsInProgress}
-                className="bg-primary hover:bg-primary/80 text-primary-foreground"
-              >
-                Save
-              </Button>
-            </div>
-          ) : (
-            <Button
-              disabled={disabled || isEmpty || hasUploadsInProgress}
-              onClick={handleSubmit}
-              className={cn(
-                'ml-auto',
-                isEmpty || hasUploadsInProgress
-                  ? 'text-muted-foreground'
-                  : 'bg-primary hover:bg-primary/80 text-primary-foreground',
-              )}
-              size="sm"
-            >
-              <SendHorizontal className="size-4" />
+        {variant === 'update' ? (
+          <div className="ml-auto flex items-center gap-x-2">
+            <Button variant="outline" size="sm" onClick={handleCancel} disabled={disabled}>
+              Cancel
             </Button>
-          )}
-        </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSubmit}
+              disabled={disabled || isEmpty || hasUploadsInProgress}
+              className="bg-primary hover:bg-primary/80 text-primary-foreground"
+            >
+              Save
+            </Button>
+          </div>
+        ) : (
+          <Button
+            disabled={disabled || isEmpty || hasUploadsInProgress}
+            onClick={handleSubmit}
+            className={cn(
+              'ml-auto',
+              isEmpty || hasUploadsInProgress
+                ? 'text-muted-foreground'
+                : 'bg-primary hover:bg-primary/80 text-primary-foreground',
+            )}
+            size="sm"
+          >
+            <SendHorizontal className="size-4" />
+          </Button>
+        )}
       </div>
 
       {variant === 'create' && !isMobile && (
