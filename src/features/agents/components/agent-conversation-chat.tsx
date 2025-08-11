@@ -154,7 +154,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     },
   );
 
-  const isInitialLoading = isLoadingAgents || !currentUser;
+  const isInitialLoading = !currentUser;
   const error = messagesError;
 
   // Handle critical error states only
@@ -266,7 +266,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         currentUser={currentUser}
         chatType="agent"
         conversationData={conversationWithMessages?.pages?.[0]}
-        isLoading={isInitialLoading || isLoadingMessages}
+        isLoading={isInitialLoading || isLoadingMessages || isLoadingAgents}
         isDisabled={isPending || isInitialLoading}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}

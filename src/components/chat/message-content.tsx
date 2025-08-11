@@ -10,7 +10,7 @@ import parse, {
 } from 'html-react-parser';
 import { marked, type Tokens } from 'marked';
 import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Hint } from '@/components/hint';
 
@@ -249,6 +249,8 @@ export const MessageContent = ({ content }: { content: string }) => {
     }
   }, [content]);
 
+  const linkCounterRef = useRef(0);
+  
   const replaceFn = useCallback((node: DOMNode): React.ReactElement | undefined => {
     if (node.type === 'tag') {
       const el = node as HtmlElement;
@@ -267,7 +269,9 @@ export const MessageContent = ({ content }: { content: string }) => {
 
       if (el.name === 'a') {
         const href = cleanAttribs.href || '';
-        const key = `link-${href.slice(0, 50)}`;
+        // Use a counter to ensure unique keys for each link
+        linkCounterRef.current += 1;
+        const key = `link-${linkCounterRef.current}`;
 
         return (
           <Hint key={key} label={href} side="top" align="center">
