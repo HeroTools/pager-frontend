@@ -4,9 +4,10 @@ import { toast } from 'sonner';
 import {
   type CreateWebhookData,
   type CreateWebhookResponse,
-  type Webhook,
+  type UpdateWebhookData,
   webhooksApi,
 } from '../api/webhooks-api';
+import { Webhook } from '../types';
 
 /**
  * Query keys for webhooks
@@ -33,10 +34,10 @@ export const useWebhooks = (workspaceId: string) => {
 /**
  * Hook to get webhook details with secrets
  */
-export const useWebhookDetails = (webhookId: string) => {
+export const useWebhookDetails = (workspaceId: string, webhookId: string) => {
   return useQuery({
     queryKey: webhooksQueryKeys.detail(webhookId),
-    queryFn: () => webhooksApi.getWebhookDetails(webhookId),
+    queryFn: () => webhooksApi.getWebhookDetails(workspaceId, webhookId),
     enabled: !!webhookId,
   });
 };
@@ -53,15 +54,20 @@ export const useCreateWebhook = (workspaceId: string) => {
     onSuccess: (data, variables) => {
       // Invalidate and refetch webhooks list
       queryClient.invalidateQueries({
-        queryKey: webhooksQueryKeys.list(variables.workspace_id),
+        queryKey: webhooksQueryKeys.list(workspaceId),
       });
 
       // Add the new webhook to the cache with complete details
       const newWebhook: Webhook = {
         id: data.id,
         name: variables.name,
+        source_type: variables.source_type || 'custom',
+        channel_id: data.channel_id,
+        channel_name: undefined, // Will be populated on refetch
         is_active: true,
         last_used_at: null,
+        last_message_at: null,
+        message_count: 0,
         created_at: new Date().toISOString(),
         created_by_name: 'You', // Will be updated on refetch
         total_requests: 0,
@@ -76,7 +82,7 @@ export const useCreateWebhook = (workspaceId: string) => {
 
     onError: (error) => {
       console.error('Failed to create webhook:', error);
-      toast.error('Failed to create webhook. Please try again.');
+      // Don't show generic toast here - let the component handle specific error messages
     },
   });
 };
@@ -88,7 +94,7 @@ export const useDeleteWebhook = (workspaceId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, string>({
-    mutationFn: webhooksApi.deleteWebhook,
+    mutationFn: (webhookId) => webhooksApi.deleteWebhook(workspaceId, webhookId),
 
     onSuccess: (_, webhookId) => {
       // Remove webhook from cache
@@ -116,12 +122,8 @@ export const useDeleteWebhook = (workspaceId: string) => {
 export const useUpdateWebhook = (workspaceId: string) => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    Webhook,
-    Error,
-    { webhookId: string; data: { is_active?: boolean; name?: string } }
-  >({
-    mutationFn: ({ webhookId, data }) => webhooksApi.updateWebhook(webhookId, data),
+  return useMutation<Webhook, Error, { webhookId: string; data: UpdateWebhookData }>({
+    mutationFn: ({ webhookId, data }) => webhooksApi.updateWebhook(workspaceId, webhookId, data),
 
     onSuccess: (updatedWebhook, { webhookId }) => {
       // Update webhook in the list cache
@@ -143,7 +145,7 @@ export const useUpdateWebhook = (workspaceId: string) => {
 
     onError: (error) => {
       console.error('Failed to update webhook:', error);
-      toast.error('Failed to update webhook. Please try again.');
+      // Don't show generic toast here - let the component handle specific error messages
     },
   });
 };
@@ -156,7 +158,7 @@ export const useToggleWebhook = (workspaceId: string) => {
 
   return useMutation<Webhook, Error, { webhookId: string; currentStatus: boolean }>({
     mutationFn: ({ webhookId, currentStatus }) =>
-      webhooksApi.updateWebhook(webhookId, { is_active: !currentStatus }),
+      webhooksApi.updateWebhook(workspaceId, webhookId, { is_active: !currentStatus }),
 
     onSuccess: (updatedWebhook) => {
       const action = updatedWebhook.is_active ? 'activated' : 'deactivated';
