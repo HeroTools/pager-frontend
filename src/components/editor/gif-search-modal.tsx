@@ -12,7 +12,7 @@ import { getTrendingGifs, searchGifs, type TenorGif } from '@/lib/tenor';
 import { useGifModal } from '@/stores/gif-modal-store';
 
 export const GifSearchModal = () => {
-  const { isOpen, closeGifModal, quillInstance, selectionIndex } = useGifModal();
+  const { isOpen, closeGifModal, quillInstance, selectionIndex, onGifSelect } = useGifModal();
   const [query, setQuery] = useState('');
   const [gifs, setGifs] = useState<TenorGif[]>([]);
   const [loading, setLoading] = useState(false);
@@ -75,15 +75,19 @@ export const GifSearchModal = () => {
 
   const insertGif = useCallback(
     (gif: TenorGif) => {
-      if (!quillInstance || selectionIndex === null) return;
-
-      quillInstance.insertEmbed(selectionIndex, 'image', gif.media_formats.gif.url);
-      quillInstance.setSelection(selectionIndex + 1);
+      // If we have a callback for handling GIF selection, use it
+      if (onGifSelect) {
+        onGifSelect(gif);
+      } else if (quillInstance && selectionIndex !== null) {
+        // Fallback to old behavior if no callback provided
+        quillInstance.insertEmbed(selectionIndex, 'image', gif.media_formats.gif.url);
+        quillInstance.setSelection(selectionIndex + 1);
+      }
 
       closeGifModal();
       setQuery('');
     },
-    [quillInstance, selectionIndex, closeGifModal],
+    [quillInstance, selectionIndex, closeGifModal, onGifSelect],
   );
 
   useEffect(() => {

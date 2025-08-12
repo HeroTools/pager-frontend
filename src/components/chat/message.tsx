@@ -779,7 +779,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   };
 
   const handleEditClick = () => {
-    const deltaContent = parseMessageContent(message.content);
+    const deltaContent = parseMessageContent(message.content, members);
     setEditingContent(deltaContent);
     setIsEditing(true);
     setIsDropdownOpen(false);
@@ -920,7 +920,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                 </div>
               ) : (
                 <>
-                  <MessageContent content={message.content} />
+                  <MessageContent content={message.content} currentUserId={currentUser.id} />
 
                   {/* Show inline thinking status for agent messages */}
                   {message.sender_type === 'agent' &&

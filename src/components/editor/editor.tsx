@@ -18,14 +18,24 @@ import EmojiPicker from '@/components/emoji-picker';
 import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useUIStore } from '@/stores/ui-store';
 import { useFileUpload } from '@/features/file-upload';
+import { useGetMembers } from '@/features/members/hooks/use-members';
 import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useTypingStatus } from '@/hooks/use-typing-status';
-import { validateFile } from '@/lib/helpers';
+import {
+  enrichDeltaWithMentions,
+  getPlainTextFromDelta as getDeltaPlainText,
+  hasDeltaContent as checkDeltaContent,
+  validateFile,
+} from '@/lib/helpers';
+import { createMemberLookupMap } from '@/lib/helpers/members';
 import { cn } from '@/lib/utils';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
+import MentionAutoComplete from './mention-auto-complete';
+import MentionBlot from './mention-blot';
 import { GifSearchModal } from './gif-search-modal';
 import { LinkDialog } from './link-dialog';
 import SlashCommandAutoComplete from './slash-command-autocomplete';
@@ -97,6 +107,13 @@ const Editor = ({
   const isMobile = useIsMobile();
 
   const { getDraft, setDraft, clearDraft } = useDraftsStore();
+  const { setProfilePanelOpen } = useUIStore();
+  const { data: members = [] } = useGetMembers(workspaceId);
+
+  const memberLookup = useMemo(() => {
+    const lookup = createMemberLookupMap(members);
+    return lookup;
+  }, [members]);
   const { entityId, entityType } = useMemo(() => {
     if (channelId) return { entityId: channelId, entityType: 'channel' as const };
     if (conversationId) return { entityId: conversationId, entityType: 'conversation' as const };
@@ -112,21 +129,7 @@ const Editor = ({
     enabled: variant === 'create',
   });
 
-  const isEmpty = useMemo(
-    () =>
-      !image &&
-      attachments.length === 0 &&
-      !hasEmbeds &&
-      text.replace(/\s*/g, '').trim().length === 0,
-    [text, image, attachments.length, hasEmbeds],
-  );
-
-  const hasUploadsInProgress = useMemo(
-    () => attachments.some((att) => att.status === 'uploading'),
-    [attachments],
-  );
-
-  const activeUploadBatchRef = useRef<string | null>(null);
+  const activeUploadBatchesRef = useRef<Map<string, string[]>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
   const onSubmitRef = useRef(onSubmit);
@@ -137,6 +140,22 @@ const Editor = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
+
+  const isEmpty = useMemo(() => {
+    if (image || attachments.length > 0) return false;
+
+    const quill = quillRef.current;
+    if (!quill) {
+      return text.trim().length === 0 && !hasEmbeds;
+    }
+
+    return !checkDeltaContent(quill.getContents());
+  }, [text, image, attachments.length, hasEmbeds]);
+
+  const hasUploadsInProgress = useMemo(
+    () => attachments.some((att) => att.status === 'uploading'),
+    [attachments],
+  );
 
   // Use individual progress tracking for updates
   const progressTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -161,7 +180,7 @@ const Editor = ({
     }
 
     const oldContents = quill.getContents();
-    const oldText = quill.getText();
+    const plainText = getPlainTextFromDelta(oldContents);
     const oldImage = image;
     const oldAttachments = attachments;
     const body = JSON.stringify(oldContents);
@@ -183,7 +202,7 @@ const Editor = ({
         image: oldImage,
         body,
         attachments: attachmentsForSubmit,
-        plainText: oldText,
+        plainText,
       });
 
       if (result instanceof Promise) {
@@ -200,7 +219,7 @@ const Editor = ({
       setImage(null);
       setAttachments([]);
       setHasEmbeds(false);
-      activeUploadBatchRef.current = null;
+      activeUploadBatchesRef.current.clear();
       progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
       progressTimeoutsRef.current.clear();
       lastProgressUpdateRef.current.clear();
@@ -209,8 +228,9 @@ const Editor = ({
         stopTyping();
       }
     } catch (err) {
+      console.error('Failed to submit message:', err);
       quill.setContents(oldContents);
-      setText(oldText);
+      setText(plainText);
       setImage(oldImage);
       setAttachments(oldAttachments);
 
@@ -227,29 +247,31 @@ const Editor = ({
     entityId,
     workspaceId,
     parentMessageId,
+    clearDraft,
   ]);
 
   const handleSubmitRef = useRef(handleSubmit);
 
   const debouncedSetDraft = useDebouncedCallback(() => {
-    if (entityId && entityType) {
-      const quill = quillRef.current;
-      if (quill) {
-        const value = JSON.stringify(quill.getContents());
-        if (quill.getText().trim().length === 0) {
-          clearDraft(workspaceId, entityId, parentMessageId);
-        } else {
-          setDraft(
-            workspaceId,
-            entityId,
-            value,
-            quill.getText().trim(),
-            entityType,
-            parentMessageId,
-            parentAuthorName,
-          );
-        }
-      }
+    if (!entityId || !entityType) return;
+
+    const quill = quillRef.current;
+    if (!quill) return;
+
+    const contents = quill.getContents();
+
+    if (!checkDeltaContent(contents)) {
+      clearDraft(workspaceId, entityId, parentMessageId);
+    } else {
+      setDraft(
+        workspaceId,
+        entityId,
+        JSON.stringify(contents),
+        quill.getText().trim() || ' ', // Ensure plain text is not empty for mention-only drafts
+        entityType,
+        parentMessageId,
+        parentAuthorName,
+      );
     }
   }, 500);
 
@@ -263,6 +285,11 @@ const Editor = ({
     setHasEmbeds(embedsPresent);
   }, []);
 
+  const getPlainTextFromDelta = useCallback(
+    (delta: Delta): string => getDeltaPlainText(delta, memberLookup),
+    [memberLookup],
+  );
+
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
     placeholderRef.current = placeholder;
@@ -272,9 +299,26 @@ const Editor = ({
     handleSubmitRef.current = handleSubmit;
   });
 
-  const handleProgressUpdate = useCallback(
-    (fileIndex: number, progress: { percentage: number }) => {
-      const fileKey = `file-${fileIndex}`;
+  // Update mention displays when members data loads
+  useEffect(() => {
+    if (!containerRef.current || memberLookup.size === 0) return;
+
+    // Update all mention elements to show names instead of IDs
+    const mentionElements = containerRef.current.querySelectorAll('.mention[data-member-id]');
+    mentionElements.forEach((element) => {
+      const memberId = element.getAttribute('data-member-id');
+      if (memberId) {
+        const memberName = memberLookup.get(memberId);
+        if (memberName) {
+          element.textContent = `@${memberName}`;
+        }
+      }
+    });
+  }, [memberLookup]);
+
+  const createProgressHandler = useCallback((batchFileIds: string[]) => {
+    return (fileIndex: number, progress: { percentage: number }) => {
+      const fileKey = `${batchFileIds[0]}-${fileIndex}`;
       const now = Date.now();
       const lastUpdate = lastProgressUpdateRef.current.get(fileKey) || 0;
 
@@ -288,11 +332,10 @@ const Editor = ({
         lastProgressUpdateRef.current.set(fileKey, Date.now());
 
         setAttachments((prev) => {
-          const fileStartIndex = prev.findIndex((att) => att.status === 'uploading');
-          if (fileStartIndex === -1) return prev;
+          const targetId = batchFileIds[fileIndex];
+          const targetIndex = prev.findIndex((att) => att.id === targetId);
 
-          const targetIndex = fileStartIndex + fileIndex;
-          if (targetIndex >= prev.length) return prev;
+          if (targetIndex === -1) return prev;
 
           const targetAttachment = prev[targetIndex];
           if (targetAttachment.uploadProgress === progress.percentage) {
@@ -316,9 +359,8 @@ const Editor = ({
         const timeout = setTimeout(updateProgress, 80);
         progressTimeoutsRef.current.set(fileKey, timeout);
       }
-    },
-    [],
-  );
+    };
+  }, []);
 
   const handleFiles = useCallback(
     async (files: FileList): Promise<void> => {
@@ -346,9 +388,10 @@ const Editor = ({
       }
 
       const batchId = `batch-${Date.now()}-${Math.random()}`;
-      activeUploadBatchRef.current = batchId;
 
       const fileIds = fileArray.map(() => `upload-${Date.now()}-${Math.random()}`);
+
+      activeUploadBatchesRef.current.set(batchId, fileIds);
 
       const initialAttachments: ManagedAttachment[] = fileArray.map((file, index) => ({
         id: fileIds[index],
@@ -364,14 +407,16 @@ const Editor = ({
       setAttachments((prev) => [...prev, ...initialAttachments]);
 
       try {
-        const results = await uploadMultipleFiles(fileArray, handleProgressUpdate);
+        const progressHandler = createProgressHandler(fileIds);
+        const results = await uploadMultipleFiles(fileArray, progressHandler);
 
-        if (activeUploadBatchRef.current === batchId) {
+        if (activeUploadBatchesRef.current.has(batchId)) {
+          const batchFileIds = activeUploadBatchesRef.current.get(batchId)!;
+
           setAttachments((prev) => {
-            const fileStartIndex = prev.length - fileArray.length;
-            return prev.map((att, index) => {
-              const fileIndex = index - fileStartIndex;
-              if (fileIndex < 0 || fileIndex >= results.length) {
+            return prev.map((att) => {
+              const fileIndex = batchFileIds.indexOf(att.id);
+              if (fileIndex === -1 || fileIndex >= results.length) {
                 return att;
               }
 
@@ -397,19 +442,24 @@ const Editor = ({
             });
           });
 
-          activeUploadBatchRef.current = null;
+          activeUploadBatchesRef.current.delete(batchId);
           progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
           progressTimeoutsRef.current.clear();
           lastProgressUpdateRef.current.clear();
         }
       } catch (error) {
-        if (activeUploadBatchRef.current === batchId) {
+        if (activeUploadBatchesRef.current.has(batchId)) {
+          const batchFileIds = activeUploadBatchesRef.current.get(batchId)!;
+
           setAttachments((prev) =>
             prev.map((att) =>
-              fileIds.includes(att.id) ? { ...att, status: 'error', error: 'Upload failed' } : att,
+              batchFileIds.includes(att.id)
+                ? { ...att, status: 'error', error: 'Upload failed' }
+                : att,
             ),
           );
-          activeUploadBatchRef.current = null;
+
+          activeUploadBatchesRef.current.delete(batchId);
           progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
           progressTimeoutsRef.current.clear();
           lastProgressUpdateRef.current.clear();
@@ -422,7 +472,7 @@ const Editor = ({
       uploadMultipleFiles,
       maxFileSizeBytes,
       isAgentChat,
-      handleProgressUpdate,
+      createProgressHandler,
     ],
   );
 
@@ -495,11 +545,31 @@ const Editor = ({
     [linkSelection, handleLinkFormat],
   );
 
+  const handleGifSelect = useCallback(
+    (gif: any) => {
+      if (isAgentChat) return;
+
+      const quill = quillRef.current;
+      if (!quill) return;
+
+      const selection = quill.getSelection();
+      const index = selection?.index ?? quill.getLength() - 1;
+
+      quill.insertEmbed(index, 'image', gif.media_formats.gif.url);
+      quill.setSelection(index + 1);
+      quill.focus();
+    },
+    [isAgentChat],
+  );
+
   // Remove attachments from useEffect dependencies to prevent re-initialization
   useEffect(() => {
     if (!containerRef.current) {
       return;
     }
+
+    // Register MentionBlot
+    Quill.register(MentionBlot);
 
     const container = containerRef.current;
     const editorDiv = document.createElement('div');
@@ -535,22 +605,27 @@ const Editor = ({
               handler(): boolean {
                 const emojiDropdownOpen =
                   quillRef.current && (quillRef.current as any).emojiDropdownOpen;
+
+                const mentionDropdownOpen =
+                  quillRef.current && (quillRef.current as any).mentionDropdownOpen;
+
                 const commandDropdownOpen =
                   quillRef.current && (quillRef.current as any).commandDropdownOpen;
-                if (emojiDropdownOpen || commandDropdownOpen) {
+
+                if (emojiDropdownOpen || commandDropdownOpen || mentionDropdownOpen) {
                   return true;
                 }
 
                 const addedImage = imageElementRef.current?.files?.[0] || null;
-                const currentText = quillRef.current?.getText() || '';
 
-                const empty =
-                  !addedImage &&
-                  attachmentsRef.current.length === 0 &&
-                  !hasEmbeds &&
-                  currentText.replace(/\s*/g, '').trim().length === 0;
+                // Check if we have any content to send
+                const hasAttachments = attachmentsRef.current.length > 0;
+                const hasImage = !!addedImage;
+                const quill = quillRef.current;
+                const hasContent = quill ? checkDeltaContent(quill.getContents()) : false;
+                const canSend = hasImage || hasAttachments || hasContent;
 
-                if (!empty) {
+                if (canSend) {
                   handleSubmitRef.current();
                   return false;
                 }
@@ -582,15 +657,18 @@ const Editor = ({
       innerRef.current = quill;
     }
 
-    const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
+    // Load initial content (from draft or default)
     let initialContent: Delta | Op[] = defaultValueRef.current;
+    const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
+
     if (draft?.content) {
       try {
-        initialContent = JSON.parse(draft.content);
+        initialContent = enrichDeltaWithMentions(JSON.parse(draft.content), memberLookup);
       } catch (e) {
         console.error('Error parsing draft content', e);
       }
     }
+
     quill.setContents(initialContent, 'silent');
     setText(quill.getText());
 
@@ -663,12 +741,11 @@ const Editor = ({
       }, 0);
     };
 
-    const textChangeHandler = (delta: Delta, oldDelta: Delta, source: string) => {
+    const textChangeHandler = (_delta: Delta, _oldDelta: Delta, source: string) => {
       const currentText = quill.getText();
       setText(currentText);
       debouncedSetDraft();
 
-      // Check for embeds whenever content changes
       checkForEmbeds(quill);
 
       if (source === 'user') {
@@ -690,8 +767,14 @@ const Editor = ({
       }
     };
 
+    const handleMentionClick = (e: CustomEvent) => {
+      const { memberId } = e.detail;
+      setProfilePanelOpen(memberId);
+    };
+
     quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
     quill.root.addEventListener('blur', handleBlur);
+    quill.root.addEventListener('mentionClick', handleMentionClick as EventListener);
 
     // Mobile: Show toolbar only when text is selected
     if (isMobile) {
@@ -717,18 +800,6 @@ const Editor = ({
       quill.on(Quill.events.SELECTION_CHANGE, handleSelectionChange);
     }
 
-    if (entityId) {
-      const draft = getDraft(workspaceId, entityId, parentMessageId);
-      if (draft) {
-        try {
-          const delta = JSON.parse(draft.content);
-          quill.setContents(delta, 'silent');
-        } catch (e) {
-          console.error('Error parsing draft content', e);
-        }
-      }
-    }
-
     return () => {
       const progressTimeouts = progressTimeoutsRef.current;
       const lastProgressUpdate = lastProgressUpdateRef.current;
@@ -738,6 +809,7 @@ const Editor = ({
 
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       quill.root.removeEventListener('blur', handleBlur);
+      quill.root.removeEventListener('mentionClick', handleMentionClick as EventListener);
 
       if (isMobile) {
         quill.off(Quill.events.SELECTION_CHANGE);
@@ -763,6 +835,10 @@ const Editor = ({
     debouncedSetDraft,
     workspaceId,
     isMobile,
+    setProfilePanelOpen,
+    checkForEmbeds,
+    memberLookup,
+    getDraft,
   ]);
 
   const handleToolbarToggle = useCallback((): void => {
@@ -817,7 +893,12 @@ const Editor = ({
             type="file"
             multiple
             ref={fileInputRef}
-            onChange={(e) => e.target.files && handleFiles(e.target.files)}
+            onChange={(e) => {
+              if (e.target.files) {
+                handleFiles(e.target.files);
+                e.target.value = '';
+              }
+            }}
             className="hidden"
           />
         </>
@@ -950,9 +1031,22 @@ const Editor = ({
         </div>
       )}
 
-      {!isAgentChat && <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />}
       {!isAgentChat && (
-        <SlashCommandAutoComplete quill={quillRef.current} containerRef={containerRef} />
+        <>
+          <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
+          <MentionAutoComplete
+            quill={quillRef.current}
+            containerRef={containerRef}
+            currentUserId={userId}
+          />
+        </>
+      )}
+      {!isAgentChat && (
+        <SlashCommandAutoComplete
+          quill={quillRef.current}
+          containerRef={containerRef}
+          onGifSelect={handleGifSelect}
+        />
       )}
       <GifSearchModal />
       <LinkDialog
