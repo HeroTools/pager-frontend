@@ -15,6 +15,7 @@ import { Channel } from '@/features/channels/types';
 import { useGetConversationWithMessagesInfinite } from '@/features/conversations/hooks/use-conversation-messages';
 import { ConversationEntity } from '@/features/conversations/types';
 import { Draft, useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useGetMembers } from '@/features/members/hooks/use-members';
 import { transformMessages } from '@/features/messages/helpers';
 import {
   useCreateChannelMessage,
@@ -23,6 +24,8 @@ import {
 } from '@/features/messages/hooks/use-messages';
 import { MessageWithUser } from '@/features/messages/types';
 import { useParamIds } from '@/hooks/use-param-ids';
+import { getPlainTextFromDelta } from '@/lib/helpers/delta';
+import { createMemberLookupMap } from '@/lib/helpers/members';
 import { cn } from '@/lib/utils/general';
 import { useUIStore } from '@/stores/ui-store';
 
@@ -90,6 +93,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   const { workspaceId, type: entityType, id: entityId } = useParamIds();
   const { user } = useCurrentUser(workspaceId);
   const { clearDraft } = useDraftsStore();
+  const { data: members = [] } = useGetMembers(workspaceId);
 
   const { setThreadOpen, setThreadHighlightMessageId } = useUIStore();
 
@@ -114,6 +118,17 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   const { data: message, refetch } = useGetMessageById(workspaceId, draft.parentMessageId);
 
   const isSending = isSendingChannel || isSendingConversation;
+
+  const memberLookup = useMemo(() => createMemberLookupMap(members), [members]);
+
+  const displayText = useMemo(() => {
+    try {
+      const delta = JSON.parse(draft.content);
+      return getPlainTextFromDelta(delta, memberLookup);
+    } catch {
+      return draft.text;
+    }
+  }, [draft.content, draft.text, memberLookup]);
 
   const sendMessage = async () => {
     const messageData = { body: draft.content, attachments: [] };
@@ -244,7 +259,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
         {isThread && draft.parentAuthorName && (
           <p className="text-xs text-muted-foreground">Reply to {draft.parentAuthorName}</p>
         )}
-        <p className="text-sm text-muted-foreground truncate">{draft.text}</p>
+        <p className="text-sm text-muted-foreground truncate">{displayText}</p>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <Hint label="Delete draft" side="top">
