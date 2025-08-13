@@ -202,18 +202,35 @@ export function CreateWebhookModal({
                   <FormLabel>Webhook Type</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger className="h-auto py-3">
+                        <SelectValue placeholder="Select webhook type">
+                          {selectedSourceType && (
+                            <div className="flex items-center gap-3">
+                              <ServiceIcon
+                                type={selectedSourceType}
+                                className="w-5 h-5 flex-shrink-0"
+                              />
+                              <span className="font-medium">
+                                {SOURCE_TYPE_INFO[selectedSourceType].label}
+                              </span>
+                            </div>
+                          )}
+                        </SelectValue>
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {Object.entries(SOURCE_TYPE_INFO).map(([key, info]) => (
-                        <SelectItem key={key} value={key} disabled={!canCreateWebhook(key)}>
-                          <div className="flex items-center gap-2">
-                            <ServiceIcon type={key} className="w-4 h-4" />
-                            <div>
-                              <div className="font-medium">{info.label}</div>
-                              <div className="text-xs text-muted-foreground">
+                        <SelectItem
+                          key={key}
+                          value={key}
+                          disabled={!canCreateWebhook(key)}
+                          className="py-2"
+                        >
+                          <div className="flex items-center gap-3">
+                            <ServiceIcon type={key} className="w-5 h-5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm">{info.label}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                                 {info.description}
                                 {!canCreateWebhook(key) && ' (Limit reached)'}
                               </div>
@@ -277,10 +294,9 @@ export function CreateWebhookModal({
                       <FormLabel>
                         Signing Secret
                         <span className="text-xs text-muted-foreground ml-1">
-                          {selectedSourceType === 'stripe' 
+                          {selectedSourceType === 'stripe'
                             ? '(optional - add after creating webhook in Stripe)'
-                            : `(from your ${sourceTypeInfo.label} webhook settings)`
-                          }
+                            : `(from your ${sourceTypeInfo.label} webhook settings)`}
                         </span>
                       </FormLabel>
                       <FormControl>
@@ -292,9 +308,20 @@ export function CreateWebhookModal({
                       </FormControl>
                       <FormMessage />
                       {selectedSourceType === 'stripe' && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          💡 Create the webhook first, then add the URL to Stripe to get your signing secret.
-                        </p>
+                        <div className="mt-2 p-3 rounded-md border bg-card text-card-foreground border-border">
+                          <div className="flex items-start gap-2">
+                            <div className="w-4 h-4 rounded-full bg-text-warning/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <div className="w-2 h-2 rounded-full bg-text-warning"></div>
+                            </div>
+                            <div className="text-xs space-y-1">
+                              <p className="font-medium text-text-warning">Setup Instructions</p>
+                              <p className="text-muted-foreground">
+                                Create the webhook first, then add the URL to Stripe to get your
+                                signing secret.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </FormItem>
                   )}

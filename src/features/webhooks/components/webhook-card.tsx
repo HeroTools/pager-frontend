@@ -58,7 +58,7 @@ export function WebhookCard({ webhook, onViewDetails, onEdit, onDelete }: Webhoo
           </div>
           <div className="flex items-center gap-2">
             {webhook.source_type === 'stripe' && !webhook.signing_secret ? (
-              <Badge variant="outline" className="text-amber-600 border-amber-200">
+              <Badge variant="outline" className="text-text-warning border-text-warning/30 bg-text-warning/10">
                 Setup Required
               </Badge>
             ) : (
@@ -90,9 +90,9 @@ export function WebhookCard({ webhook, onViewDetails, onEdit, onDelete }: Webhoo
 
       <CardContent className="space-y-3">
         {webhook.source_type === 'stripe' && !webhook.signing_secret && (
-          <Alert className="border-amber-200 bg-amber-50">
-            <Info className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
+          <Alert className="border-text-warning/30 bg-text-warning/10">
+            <Info className="h-4 w-4 text-text-warning" />
+            <AlertDescription className="text-foreground">
               <strong>Setup Required:</strong> Add the webhook URL to your Stripe Dashboard, then
               edit this webhook to add the signing secret to enable events.
             </AlertDescription>
