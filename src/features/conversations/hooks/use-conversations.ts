@@ -22,7 +22,11 @@ export const useConversations = (workspaceId: string, filters?: Partial<Conversa
     onSuccess: (newConversation) => {
       queryClient.setQueryData<ConversationEntity[]>(
         conversationsQueryKeys.conversations(workspaceId),
-        (old) => (old ? [newConversation, ...old] : [newConversation]),
+        (old) => {
+          if (!old) return [newConversation];
+          const exists = old.some((conv) => conv.id === newConversation.id);
+          return exists ? old : [newConversation, ...old];
+        },
       );
 
       queryClient.invalidateQueries({

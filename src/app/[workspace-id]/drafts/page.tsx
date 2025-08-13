@@ -5,10 +5,11 @@ import { Fragment, useMemo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAgents } from '@/features/agents/hooks/use-agents';
 import { useGetUserChannels } from '@/features/channels/hooks/use-channels-mutations';
 import { useConversations } from '@/features/conversations/hooks/use-conversations';
 import { DraftListItem } from '@/features/drafts/components/draft-list-item';
-import { type Draft, useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 
 const DraftsPage = () => {
@@ -18,23 +19,41 @@ const DraftsPage = () => {
 
   const { data: channels, isLoading: isLoadingChannels } = useGetUserChannels(workspaceId);
   const { conversations, isLoading: isLoadingConversations } = useConversations(workspaceId);
+  const { data: agents, isLoading: isLoadingAgents } = useAgents(workspaceId);
 
   const draftsWithEntities = useMemo(() => {
-    if (isLoadingChannels || isLoadingConversations || !conversations || !channels) {
+    if (isLoadingChannels || isLoadingConversations || isLoadingAgents) {
       return [];
     }
+
     return drafts
       .map((draft, index) => {
-        const entity =
-          draft.type === 'channel'
-            ? channels?.find((c) => c.id === draft.entityId)
-            : conversations?.find((c) => c.id === draft.entityId);
-        return { id: `draft-${index}`, draft, entity };
-      })
-      .filter((item) => !!item.entity);
-  }, [drafts, channels, conversations, isLoadingChannels, isLoadingConversations]);
+        let entity = null;
 
-  if (isLoadingChannels || isLoadingConversations) {
+        if (draft.type === 'agent_conversation') {
+          // For agent drafts, extract agent ID from temp IDs
+          const agentId = draft.entityId.match(/^temp-([^-]+)-/)?.[1];
+          entity = agentId ? agents?.find((a) => a.id === agentId) : agents?.[0];
+        } else if (draft.type === 'channel') {
+          entity = channels?.find((c) => c.id === draft.entityId);
+        } else {
+          entity = conversations?.find((c) => c.id === draft.entityId);
+        }
+
+        return entity ? { id: `draft-${index}`, draft, entity } : null;
+      })
+      .filter(Boolean);
+  }, [
+    drafts,
+    channels,
+    conversations,
+    agents,
+    isLoadingChannels,
+    isLoadingConversations,
+    isLoadingAgents,
+  ]);
+
+  if (isLoadingChannels || isLoadingConversations || isLoadingAgents) {
     return (
       <div className="flex flex-col h-full">
         <div className="p-4 border-b">
@@ -60,7 +79,7 @@ const DraftsPage = () => {
         <div className="p-4 space-y-2">
           {draftsWithEntities.map(({ id, draft, entity }, index) => (
             <Fragment key={id}>
-              <DraftListItem draft={draft} entity={entity!} />
+              <DraftListItem draft={draft} entity={entity} />
               {index < draftsWithEntities.length - 1 && <Separator />}
             </Fragment>
           ))}
