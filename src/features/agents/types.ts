@@ -54,12 +54,7 @@ export interface AgentConversationsResponse {
     avatar_url: string | null;
     is_active: boolean;
   };
-  conversations: AgentConversation[];
-  pagination: {
-    limit: number;
-    hasMore: boolean;
-    nextCursor: string | null;
-  };
+  conversation: AgentConversation;
 }
 
 export interface AgentConversationFilters {
