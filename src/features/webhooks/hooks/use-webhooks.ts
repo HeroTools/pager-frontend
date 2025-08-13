@@ -1,24 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import {
-  type CreateWebhookData,
-  type CreateWebhookResponse,
-  type UpdateWebhookData,
-  webhooksApi,
-} from '../api/webhooks-api';
-import { Webhook } from '../types';
-
-/**
- * Query keys for webhooks
- */
-export const webhooksQueryKeys = {
-  all: ['webhooks'] as const,
-  lists: () => [...webhooksQueryKeys.all, 'list'] as const,
-  list: (workspaceId: string) => [...webhooksQueryKeys.lists(), workspaceId] as const,
-  details: () => [...webhooksQueryKeys.all, 'detail'] as const,
-  detail: (webhookId: string) => [...webhooksQueryKeys.details(), webhookId] as const,
-};
+import { webhooksApi } from '../api/webhooks-api';
+import { webhooksQueryKeys } from '../query-keys';
+import type {
+  CreateWebhookData,
+  CreateWebhookResponse,
+  UpdateWebhookData,
+  Webhook,
+} from '../types';
 
 /**
  * Hook to get all webhooks for a workspace
@@ -48,21 +38,16 @@ export const useWebhookDetails = (workspaceId: string, webhookId: string) => {
 export const useCreateWebhook = (workspaceId: string) => {
   const queryClient = useQueryClient();
 
-  return useMutation<CreateWebhookResponse, Error, CreateWebhookData>({
-    mutationFn: webhooksApi.createWebhook,
-
-    onSuccess: (data, variables) => {
-      // Invalidate and refetch webhooks list
-      queryClient.invalidateQueries({
-        queryKey: webhooksQueryKeys.list(workspaceId),
-      });
-
-      // Add the new webhook to the cache with complete details
+  return useMutation<Webhook, Error, CreateWebhookData>({
+    mutationFn: async (variables) => {
+      const response = await webhooksApi.createWebhook(variables);
+      
+      // Transform API response to complete Webhook object
       const newWebhook: Webhook = {
-        id: data.id,
+        id: response.id,
         name: variables.name,
         source_type: variables.source_type || 'custom',
-        channel_id: data.channel_id,
+        channel_id: response.channel_id,
         channel_name: undefined, // Will be populated on refetch
         is_active: true,
         last_used_at: null,
@@ -71,13 +56,25 @@ export const useCreateWebhook = (workspaceId: string) => {
         created_at: new Date().toISOString(),
         created_by_name: 'You', // Will be updated on refetch
         total_requests: 0,
-        url: data.url,
-        secret_token: data.secret_token,
-        signing_secret: data.signing_secret,
+        url: response.url,
+        secret_token: response.secret_token,
+        signing_secret: response.signing_secret,
       };
+      
+      return newWebhook;
+    },
 
-      // Return the complete webhook data for immediate use
-      return { ...data, ...newWebhook };
+    onSuccess: (newWebhook) => {
+      // Add to cache immediately for optimistic update
+      queryClient.setQueryData<Webhook[]>(
+        webhooksQueryKeys.list(workspaceId),
+        (oldData) => [newWebhook, ...(oldData || [])],
+      );
+
+      // Also invalidate to ensure fresh data
+      queryClient.invalidateQueries({
+        queryKey: webhooksQueryKeys.list(workspaceId),
+      });
     },
 
     onError: (error) => {
@@ -126,12 +123,12 @@ export const useUpdateWebhook = (workspaceId: string) => {
     mutationFn: ({ webhookId, data }) => webhooksApi.updateWebhook(workspaceId, webhookId, data),
 
     onSuccess: (updatedWebhook, { webhookId }) => {
-      // Update webhook in the list cache
+      // Update webhook in the list cache with complete data
       queryClient.setQueryData<Webhook[]>(
         webhooksQueryKeys.list(workspaceId),
         (oldData) =>
           oldData?.map((webhook) =>
-            webhook.id === webhookId ? { ...webhook, ...updatedWebhook } : webhook,
+            webhook.id === webhookId ? updatedWebhook : webhook,
           ) || [],
       );
 

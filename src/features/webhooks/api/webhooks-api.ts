@@ -1,31 +1,8 @@
 import api from '@/lib/api/axios-client';
-import { Webhook } from '../types';
-
-export interface CreateWebhookData {
-  workspace_id: string;
-  name: string;
-  source_type?: 'custom' | 'github' | 'linear' | 'jira';
-  channel_id?: string;
-  signing_secret?: string;
-}
-
-export interface CreateWebhookResponse {
-  id: string;
-  url: string;
-  source_type: string;
-  channel_id?: string;
-  secret_token: string;
-  signing_secret: string;
-}
+import { CreateWebhookData, CreateWebhookResponse, UpdateWebhookData, Webhook } from '../types';
 
 export interface ListWebhooksResponse {
   webhooks: Webhook[];
-}
-
-export interface UpdateWebhookData {
-  name?: string;
-  is_active?: boolean;
-  channel_id?: string | null;
 }
 
 export const webhooksApi = {

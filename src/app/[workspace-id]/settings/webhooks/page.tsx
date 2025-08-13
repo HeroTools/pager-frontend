@@ -1,87 +1,88 @@
 'use client';
 
-import {
-  ArrowLeft,
-  Copy,
-  Eye,
-  EyeOff,
-  Info,
-  MoreHorizontal,
-  Plus,
-  Settings,
-  Trash2,
-  Webhook,
-} from 'lucide-react';
+import { ArrowLeft, Info, MoreHorizontal, Plus, Settings, Trash2, Webhook } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useCallback, useState } from 'react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/features/auth';
-import { useGetUserChannels } from '@/features/channels/hooks/use-channels-mutations';
 import {
-  useCreateWebhook,
-  useDeleteWebhook,
-  useUpdateWebhook,
-  useWebhooks,
-} from '@/features/webhooks/hooks/use-webhooks';
+  CreateWebhookModal,
+  DeleteWebhookModal,
+  EditWebhookModal,
+  WebhookDetailsModal,
+} from '@/features/webhooks/components';
+import { useWebhooks } from '@/features/webhooks/hooks/use-webhooks';
+import { type Webhook as WebhookType } from '@/features/webhooks/types';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
+
+const ServiceIcon = ({ type, className = 'w-6 h-6' }: { type: string; className?: string }) => {
+  const iconMap = {
+    custom: <Webhook className={className} />,
+    github: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+      </svg>
+    ),
+    linear: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.125 16.5L12 22.625 5.875 16.5 12 1.375 18.125 16.5z" />
+      </svg>
+    ),
+    jira: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M11.53 2c0 2.4 1.97 4.35 4.35 4.35h1.78v1.7c0 2.4 1.94 4.34 4.34 4.34V2.84A.84.84 0 0 0 21.16 2H11.53zM6.77 6.8c0 2.4 1.94 4.34 4.34 4.34h1.8v1.72c0 2.38 1.96 4.34 4.34 4.34V7.63a.84.84 0 0 0-.83-.83H6.77zM2 11.6c0 2.4 1.95 4.34 4.35 4.34h1.78v1.72c0 2.4 1.94 4.34 4.34 4.34v-9.57a.83.83 0 0 0-.83-.83H2z" />
+      </svg>
+    ),
+    stripe: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" />
+      </svg>
+    ),
+  };
+
+  return iconMap[type as keyof typeof iconMap] || iconMap.custom;
+};
 
 const SOURCE_TYPE_INFO = {
   custom: {
     label: 'Custom',
     description: 'General purpose webhooks for custom integrations',
-    icon: '🔗',
-    maxAllowed: 2,
+    maxAllowed: 5,
     requiresChannel: false,
   },
   github: {
     label: 'GitHub',
     description: 'GitHub repository events and notifications',
-    icon: '🐙',
-    maxAllowed: 1,
+    maxAllowed: 5,
     requiresChannel: true,
   },
   linear: {
     label: 'Linear',
     description: 'Linear issue tracking and project updates',
-    icon: '📐',
-    maxAllowed: 1,
+    maxAllowed: 5,
     requiresChannel: true,
   },
   jira: {
     label: 'Jira',
     description: 'Jira issue tracking and project management',
-    icon: '🔷',
-    maxAllowed: 1,
+    maxAllowed: 5,
+    requiresChannel: true,
+  },
+  stripe: {
+    label: 'Stripe',
+    description: 'Stripe payment events and subscription updates',
+    maxAllowed: 5,
     requiresChannel: true,
   },
 };
@@ -91,28 +92,17 @@ const WebhooksPage = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [selectedWebhook, setSelectedWebhook] = useState<any>(null);
-  const [newWebhookName, setNewWebhookName] = useState('');
-  const [newWebhookSourceType, setNewWebhookSourceType] = useState<string>('custom');
-  const [newWebhookChannelId, setNewWebhookChannelId] = useState<string>('');
-  const [newWebhookSigningSecret, setNewWebhookSigningSecret] = useState<string>('');
-  const [editWebhookName, setEditWebhookName] = useState('');
-  const [editWebhookChannelId, setEditWebhookChannelId] = useState<string>('');
-  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
+  const [selectedWebhook, setSelectedWebhook] = useState<WebhookType | null>(null);
 
   const router = useRouter();
   const workspaceId = useWorkspaceId();
   const { user, isLoading: userLoading } = useCurrentUser(workspaceId);
 
   const { data: webhooks, isLoading, error } = useWebhooks(workspaceId);
-  const { data: channels } = useGetUserChannels(workspaceId);
-  const createWebhook = useCreateWebhook(workspaceId);
-  const updateWebhook = useUpdateWebhook(workspaceId);
-  const deleteWebhook = useDeleteWebhook(workspaceId);
 
   const handleBackClick = () => router.push(`/${workspaceId}/settings`);
 
-  const getWebhookCounts = () => {
+  const getWebhookCounts = useCallback(() => {
     if (!webhooks) return {};
     return webhooks.reduce(
       (acc, webhook) => {
@@ -121,124 +111,16 @@ const WebhooksPage = () => {
       },
       {} as Record<string, number>,
     );
-  };
+  }, [webhooks]);
 
-  const canCreateWebhook = (sourceType: string) => {
-    const counts = getWebhookCounts();
-    const info = SOURCE_TYPE_INFO[sourceType as keyof typeof SOURCE_TYPE_INFO];
-    return (counts[sourceType] || 0) < info.maxAllowed;
-  };
-
-  const handleCreateWebhook = async () => {
-    if (!newWebhookName.trim()) {
-      toast.error('Please enter a webhook name');
-      return;
-    }
-
-    const sourceTypeInfo = SOURCE_TYPE_INFO[newWebhookSourceType as keyof typeof SOURCE_TYPE_INFO];
-
-    if (sourceTypeInfo.requiresChannel && !newWebhookChannelId) {
-      toast.error('Please select a channel for this webhook type');
-      return;
-    }
-
-    if (sourceTypeInfo.requiresChannel && !newWebhookSigningSecret.trim()) {
-      toast.error('Please enter the signing secret provided by the service');
-      return;
-    }
-
-    if (!canCreateWebhook(newWebhookSourceType)) {
-      toast.error(`Maximum number of ${sourceTypeInfo.label} webhooks reached`);
-      return;
-    }
-
-    try {
-      const result = await createWebhook.mutateAsync({
-        workspace_id: workspaceId,
-        name: newWebhookName.trim(),
-        source_type: newWebhookSourceType,
-        channel_id: sourceTypeInfo.requiresChannel ? newWebhookChannelId : undefined,
-        signing_secret: sourceTypeInfo.requiresChannel ? newWebhookSigningSecret.trim() : undefined,
-      });
-
-      setSelectedWebhook(result);
-      setDetailsDialogOpen(true);
-      setCreateDialogOpen(false);
-      setNewWebhookName('');
-      setNewWebhookSourceType('custom');
-      setNewWebhookChannelId('');
-      setNewWebhookSigningSecret('');
-      toast.success('Webhook created successfully');
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to create webhook');
-    }
-  };
-
-  const handleEditWebhook = async () => {
-    if (!selectedWebhook) return;
-
-    const updates: any = {};
-
-    if (editWebhookName.trim() !== selectedWebhook.name) {
-      updates.name = editWebhookName.trim();
-    }
-
-    if (editWebhookChannelId !== selectedWebhook.channel_id) {
-      updates.channel_id = editWebhookChannelId || null;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      setEditDialogOpen(false);
-      return;
-    }
-
-    try {
-      await updateWebhook.mutateAsync({
-        webhookId: selectedWebhook.id,
-        data: updates,
-      });
-      setEditDialogOpen(false);
-      setSelectedWebhook(null);
-      toast.success('Webhook updated successfully');
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update webhook');
-    }
-  };
-
-  const handleDeleteWebhook = async () => {
-    if (!selectedWebhook) return;
-
-    try {
-      await deleteWebhook.mutateAsync(selectedWebhook.id);
-      setDeleteDialogOpen(false);
-      setSelectedWebhook(null);
-      toast.success('Webhook deleted successfully');
-    } catch (error) {
-      toast.error('Failed to delete webhook');
-    }
-  };
-
-  const openEditDialog = (webhook: any) => {
+  const handleWebhookCreated = (webhook: WebhookType) => {
     setSelectedWebhook(webhook);
-    setEditWebhookName(webhook.name);
-    setEditWebhookChannelId(webhook.channel_id || '');
+    setDetailsDialogOpen(true);
+  };
+
+  const openEditDialog = (webhook: WebhookType) => {
+    setSelectedWebhook(webhook);
     setEditDialogOpen(true);
-  };
-
-  const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success(`${label} copied to clipboard`);
-    } catch (error) {
-      toast.error('Failed to copy to clipboard');
-    }
-  };
-
-  const toggleSecretVisibility = (webhookId: string) => {
-    setShowSecrets((prev) => ({
-      ...prev,
-      [webhookId]: !prev[webhookId],
-    }));
   };
 
   const formatDate = (dateString: string) => {
@@ -249,19 +131,6 @@ const WebhooksPage = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
-
-  const getExamplePayload = (sourceType: string) => {
-    if (sourceType === 'custom') {
-      return `{
-  "channel_id": "your-channel-id",
-  "text": "Hello from webhook!",
-  "username": "My Bot",
-  "icon_url": "https://example.com/avatar.png"
-}`;
-    }
-    return `// Configure this URL in your ${SOURCE_TYPE_INFO[sourceType as keyof typeof SOURCE_TYPE_INFO]?.label} webhook settings
-// Events will automatically be posted to the configured channel`;
   };
 
   if (userLoading) {
@@ -340,8 +209,8 @@ const WebhooksPage = () => {
               <Info className="h-4 w-4" />
               <AlertDescription>
                 Create webhooks for external integrations. Custom webhooks allow flexible message
-                posting, while service webhooks automatically format events from GitHub, Linear, and
-                Jira.
+                posting, while service webhooks automatically format events from GitHub, Linear,
+                Jira, and Stripe.
               </AlertDescription>
             </Alert>
 
@@ -354,11 +223,11 @@ const WebhooksPage = () => {
             )}
 
             {/* Webhook Limits Info */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {Object.entries(SOURCE_TYPE_INFO).map(([key, info]) => (
                 <Card key={key} className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">{info.icon}</span>
+                    <ServiceIcon type={key} className="w-5 h-5 text-muted-foreground" />
                     <span className="font-medium text-sm">{info.label}</span>
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -387,7 +256,6 @@ const WebhooksPage = () => {
                 {webhooks.map((webhook) => {
                   const sourceInfo =
                     SOURCE_TYPE_INFO[webhook.source_type as keyof typeof SOURCE_TYPE_INFO];
-                  const channel = channels?.find((c) => c.id === webhook.channel_id);
 
                   return (
                     <Card key={webhook.id}>
@@ -395,7 +263,10 @@ const WebhooksPage = () => {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                              <span className="text-lg">{sourceInfo?.icon || '🔗'}</span>
+                              <ServiceIcon
+                                type={webhook.source_type}
+                                className="w-6 h-6 text-blue-600"
+                              />
                             </div>
                             <div>
                               <div className="flex items-center gap-2 mb-1">
@@ -409,14 +280,22 @@ const WebhooksPage = () => {
                               <CardDescription className="text-sm">
                                 Created by {webhook.created_by_name} on{' '}
                                 {formatDate(webhook.created_at)}
-                                {channel && <span className="ml-2">• #{channel.name}</span>}
+                                {webhook.channel_name && (
+                                  <span className="ml-2">• #{webhook.channel_name}</span>
+                                )}
                               </CardDescription>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant={webhook.is_active ? 'default' : 'secondary'}>
-                              {webhook.is_active ? 'Active' : 'Inactive'}
-                            </Badge>
+                            {webhook.source_type === 'stripe' && !webhook.signing_secret ? (
+                              <Badge variant="outline" className="text-amber-600 border-amber-200">
+                                Setup Required
+                              </Badge>
+                            ) : (
+                              <Badge variant={webhook.is_active ? 'default' : 'secondary'}>
+                                {webhook.is_active ? 'Active' : 'Inactive'}
+                              </Badge>
+                            )}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -453,6 +332,15 @@ const WebhooksPage = () => {
                       </CardHeader>
 
                       <CardContent className="space-y-3">
+                        {webhook.source_type === 'stripe' && !webhook.signing_secret && (
+                          <Alert className="border-amber-200 bg-amber-50">
+                            <Info className="h-4 w-4 text-amber-600" />
+                            <AlertDescription className="text-amber-800">
+                              <strong>Setup Required:</strong> Add the webhook URL to your Stripe Dashboard, 
+                              then edit this webhook to add the signing secret to enable events.
+                            </AlertDescription>
+                          </Alert>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="text-muted-foreground">Messages:</span>
@@ -496,273 +384,35 @@ const WebhooksPage = () => {
         </div>
       </div>
 
-      {/* Create Webhook Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Create New Webhook</DialogTitle>
-            <DialogDescription>
-              Choose the type of webhook and configure its settings.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="webhook-type">Webhook Type</Label>
-              <Select value={newWebhookSourceType} onValueChange={setNewWebhookSourceType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(SOURCE_TYPE_INFO).map(([key, info]) => (
-                    <SelectItem key={key} value={key} disabled={!canCreateWebhook(key)}>
-                      <div className="flex items-center gap-2">
-                        <span>{info.icon}</span>
-                        <div>
-                          <div className="font-medium">{info.label}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {info.description}
-                            {!canCreateWebhook(key) && ' (Limit reached)'}
-                          </div>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {/* Modals */}
+      <CreateWebhookModal
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        workspaceId={workspaceId}
+        webhooks={webhooks || []}
+        onWebhookCreated={handleWebhookCreated}
+      />
 
-            <div>
-              <Label htmlFor="webhook-name">Webhook Name</Label>
-              <Input
-                id="webhook-name"
-                placeholder="e.g., CI/CD Notifications, Support Alerts"
-                value={newWebhookName}
-                onChange={(e) => setNewWebhookName(e.target.value)}
-              />
-            </div>
+      <EditWebhookModal
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        workspaceId={workspaceId}
+        webhook={selectedWebhook}
+      />
 
-            {SOURCE_TYPE_INFO[newWebhookSourceType as keyof typeof SOURCE_TYPE_INFO]
-              ?.requiresChannel && (
-              <>
-                <div>
-                  <Label htmlFor="webhook-channel">Target Channel</Label>
-                  <Select value={newWebhookChannelId} onValueChange={setNewWebhookChannelId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a channel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {channels?.map((channel) => (
-                        <SelectItem key={channel.id} value={channel.id}>
-                          #{channel.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+      <WebhookDetailsModal
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        webhook={selectedWebhook}
+        workspaceId={workspaceId}
+      />
 
-                <div>
-                  <Label htmlFor="webhook-signing-secret">
-                    Signing Secret
-                    <span className="text-xs text-muted-foreground ml-1">
-                      (from your{' '}
-                      {
-                        SOURCE_TYPE_INFO[newWebhookSourceType as keyof typeof SOURCE_TYPE_INFO]
-                          ?.label
-                      }{' '}
-                      webhook settings)
-                    </span>
-                  </Label>
-                  <Input
-                    id="webhook-signing-secret"
-                    type="password"
-                    placeholder="Enter the signing secret provided by the service"
-                    value={newWebhookSigningSecret}
-                    onChange={(e) => setNewWebhookSigningSecret(e.target.value)}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateWebhook}
-              disabled={createWebhook.isPending || !newWebhookName.trim()}
-            >
-              {createWebhook.isPending ? 'Creating...' : 'Create Webhook'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Webhook Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Webhook</DialogTitle>
-            <DialogDescription>Update webhook settings.</DialogDescription>
-          </DialogHeader>
-          {selectedWebhook && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-webhook-name">Webhook Name</Label>
-                <Input
-                  id="edit-webhook-name"
-                  value={editWebhookName}
-                  onChange={(e) => setEditWebhookName(e.target.value)}
-                />
-              </div>
-
-              {selectedWebhook.source_type !== 'custom' && (
-                <div>
-                  <Label htmlFor="edit-webhook-channel">Target Channel</Label>
-                  <Select value={editWebhookChannelId} onValueChange={setEditWebhookChannelId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a channel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {channels?.map((channel) => (
-                        <SelectItem key={channel.id} value={channel.id}>
-                          #{channel.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditWebhook} disabled={updateWebhook.isPending}>
-              {updateWebhook.isPending ? 'Updating...' : 'Update Webhook'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Webhook Details Dialog */}
-      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Webhook Details</DialogTitle>
-            <DialogDescription>
-              Use these credentials to configure your external application.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedWebhook && (
-            <div className="space-y-6">
-              <div>
-                <Label>Webhook URL</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Input value={selectedWebhook.url} readOnly className="font-mono text-sm" />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => copyToClipboard(selectedWebhook.url, 'Webhook URL')}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {selectedWebhook.signing_secret && (
-                <div>
-                  <Label>Signing Secret</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Input
-                      type={showSecrets[selectedWebhook.id] ? 'text' : 'password'}
-                      value={selectedWebhook.signing_secret}
-                      readOnly
-                      className="font-mono text-sm"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => toggleSecretVisibility(selectedWebhook.id)}
-                    >
-                      {showSecrets[selectedWebhook.id] ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() =>
-                        copyToClipboard(selectedWebhook.signing_secret, 'Signing Secret')
-                      }
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <Label>Example Usage</Label>
-                <Textarea
-                  readOnly
-                  className="mt-1 font-mono text-sm"
-                  rows={selectedWebhook.source_type === 'custom' ? 8 : 4}
-                  value={
-                    selectedWebhook.source_type === 'custom'
-                      ? `curl -X POST "${selectedWebhook.url}" \\
-  -H "Content-Type: application/json" \\
-  -d '${getExamplePayload(selectedWebhook.source_type)}'`
-                      : getExamplePayload(selectedWebhook.source_type)
-                  }
-                />
-              </div>
-
-              {selectedWebhook.source_type === 'custom' && (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertDescription>
-                    Custom webhooks require a <code>channel_id</code> in each request. You can find
-                    channel IDs in the URL when viewing a channel.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Webhook Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Webhook</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete "{selectedWebhook?.name}"? This action cannot be
-              undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteWebhook}
-              disabled={deleteWebhook.isPending}
-            >
-              {deleteWebhook.isPending ? 'Deleting...' : 'Delete Webhook'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteWebhookModal
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        workspaceId={workspaceId}
+        webhook={selectedWebhook}
+      />
     </>
   );
 };
