@@ -12,14 +12,55 @@ export const transformMessages = (
   currentUser?: CurrentUser,
 ): Message[] => {
   return messagesData.map((msg) => {
+    let author = {
+      id: '',
+      name: 'Unknown',
+      avatar: undefined as string | undefined,
+    };
+
+    switch (msg.sender_type) {
+      case 'user':
+        author = {
+          id: msg.user?.id || '',
+          name: msg.user?.name || 'Unknown User',
+          avatar: msg.user?.image,
+        };
+        break;
+
+      case 'agent':
+        author = {
+          id: msg.user?.id || 'agent',
+          name: msg.user?.name || 'AI Assistant',
+          avatar: msg.user?.image,
+        };
+        break;
+
+      case 'system':
+        author = {
+          id: msg.user?.id || 'system',
+          name: msg.user?.name || 'System',
+          avatar: msg.user?.image,
+        };
+        break;
+
+      default:
+        // Fallback for backward compatibility
+        if (msg.user) {
+          author = {
+            id: msg.user.id,
+            name: msg.user.name,
+            avatar: msg.user.image,
+          };
+        }
+    }
     return {
       id: msg.id,
       content: msg.body,
-      authorId: msg.user.id,
+      authorId: author.id,
       author: {
-        id: msg.user.id,
-        name: msg.user.name,
-        avatar: msg.user.image,
+        id: author.id,
+        name: author.name,
+        avatar: author.avatar,
         status: 'online' as const,
       } as Author,
       timestamp: new Date(msg.created_at),
@@ -36,7 +77,7 @@ export const transformMessages = (
       threadLastReplyAt: msg.thread_last_reply_at || undefined,
       isEdited: !!msg.edited_at,
       isOptimistic: msg._isOptimistic || false,
-      sender_type: 'user',
+      sender_type: msg.sender_type || 'user',
       attachments:
         msg?.attachments.map(
           (attachment: AttachmentType) =>

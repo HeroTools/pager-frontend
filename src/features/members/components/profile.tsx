@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useGetMembers } from '@/features/members';
 import { useConversations } from '@/features/conversations/hooks/use-conversations';
+import { findExistingConversation } from '@/features/conversations/utils/conversation-utils';
 import { useUserPresence } from '@/hooks/use-presence';
 
 interface ProfileProps {
@@ -72,20 +73,13 @@ export const Profile = ({ memberId, onClose }: ProfileProps) => {
       return;
     }
 
-    // Try to find an existing 1-on-1 conversation with this user first
-    const existingConversation = conversations.find((conversation) => {
-      if (conversation.is_group_conversation) {
-        return false;
-      }
-      return (
-        conversation.members.length === 2 &&
-        conversation.members.some((m) => m.workspace_member.id === member.id)
-      );
-    });
+    // Check if a conversation with this member already exists
+    const existingConversation = findExistingConversation(conversations, [member.id]);
 
     if (existingConversation) {
       router.push(`/${workspaceId}/d-${existingConversation.id}`);
       onClose();
+      toast.success('Redirected to existing conversation');
     } else {
       try {
         const newConversation = await createConversation.mutateAsync({

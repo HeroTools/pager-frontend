@@ -1,6 +1,15 @@
 'use client';
 
-import { ArrowLeft, CheckCircle2, Info, RefreshCw, Settings, Upload, Users } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Info,
+  RefreshCw,
+  Settings,
+  Upload,
+  Users,
+  Webhook,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
@@ -27,6 +36,7 @@ const WorkspaceSettingsPage = () => {
 
   const handleBackClick = () => router.back();
   const handleMigrationClick = () => router.push(`/${workspaceId}/settings/import`);
+  const handleWebhooksClick = () => router.push(`/${workspaceId}/settings/webhooks`);
 
   const activeMigration = useMemo(
     () => migrationJobs?.find((j) => j.status === 'pending' || j.status === 'processing'),
@@ -212,6 +222,52 @@ const WorkspaceSettingsPage = () => {
                     )}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <Webhook className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Webhooks</CardTitle>
+                    <CardDescription className="text-sm">
+                      Integrate external services and automate message posting
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <div className="flex items-start gap-2 mb-3">
+                    <Info className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                    <div className="text-sm text-muted-foreground">
+                      Create webhooks to allow external applications to post messages to your
+                      channels.
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      'POST messages to channels',
+                      'Custom usernames & avatars',
+                      'Rich text formatting',
+                      'File attachments support',
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Button onClick={handleWebhooksClick} size="default" className="font-medium">
+                  Manage webhooks
+                </Button>
               </CardContent>
             </Card>
 

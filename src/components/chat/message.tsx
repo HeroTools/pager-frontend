@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from 'date-fns';
 import {
+  Bot,
   Download,
   Edit,
   File,
@@ -10,6 +11,7 @@ import {
   Play,
   Smile,
   Trash2,
+  Webhook,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { Delta, Op } from 'quill';
@@ -691,6 +693,28 @@ const AttachmentGrid: FC<{
   );
 };
 
+const getSystemAvatar = (message: Message) => {
+  // For system messages, check if it has a custom avatar
+  if (message.sender_type === 'system' && message.author?.avatar) {
+    return message.author.avatar;
+  }
+  return null;
+};
+
+const getSystemIcon = (message: Message) => {
+  if (message.sender_type === 'system') {
+    return <Webhook className="w-5 h-5" />;
+  }
+  if (message.sender_type === 'agent') {
+    return <Bot className="w-5 h-5" />;
+  }
+  return null;
+};
+
+const isSystemMessage = (message: Message) => {
+  return message.sender_type === 'system' || message.sender_type === 'agent';
+};
+
 interface ChatMessageProps {
   message: Message;
   currentUser: CurrentUser;
@@ -750,6 +774,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   }, [isHighlighted]);
 
   const isOwnMessage = message.authorId === currentUser.id;
+  const isSystemMsg = isSystemMessage(message);
 
   const isEmojiPickerOpen = isInThread
     ? openEmojiPickerMessageIdInThread === message.id
@@ -830,6 +855,75 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     setIsDeleteDialogOpen(false);
   };
 
+  const handleAvatarClick = () => {
+    // Don't open profile panel for system messages
+    if (isSystemMsg) return;
+
+    const workspaceMember = members?.find((member) => member.user.id === message.author.id);
+    if (workspaceMember) {
+      setProfilePanelOpen(workspaceMember.id);
+    }
+  };
+
+  const handleNameClick = () => {
+    // Don't open profile panel for system messages
+    if (isSystemMsg) return;
+
+    const workspaceMember = members?.find((member) => member.user.id === message.author.id);
+    if (workspaceMember) {
+      setProfilePanelOpen(workspaceMember.id);
+    }
+  };
+
+  const renderAvatar = () => {
+    if (!showAvatar || isCompact) return null;
+
+    const systemAvatar = getSystemAvatar(message);
+    const systemIcon = getSystemIcon(message);
+
+    return (
+      <Avatar
+        className={cn(
+          'w-9 h-9 flex-shrink-0 transition-opacity',
+          !isSystemMsg && 'cursor-pointer hover:opacity-80',
+        )}
+        onClick={handleAvatarClick}
+        showPresence={false}
+      >
+        {systemAvatar ? (
+          <AvatarImage src={systemAvatar} />
+        ) : (
+          <AvatarImage src={message.author.avatar} />
+        )}
+        <AvatarFallback className="text-sm">
+          {isSystemMsg && systemIcon ? systemIcon : message.author.name.charAt(0).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+    );
+  };
+
+  const renderAuthorName = () => {
+    if (isCompact) return null;
+
+    return (
+      <span
+        className={cn(
+          'font-semibold text-foreground leading-tight',
+          !isSystemMsg && 'hover:underline cursor-pointer',
+          isSystemMsg && 'text-muted-foreground',
+        )}
+        onClick={handleNameClick}
+      >
+        {message.author.name}
+        {isSystemMsg && (
+          <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded">
+            {message.sender_type === 'system' ? 'WEBHOOK' : 'BOT'}
+          </span>
+        )}
+      </span>
+    );
+  };
+
   return (
     <>
       <div
@@ -847,23 +941,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       >
         <div className="flex gap-3">
           {showAvatar && !isCompact ? (
-            <Avatar
-              className="w-9 h-9 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => {
-                const workspaceMember = members?.find(
-                  (member) => member.user.id === message.author.id,
-                );
-                if (workspaceMember) {
-                  setProfilePanelOpen(workspaceMember.id);
-                }
-              }}
-              showPresence={false}
-            >
-              <AvatarImage src={message.author.avatar} />
-              <AvatarFallback className="text-sm">
-                {message.author.name.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            renderAvatar()
           ) : (
             <div className="w-9 flex-shrink-0 flex justify-center items-start pt-0.5">
               {isCompact && (
@@ -880,19 +958,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
           <div className="flex-1 min-w-0">
             {!isCompact && (
               <div className="flex items-baseline gap-2 mb-0.5">
-                <span
-                  className="font-semibold text-foreground hover:underline cursor-pointer leading-tight"
-                  onClick={() => {
-                    const workspaceMember = members?.find(
-                      (member) => member.user.id === message.author.id,
-                    );
-                    if (workspaceMember) {
-                      setProfilePanelOpen(workspaceMember.id);
-                    }
-                  }}
-                >
-                  {message.author.name}
-                </span>
+                {renderAuthorName()}
                 <span className="text-xs text-muted-foreground leading-tight">
                   {formatDistanceToNow(new Date(message.timestamp), {
                     addSuffix: true,
@@ -988,7 +1054,8 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                 </Button>
               )}
 
-              {isOwnMessage && (
+              {/* Only show edit/delete for own messages and not system messages */}
+              {isOwnMessage && !isSystemMsg && (
                 <DropdownMenu onOpenChange={setIsDropdownOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button

@@ -6,6 +6,7 @@ import { useDebounce } from 'use-debounce';
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 import { useGetAllAvailableChannels } from '@/features/channels/hooks/use-channels-mutations';
 import { useConversations } from '@/features/conversations/hooks/use-conversations';
+import { findExistingConversation } from '@/features/conversations/utils/conversation-utils';
 import { useGetMembers } from '@/features/members/hooks/use-members';
 import { useSearch } from '@/features/search/hooks/use-search';
 import type { SearchResult } from '@/features/search/types';
@@ -56,13 +57,7 @@ export const useSearchDialog = (workspaceId: string) => {
         return;
       }
 
-      const existingConversation = conversations?.find((conversation) => {
-        return (
-          !conversation.is_group_conversation &&
-          conversation.other_members?.length === 1 &&
-          conversation.other_members[0].workspace_member.id === memberId
-        );
-      });
+      const existingConversation = findExistingConversation(conversations, [memberId]);
 
       if (existingConversation) {
         router.push(`/${workspaceId}/d-${existingConversation.id}`);
