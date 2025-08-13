@@ -1,6 +1,6 @@
 'use client';
 
-import { Hash, Lock, MessageCircle, MessageSquare, Pencil, Send, Trash2 } from 'lucide-react';
+import { Bot, Hash, Lock, MessageCircle, MessageSquare, Pencil, Send, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { Hint } from '@/components/hint';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AgentEntity } from '@/features/agents/types';
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 import { useGetChannelWithMessagesInfinite } from '@/features/channels/hooks/use-channels-mutations';
 import { Channel } from '@/features/channels/types';
@@ -31,7 +32,7 @@ import { useUIStore } from '@/stores/ui-store';
 
 interface DraftListItemProps {
   draft: Draft;
-  entity: Channel | ConversationEntity;
+  entity: Channel | ConversationEntity | AgentEntity;
 }
 
 interface ConversationDisplay {
@@ -49,9 +50,7 @@ const getConversationDisplayInfo = (
   const link = `/${workspaceId}/d-${conversation.id}`;
 
   if (conversation.is_group_conversation) {
-    const names = conversation.other_members.map(
-      (member: any) => member.workspace_member.user.name,
-    );
+    const names = conversation.other_members.map((member) => member.workspace_member.user.name);
     return {
       name: names.join(', '),
       membersToDisplay: conversation.other_members.map((m) => ({
@@ -131,14 +130,14 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   }, [draft.content, draft.text, memberLookup]);
 
   const sendMessage = async () => {
-    const messageData = { body: draft.content, attachments: [] };
+    if (draft.type === 'agent_conversation') {
+      router.push(display?.link || '/');
+      return;
+    }
 
+    const messageData = { body: draft.content, attachments: [] };
     try {
-      if (draft.type === 'channel') {
-        await sendChannelMessage(messageData);
-      } else {
-        await sendConversationMessage(messageData);
-      }
+      await (draft.type === 'channel' ? sendChannelMessage : sendConversationMessage)(messageData);
       clearDraft(workspaceId, id, draft.parentMessageId);
       toast.success('Message sent!');
     } catch (error) {
@@ -147,12 +146,28 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   };
 
   const handleDelete = () => {
-    clearDraft(workspaceId, id, draft.parentMessageId);
+    const deleteId = draft.type === 'agent_conversation' ? draft.entityId : id;
+    clearDraft(workspaceId, deleteId, draft.parentMessageId);
     toast.success('Draft deleted.');
   };
 
   const display: ConversationDisplay | null = useMemo(() => {
     if (draft.type === 'conversation' && !user) return null;
+
+    if (draft.type === 'agent_conversation') {
+      const agent = entity as AgentEntity;
+      const agentId = draft.entityId.match(/^temp-([^-]+)-/)?.[1] || agent.id;
+      const conversationId = draft.entityId.startsWith('temp-') ? null : draft.entityId;
+
+      return {
+        name: agent.name ?? 'AI Agent',
+        membersToDisplay: [],
+        icon: Bot,
+        link: conversationId
+          ? `/${workspaceId}/agents/${agentId}/${conversationId}`
+          : `/${workspaceId}/agents/${agentId}`,
+      };
+    }
 
     if (draft.type === 'channel') {
       const channel = entity as Channel;
@@ -165,6 +180,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
         link: `/${workspaceId}/c-${id}`,
       };
     }
+
     if (draft.type === 'conversation') {
       const conversation = entity as ConversationEntity;
       const conversationInfo = getConversationDisplayInfo(conversation, user?.id);
@@ -174,13 +190,14 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
         icon: isThread ? MessageCircle : undefined,
       };
     }
+
     return {
       name: 'Unknown',
       membersToDisplay: [],
       icon: MessageSquare,
       link: '',
     };
-  }, [id, draft.type, entity, workspaceId, user, isThread]);
+  }, [id, draft.type, draft.entityId, entity, workspaceId, user, isThread]);
 
   if (!display) {
     return (
