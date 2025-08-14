@@ -147,7 +147,7 @@ export const WorkspaceSidebar = () => {
             </>
           )}
         </WorkspaceSection>
-        <WorkspaceSection label="Agents" hint="New agent">
+        <WorkspaceSection label="Agents" hint="Multi-user chats available">
           {(getWorkspaceAgents.data || [])?.map((agent) => (
             <AgentItem
               key={agent.id}

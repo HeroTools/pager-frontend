@@ -12,6 +12,7 @@ import {
   useInfiniteAgentConversationMessages,
 } from '@/features/agents/hooks/use-agents';
 import { useCreateMessage } from '@/features/agents/hooks/use-agents-mutations';
+import { useMessageGrouping } from '@/features/agents/hooks/use-message-grouping';
 import { useCurrentUser } from '@/features/auth';
 import type { UploadedAttachment } from '@/features/file-upload/types';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
@@ -73,6 +74,44 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     isPending,
   } = useCreateMessage(workspaceId, agentId, currentConversationId);
 
+  // Message grouping for multi-user conversations
+  const messageGrouping = useMessageGrouping({
+    workspaceId,
+    conversationId: currentConversationId,
+    conversationData: conversationWithMessages?.pages?.[0],
+    onSendGroupedMessage: async (messages) => {
+      const groupedContent = messageGrouping.formatGroupedContent(messages);
+      const optimisticId = `temp-${Date.now()}-${Math.random()}`;
+
+      addPendingMessage(optimisticId, {
+        workspaceId,
+        conversationId: queryConversationId,
+        entityId: queryConversationId || agentId,
+        entityType: 'agent_conversation',
+      });
+
+      try {
+        const response = await createMessage({
+          message: groupedContent,
+          _optimisticId: optimisticId,
+          _tempConversationId: queryConversationId,
+        });
+
+        if (!currentConversationId && response.conversation?.id) {
+          const newConversationId = response.conversation.id;
+          setCurrentConversationId(newConversationId);
+          tempConversationIdRef.current = null;
+          router.replace(`/${workspaceId}/agents/${agentId}/${newConversationId}`, { scroll: false });
+        }
+
+        removePendingMessage(optimisticId);
+      } catch (error) {
+        removePendingMessage(optimisticId);
+        throw error;
+      }
+    },
+  });
+
   const toggleReaction = useToggleReaction(workspaceId);
 
   const agent = useMemo(() => {
@@ -133,6 +172,11 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     setThreadHighlightMessageId,
   ]);
 
+  // Cleanup message grouping on unmount
+  useEffect(() => {
+    return messageGrouping.cleanup;
+  }, [messageGrouping.cleanup]);
+
   // Transform agent data to Channel format for existing Chat component
   const transformAgentToChannel = (agent: any): Channel => {
     return {
@@ -176,40 +220,54 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     attachments: UploadedAttachment[];
     plainText: string;
   }) => {
-    if (messageStreamingState.isStreaming) {
+    // Check if we should cancel current streaming request for new message grouping
+    if (messageGrouping.shouldCancelForNewMessage()) {
+      messageGrouping.cancelActiveRequest();
+    }
+
+    if (messageStreamingState.isStreaming && !messageGrouping.isMultiUserConversation) {
       toast.error('Please wait for the current response to complete');
       return;
     }
 
-    const optimisticId = `temp-${Date.now()}-${Math.random()}`;
+    // Try to add to pending messages for grouping
+    const wasGrouped = messageGrouping.addPendingMessage(content.plainText);
+    
+    // If not grouped (single-user conversation), send immediately
+    if (!wasGrouped) {
+      const optimisticId = `temp-${Date.now()}-${Math.random()}`;
 
-    addPendingMessage(optimisticId, {
-      workspaceId,
-      conversationId: queryConversationId,
-      entityId: queryConversationId || agentId,
-      entityType: 'agent_conversation',
-    });
-
-    try {
-      const response = await createMessage({
-        message: content.plainText,
-        _optimisticId: optimisticId,
-        _tempConversationId: queryConversationId, // Pass the temp conversation ID!
+      addPendingMessage(optimisticId, {
+        workspaceId,
+        conversationId: queryConversationId,
+        entityId: queryConversationId || agentId,
+        entityType: 'agent_conversation',
       });
 
-      if (!currentConversationId && response.conversation?.id) {
-        const newConversationId = response.conversation.id;
-        setCurrentConversationId(newConversationId);
-        tempConversationIdRef.current = null;
-        router.replace(`/${workspaceId}/agents/${agentId}/${newConversationId}`, { scroll: false });
-      }
+      try {
+        const response = await createMessage({
+          message: content.plainText,
+          _optimisticId: optimisticId,
+          _tempConversationId: queryConversationId,
+        });
 
-      removePendingMessage(optimisticId);
-      console.log('✅ Message sent successfully');
-    } catch (error) {
-      removePendingMessage(optimisticId);
-      console.error('❌ Failed to send message:', error);
-      toast.error('Failed to send message. Please try again.');
+        if (!currentConversationId && response.conversation?.id) {
+          const newConversationId = response.conversation.id;
+          setCurrentConversationId(newConversationId);
+          tempConversationIdRef.current = null;
+          router.replace(`/${workspaceId}/agents/${agentId}/${newConversationId}`, { scroll: false });
+        }
+
+        removePendingMessage(optimisticId);
+        console.log('✅ Message sent successfully');
+      } catch (error) {
+        removePendingMessage(optimisticId);
+        console.error('❌ Failed to send message:', error);
+        toast.error('Failed to send message. Please try again.');
+      }
+    } else {
+      // Message was added to grouping, show user feedback
+      console.log('📝 Message added to group, waiting for others or timeout...');
     }
   };
 
@@ -265,6 +323,19 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
 
   return (
     <div className="flex flex-col h-full">
+      {messageGrouping.hasPendingMessages && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2">
+          <div className="flex items-center gap-2 text-sm text-yellow-800">
+            <div className="w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin" />
+            <span>
+              {messageGrouping.pendingMessages.length === 1 
+                ? 'Message queued, waiting for others...' 
+                : `${messageGrouping.pendingMessages.length} messages queued, sending soon...`
+              }
+            </span>
+          </div>
+        </div>
+      )}
       <Chat
         channel={agentChannel}
         messages={messages}
@@ -272,7 +343,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         chatType="agent"
         conversationData={conversationWithMessages?.pages?.[0]}
         isLoading={isLoadingMessages && !!currentConversationId}
-        isDisabled={isPending}
+        isDisabled={isPending || messageGrouping.isGrouping}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
@@ -281,7 +352,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         hasMoreMessages={hasNextPage}
         isLoadingMore={isFetchingNextPage}
         highlightMessageId={highlightMessageId}
-        members={[]} // No members to display for agent conversations
+        members={conversationWithMessages?.pages?.[0]?.members || []} // Show members for multi-user conversations
       />
     </div>
   );

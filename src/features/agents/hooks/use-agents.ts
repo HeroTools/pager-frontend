@@ -69,3 +69,20 @@ export const useInfiniteAgentConversationMessages = (
     refetchOnWindowFocus: false,
   });
 };
+
+// Multi-user conversation hooks
+export const useMultiUserConversations = (
+  workspaceId: string,
+  filters?: {
+    includePrivate?: boolean;
+    limit?: number;
+    offset?: number;
+  },
+) => {
+  return useQuery({
+    queryKey: ['multi-user-agent-conversations', workspaceId, filters],
+    queryFn: () => agentsApi.listMultiUserConversations(workspaceId, filters),
+    enabled: !!workspaceId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};

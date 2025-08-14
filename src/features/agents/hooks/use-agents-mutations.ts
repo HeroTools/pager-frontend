@@ -4,8 +4,13 @@ import { toast } from 'sonner';
 
 import { authQueryKeys } from '@/features/auth/query-keys';
 import { CurrentUser } from '@/features/auth/types';
+import { agentsApi } from '../api/agents-api';
 import { streamAgentChat } from '../api/streaming-api';
-import type { ThinkingEvent } from '../types';
+import type {
+  JoinConversationRequest,
+  MultiUserAgentConversationCreateRequest,
+  ThinkingEvent,
+} from '../types';
 
 interface MessageStreamingState {
   isStreaming: boolean;
@@ -386,4 +391,50 @@ export const useCreateMessage = (
     messageStreamingState,
     clearStreamingState,
   };
+};
+
+// Multi-user conversation mutations
+export const useCreateMultiUserConversation = (workspaceId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: MultiUserAgentConversationCreateRequest) =>
+      agentsApi.createMultiUserConversation(workspaceId, data),
+
+    onSuccess: (response) => {
+      // Invalidate multi-user conversations list
+      queryClient.invalidateQueries({
+        queryKey: ['multi-user-agent-conversations', workspaceId],
+      });
+
+      toast.success('Multi-user conversation created successfully!');
+    },
+
+    onError: (error) => {
+      console.error('Failed to create multi-user conversation:', error);
+      toast.error('Failed to create conversation. Please try again.');
+    },
+  });
+};
+
+export const useJoinConversation = (workspaceId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: JoinConversationRequest) => agentsApi.joinConversation(workspaceId, data),
+
+    onSuccess: (response) => {
+      // Invalidate multi-user conversations list
+      queryClient.invalidateQueries({
+        queryKey: ['multi-user-agent-conversations', workspaceId],
+      });
+
+      toast.success(`Joined ${response.conversation.title} successfully!`);
+    },
+
+    onError: (error) => {
+      console.error('Failed to join conversation:', error);
+      toast.error('Failed to join conversation. Please try again.');
+    },
+  });
 };

@@ -8,6 +8,11 @@ import {
   AgentConversationsResponse,
   AgentEntity,
   AgentFilters,
+  JoinConversationRequest,
+  JoinConversationResponse,
+  MultiUserAgentConversationCreateRequest,
+  MultiUserAgentConversationResponse,
+  MultiUserConversationsListResponse,
 } from '../types';
 
 export const agentsApi = {
@@ -97,6 +102,58 @@ export const agentsApi = {
       `/workspaces/${workspaceId}/agents/${agentId}/conversations/${conversationId}/messages${queryString}`,
     );
 
+    return response;
+  },
+
+  /**
+   * Multi-user conversation functions
+   */
+  createMultiUserConversation: async (
+    workspaceId: string,
+    data: MultiUserAgentConversationCreateRequest,
+  ): Promise<MultiUserAgentConversationResponse> => {
+    const { data: response } = await api.post<MultiUserAgentConversationResponse>(
+      `/workspaces/${workspaceId}/agents/conversations/multi-user`,
+      data,
+    );
+    return response;
+  },
+
+  listMultiUserConversations: async (
+    workspaceId: string,
+    filters?: {
+      includePrivate?: boolean;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<MultiUserConversationsListResponse> => {
+    const params = new URLSearchParams();
+
+    if (filters?.includePrivate !== undefined) {
+      params.append('includePrivate', filters.includePrivate.toString());
+    }
+    if (filters?.limit !== undefined) {
+      params.append('limit', filters.limit.toString());
+    }
+    if (filters?.offset !== undefined) {
+      params.append('offset', filters.offset.toString());
+    }
+
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const { data: response } = await api.get<MultiUserConversationsListResponse>(
+      `/workspaces/${workspaceId}/agents/conversations/multi-user${queryString}`,
+    );
+    return response;
+  },
+
+  joinConversation: async (
+    workspaceId: string,
+    data: JoinConversationRequest,
+  ): Promise<JoinConversationResponse> => {
+    const { data: response } = await api.post<JoinConversationResponse>(
+      `/workspaces/${workspaceId}/agents/conversations/join`,
+      data,
+    );
     return response;
   },
 };

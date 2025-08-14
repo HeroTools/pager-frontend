@@ -45,6 +45,10 @@ export interface AgentConversation {
   last_read_message_id: string | null;
   is_hidden: boolean;
   last_message: AgentConversationLastMessage | null;
+  conversation_type?: 'direct' | 'multi_user_agent' | 'group';
+  is_public?: boolean;
+  description?: string | null;
+  creator_workspace_member_id?: string | null;
 }
 
 export interface AgentConversationsResponse {
@@ -113,6 +117,10 @@ export interface AgentConversationData {
     created_at: string;
     updated_at: string;
     title: string | null;
+    conversation_type?: 'direct' | 'multi_user_agent' | 'group';
+    is_public?: boolean;
+    description?: string | null;
+    creator_workspace_member_id?: string | null;
   };
   agent: {
     id: string;
@@ -131,6 +139,16 @@ export interface AgentConversationData {
     last_read_message_id: string | null;
     workspace_member_id: string;
   };
+  members?: Array<{
+    id: string;
+    role: string;
+    joined_at: string;
+    user?: {
+      id: string;
+      name: string;
+      image: string | null;
+    };
+  }>;
 }
 
 export interface AgentConversationMessageFilters {
@@ -169,4 +187,122 @@ export interface AgentStep {
   type: 'step_start' | 'step_end';
   stepType: string;
   message: string;
+}
+
+// Multi-user conversation types
+export interface MultiUserAgentConversationCreateRequest {
+  agentId: string;
+  title: string;
+  description?: string;
+  isPublic?: boolean;
+  initialUserIds?: string[]; // workspace_member_ids to invite initially
+}
+
+export interface MultiUserAgentConversationResponse {
+  conversation: {
+    id: string;
+    workspace_id: string;
+    title: string;
+    description: string | null;
+    conversation_type: 'multi_user_agent';
+    is_public: boolean;
+    creator_workspace_member_id: string;
+    created_at: string;
+    updated_at: string;
+  };
+  agent: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    is_active: boolean;
+  };
+  members: Array<{
+    id: string;
+    role: string;
+    joined_at: string;
+    user: {
+      id: string;
+      name: string;
+      image: string | null;
+    };
+  }>;
+  invite_code?: string; // Only included if conversation is public
+}
+
+export interface MultiUserConversationListItem {
+  conversation: {
+    id: string;
+    workspace_id: string;
+    title: string;
+    description: string | null;
+    conversation_type: 'multi_user_agent';
+    is_public: boolean;
+    creator_workspace_member_id: string;
+    created_at: string;
+    updated_at: string;
+  };
+  agent: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    is_active: boolean;
+  };
+  creator: {
+    name: string;
+    image: string | null;
+  };
+  member_count: number;
+  is_member: boolean;
+}
+
+export interface MultiUserConversationsListResponse {
+  conversations: MultiUserConversationListItem[];
+  pagination: {
+    limit: number;
+    offset: number;
+    total: number;
+    hasMore: boolean;
+  };
+}
+
+export interface JoinConversationRequest {
+  inviteCode?: string;
+  conversationId?: string; // For public conversations
+}
+
+export interface JoinConversationResponse {
+  conversation: {
+    id: string;
+    workspace_id: string;
+    title: string;
+    description: string | null;
+    conversation_type: 'multi_user_agent';
+    is_public: boolean;
+    created_at: string;
+    updated_at: string;
+  };
+  agent: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    is_active: boolean;
+  };
+  message: string;
+}
+
+// Frontend coordination types for message grouping
+export interface PendingMessage {
+  id: string;
+  content: string;
+  userId: string;
+  userName: string;
+  timestamp: number;
+  isProcessing?: boolean;
+}
+
+export interface MessageGroupingState {
+  pendingMessages: PendingMessage[];
+  groupingTimer: NodeJS.Timeout | null;
+  isGrouping: boolean;
+  activeStreamingRequest: AbortController | null;
 }
