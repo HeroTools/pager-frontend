@@ -20,6 +20,7 @@ import { useRealtimeNotifications } from '@/features/notifications/hooks/use-rea
 import { usePresence } from '@/hooks/use-presence';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useUIStore } from '@/stores/ui-store';
+import { toast } from 'sonner';
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;
@@ -74,12 +75,17 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
 
     if (result === 'granted') {
       // You could show a success toast here
-      console.log('Browser notifications enabled!');
+      toast.success('Notifications enabled!');
+    } else if (result === 'denied') {
+      // Ensure we don't show the banner again even if denied
+      localStorage.setItem('notification_permission_asked', 'true');
+      setHasAskedBefore(true);
     }
   };
 
   const handleDismissBanner = () => {
     setShowPermissionBanner(false);
+    localStorage.setItem('notification_permission_asked', 'true');
     setHasAskedBefore(true);
   };
 
