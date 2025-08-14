@@ -18,26 +18,26 @@ import EmojiPicker from '@/components/emoji-picker';
 import { Hint } from '@/components/hint';
 import { Button } from '@/components/ui/button';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
-import { useUIStore } from '@/stores/ui-store';
 import { useFileUpload } from '@/features/file-upload';
-import { useGetMembers } from '@/features/members/hooks/use-members';
 import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
+import { useGetMembers } from '@/features/members/hooks/use-members';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useTypingStatus } from '@/hooks/use-typing-status';
 import {
+  hasDeltaContent as checkDeltaContent,
   enrichDeltaWithMentions,
   getPlainTextFromDelta as getDeltaPlainText,
-  hasDeltaContent as checkDeltaContent,
   validateFile,
 } from '@/lib/helpers';
 import { createMemberLookupMap } from '@/lib/helpers/members';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/stores/ui-store';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
-import MentionAutoComplete from './mention-auto-complete';
-import MentionBlot from './mention-blot';
 import { GifSearchModal } from './gif-search-modal';
 import { LinkDialog } from './link-dialog';
+import MentionAutoComplete from './mention-auto-complete';
+import MentionBlot from './mention-blot';
 import SlashCommandAutoComplete from './slash-command-autocomplete';
 
 type EditorValue = {
