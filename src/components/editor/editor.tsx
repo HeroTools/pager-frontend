@@ -568,8 +568,10 @@ const Editor = ({
       return;
     }
 
-    // Register MentionBlot
-    Quill.register(MentionBlot);
+    // Register MentionBlot only if not already registered
+    if (!Quill.imports['formats/mention']) {
+      Quill.register(MentionBlot);
+    }
 
     const container = containerRef.current;
     const editorDiv = document.createElement('div');
