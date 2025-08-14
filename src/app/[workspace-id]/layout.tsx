@@ -3,6 +3,7 @@
 import { Bell, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 import { MobileBottomNav } from '@/components/mobile/mobile-bottom-nav';
 import { ProfilePanel } from '@/components/profile-panel';
@@ -65,6 +66,8 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     // 4. We haven't asked before in this session
     if (isSupported && user?.workspace_member_id && permission === 'default' && !hasAskedBefore) {
       setShowPermissionBanner(true);
+    } else {
+      setShowPermissionBanner(false);
     }
   }, [isSupported, user?.workspace_member_id, permission, hasAskedBefore]);
 
@@ -74,12 +77,17 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
 
     if (result === 'granted') {
       // You could show a success toast here
-      console.log('Browser notifications enabled!');
+      toast.success('Notifications enabled!');
+    } else if (result === 'denied') {
+      // Ensure we don't show the banner again even if denied
+      localStorage.setItem('notification_permission_asked', 'true');
+      setHasAskedBefore(true);
     }
   };
 
   const handleDismissBanner = () => {
     setShowPermissionBanner(false);
+    localStorage.setItem('notification_permission_asked', 'true');
     setHasAskedBefore(true);
   };
 
