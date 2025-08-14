@@ -3,6 +3,7 @@
 import { Bell, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 import { MobileBottomNav } from '@/components/mobile/mobile-bottom-nav';
 import { ProfilePanel } from '@/components/profile-panel';
@@ -20,7 +21,6 @@ import { useRealtimeNotifications } from '@/features/notifications/hooks/use-rea
 import { usePresence } from '@/hooks/use-presence';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
 import { useUIStore } from '@/stores/ui-store';
-import { toast } from 'sonner';
 
 interface WorkspaceIdLayoutProps {
   children: ReactNode;
