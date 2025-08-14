@@ -27,7 +27,12 @@ export const createWebhookSchema = z
     }
 
     // Require signing secret for specific services (not Stripe or Custom)
-    if ((data.source_type === 'github' || data.source_type === 'linear' || data.source_type === 'jira') && !data.signing_secret?.trim()) {
+    if (
+      (data.source_type === 'github' ||
+        data.source_type === 'linear' ||
+        data.source_type === 'jira') &&
+      !data.signing_secret?.trim()
+    ) {
       ctx.addIssue({
         code: 'custom',
         message: 'Please enter the signing secret provided by the service',

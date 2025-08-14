@@ -41,7 +41,7 @@ export const useCreateWebhook = (workspaceId: string) => {
   return useMutation<Webhook, Error, CreateWebhookData>({
     mutationFn: async (variables) => {
       const response = await webhooksApi.createWebhook(variables);
-      
+
       // Transform API response to complete Webhook object
       const newWebhook: Webhook = {
         id: response.id,
@@ -60,16 +60,16 @@ export const useCreateWebhook = (workspaceId: string) => {
         secret_token: response.secret_token,
         signing_secret: response.signing_secret,
       };
-      
+
       return newWebhook;
     },
 
     onSuccess: (newWebhook) => {
       // Add to cache immediately for optimistic update
-      queryClient.setQueryData<Webhook[]>(
-        webhooksQueryKeys.list(workspaceId),
-        (oldData) => [newWebhook, ...(oldData || [])],
-      );
+      queryClient.setQueryData<Webhook[]>(webhooksQueryKeys.list(workspaceId), (oldData) => [
+        newWebhook,
+        ...(oldData || []),
+      ]);
 
       // Also invalidate to ensure fresh data
       queryClient.invalidateQueries({
@@ -127,9 +127,7 @@ export const useUpdateWebhook = (workspaceId: string) => {
       queryClient.setQueryData<Webhook[]>(
         webhooksQueryKeys.list(workspaceId),
         (oldData) =>
-          oldData?.map((webhook) =>
-            webhook.id === webhookId ? updatedWebhook : webhook,
-          ) || [],
+          oldData?.map((webhook) => (webhook.id === webhookId ? updatedWebhook : webhook)) || [],
       );
 
       // Update webhook details cache if it exists

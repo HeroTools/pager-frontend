@@ -63,7 +63,7 @@ export const CreateConversationModal = () => {
 
     // Check if a conversation with these members already exists
     const existingConversation = findExistingConversation(conversations, memberIds);
-    
+
     if (existingConversation) {
       // Navigate to existing conversation
       router.push(`/${workspaceId}/d-${existingConversation.id}`);
