@@ -14,6 +14,9 @@ export const useConversations = (workspaceId: string, filters?: Partial<Conversa
     queryKey: conversationsQueryKeys.conversations(workspaceId),
     queryFn: () => conversationsApi.getConversations(workspaceId, filters),
     enabled: !!workspaceId,
+    refetchOnMount: 'always', // Always check for updates but show cached data first
+    refetchOnReconnect: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const createConversation = useMutation({

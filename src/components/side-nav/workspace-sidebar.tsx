@@ -50,7 +50,8 @@ export const WorkspaceSidebar = () => {
 
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  if (getWorkspace.isLoading) {
+  // Show loading spinner only if we have no data and are fetching (prevents unnecessary loaders)
+  if (!getWorkspace.data && (getWorkspace.isLoading || getWorkspace.isFetching)) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
         <Loader className="size-5 text-muted-foreground animate-spin" />
@@ -58,11 +59,21 @@ export const WorkspaceSidebar = () => {
     );
   }
 
-  if (!getWorkspace.data) {
+  // Only show error state if we're not loading and there's an actual error
+  if (!getWorkspace.data && getWorkspace.error) {
     return (
       <div className="flex flex-col gap-y-2 h-full items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
         <p className="text-muted-foreground text-sm">Workspace not found</p>
+      </div>
+    );
+  }
+
+  // Don't render main content until we have workspace data
+  if (!getWorkspace.data) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center">
+        <Loader className="size-5 text-muted-foreground animate-spin" />
       </div>
     );
   }
@@ -86,7 +97,7 @@ export const WorkspaceSidebar = () => {
         <WorkspaceSection
           label="Channels"
           hint="New channel"
-          onNew={getWorkspace.data?.user_role === 'admin' ? () => setOpen(true) : undefined}
+          onNew={getWorkspace.data.user_role === 'admin' ? () => setOpen(true) : undefined}
         >
           {(getUserChannels.data || [])?.map((item) => (
             <SidebarItem

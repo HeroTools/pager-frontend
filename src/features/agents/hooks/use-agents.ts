@@ -9,6 +9,9 @@ export const useAgents = (workspaceId: string, filters?: Partial<AgentFilters>) 
     queryKey: agentsQueryKeys.agents(workspaceId),
     queryFn: () => agentsApi.getAgents(workspaceId, filters),
     enabled: !!workspaceId,
+    refetchOnMount: 'always', // Always check for updates but show cached data first
+    refetchOnReconnect: true,
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 
