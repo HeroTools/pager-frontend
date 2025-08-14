@@ -52,11 +52,16 @@ export const useNotificationPermissions = (): UseNotificationPermissionsReturn =
     }
   }, [isSupported, permission]);
 
+  const persistHasAskedBefore = useCallback((value: boolean) => {
+    localStorage.setItem('notification_permission_asked', value.toString());
+    setHasAskedBefore(value);
+  }, []);
+
   return {
     permission,
     requestPermission,
     isSupported,
     hasAskedBefore,
-    setHasAskedBefore,
+    setHasAskedBefore: persistHasAskedBefore,
   };
 };

@@ -56,12 +56,28 @@ async function getAccessToken(): Promise<string | null> {
     const shouldRefresh = expiresAt - now < 300; // 5 minutes buffer
 
     if (shouldRefresh) {
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError || !refreshData.session) {
-        console.error('Token refresh failed:', refreshError);
-        return null;
+      // Use existing refresh logic to avoid duplicate calls
+      if (refreshState.isRefreshing && refreshState.refreshPromise) {
+        const token = await refreshState.refreshPromise;
+        return token;
       }
-      return refreshData.session.access_token;
+      
+      refreshState.isRefreshing = true;
+      refreshState.refreshPromise = supabase.auth
+        .refreshSession()
+        .then(({ data, error }) => {
+          if (error || !data.session) {
+            console.error('Token refresh failed:', error);
+            return null;
+          }
+          return data.session.access_token;
+        })
+        .finally(() => {
+          refreshState.isRefreshing = false;
+          refreshState.refreshPromise = null;
+        });
+      
+      return await refreshState.refreshPromise;
     }
 
     return session.access_token;

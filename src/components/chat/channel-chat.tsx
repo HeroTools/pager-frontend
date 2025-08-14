@@ -44,6 +44,7 @@ const ChannelChat = () => {
   const {
     data: channelDetails,
     isLoading: isLoadingChannel,
+    isFetching: isChannelFetching,
     error: channelError,
     refetch: refetchChannel,
   } = useGetChannel(workspaceId, channelId);
@@ -142,19 +143,25 @@ const ChannelChat = () => {
     );
   }
 
-  if (error || !channelWithMessages || !channelDetails) {
+  if (error) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
-        <span className="text-muted-foreground text-sm">
-          {error ? 'Failed to load channel' : 'Channel not found'}
-        </span>
+        <span className="text-muted-foreground text-sm">Failed to load channel</span>
         <button
           onClick={handleRefreshData}
           className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
           Retry
         </button>
+      </div>
+    );
+  }
+
+  if (!channelWithMessages && !channelDetails && !isChannelFetching) {
+    return (
+      <div className="h-full flex-1 flex items-center justify-center">
+        <Loader className="animate-spin size-5 text-muted-foreground" />
       </div>
     );
   }

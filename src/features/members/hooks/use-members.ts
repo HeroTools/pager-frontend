@@ -6,7 +6,7 @@ import type { MemberFilters } from '../types';
 // Get current user's member record for a workspace
 export const useCurrentMember = (workspaceId: string) => {
   return useQuery({
-    queryKey: ['currentMember', workspaceId],
+    queryKey: membersQueryKeys.currentMember(workspaceId),
     queryFn: () => membersApi.getCurrentMember(workspaceId),
     enabled: !!workspaceId,
   });

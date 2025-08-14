@@ -1,9 +1,10 @@
-import { dehydrate, QueryClient } from '@tanstack/react-query';
+'use client';
 
-import { HydrationBoundary } from '@/components/react-query-provider';
-import { workspacesQueryKeys } from '@/features/workspaces/query-keys';
-import { serverApi } from '@/lib/api/server-api';
-import { HomeClient } from './home-client';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo } from 'react';
+
+import { useGetWorkspaces } from '@/features/workspaces';
+import { useCreateWorkspaceModal } from '@/features/workspaces/store/use-create-workspace-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const SidebarSkeleton = () => (
@@ -130,31 +131,30 @@ const MainContentSkeleton = () => (
   </div>
 );
 
-export default async function Home() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        gcTime: 1000 * 60 * 60 * 24, // 24 hours
-      },
-    },
-  });
+export function HomeClient() {
+  const router = useRouter();
+  const { open, setOpen } = useCreateWorkspaceModal();
+  const { isLoading, data: workspaces } = useGetWorkspaces();
 
-  // Prefetch workspaces to avoid modal flash
-  try {
-    await queryClient.prefetchQuery({
-      queryKey: workspacesQueryKeys.workspaces(),
-      queryFn: () => serverApi.getWorkspaces(),
-      staleTime: 4 * 60 * 60 * 1000, // 4 hours
-    });
-  } catch (error) {
-    // If prefetch fails, let client handle it
-    console.warn('Home prefetch failed:', error);
-  }
+  const workspaceId = useMemo(() => workspaces?.[0]?.id, [workspaces]);
+
+  useEffect(() => {
+    // Don't redirect if still loading
+    if (isLoading) {
+      return;
+    }
+
+    if (workspaceId) {
+      router.replace(`/${workspaceId}`);
+    } else if (!open) {
+      setOpen(true);
+    }
+  }, [workspaceId, isLoading, open, setOpen, router]);
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <HomeClient />
-    </HydrationBoundary>
+    <div className="h-screen flex bg-background">
+      <SidebarSkeleton />
+      <MainContentSkeleton />
+    </div>
   );
 }

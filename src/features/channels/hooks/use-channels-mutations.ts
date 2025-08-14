@@ -31,7 +31,7 @@ export const useGetUserChannels = (workspaceId: string, filters?: Partial<Channe
     queryKey: channelsQueryKeys.userChannels(workspaceId, filters),
     queryFn: () => channelsApi.getUserChannels(workspaceId, filters),
     enabled: !!workspaceId,
-    refetchOnMount: 'always', // Always check for updates but show cached data first
+    refetchOnMount: false, // Don't refetch if we have fresh data
     refetchOnReconnect: true,
     staleTime: 10 * 60 * 60 * 1000,
   });

@@ -1,22 +1,27 @@
 'use client';
 
-import { Loader, SquarePen, TriangleAlert } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { WorkspaceSidebar } from '@/components/side-nav/workspace-sidebar';
+import { Button } from '@/components/ui/button';
 import { useGetUserChannels } from '@/features/channels/hooks/use-channels-mutations';
 import { useCreateChannelModal } from '@/features/channels/store/use-create-channel-modal';
 import { useConversationCreateStore } from '@/features/conversations/store/conversation-create-store';
 import { useCurrentMember } from '@/features/members/hooks/use-members';
 import { useGetWorkspace } from '@/features/workspaces/hooks/use-workspaces';
 import { useWorkspaceId } from '@/hooks/use-workspace-id';
+import { Loader, SquarePen, TriangleAlert } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 const WorkspaceIdPage = () => {
   const router = useRouter();
   const workspaceId = useWorkspaceId() as string;
   const { open, setOpen } = useCreateChannelModal();
   const { startConversationCreation } = useConversationCreateStore();
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    setIsDesktop(window.innerWidth >= 768);
+  }, []);
 
   const {
     data: currentMember,
@@ -43,36 +48,45 @@ const WorkspaceIdPage = () => {
     return currentMember?.role === 'admin';
   }, [currentMember]);
 
-  // Only show loading when we have no data AND are fetching
-  const isLoading = 
-    (!workspace && (isWorkspaceLoading || isWorkspaceFetching)) ||
-    (!channels && (isChannelsLoading || isChannelsFetching)) ||
-    (!currentMember && (isMemberLoading || isMemberFetching));
+  // Only show loading when we have no data AND are fetching (but not when data is being refetched)
+  const isLoading =
+    (!workspace && isWorkspaceLoading) ||
+    (!channels && isChannelsLoading) ||
+    (!currentMember && isMemberLoading);
   const hasError = workspaceError || channelsError || memberError;
 
-  // Note: Desktop-only redirect logic
-  // We'll handle this with CSS media queries for proper responsive behavior
   useEffect(() => {
     if (isLoading || !workspace || !currentMember) {
       return;
     }
 
-    // Desktop-only: redirect to first channel or open create modal
-    // This will only run on desktop due to page structure
     if (channelId) {
-      // Check if we're on desktop (window width >= 768px)
-      if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-        router.push(`/${workspaceId}/c-${channelId}`);
+      if (isDesktop) {
+        router.replace(`/${workspaceId}/c-${channelId}`);
       }
     } else if (!open && isAdmin) {
-      // Only open modal on desktop
-      if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      if (isDesktop) {
         setOpen(true);
       }
     }
-  }, [isLoading, workspace, currentMember, isAdmin, channelId, open, setOpen, router, workspaceId]);
+  }, [
+    isLoading,
+    workspace,
+    currentMember,
+    isAdmin,
+    channelId,
+    open,
+    setOpen,
+    router,
+    workspaceId,
+    isDesktop,
+  ]);
 
-  if (isLoading) {
+  // Show loading if we have channels and should navigate but haven't yet (desktop only)
+  const shouldNavigateToChannel = channelId && isDesktop;
+  const shouldShowLoading = isLoading || shouldNavigateToChannel;
+
+  if (shouldShowLoading) {
     return (
       <div className="h-full flex-1 flex items-center justify-center flex-col gap-2">
         <Loader className="size-6 animate-spin text-muted-foreground" />
@@ -80,8 +94,7 @@ const WorkspaceIdPage = () => {
     );
   }
 
-  // Only show error state if we're not loading and there's an actual error or no data after loading
-  if (!isLoading && (hasError || !workspace || !currentMember)) {
+  if (!shouldShowLoading && (hasError || !workspace || !currentMember)) {
     return (
       <div className="h-full flex-1 flex items-center justify-center flex-col gap-2">
         <TriangleAlert className="size-6 text-muted-foreground" />
@@ -107,11 +120,13 @@ const WorkspaceIdPage = () => {
         </Button>
       </div>
 
-      {/* Desktop view: Show no channel message */}
-      <div className="hidden md:flex h-full flex-1 items-center justify-center flex-col gap-2">
-        <TriangleAlert className="size-6 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">No channel found</span>
-      </div>
+      {/* Desktop view: Show no channel message only if we definitively have no channels */}
+      {channels && channels.length === 0 && isDesktop && (
+        <div className="hidden md:flex h-full flex-1 items-center justify-center flex-col gap-2">
+          <TriangleAlert className="size-6 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">No channel found</span>
+        </div>
+      )}
     </>
   );
 };

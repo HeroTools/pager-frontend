@@ -1,6 +1,6 @@
 import { AlertTriangle, HashIcon, Loader, Lock, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -43,7 +43,11 @@ export const WorkspaceSidebar = () => {
   const { getWorkspaceDrafts } = useDraftsStore();
   const { setThreadOpen } = useUIStore();
 
-  const draftCount = Object.keys(getWorkspaceDrafts(workspaceId)).length;
+  const [draftCount, setDraftCount] = useState(0);
+
+  useEffect(() => {
+    setDraftCount(Object.keys(getWorkspaceDrafts(workspaceId)).length);
+  }, [getWorkspaceDrafts, workspaceId]);
 
   const { startConversationCreation } = useConversationCreateStore();
   const setOpen = useCreateChannelModal((state) => state.setOpen);

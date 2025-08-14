@@ -5,16 +5,19 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import type { ReactNode } from 'react';
 
+// Export HydrationBoundary for server components
+export { HydrationBoundary } from '@tanstack/react-query';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       gcTime: 1000 * 60 * 60 * 24, // 24 hours (matches maxAge for proper persistence)
       retry: (failureCount, error: any) => {
-        // Don't retry on 4xx client errors (except 401 which might be token related)
+        // Don't retry on 4xx client errors (including 401 to prevent refresh loops)
         if (error?.response?.status) {
           const status = error.response.status;
-          if (status >= 400 && status < 500 && status !== 401) {
+          if (status >= 400 && status < 500) {
             return false;
           }
         }
