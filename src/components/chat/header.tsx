@@ -172,7 +172,10 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
               workspaceMemberId={conversationDisplay?.workspaceMemberId}
               showPresence={true}
               presenceSize="md"
-              onClick={() => conversationDisplay?.workspaceMemberId && handleAvatarClick(conversationDisplay.workspaceMemberId)}
+              onClick={() =>
+                conversationDisplay?.workspaceMemberId &&
+                handleAvatarClick(conversationDisplay.workspaceMemberId)
+              }
             >
               <AvatarImage
                 src={conversationDisplay?.user?.image || undefined}
