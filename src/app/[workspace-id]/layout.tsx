@@ -66,6 +66,8 @@ const WorkspaceIdLayout = ({ children }: WorkspaceIdLayoutProps) => {
     // 4. We haven't asked before in this session
     if (isSupported && user?.workspace_member_id && permission === 'default' && !hasAskedBefore) {
       setShowPermissionBanner(true);
+    } else {
+      setShowPermissionBanner(false);
     }
   }, [isSupported, user?.workspace_member_id, permission, hasAskedBefore]);
 
