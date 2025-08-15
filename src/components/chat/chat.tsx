@@ -1,13 +1,11 @@
 import dynamic from 'next/dynamic';
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Skeleton } from '@/components/ui/skeleton';
 import type { CurrentUser } from '@/features/auth';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import type { UploadedAttachment } from '@/features/file-upload';
 import { getUserAvatar, getUserName } from '@/features/messages/helpers';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { cn } from '@/lib/utils';
 import type { Channel, Message } from '@/types/chat';
 import { ChatMember } from '../../features/members';
 import { ChatHeader } from './header';
@@ -44,17 +42,7 @@ interface ChatProps {
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
   loading: () => (
-    <div className="flex flex-col border border-border-default rounded-md overflow-hidden">
-      <div className="h-[194px] p-4">
-        <Skeleton className="h-full w-full rounded-md" />
-      </div>
-      <div className="flex px-2 pb-2 gap-2 border-t">
-        <Skeleton className="h-8 w-8 rounded" />
-        <Skeleton className="h-8 w-8 rounded" />
-        <Skeleton className="h-8 w-8 rounded" />
-        <Skeleton className="h-8 w-20 rounded ml-auto" />
-      </div>
-    </div>
+    <div className="h-[120px] bg-background border border-border-default rounded-md animate-pulse" />
   ),
 });
 
@@ -94,6 +82,7 @@ export const Chat: FC<ChatProps> = ({
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
   const lastScrollTopRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
+  const [editorKey, setEditorKey] = useState(() => `editor-${Date.now()}`);
 
   // Check for drafts for each message
   const messagesWithDrafts = useMemo(() => {
@@ -231,13 +220,14 @@ export const Chat: FC<ChatProps> = ({
       <TypingIndicator
         channelId={channel.id}
         conversationId={conversationData?.id}
-        currentUserId={currentUser.id}
+        currentUserId={currentUser?.id}
         getUserName={(userId) => getUserName(userId, members)}
         getUserAvatar={(userId) => getUserAvatar(userId, members)}
       />
 
       <div className="fixed bottom-0 left-0 right-0 bg-background md:relative md:p-4 md:border-t">
         <Editor
+          key={editorKey}
           variant="create"
           workspaceId={workspaceId}
           placeholder={getPlaceholderText(chatType, channel.name)}
@@ -245,7 +235,7 @@ export const Chat: FC<ChatProps> = ({
           disabled={isLoading || isDisabled}
           maxFiles={10}
           maxFileSizeBytes={20 * 1024 * 1024}
-          userId={currentUser.id}
+          userId={currentUser?.id}
           channelId={chatType === 'channel' ? channel.id : undefined}
           conversationId={chatType === 'conversation' ? channel.id : undefined}
           agentConversationId={chatType === 'agent' ? channel.id : undefined}

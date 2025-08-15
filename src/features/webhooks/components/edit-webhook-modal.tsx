@@ -85,7 +85,10 @@ export function EditWebhookModal({
     }
 
     // Only include signing secret updates for custom and stripe webhooks
-    if ((webhook.source_type === 'custom' || webhook.source_type === 'stripe') && data.signing_secret !== webhook.signing_secret) {
+    if (
+      (webhook.source_type === 'custom' || webhook.source_type === 'stripe') &&
+      data.signing_secret !== webhook.signing_secret
+    ) {
       updates.signing_secret = data.signing_secret || null;
     }
 
@@ -180,10 +183,12 @@ export function EditWebhookModal({
                       )}
                     </FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         type="password"
-                        placeholder={webhook.source_type === 'stripe' ? 'whsec_...' : 'Signing secret'}
-                        {...field} 
+                        placeholder={
+                          webhook.source_type === 'stripe' ? 'whsec_...' : 'Signing secret'
+                        }
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />

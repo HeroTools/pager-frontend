@@ -4,11 +4,7 @@ import AgentConversationChat from '@/features/agents/components/agent-conversati
 import { useParamIds } from '@/hooks/use-param-ids';
 
 export default function AgentConversationPage() {
-  const { workspaceId, agentId, id: conversationId } = useParamIds();
-
-  if (!workspaceId || !agentId || !conversationId) {
-    return <div>Loading...</div>;
-  }
+  const { agentId, id: conversationId } = useParamIds();
 
   return <AgentConversationChat agentId={agentId} conversationId={conversationId} />;
 }

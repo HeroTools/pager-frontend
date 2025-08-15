@@ -58,7 +58,10 @@ export function WebhookCard({ webhook, onViewDetails, onEdit, onDelete }: Webhoo
           </div>
           <div className="flex items-center gap-2">
             {webhook.source_type === 'stripe' && !webhook.signing_secret ? (
-              <Badge variant="outline" className="text-text-warning border-text-warning/30 bg-text-warning/10">
+              <Badge
+                variant="outline"
+                className="text-text-warning border-text-warning/30 bg-text-warning/10"
+              >
                 Setup Required
               </Badge>
             ) : (

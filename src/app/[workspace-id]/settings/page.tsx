@@ -255,7 +255,6 @@ const WorkspaceSettingsPage = () => {
                       'POST messages to channels',
                       'Custom usernames & avatars',
                       'Rich text formatting',
-                      'File attachments support',
                     ].map((item) => (
                       <div key={item} className="flex items-center gap-2 text-sm">
                         <CheckCircle2 className="w-4 h-4 text-blue-600" />
