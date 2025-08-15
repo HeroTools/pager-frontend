@@ -3,6 +3,7 @@
 import { AlertTriangle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Chat } from '@/components/chat/chat';
 import { transformAgentMessages } from '@/features/agents/helpers';
@@ -18,7 +19,6 @@ import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/stores/ui-store';
 import { type Channel, ChannelType } from '@/types/chat';
-import { toast } from 'sonner';
 
 interface AgentConversationChatProps {
   agentId: string;

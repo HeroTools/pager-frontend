@@ -14,6 +14,7 @@ interface SlashCommand {
 interface SlashCommandAutoCompleteProps {
   quill: any;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  onGifSelect?: (gif: any) => void;
 }
 
 const commands: SlashCommand[] = [
@@ -25,11 +26,15 @@ const commands: SlashCommand[] = [
   },
 ];
 
-const SlashCommandAutoComplete = ({ quill, containerRef }: SlashCommandAutoCompleteProps) => {
+const SlashCommandAutoComplete = ({
+  quill,
+  containerRef,
+  onGifSelect,
+}: SlashCommandAutoCompleteProps) => {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [position, setPosition] = useState<{ left: number; bottom: number } | null>(null);
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const [startIndex, setStartIndex] = useState<number>(0);
 
   const { openGifModal } = useGifModal();
@@ -66,14 +71,14 @@ const SlashCommandAutoComplete = ({ quill, containerRef }: SlashCommandAutoCompl
       quill.deleteText(startIndexRef.current, sel.index - startIndexRef.current);
 
       if (command.id === 'gif') {
-        openGifModal(quill, startIndexRef.current);
+        openGifModal(quill, startIndexRef.current, onGifSelect);
       }
 
       setIsOpen(false);
       setQuery('');
       setSelectedIndex(0);
     },
-    [quill, openGifModal],
+    [quill, openGifModal, onGifSelect],
   );
 
   useEffect(() => {
@@ -102,8 +107,8 @@ const SlashCommandAutoComplete = ({ quill, containerRef }: SlashCommandAutoCompl
         if (bounds && containerRef.current) {
           const rect = containerRef.current.getBoundingClientRect();
           setPosition({
-            left: rect.left + bounds.left,
-            bottom: window.innerHeight - rect.top - bounds.top + 5,
+            left: rect.left + bounds.left + window.scrollX,
+            top: rect.top + bounds.top + bounds.height + window.scrollY,
           });
         }
       } else {
@@ -139,11 +144,12 @@ const SlashCommandAutoComplete = ({ quill, containerRef }: SlashCommandAutoCompl
         case 'Tab':
           e.preventDefault();
           e.stopPropagation();
+          e.stopImmediatePropagation();
           const command = filtered[selectedIndexRef.current];
           if (command) {
             executeCommand(command);
           }
-          break;
+          return false; // Explicitly return false to prevent any further handling
         case 'Escape':
           e.preventDefault();
           setIsOpen(false);
@@ -152,11 +158,11 @@ const SlashCommandAutoComplete = ({ quill, containerRef }: SlashCommandAutoCompl
     };
 
     quill.on('text-change', handleTextChange);
-    quill.root.addEventListener('keydown', handleKeyDown);
+    quill.root.addEventListener('keydown', handleKeyDown, true); // Use capture phase
 
     return () => {
       quill.off('text-change', handleTextChange);
-      quill.root.removeEventListener('keydown', handleKeyDown);
+      quill.root.removeEventListener('keydown', handleKeyDown, true); // Remove from capture phase
     };
   }, [quill, query, executeCommand]);
 
@@ -170,14 +176,11 @@ const SlashCommandAutoComplete = ({ quill, containerRef }: SlashCommandAutoCompl
 
   return (
     <div
+      className="fixed z-[100] w-80 shadow-lg"
       style={{
-        position: 'fixed',
         left: position.left,
-        bottom: position.bottom,
-        zIndex: 100,
-        width: 280,
+        bottom: `${window.innerHeight - position.top - 20}px`,
       }}
-      className="rounded-md border bg-popover shadow-md"
     >
       <Command>
         <CommandList>

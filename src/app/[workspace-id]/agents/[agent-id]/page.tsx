@@ -10,9 +10,9 @@ import { useParamIds } from '@/hooks/use-param-ids';
 export default function AgentConversationPage() {
   const { workspaceId, agentId } = useParamIds();
   const router = useRouter();
-
   const { data } = useAgentConversations(workspaceId, agentId);
-  const conversationId = data?.conversations?.[0]?.id;
+
+  const conversationId = data?.conversation?.id;
 
   useEffect(() => {
     if (conversationId) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Hash, Lock, MessageCircle, MessageSquare, Pencil, Send, Trash2 } from 'lucide-react';
+import { Bot, Hash, Lock, MessageCircle, MessageSquare, Pencil, Send, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
@@ -9,12 +9,14 @@ import { Hint } from '@/components/hint';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AgentEntity } from '@/features/agents/types';
 import { useCurrentUser } from '@/features/auth/hooks/use-current-user';
 import { useGetChannelWithMessagesInfinite } from '@/features/channels/hooks/use-channels-mutations';
 import { Channel } from '@/features/channels/types';
 import { useGetConversationWithMessagesInfinite } from '@/features/conversations/hooks/use-conversation-messages';
 import { ConversationEntity } from '@/features/conversations/types';
 import { Draft, useDraftsStore } from '@/features/drafts/store/use-drafts-store';
+import { useGetMembers } from '@/features/members/hooks/use-members';
 import { transformMessages } from '@/features/messages/helpers';
 import {
   useCreateChannelMessage,
@@ -23,12 +25,14 @@ import {
 } from '@/features/messages/hooks/use-messages';
 import { MessageWithUser } from '@/features/messages/types';
 import { useParamIds } from '@/hooks/use-param-ids';
+import { getPlainTextFromDelta } from '@/lib/helpers/delta';
+import { createMemberLookupMap } from '@/lib/helpers/members';
 import { cn } from '@/lib/utils/general';
 import { useUIStore } from '@/stores/ui-store';
 
 interface DraftListItemProps {
   draft: Draft;
-  entity: Channel | ConversationEntity;
+  entity: Channel | ConversationEntity | AgentEntity;
 }
 
 interface ConversationDisplay {
@@ -46,9 +50,7 @@ const getConversationDisplayInfo = (
   const link = `/${workspaceId}/d-${conversation.id}`;
 
   if (conversation.is_group_conversation) {
-    const names = conversation.other_members.map(
-      (member: any) => member.workspace_member.user.name,
-    );
+    const names = conversation.other_members.map((member) => member.workspace_member.user.name);
     return {
       name: names.join(', '),
       membersToDisplay: conversation.other_members.map((m) => ({
@@ -90,6 +92,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   const { workspaceId, type: entityType, id: entityId } = useParamIds();
   const { user } = useCurrentUser(workspaceId);
   const { clearDraft } = useDraftsStore();
+  const { data: members = [] } = useGetMembers(workspaceId);
 
   const { setThreadOpen, setThreadHighlightMessageId } = useUIStore();
 
@@ -115,15 +118,26 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
 
   const isSending = isSendingChannel || isSendingConversation;
 
-  const sendMessage = async () => {
-    const messageData = { body: draft.content, attachments: [] };
+  const memberLookup = useMemo(() => createMemberLookupMap(members), [members]);
 
+  const displayText = useMemo(() => {
     try {
-      if (draft.type === 'channel') {
-        await sendChannelMessage(messageData);
-      } else {
-        await sendConversationMessage(messageData);
-      }
+      const delta = JSON.parse(draft.content);
+      return getPlainTextFromDelta(delta, memberLookup);
+    } catch {
+      return draft.text;
+    }
+  }, [draft.content, draft.text, memberLookup]);
+
+  const sendMessage = async () => {
+    if (draft.type === 'agent_conversation') {
+      router.push(display?.link || '/');
+      return;
+    }
+
+    const messageData = { body: draft.content, attachments: [] };
+    try {
+      await (draft.type === 'channel' ? sendChannelMessage : sendConversationMessage)(messageData);
       clearDraft(workspaceId, id, draft.parentMessageId);
       toast.success('Message sent!');
     } catch (error) {
@@ -132,12 +146,28 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
   };
 
   const handleDelete = () => {
-    clearDraft(workspaceId, id, draft.parentMessageId);
+    const deleteId = draft.type === 'agent_conversation' ? draft.entityId : id;
+    clearDraft(workspaceId, deleteId, draft.parentMessageId);
     toast.success('Draft deleted.');
   };
 
   const display: ConversationDisplay | null = useMemo(() => {
     if (draft.type === 'conversation' && !user) return null;
+
+    if (draft.type === 'agent_conversation') {
+      const agent = entity as AgentEntity;
+      const agentId = draft.entityId.match(/^temp-([^-]+)-/)?.[1] || agent.id;
+      const conversationId = draft.entityId.startsWith('temp-') ? null : draft.entityId;
+
+      return {
+        name: agent.name ?? 'AI Agent',
+        membersToDisplay: [],
+        icon: Bot,
+        link: conversationId
+          ? `/${workspaceId}/agents/${agentId}/${conversationId}`
+          : `/${workspaceId}/agents/${agentId}`,
+      };
+    }
 
     if (draft.type === 'channel') {
       const channel = entity as Channel;
@@ -150,6 +180,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
         link: `/${workspaceId}/c-${id}`,
       };
     }
+
     if (draft.type === 'conversation') {
       const conversation = entity as ConversationEntity;
       const conversationInfo = getConversationDisplayInfo(conversation, user?.id);
@@ -159,13 +190,14 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
         icon: isThread ? MessageCircle : undefined,
       };
     }
+
     return {
       name: 'Unknown',
       membersToDisplay: [],
       icon: MessageSquare,
       link: '',
     };
-  }, [id, draft.type, entity, workspaceId, user, isThread]);
+  }, [id, draft.type, draft.entityId, entity, workspaceId, user, isThread]);
 
   if (!display) {
     return (
@@ -244,7 +276,7 @@ export const DraftListItem = ({ draft, entity }: DraftListItemProps) => {
         {isThread && draft.parentAuthorName && (
           <p className="text-xs text-muted-foreground">Reply to {draft.parentAuthorName}</p>
         )}
-        <p className="text-sm text-muted-foreground truncate">{draft.text}</p>
+        <p className="text-sm text-muted-foreground truncate">{displayText}</p>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <Hint label="Delete draft" side="top">

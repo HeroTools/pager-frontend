@@ -1,7 +1,6 @@
 import hljs from 'highlight.js';
 import { CaseSensitive, Paperclip, SendHorizontal, Smile } from 'lucide-react';
-import type Quill from 'quill';
-import type { Delta, QuillOptions } from 'quill';
+import Quill, { type Delta, type QuillOptions } from 'quill';
 import type { Op } from 'quill/core';
 import {
   type RefObject,
@@ -21,14 +20,24 @@ import { Button } from '@/components/ui/button';
 import { useDraftsStore } from '@/features/drafts/store/use-drafts-store';
 import { useFileUpload } from '@/features/file-upload';
 import type { ManagedAttachment, UploadedAttachment } from '@/features/file-upload/types';
+import { useGetMembers } from '@/features/members/hooks/use-members';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useTypingStatus } from '@/hooks/use-typing-status';
-import { validateFile } from '@/lib/helpers';
+import {
+  hasDeltaContent as checkDeltaContent,
+  enrichDeltaWithMentions,
+  getPlainTextFromDelta as getDeltaPlainText,
+  validateFile,
+} from '@/lib/helpers';
+import { createMemberLookupMap } from '@/lib/helpers/members';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/stores/ui-store';
 import AttachmentPreview from './attachment-preview';
 import EmojiAutoComplete from './emoji-auto-complete';
 import { GifSearchModal } from './gif-search-modal';
 import { LinkDialog } from './link-dialog';
+import MentionAutoComplete from './mention-auto-complete';
+import MentionBlot from './mention-blot';
 import SlashCommandAutoComplete from './slash-command-autocomplete';
 
 type EditorValue = {
@@ -57,10 +66,12 @@ interface EditorProps {
   parentAuthorName?: string;
 }
 
-const URL_REGEX =
-  /(?:(?:https?:\/\/)?(?:(?:www|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*\.[a-zA-Z]{2,}|localhost)(?::[0-9]{1,5})?(?:\/[^\s]*)?)/i;
-const AUTO_LINK_URL_REGEX =
-  /(?:(?:https?:\/\/)?(?:(?:www|[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*\.[a-zA-Z]{2,}|localhost)(?::[0-9]{1,5})?(?:\/[^\s]*)?)/gi;
+const TLDs = ['com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'dev', 'app', 'xyz', 'info', 'biz'];
+const URL_REGEX = new RegExp(
+  `(?:https?:\\/\\/)?(?:localhost(?:\\d{1,5})?|\\w[\\w-]*\\.(?:${TLDs.join('|')})\\b)(?:\\/[^\\s]*)?`,
+  'i',
+);
+const AUTO_LINK_URL_REGEX = new RegExp(URL_REGEX.source, 'gi');
 
 const Editor = ({
   variant = 'create',
@@ -96,6 +107,13 @@ const Editor = ({
   const isMobile = useIsMobile();
 
   const { getDraft, setDraft, clearDraft } = useDraftsStore();
+  const { setProfilePanelOpen } = useUIStore();
+  const { data: members = [] } = useGetMembers(workspaceId);
+
+  const memberLookup = useMemo(() => {
+    const lookup = createMemberLookupMap(members);
+    return lookup;
+  }, [members]);
   const { entityId, entityType } = useMemo(() => {
     if (channelId) return { entityId: channelId, entityType: 'channel' as const };
     if (conversationId) return { entityId: conversationId, entityType: 'conversation' as const };
@@ -111,21 +129,7 @@ const Editor = ({
     enabled: variant === 'create',
   });
 
-  const isEmpty = useMemo(
-    () =>
-      !image &&
-      attachments.length === 0 &&
-      !hasEmbeds &&
-      text.replace(/\s*/g, '').trim().length === 0,
-    [text, image, attachments.length, hasEmbeds],
-  );
-
-  const hasUploadsInProgress = useMemo(
-    () => attachments.some((att) => att.status === 'uploading'),
-    [attachments],
-  );
-
-  const activeUploadBatchRef = useRef<string | null>(null);
+  const activeUploadBatchesRef = useRef<Map<string, string[]>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
   const onSubmitRef = useRef(onSubmit);
@@ -137,7 +141,23 @@ const Editor = ({
   const quillRef = useRef<Quill | null>(null);
   const attachmentsRef = useRef(attachments);
 
-  // Progress throttling for file uploads
+  const isEmpty = useMemo(() => {
+    if (image || attachments.length > 0) return false;
+
+    const quill = quillRef.current;
+    if (!quill) {
+      return text.trim().length === 0 && !hasEmbeds;
+    }
+
+    return !checkDeltaContent(quill.getContents());
+  }, [text, image, attachments.length, hasEmbeds]);
+
+  const hasUploadsInProgress = useMemo(
+    () => attachments.some((att) => att.status === 'uploading'),
+    [attachments],
+  );
+
+  // Use individual progress tracking for updates
   const progressTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const lastProgressUpdateRef = useRef<Map<string, number>>(new Map());
 
@@ -160,7 +180,7 @@ const Editor = ({
     }
 
     const oldContents = quill.getContents();
-    const oldText = quill.getText();
+    const plainText = getPlainTextFromDelta(oldContents);
     const oldImage = image;
     const oldAttachments = attachments;
     const body = JSON.stringify(oldContents);
@@ -182,7 +202,7 @@ const Editor = ({
         image: oldImage,
         body,
         attachments: attachmentsForSubmit,
-        plainText: oldText,
+        plainText,
       });
 
       if (result instanceof Promise) {
@@ -199,7 +219,7 @@ const Editor = ({
       setImage(null);
       setAttachments([]);
       setHasEmbeds(false);
-      activeUploadBatchRef.current = null;
+      activeUploadBatchesRef.current.clear();
       progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
       progressTimeoutsRef.current.clear();
       lastProgressUpdateRef.current.clear();
@@ -208,8 +228,9 @@ const Editor = ({
         stopTyping();
       }
     } catch (err) {
+      console.error('Failed to submit message:', err);
       quill.setContents(oldContents);
-      setText(oldText);
+      setText(plainText);
       setImage(oldImage);
       setAttachments(oldAttachments);
 
@@ -226,29 +247,31 @@ const Editor = ({
     entityId,
     workspaceId,
     parentMessageId,
+    clearDraft,
   ]);
 
   const handleSubmitRef = useRef(handleSubmit);
 
   const debouncedSetDraft = useDebouncedCallback(() => {
-    if (entityId && entityType) {
-      const quill = quillRef.current;
-      if (quill) {
-        const value = JSON.stringify(quill.getContents());
-        if (quill.getText().trim().length === 0) {
-          clearDraft(workspaceId, entityId, parentMessageId);
-        } else {
-          setDraft(
-            workspaceId,
-            entityId,
-            value,
-            quill.getText().trim(),
-            entityType,
-            parentMessageId,
-            parentAuthorName,
-          );
-        }
-      }
+    if (!entityId || !entityType) return;
+
+    const quill = quillRef.current;
+    if (!quill) return;
+
+    const contents = quill.getContents();
+
+    if (!checkDeltaContent(contents)) {
+      clearDraft(workspaceId, entityId, parentMessageId);
+    } else {
+      setDraft(
+        workspaceId,
+        entityId,
+        JSON.stringify(contents),
+        quill.getText().trim() || ' ', // Ensure plain text is not empty for mention-only drafts
+        entityType,
+        parentMessageId,
+        parentAuthorName,
+      );
     }
   }, 500);
 
@@ -262,6 +285,11 @@ const Editor = ({
     setHasEmbeds(embedsPresent);
   }, []);
 
+  const getPlainTextFromDelta = useCallback(
+    (delta: Delta): string => getDeltaPlainText(delta, memberLookup),
+    [memberLookup],
+  );
+
   useLayoutEffect(() => {
     onSubmitRef.current = onSubmit;
     placeholderRef.current = placeholder;
@@ -271,30 +299,43 @@ const Editor = ({
     handleSubmitRef.current = handleSubmit;
   });
 
-  const handleProgressUpdate = useCallback(
-    (fileIndex: number, progress: { percentage: number }) => {
-      const fileKey = `file-${fileIndex}`;
+  // Update mention displays when members data loads
+  useEffect(() => {
+    if (!containerRef.current || memberLookup.size === 0) return;
+
+    // Update all mention elements to show names instead of IDs
+    const mentionElements = containerRef.current.querySelectorAll('.mention[data-member-id]');
+    mentionElements.forEach((element) => {
+      const memberId = element.getAttribute('data-member-id');
+      if (memberId) {
+        const memberName = memberLookup.get(memberId);
+        if (memberName) {
+          element.textContent = `@${memberName}`;
+        }
+      }
+    });
+  }, [memberLookup]);
+
+  const createProgressHandler = useCallback((batchFileIds: string[]) => {
+    return (fileIndex: number, progress: { percentage: number }) => {
+      const fileKey = `${batchFileIds[0]}-${fileIndex}`;
       const now = Date.now();
       const lastUpdate = lastProgressUpdateRef.current.get(fileKey) || 0;
 
-      // Clear any existing timeout for this file
       const existingTimeout = progressTimeoutsRef.current.get(fileKey);
       if (existingTimeout) {
         clearTimeout(existingTimeout);
       }
-
-      // Update immediately if it's complete or enough time has passed
       const shouldUpdateImmediately = progress.percentage === 100 || now - lastUpdate >= 100;
 
       const updateProgress = () => {
         lastProgressUpdateRef.current.set(fileKey, Date.now());
 
         setAttachments((prev) => {
-          const fileStartIndex = prev.findIndex((att) => att.status === 'uploading');
-          if (fileStartIndex === -1) return prev;
+          const targetId = batchFileIds[fileIndex];
+          const targetIndex = prev.findIndex((att) => att.id === targetId);
 
-          const targetIndex = fileStartIndex + fileIndex;
-          if (targetIndex >= prev.length) return prev;
+          if (targetIndex === -1) return prev;
 
           const targetAttachment = prev[targetIndex];
           if (targetAttachment.uploadProgress === progress.percentage) {
@@ -315,13 +356,11 @@ const Editor = ({
       if (shouldUpdateImmediately) {
         updateProgress();
       } else {
-        // Throttle the update
-        const timeout = setTimeout(updateProgress, 100);
+        const timeout = setTimeout(updateProgress, 80);
         progressTimeoutsRef.current.set(fileKey, timeout);
       }
-    },
-    [],
-  );
+    };
+  }, []);
 
   const handleFiles = useCallback(
     async (files: FileList): Promise<void> => {
@@ -349,9 +388,10 @@ const Editor = ({
       }
 
       const batchId = `batch-${Date.now()}-${Math.random()}`;
-      activeUploadBatchRef.current = batchId;
 
       const fileIds = fileArray.map(() => `upload-${Date.now()}-${Math.random()}`);
+
+      activeUploadBatchesRef.current.set(batchId, fileIds);
 
       const initialAttachments: ManagedAttachment[] = fileArray.map((file, index) => ({
         id: fileIds[index],
@@ -367,14 +407,16 @@ const Editor = ({
       setAttachments((prev) => [...prev, ...initialAttachments]);
 
       try {
-        const results = await uploadMultipleFiles(fileArray, handleProgressUpdate);
+        const progressHandler = createProgressHandler(fileIds);
+        const results = await uploadMultipleFiles(fileArray, progressHandler);
 
-        if (activeUploadBatchRef.current === batchId) {
+        if (activeUploadBatchesRef.current.has(batchId)) {
+          const batchFileIds = activeUploadBatchesRef.current.get(batchId)!;
+
           setAttachments((prev) => {
-            const fileStartIndex = prev.length - fileArray.length;
-            return prev.map((att, index) => {
-              const fileIndex = index - fileStartIndex;
-              if (fileIndex < 0 || fileIndex >= results.length) {
+            return prev.map((att) => {
+              const fileIndex = batchFileIds.indexOf(att.id);
+              if (fileIndex === -1 || fileIndex >= results.length) {
                 return att;
               }
 
@@ -400,19 +442,24 @@ const Editor = ({
             });
           });
 
-          activeUploadBatchRef.current = null;
+          activeUploadBatchesRef.current.delete(batchId);
           progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
           progressTimeoutsRef.current.clear();
           lastProgressUpdateRef.current.clear();
         }
       } catch (error) {
-        if (activeUploadBatchRef.current === batchId) {
+        if (activeUploadBatchesRef.current.has(batchId)) {
+          const batchFileIds = activeUploadBatchesRef.current.get(batchId)!;
+
           setAttachments((prev) =>
             prev.map((att) =>
-              fileIds.includes(att.id) ? { ...att, status: 'error', error: 'Upload failed' } : att,
+              batchFileIds.includes(att.id)
+                ? { ...att, status: 'error', error: 'Upload failed' }
+                : att,
             ),
           );
-          activeUploadBatchRef.current = null;
+
+          activeUploadBatchesRef.current.delete(batchId);
           progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
           progressTimeoutsRef.current.clear();
           lastProgressUpdateRef.current.clear();
@@ -425,7 +472,7 @@ const Editor = ({
       uploadMultipleFiles,
       maxFileSizeBytes,
       isAgentChat,
-      handleProgressUpdate,
+      createProgressHandler,
     ],
   );
 
@@ -498,147 +545,164 @@ const Editor = ({
     [linkSelection, handleLinkFormat],
   );
 
+  const handleGifSelect = useCallback(
+    (gif: any) => {
+      if (isAgentChat) return;
+
+      const quill = quillRef.current;
+      if (!quill) return;
+
+      const selection = quill.getSelection();
+      const index = selection?.index ?? quill.getLength() - 1;
+
+      quill.insertEmbed(index, 'image', gif.media_formats.gif.url);
+      quill.setSelection(index + 1);
+      quill.focus();
+    },
+    [isAgentChat],
+  );
+
+  // Remove attachments from useEffect dependencies to prevent re-initialization
   useEffect(() => {
-    if (typeof window === 'undefined' || !containerRef.current) {
+    if (!containerRef.current) {
       return;
+    }
+
+    // Register MentionBlot only if not already registered
+    if (!Quill.imports['formats/mention']) {
+      Quill.register(MentionBlot);
     }
 
     const container = containerRef.current;
+    const editorDiv = document.createElement('div');
+    container.appendChild(editorDiv);
 
-    // Prevent multiple initializations
-    if (quillRef.current) {
-      return;
+    const options: QuillOptions = {
+      theme: 'snow',
+      placeholder: placeholderRef.current,
+      modules: {
+        syntax: { hljs },
+        toolbar: {
+          container: [
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ list: 'ordered' }, { list: 'bullet' }, 'link'],
+          ],
+          handlers: {
+            link: function () {
+              const range = this.quill.getSelection();
+              if (range) {
+                const selectedText = this.quill.getText(range.index, range.length);
+                setLinkSelection({ index: range.index, length: range.length });
+                setSelectedText(selectedText);
+                setIsLinkDialogOpen(true);
+              }
+            },
+          },
+        },
+        keyboard: {
+          bindings: {
+            enterSubmit: {
+              key: 'Enter',
+              handler(): boolean {
+                const emojiDropdownOpen =
+                  quillRef.current && (quillRef.current as any).emojiDropdownOpen;
+
+                const mentionDropdownOpen =
+                  quillRef.current && (quillRef.current as any).mentionDropdownOpen;
+
+                const commandDropdownOpen =
+                  quillRef.current && (quillRef.current as any).commandDropdownOpen;
+
+                if (emojiDropdownOpen || commandDropdownOpen || mentionDropdownOpen) {
+                  return true;
+                }
+
+                const addedImage = imageElementRef.current?.files?.[0] || null;
+
+                // Check if we have any content to send
+                const hasAttachments = attachmentsRef.current.length > 0;
+                const hasImage = !!addedImage;
+                const quill = quillRef.current;
+                const hasContent = quill ? checkDeltaContent(quill.getContents()) : false;
+                const canSend = hasImage || hasAttachments || hasContent;
+
+                if (canSend) {
+                  handleSubmitRef.current();
+                  return false;
+                }
+
+                return true;
+              },
+            },
+            linebreak: {
+              key: 'Enter',
+              shiftKey: true,
+              handler(range: unknown): boolean {
+                const quill = quillRef.current;
+                const rangeObj = range as { index?: number } | null;
+                const index = rangeObj?.index ?? quill.getLength();
+                quill.insertText(index, '\n');
+                quill.setSelection(index + 1);
+                return false;
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const quill = new Quill(editorDiv, options);
+    quillRef.current = quill;
+    quill.focus();
+    if (innerRef) {
+      innerRef.current = quill;
     }
 
-    import('quill').then(({ default: Quill }) => {
-      if (!container || quillRef.current) return;
+    // Load initial content (from draft or default)
+    let initialContent: Delta | Op[] = defaultValueRef.current;
+    const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
 
-      // Check if container already has Quill initialized
-      if (container.querySelector('.ql-editor')) {
-        return;
+    if (draft?.content) {
+      try {
+        initialContent = enrichDeltaWithMentions(JSON.parse(draft.content), memberLookup);
+      } catch (e) {
+        console.error('Error parsing draft content', e);
       }
+    }
 
-      // Create editor container
-      const editorDiv = document.createElement('div');
-      container.appendChild(editorDiv);
+    quill.setContents(initialContent, 'silent');
+    setText(quill.getText());
 
-      const options: QuillOptions = {
-        theme: 'snow',
-        placeholder: placeholderRef.current,
-        modules: {
-          syntax: { hljs },
-          toolbar: {
-            container: [
-              ['bold', 'italic', 'underline', 'strike'],
-              ['blockquote', 'code-block'],
-              [{ list: 'ordered' }, { list: 'bullet' }, 'link'],
-            ],
-            handlers: {
-              link: function () {
-                const range = this.quill.getSelection();
-                if (range) {
-                  const selectedText = this.quill.getText(range.index, range.length);
-                  setLinkSelection({ index: range.index, length: range.length });
-                  setSelectedText(selectedText);
-                  setIsLinkDialogOpen(true);
-                }
-              },
-            },
-          },
-          keyboard: {
-            bindings: {
-              enterSubmit: {
-                key: 'Enter',
-                handler(): boolean {
-                  const emojiDropdownOpen =
-                    quillRef.current && (quillRef.current as any).emojiDropdownOpen;
-                  const commandDropdownOpen =
-                    quillRef.current && (quillRef.current as any).commandDropdownOpen;
-                  if (emojiDropdownOpen || commandDropdownOpen) {
-                    return true;
-                  }
+    quill.root.addEventListener(
+      'paste',
+      (e: ClipboardEvent) => {
+        const selection = quill.getSelection();
 
-                  const addedImage = imageElementRef.current?.files?.[0] || null;
-                  const currentText = quillRef.current?.getText() || '';
-
-                  const empty =
-                    !addedImage &&
-                    attachmentsRef.current.length === 0 &&
-                    !hasEmbeds &&
-                    currentText.replace(/\s*/g, '').trim().length === 0;
-
-                  if (!empty) {
-                    handleSubmitRef.current();
-                    return false;
-                  }
-
-                  return true;
-                },
-              },
-              linebreak: {
-                key: 'Enter',
-                shiftKey: true,
-                handler(range: unknown): boolean {
-                  const quill = quillRef.current;
-                  const rangeObj = range as { index?: number } | null;
-                  const index = rangeObj?.index ?? quill.getLength();
-                  quill.insertText(index, '\n');
-                  quill.setSelection(index + 1);
-                  return false;
-                },
-              },
-            },
-          },
-        },
-      };
-
-      const quill = new Quill(editorDiv, options);
-      quillRef.current = quill;
-      quill.focus();
-      if (innerRef) {
-        innerRef.current = quill;
-      }
-
-      const draft = entityId ? getDraft(workspaceId, entityId, parentMessageId) : undefined;
-      let initialContent: Delta | Op[] = defaultValueRef.current;
-      if (draft?.content) {
-        try {
-          initialContent = JSON.parse(draft.content);
-        } catch (e) {
-          console.error('Error parsing draft content', e);
+        if (!selection || selection.length === 0) {
+          return;
         }
-      }
-      quill.setContents(initialContent, 'silent');
-      setText(quill.getText());
 
-      quill.root.addEventListener(
-        'paste',
-        (e: ClipboardEvent) => {
-          const selection = quill.getSelection();
+        const clipboardData = e.clipboardData;
+        if (!clipboardData) {
+          return;
+        }
 
-          if (!selection || selection.length === 0) {
-            return;
-          }
+        const pastedData = clipboardData.getData('text/plain');
 
-          const clipboardData = e.clipboardData;
-          if (!clipboardData) {
-            return;
-          }
+        if (URL_REGEX.test(pastedData)) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
 
-          const pastedData = clipboardData.getData('text/plain');
+          quill.formatText(selection.index, selection.length, 'link', pastedData);
+          quill.setSelection(selection.index + selection.length, 0);
+        }
+      },
+      true,
+    );
 
-          if (URL_REGEX.test(pastedData)) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
-            quill.formatText(selection.index, selection.length, 'link', pastedData);
-            quill.setSelection(selection.index + selection.length, 0);
-          }
-        },
-        true,
-      );
-
-      const handleTextChange = () => {
+    const handleTextChange = () => {
+      setTimeout(() => {
         const selection = quill.getSelection();
         if (!selection) return;
 
@@ -676,85 +740,88 @@ const Editor = ({
             url.startsWith('http') || url.startsWith('localhost') ? url : `https://` + url;
           quill.formatText(urlIndexInEditor, url.length, 'link', formattedUrl, 'silent');
         }
-      };
+      }, 0);
+    };
 
-      const textChangeHandler = (_delta: Delta, _oldDelta: Delta, source: string) => {
-        const currentText = quill.getText();
-        setText(currentText);
-        debouncedSetDraft();
+    const textChangeHandler = (_delta: Delta, _oldDelta: Delta, source: string) => {
+      const currentText = quill.getText();
+      setText(currentText);
+      debouncedSetDraft();
 
-        // Check for embeds whenever content changes
-        checkForEmbeds(quill);
+      checkForEmbeds(quill);
 
-        if (source === 'user') {
-          handleTextChange();
+      if (source === 'user') {
+        handleTextChange();
 
-          if (variant === 'create') {
-            if (currentText.trim().length > 0) {
-              startTyping();
-            } else {
-              stopTyping();
-            }
-          }
-        }
-      };
-
-      const handleBlur = () => {
         if (variant === 'create') {
-          stopTyping();
+          if (currentText.trim().length > 0) {
+            startTyping();
+          } else {
+            stopTyping();
+          }
+        }
+      }
+    };
+
+    const handleBlur = () => {
+      if (variant === 'create') {
+        stopTyping();
+      }
+    };
+
+    const handleMentionClick = (e: CustomEvent) => {
+      const { memberId } = e.detail;
+      setProfilePanelOpen(memberId);
+    };
+
+    quill.on(Quill.events.TEXT_CHANGE, textChangeHandler);
+    quill.root.addEventListener('blur', handleBlur);
+    quill.root.addEventListener('mentionClick', handleMentionClick as EventListener);
+
+    // Mobile: Show toolbar only when text is selected
+    if (isMobile) {
+      // Hide toolbar initially on mobile
+      const toolbarEl = containerRef.current?.querySelector('.ql-toolbar');
+      if (toolbarEl) {
+        toolbarEl.classList.add('hidden');
+      }
+
+      const handleSelectionChange = (range: any) => {
+        const toolbarElement = containerRef.current?.querySelector('.ql-toolbar');
+        if (!toolbarElement) return;
+
+        if (range && range.length > 0) {
+          // Show toolbar when text is selected
+          toolbarElement.classList.remove('hidden');
+        } else {
+          // Hide toolbar when no selection
+          toolbarElement.classList.add('hidden');
         }
       };
 
-      quill.on('text-change', textChangeHandler);
-      quill.root.addEventListener('blur', handleBlur);
-
-      // Mobile: Show toolbar only when text is selected
-      if (isMobile) {
-        // Hide toolbar initially on mobile
-        const toolbarEl = containerRef.current?.querySelector('.ql-toolbar');
-        if (toolbarEl) {
-          toolbarEl.classList.add('hidden');
-        }
-
-        const handleSelectionChange = (range: any) => {
-          const toolbarElement = containerRef.current?.querySelector('.ql-toolbar');
-          if (!toolbarElement) return;
-
-          if (range && range.length > 0) {
-            // Show toolbar when text is selected
-            toolbarElement.classList.remove('hidden');
-          } else {
-            // Hide toolbar when no selection
-            toolbarElement.classList.add('hidden');
-          }
-        };
-
-        quill.on('selection-change', handleSelectionChange);
-      }
-    });
+      quill.on(Quill.events.SELECTION_CHANGE, handleSelectionChange);
+    }
 
     return () => {
-      // Clean up progress timeouts
-      progressTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
-      progressTimeoutsRef.current.clear();
-      lastProgressUpdateRef.current.clear();
+      const progressTimeouts = progressTimeoutsRef.current;
+      const lastProgressUpdate = lastProgressUpdateRef.current;
+      progressTimeouts.forEach((timeout) => clearTimeout(timeout));
+      progressTimeouts.clear();
+      lastProgressUpdate.clear();
 
-      const quill = quillRef.current;
-      if (quill) {
-        // Clean up event listeners
-        quill.off('text-change');
-        quill.off('selection-change');
+      quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
+      quill.root.removeEventListener('blur', handleBlur);
+      quill.root.removeEventListener('mentionClick', handleMentionClick as EventListener);
+
+      if (isMobile) {
+        quill.off(Quill.events.SELECTION_CHANGE);
       }
 
       if (variant === 'create') {
         stopTyping();
       }
 
-      // Clean up DOM
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-      }
-
+      container.innerHTML = '';
       quillRef.current = null;
       if (innerRef) {
         innerRef.current = null;
@@ -770,8 +837,10 @@ const Editor = ({
     debouncedSetDraft,
     workspaceId,
     isMobile,
-    getDraft,
+    setProfilePanelOpen,
     checkForEmbeds,
+    memberLookup,
+    getDraft,
   ]);
 
   const handleToolbarToggle = useCallback((): void => {
@@ -826,7 +895,12 @@ const Editor = ({
             type="file"
             multiple
             ref={fileInputRef}
-            onChange={(e) => e.target.files && handleFiles(e.target.files)}
+            onChange={(e) => {
+              if (e.target.files) {
+                handleFiles(e.target.files);
+                e.target.value = '';
+              }
+            }}
             className="hidden"
           />
         </>
@@ -857,7 +931,23 @@ const Editor = ({
 
         <div ref={containerRef} className="ql-custom max-h-80 overflow-y-auto" />
 
-        <div className="flex px-2 py-2 z-10 flex-shrink-0 items-center border-t border-border-subtle">
+        {!isAgentChat && attachments.length > 0 && (
+          <div className="px-2 pb-2">
+            <div className="flex flex-wrap">
+              {attachments.map((attachment) => (
+                <AttachmentPreview
+                  key={attachment.id}
+                  attachment={attachment}
+                  attachments={attachments}
+                  workspaceId={workspaceId}
+                  setAttachments={setAttachments}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex px-2 pb-2 z-10 flex-shrink-0 items-center">
           {/* Desktop only: toolbar toggle button */}
           <div className="hidden md:block">
             <Hint label={isToolbarVisible ? 'Hide formatting' : 'Show formatting'}>
@@ -930,22 +1020,6 @@ const Editor = ({
         </div>
       </div>
 
-      {!isAgentChat && attachments.length > 0 && (
-        <div className="px-2 pb-2">
-          <div className="flex flex-wrap">
-            {attachments.map((attachment) => (
-              <AttachmentPreview
-                key={attachment.id}
-                attachment={attachment}
-                attachments={attachments}
-                workspaceId={workspaceId}
-                setAttachments={setAttachments}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       {variant === 'create' && !isMobile && (
         <div
           className={cn(
@@ -959,9 +1033,22 @@ const Editor = ({
         </div>
       )}
 
-      {!isAgentChat && <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />}
       {!isAgentChat && (
-        <SlashCommandAutoComplete quill={quillRef.current} containerRef={containerRef} />
+        <>
+          <EmojiAutoComplete quill={quillRef.current} containerRef={containerRef} />
+          <MentionAutoComplete
+            quill={quillRef.current}
+            containerRef={containerRef}
+            currentUserId={userId}
+          />
+        </>
+      )}
+      {!isAgentChat && (
+        <SlashCommandAutoComplete
+          quill={quillRef.current}
+          containerRef={containerRef}
+          onGifSelect={handleGifSelect}
+        />
       )}
       <GifSearchModal />
       <LinkDialog
