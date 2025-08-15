@@ -1,6 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import type { LucideIcon } from 'lucide-react';
-import { Pencil } from 'lucide-react';
+import { type LucideIcon, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -83,7 +82,7 @@ export const SidebarItem = ({
         <Icon className="size-3.5 mr-1 shrink-0" />
         <span className={cn('text-sm truncate', hasUnread && 'font-bold')}>{label}</span>
         {draft && variant !== 'active' && <Pencil className="size-3 ml-auto" />}
-        {count !== undefined && count > 0 && (
+        {count && count > 0 && (
           <Badge
             variant="secondary"
             className="h-5 min-w-5 flex items-center justify-center p-1 text-xs font-medium ml-auto"
@@ -101,7 +100,7 @@ export const SidebarItem = ({
         <Icon className="size-3.5 mr-1 shrink-0" />
         <span className={cn('text-sm truncate', hasUnread && 'font-extrabold')}>{label}</span>
         {draft && variant !== 'active' && <Pencil className="size-3 ml-auto" />}
-        {count !== undefined && count > 0 && (
+        {count && count > 0 && (
           <Badge
             variant="secondary"
             className="h-5 min-w-5 flex items-center justify-center p-1 text-xs font-medium ml-auto"

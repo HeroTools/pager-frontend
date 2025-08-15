@@ -118,19 +118,6 @@ interface ImageAttachmentProps {
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
   ssr: false,
-  loading: () => (
-    <div className="flex flex-col border border-border-default rounded-md overflow-hidden">
-      <div className="h-[194px] p-4">
-        <Skeleton className="h-full w-full rounded-md" />
-      </div>
-      <div className="flex px-2 pb-2 gap-2 border-t">
-        <Skeleton className="h-8 w-8 rounded" />
-        <Skeleton className="h-8 w-8 rounded" />
-        <Skeleton className="h-8 w-8 rounded" />
-        <Skeleton className="h-8 w-20 rounded ml-auto" />
-      </div>
-    </div>
-  ),
 });
 
 const formatFileSize = (bytes: number): string => {
