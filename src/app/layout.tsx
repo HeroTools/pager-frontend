@@ -38,7 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Analytics />
+        <Analytics debug={false} />
         <ReactQueryProvider>
           <ReactQueryDevtools />
           <AuthProvider>

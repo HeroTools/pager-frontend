@@ -21,16 +21,19 @@ const WorkspaceIdPage = () => {
   const {
     data: currentMember,
     isLoading: isMemberLoading,
+    isFetching: isMemberFetching,
     error: memberError,
   } = useCurrentMember(workspaceId);
   const {
     data: workspace,
     isLoading: isWorkspaceLoading,
+    isFetching: isWorkspaceFetching,
     error: workspaceError,
   } = useGetWorkspace(workspaceId);
   const {
     data: channels,
     isLoading: isChannelsLoading,
+    isFetching: isChannelsFetching,
     error: channelsError,
   } = useGetUserChannels(workspaceId);
 
@@ -40,7 +43,11 @@ const WorkspaceIdPage = () => {
     return currentMember?.role === 'admin';
   }, [currentMember]);
 
-  const isLoading = isWorkspaceLoading || isChannelsLoading || isMemberLoading;
+  // Only show loading when we have no data AND are fetching
+  const isLoading = 
+    (!workspace && (isWorkspaceLoading || isWorkspaceFetching)) ||
+    (!channels && (isChannelsLoading || isChannelsFetching)) ||
+    (!currentMember && (isMemberLoading || isMemberFetching));
   const hasError = workspaceError || channelsError || memberError;
 
   // Note: Desktop-only redirect logic
@@ -73,7 +80,8 @@ const WorkspaceIdPage = () => {
     );
   }
 
-  if (hasError || !workspace || !currentMember) {
+  // Only show error state if we're not loading and there's an actual error or no data after loading
+  if (!isLoading && (hasError || !workspace || !currentMember)) {
     return (
       <div className="h-full flex-1 flex items-center justify-center flex-col gap-2">
         <TriangleAlert className="size-6 text-muted-foreground" />

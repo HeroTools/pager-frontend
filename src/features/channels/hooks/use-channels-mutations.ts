@@ -31,7 +31,11 @@ export const useGetUserChannels = (workspaceId: string, filters?: Partial<Channe
     queryKey: channelsQueryKeys.userChannels(workspaceId, filters),
     queryFn: () => channelsApi.getUserChannels(workspaceId, filters),
     enabled: !!workspaceId,
-    staleTime: 10 * 60 * 60 * 1000,
+    refetchOnMount: true, // Prioritize showing cached data immediately
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+    staleTime: 2 * 60 * 60 * 1000, // 2 hours - channels don't change that frequently
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours - keep in memory longer
   });
 };
 

@@ -22,8 +22,8 @@ export const useGetWorkspaces = () => {
     queryKey: workspacesQueryKeys.workspaces(),
     queryFn: () => workspacesApi.getWorkspaces(),
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    refetchOnMount: 'always', // Always check for updates but show cached data first
+    refetchOnReconnect: true,
     staleTime: 4 * 60 * 60 * 1000,
   });
 };
@@ -35,9 +35,10 @@ export const useGetWorkspace = (id: string) => {
     queryFn: () => workspacesApi.getWorkspace(id),
     enabled: !!id,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    staleTime: 2 * 60 * 60 * 1000,
+    refetchOnMount: false, // Don't refetch on mount, prioritize showing cached data first
+    refetchOnReconnect: true,
+    staleTime: 4 * 60 * 60 * 1000, // 4 hours - workspace data doesn't change frequently
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours - keep in memory longer
   });
 };
 

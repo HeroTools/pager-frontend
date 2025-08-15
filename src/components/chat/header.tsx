@@ -3,23 +3,22 @@ import { useRouter } from 'next/navigation';
 import { type FC, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-import { useUIStore } from '@/stores/ui-store';
-
 import { ChannelDetailsModal } from '@/components/channel-details-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCurrentUser } from '@/features/auth';
-import { useRemoveChannelMembers } from '@/features/channels';
+import { useGetUserChannels, useRemoveChannelMembers } from '@/features/channels';
 import { ChatMember } from '@/features/members';
 import { useParamIds } from '@/hooks/use-param-ids';
+import { useUIStore } from '@/stores/ui-store';
 import type { Channel } from '@/types/chat';
 
 interface ChatHeaderProps {
@@ -37,30 +36,35 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   conversationData,
   currentUser,
 }) => {
-  const isLoading = !channel.name;
+  const router = useRouter();
+  const { workspaceId, id: channelId } = useParamIds();
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<'members' | 'settings'>('members');
-  const { workspaceId } = useParamIds();
   const removeChannelMembers = useRemoveChannelMembers();
   const { user } = useCurrentUser(workspaceId);
-  const router = useRouter();
+  const { data: channels } = useGetUserChannels(workspaceId);
   const { setProfilePanelOpen } = useUIStore();
 
-  // Show up to 4 avatars, then a +N indicator
-  const maxAvatars = 4;
-  const visibleMembers = members.slice(0, maxAvatars);
-  const extraCount = members.length - maxAvatars;
+  const memberAvatars = useMemo(() => {
+    const maxAvatars = 4;
+    const visibleMembers = members.slice(0, maxAvatars);
+    const extraCount = members.length - maxAvatars;
 
-  // Conversation display logic
-  const getConversationHeaderDisplay = () => {
-    if (!conversationData || !currentUser) return null;
+    return {
+      visibleMembers,
+      extraCount: extraCount > 0 ? extraCount : 0,
+    };
+  }, [members]);
+
+  const conversationDisplay = useMemo(() => {
+    if (chatType !== 'conversation' || !conversationData || !currentUser) return null;
 
     const { conversation, members: conversationMembers } = conversationData;
     const otherMembers =
       conversation.other_members ||
       conversationMembers?.filter((member: any) => member.user.id !== currentUser.id);
 
-    if (conversation.is_group_conversation) {
+    if (conversation.is_group_conversation || otherMembers.length > 1) {
       // Group DM: show comma-separated names of other members
       const names = otherMembers?.map((m: any) => m.workspace_member?.user?.name || m.user?.name);
       const uniqueNames = Array.from(new Set(names));
@@ -79,43 +83,26 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
       // DM: show other person's avatar
       const otherMember = otherMembers[0];
       const user = otherMember.workspace_member?.user || otherMember.user;
-      // Use workspace_member_id field, not id
       const workspaceMemberId = otherMember.workspace_member?.id || otherMember.workspace_member_id;
       return {
         type: 'dm',
         user: user,
         workspaceMemberId: workspaceMemberId,
       };
-    } else if (otherMembers.length === 0) {
+    } else {
       // Self-conversation: show current user's avatar
       const selfMember = conversationMembers.find(
         (member: any) => member.user.id === currentUser.id,
       );
       const user = selfMember?.workspace_member?.user || selfMember?.user || currentUser;
-      // Use workspace_member_id field, not id
       const workspaceMemberId = selfMember?.workspace_member?.id || selfMember?.workspace_member_id;
       return {
         type: 'self',
         user: user,
         workspaceMemberId: workspaceMemberId,
       };
-    } else {
-      // Group conversation (2+ other members): show comma-separated names
-      const names = otherMembers?.map((m: any) => m.workspace_member?.user?.name || m.user?.name);
-      const uniqueNames = Array.from(new Set(names));
-      const displayNames =
-        uniqueNames.length < names.length
-          ? `${uniqueNames.join(', ')} (${names.length} members)`
-          : uniqueNames.join(', ');
-
-      return {
-        type: 'group',
-        names: displayNames,
-      };
     }
-  };
-
-  const conversationDisplay = chatType === 'conversation' ? getConversationHeaderDisplay() : null;
+  }, [chatType, conversationData, currentUser]);
 
   const currentChannelMember = useMemo(() => {
     return members.find((member) => member.workspace_member.user.id === user?.id);
@@ -156,6 +143,11 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
     setProfilePanelOpen(workspaceMemberId);
   };
 
+  const selectedChannel = useMemo(
+    () => channels?.find((channel) => channel.id === channelId),
+    [channels, channelId],
+  );
+
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b">
       <div className="flex items-center gap-2">
@@ -163,11 +155,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
           <ChevronLeft className="h-5 w-5" />
         </Button>
         {chatType === 'conversation' ? (
-          // For conversations, show avatar only for 1-on-1 or self conversations
-          conversationDisplay?.type === 'group' ? (
-            // Group DM with 3+ people: no avatar, just names in the title
-            <></>
-          ) : (
+          conversationDisplay?.type === 'group' ? null : conversationDisplay ? (
             // DM or Self: show avatar
             <Avatar
               className="w-6 h-6 cursor-pointer hover:opacity-80 transition-opacity"
@@ -187,21 +175,33 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
                 {conversationDisplay?.user?.name?.[0]?.toUpperCase() || '?'}
               </AvatarFallback>
             </Avatar>
+          ) : (
+            <Skeleton className="w-6 h-6 rounded-full" />
           )
-        ) : // For channels, show lock/hash icon
-        channel.isPrivate ? (
-          <Lock className="w-4 h-4 text-muted-foreground" />
-        ) : (
-          <Hash className="w-4 h-4 text-muted-foreground" />
-        )}
-        {isLoading ? (
-          <Skeleton className="h-6 w-32" />
-        ) : (
+        ) : chatType === 'channel' ? (
+          channel.isPrivate ? (
+            <Lock className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <Hash className="w-4 h-4 text-muted-foreground" />
+          )
+        ) : null}
+
+        {chatType === 'channel' ? (
           <h2 className="font-semibold text-lg text-foreground">
-            {chatType === 'conversation' && conversationDisplay?.type === 'group'
-              ? conversationDisplay.names
-              : channel.name}
+            {selectedChannel?.name || channel.name}
           </h2>
+        ) : chatType === 'conversation' ? (
+          conversationDisplay ? (
+            <h2 className="font-semibold text-lg text-foreground">
+              {conversationDisplay?.type === 'group'
+                ? conversationDisplay?.names
+                : conversationDisplay?.user?.name || ''}
+            </h2>
+          ) : (
+            <Skeleton className="h-6 w-32" />
+          )
+        ) : (
+          <h2 className="font-semibold text-lg text-foreground">{channel.name}</h2>
         )}
       </div>
 
@@ -217,7 +217,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
             className="flex items-center -space-x-2 focus:outline-none group relative px-2 py-1 rounded-md hover:bg-muted/50 transition-colors"
             title="Channel details"
           >
-            {visibleMembers.map((member) => (
+            {memberAvatars.visibleMembers.map((member) => (
               <Tooltip key={member.id}>
                 <TooltipTrigger asChild>
                   <Avatar
@@ -245,15 +245,14 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
               </Tooltip>
             ))}
 
-            {extraCount > 0 && (
+            {memberAvatars.extraCount > 0 && (
               <div className="h-7 w-7 flex items-center justify-center rounded-full bg-muted text-xs font-medium border-2 border-background text-muted-foreground">
-                +{extraCount}
+                +{memberAvatars.extraCount}
               </div>
             )}
           </Button>
         )}
 
-        {/* Kebab Menu (only for channels) */}
         {chatType === 'channel' && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -286,7 +285,6 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
         )}
       </div>
 
-      {/* Channel Details Modal (only for channels) */}
       {chatType === 'channel' && (
         <ChannelDetailsModal
           isOpen={isDetailsModalOpen}
