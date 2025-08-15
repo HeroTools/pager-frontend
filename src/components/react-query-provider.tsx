@@ -1,8 +1,8 @@
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import type { ReactNode } from 'react';
 
 const queryClient = new QueryClient({
@@ -69,18 +69,26 @@ export default function ReactQueryProvider({ children }: { children: ReactNode }
               'user-channels',
               'conversations',
               'agents',
+              'members',
               'currentUser',
             ];
-            
+
             // Don't persist queries with errors or that are currently errored
             if (query.state.status === 'error') {
               return false;
             }
-            
-            return persistKeys.some(key => 
-              Array.isArray(query.queryKey) && 
-              query.queryKey.includes(key)
+
+            return persistKeys.some(
+              (key) => Array.isArray(query.queryKey) && query.queryKey.includes(key),
             );
+          },
+        },
+        hydrateOptions: {
+          // Immediately make persisted data available to avoid loading states
+          defaultOptions: {
+            queries: {
+              gcTime: 1000 * 60 * 60 * 24,
+            },
           },
         },
       }}

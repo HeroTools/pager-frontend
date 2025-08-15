@@ -1,10 +1,11 @@
+import { supabase } from '@/lib/supabase/client';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import axios, {
   type AxiosError,
   AxiosHeaders,
   type AxiosInstance,
   type InternalAxiosRequestConfig,
 } from 'axios';
-import { supabase } from '@/lib/supabase/client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
@@ -37,34 +38,55 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 };
 
 /**
+ * Check if we're running on the server
+ */
+const isServer = typeof window === 'undefined';
+
+/**
  * Get a fresh access token, refreshing if necessary
+ * Works in both client and server contexts
  */
 async function getAccessToken(): Promise<string | null> {
   try {
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
+    if (isServer) {
+      // Server-side: create server Supabase client
+      const supabaseServer = await createServerClient();
+      const {
+        data: { session },
+        error,
+      } = await supabaseServer.auth.getSession();
 
-    if (error || !session) {
-      return null;
-    }
-
-    // Check if token needs refresh (5 minutes before expiry)
-    const now = Math.floor(Date.now() / 1000);
-    const expiresAt = session.expires_at || 0;
-    const shouldRefresh = expiresAt - now < 300; // 5 minutes buffer
-
-    if (shouldRefresh) {
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError || !refreshData.session) {
-        console.error('Token refresh failed:', refreshError);
+      if (error || !session?.access_token) {
         return null;
       }
-      return refreshData.session.access_token;
-    }
+      return session.access_token;
+    } else {
+      // Client-side: use existing client logic
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
 
-    return session.access_token;
+      if (error || !session) {
+        return null;
+      }
+
+      // Check if token needs refresh (5 minutes before expiry)
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = session.expires_at || 0;
+      const shouldRefresh = expiresAt - now < 300; // 5 minutes buffer
+
+      if (shouldRefresh) {
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshData.session) {
+          console.error('Token refresh failed:', refreshError);
+          return null;
+        }
+        return refreshData.session.access_token;
+      }
+
+      return session.access_token;
+    }
   } catch (error) {
     console.error('Failed to get access token:', error);
     return null;
