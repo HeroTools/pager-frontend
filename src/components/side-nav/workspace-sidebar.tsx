@@ -1,6 +1,6 @@
 import { AlertTriangle, HashIcon, Lock, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -44,7 +44,12 @@ export const WorkspaceSidebar = () => {
   const { getWorkspaceDrafts } = useDraftsStore();
   const { setThreadOpen } = useUIStore();
 
+  const [isHydrated, setIsHydrated] = useState(false);
   const draftCount = Object.keys(getWorkspaceDrafts(workspaceId)).length;
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const { startConversationCreation } = useConversationCreateStore();
   const setOpen = useCreateChannelModal((state) => state.setOpen);
@@ -84,7 +89,7 @@ export const WorkspaceSidebar = () => {
             icon={Pencil}
             id="drafts"
             variant={entityId === 'drafts' ? 'active' : 'default'}
-            count={draftCount}
+            count={isHydrated ? draftCount : undefined}
           />
         </div>
         <WorkspaceSection
