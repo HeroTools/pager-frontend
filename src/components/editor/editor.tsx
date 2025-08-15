@@ -68,7 +68,7 @@ interface EditorProps {
 
 const TLDs = ['com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'dev', 'app', 'xyz', 'info', 'biz'];
 const URL_REGEX = new RegExp(
-  `(?:https?:\\/\\/)?(?:localhost(?:\\d{1,5})?|\\w[\\w-]*\\.(?:${TLDs.join('|')})\\b)(?:\\/[^\\s]*)?`,
+  `(?:https?:\\/\\/)?(?:localhost(?::\\d{1,5})?|(?:[\\w-]+\\.)*[\\w-]+\\.(?:${TLDs.join('|')})\\b)(?:\\/[^\\s]*)?`,
   'i',
 );
 const AUTO_LINK_URL_REGEX = new RegExp(URL_REGEX.source, 'gi');
