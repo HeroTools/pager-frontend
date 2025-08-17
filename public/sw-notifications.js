@@ -23,7 +23,21 @@ self.addEventListener('notificationclick', function (event) {
   // Handle different notification actions
   if (event.action === 'reply') {
     // Open reply interface
-    const replyUrl = `/${entityType}s/${entityId}?action=reply&notificationId=${notificationId}`;
+    let replyUrl = '/';
+    
+    if (workspaceId && entityType && entityId) {
+      if (entityType === 'channel') {
+        replyUrl = `/${workspaceId}/c-${entityId}?action=reply&notificationId=${notificationId}`;
+      } else if (entityType === 'conversation') {
+        replyUrl = `/${workspaceId}/d-${entityId}?action=reply&notificationId=${notificationId}`;
+      } else {
+        replyUrl = `/${workspaceId}`;
+      }
+    } else if (workspaceId) {
+      replyUrl = `/${workspaceId}`;
+    }
+    
+    console.log('Opening reply URL:', replyUrl);
     event.waitUntil(clients.openWindow(replyUrl));
   } else if (event.action === 'mark_read') {
     // Mark as read via API call
@@ -74,7 +88,22 @@ self.addEventListener('notificationclick', function (event) {
 
           // No existing window found, open a new one
           if (clients.openWindow) {
-            const targetUrl = entityType && entityId ? `/${entityType}s/${entityId}` : '/';
+            let targetUrl = '/';
+            
+            if (workspaceId && entityType && entityId) {
+              // Use the correct URL format for channels and conversations
+              if (entityType === 'channel') {
+                targetUrl = `/${workspaceId}/c-${entityId}`;
+              } else if (entityType === 'conversation') {
+                targetUrl = `/${workspaceId}/d-${entityId}`;
+              } else {
+                targetUrl = `/${workspaceId}`;
+              }
+            } else if (workspaceId) {
+              targetUrl = `/${workspaceId}`;
+            }
+            
+            console.log('Opening notification URL:', targetUrl);
             return clients.openWindow(targetUrl);
           }
         }),

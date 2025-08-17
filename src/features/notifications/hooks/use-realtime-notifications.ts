@@ -75,9 +75,11 @@ export const useRealtimeNotifications = ({
   const handleNotificationClick = useCallback(
     (notification: NotificationEntity): void => {
       if (notification.related_channel_id) {
-        router.push(`/${workspaceId}/c-${notification.related_channel_id}`);
+        const channelUrl = `/${workspaceId}/c-${notification.related_channel_id}`;
+        router.push(channelUrl);
       } else if (notification.related_conversation_id) {
-        router.push(`/${workspaceId}/d-${notification.related_conversation_id}`);
+        const conversationUrl = `/${workspaceId}/d-${notification.related_conversation_id}`;
+        router.push(conversationUrl);
       }
     },
     [workspaceId, router],
