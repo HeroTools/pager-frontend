@@ -1,8 +1,9 @@
 'use client';
 
-import { AlertTriangle, Loader } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Chat } from '@/components/chat/chat';
 import { transformAgentMessages } from '@/features/agents/helpers';
@@ -18,7 +19,6 @@ import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
 import { useUIStore } from '@/stores/ui-store';
 import { type Channel, ChannelType } from '@/types/chat';
-import { toast } from 'sonner';
 
 interface AgentConversationChatProps {
   agentId: string;
@@ -145,31 +145,25 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     };
   };
 
-  const isLoading = isLoadingAgents || !currentUser;
+  const agentChannel = transformAgentToChannel(
+    agent || {
+      id: agentId,
+      name: agent?.name || 'AI Agent',
+      description: agent?.description || '',
+    },
+  );
+
+  const isLoading = !currentUser || isLoadingAgents || isLoadingMessages;
   const error = messagesError;
 
-  if (isLoading) {
-    return (
-      <div className="h-full flex-1 flex items-center justify-center">
-        <Loader className="animate-spin size-5 text-muted-foreground" />
-      </div>
-    );
-  }
-
-  // Handle error states
-  if (error || !agents) {
+  if (error && !isLoading) {
     return (
       <div className="h-full flex-1 flex flex-col gap-y-2 items-center justify-center">
         <AlertTriangle className="size-5 text-muted-foreground" />
-        <span className="text-muted-foreground text-sm">
-          {error ? 'Failed to load conversation' : 'Agent not found'}
-        </span>
+        <span className="text-muted-foreground text-sm">Failed to load conversation</span>
       </div>
     );
   }
-
-  // Transform agent data for chat component
-  const agentChannel = transformAgentToChannel(agent);
 
   const handleSendMessage = async (content: {
     body: string;
@@ -194,7 +188,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
       const response = await createMessage({
         message: content.plainText,
         _optimisticId: optimisticId,
-        _tempConversationId: queryConversationId, // Pass the temp conversation ID!
+        _tempConversationId: queryConversationId,
       });
 
       if (!currentConversationId && response.conversation?.id) {
@@ -205,10 +199,9 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
       }
 
       removePendingMessage(optimisticId);
-      console.log('✅ Message sent successfully');
     } catch (error) {
       removePendingMessage(optimisticId);
-      console.error('❌ Failed to send message:', error);
+      console.error('Failed to send message:', error);
       toast.error('Failed to send message. Please try again.');
     }
   };
@@ -256,7 +249,6 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     }
   };
 
-  // Handle loading more messages (when user scrolls up)
   const handleLoadMore = () => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -271,8 +263,8 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         currentUser={currentUser}
         chatType="agent"
         conversationData={conversationWithMessages?.pages?.[0]}
-        isLoading={isLoadingMessages && !!currentConversationId}
-        isDisabled={isPending}
+        isLoading={isLoading}
+        isDisabled={isPending || isLoading}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
@@ -281,7 +273,7 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
         hasMoreMessages={hasNextPage}
         isLoadingMore={isFetchingNextPage}
         highlightMessageId={highlightMessageId}
-        members={[]} // No members to display for agent conversations
+        members={[]}
       />
     </div>
   );

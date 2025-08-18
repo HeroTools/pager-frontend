@@ -25,31 +25,31 @@ export const UserButton = ({ workspaceId, size = 'md' }: UserButtonProps) => {
     signOut.mutate();
   };
 
-  if (isLoading) {
-    return <Loader className="size-4 animate-spin text-muted-foreground" />;
-  }
-
-  if (!user) {
-    return null;
-  }
-
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="outline-none relative cursor-pointer">
         <Avatar
           className={`rounded-md hover:opacity-75 transition ${size === 'sm' ? 'size-8' : 'size-10'}`}
-          workspaceMemberId={user.workspace_member_id}
-          showPresence={true}
+          workspaceMemberId={!isLoading ? user?.workspace_member_id : undefined}
+          showPresence={!isLoading}
           presenceSize={size === 'sm' ? 'sm' : 'md'}
         >
-          <AvatarImage className="rounded-md" alt={user.name} src={user.image} />
-          <AvatarFallback className="rounded-md text-sm">
-            {user.name!.charAt(0).toUpperCase()}
-          </AvatarFallback>
+          {isLoading ? (
+            <AvatarFallback className="rounded-md">
+              <Loader className="size-4 animate-spin text-muted-foreground" />
+            </AvatarFallback>
+          ) : (
+            <>
+              <AvatarImage className="rounded-md" alt={user?.name} src={user?.image} />
+              <AvatarFallback className="rounded-md text-sm">
+                {user?.name?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </>
+          )}
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" side="bottom" className="w-60">
-        <DropdownMenuItem onClick={handleSignOut} className="h-10">
+        <DropdownMenuItem onClick={handleSignOut} className="h-10" disabled={isLoading || !user}>
           <LogOutIcon className="size-4 mr-2" />
           Log out
         </DropdownMenuItem>

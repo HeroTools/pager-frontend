@@ -137,7 +137,7 @@ export const ConversationItem = ({
 
           {conversation.is_group_conversation && (
             <div className="absolute -bottom-0.5 -right-0.5 bg-sidebar text-color-foreground text-xs rounded-md min-w-[14px] h-3.5 flex items-center justify-center px-1 border border-background">
-              {conversation.member_count > 9 ? '9+' : conversation.member_count}
+              {conversation.other_members.length > 9 ? '9+' : conversation.other_members.length}
             </div>
           )}
         </div>

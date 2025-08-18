@@ -3,9 +3,12 @@ import { useRouter } from 'next/navigation';
 import { type FC, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
+import { useUIStore } from '@/stores/ui-store';
+
 import { ChannelDetailsModal } from '@/components/channel-details-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,12 +37,14 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   conversationData,
   currentUser,
 }) => {
+  const isLoading = !channel.name;
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<'members' | 'settings'>('members');
   const { workspaceId } = useParamIds();
   const removeChannelMembers = useRemoveChannelMembers();
   const { user } = useCurrentUser(workspaceId);
   const router = useRouter();
+  const { setProfilePanelOpen } = useUIStore();
 
   // Show up to 4 avatars, then a +N indicator
   const maxAvatars = 4;
@@ -81,7 +86,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
         user: user,
         workspaceMemberId: workspaceMemberId,
       };
-    } else {
+    } else if (otherMembers.length === 0) {
       // Self-conversation: show current user's avatar
       const selfMember = conversationMembers.find(
         (member: any) => member.user.id === currentUser.id,
@@ -94,13 +99,26 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
         user: user,
         workspaceMemberId: workspaceMemberId,
       };
+    } else {
+      // Group conversation (2+ other members): show comma-separated names
+      const names = otherMembers?.map((m: any) => m.workspace_member?.user?.name || m.user?.name);
+      const uniqueNames = Array.from(new Set(names));
+      const displayNames =
+        uniqueNames.length < names.length
+          ? `${uniqueNames.join(', ')} (${names.length} members)`
+          : uniqueNames.join(', ');
+
+      return {
+        type: 'group',
+        names: displayNames,
+      };
     }
   };
 
   const conversationDisplay = chatType === 'conversation' ? getConversationHeaderDisplay() : null;
 
   const currentChannelMember = useMemo(() => {
-    return members.find((member) => member.workspace_member.user.id === user.id);
+    return members.find((member) => member.workspace_member.user.id === user?.id);
   }, [user, members]);
 
   const handleLeaveChannel = async () => {
@@ -134,6 +152,10 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
     router.push(`/${workspaceId}`);
   };
 
+  const handleAvatarClick = (workspaceMemberId: string) => {
+    setProfilePanelOpen(workspaceMemberId);
+  };
+
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b">
       <div className="flex items-center gap-2">
@@ -141,17 +163,21 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
           <ChevronLeft className="h-5 w-5" />
         </Button>
         {chatType === 'conversation' ? (
-          // For conversations, show avatar(s) or names
+          // For conversations, show avatar only for 1-on-1 or self conversations
           conversationDisplay?.type === 'group' ? (
-            // Group DM: no icon, just names in the title
+            // Group DM with 3+ people: no avatar, just names in the title
             <></>
           ) : (
             // DM or Self: show avatar
             <Avatar
-              className="w-6 h-6"
+              className="w-6 h-6 cursor-pointer hover:opacity-80 transition-opacity"
               workspaceMemberId={conversationDisplay?.workspaceMemberId}
               showPresence={true}
               presenceSize="md"
+              onClick={() =>
+                conversationDisplay?.workspaceMemberId &&
+                handleAvatarClick(conversationDisplay.workspaceMemberId)
+              }
             >
               <AvatarImage
                 src={conversationDisplay?.user?.image || undefined}
@@ -168,11 +194,15 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
         ) : (
           <Hash className="w-4 h-4 text-muted-foreground" />
         )}
-        <h2 className="font-semibold text-lg text-foreground">
-          {chatType === 'conversation' && conversationDisplay?.type === 'group'
-            ? conversationDisplay.names
-            : channel.name}
-        </h2>
+        {isLoading ? (
+          <Skeleton className="h-6 w-32" />
+        ) : (
+          <h2 className="font-semibold text-lg text-foreground">
+            {chatType === 'conversation' && conversationDisplay?.type === 'group'
+              ? conversationDisplay.names
+              : channel.name}
+          </h2>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
@@ -191,9 +221,13 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
               <Tooltip key={member.id}>
                 <TooltipTrigger asChild>
                   <Avatar
-                    className="h-7 w-7 border-2 border-background bg-muted"
+                    className="h-7 w-7 border-2 border-background bg-muted cursor-pointer hover:opacity-80 transition-opacity"
                     workspaceMemberId={member.workspace_member.id}
                     showPresence={false}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent the button's onClick from firing
+                      handleAvatarClick(member.workspace_member.id);
+                    }}
                   >
                     {member.workspace_member.user.image ? (
                       <AvatarImage

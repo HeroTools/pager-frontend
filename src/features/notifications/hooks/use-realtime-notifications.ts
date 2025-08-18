@@ -7,6 +7,7 @@ import { notificationKeys } from '@/features/notifications/constants/query-keys'
 import { useFocusNotificationManager } from '@/features/notifications/hooks/use-focus-notification-manager';
 import { useNotificationContext } from '@/features/notifications/hooks/use-notification-context';
 import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
+import { renderMarkdownForToast } from '@/features/notifications/lib/helpers/render-markdown-for-toast';
 import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
 import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
 import {
@@ -224,7 +225,7 @@ export const useRealtimeNotifications = ({
 
         if (showToastFlag) {
           toast.info(notification.title, {
-            description: notification.message,
+            description: renderMarkdownForToast(notification.message),
             action: {
               label: 'View',
               onClick: () => handleNotificationClick(notification),
@@ -233,9 +234,8 @@ export const useRealtimeNotifications = ({
         }
 
         updateNotificationCaches(notification, storeUnread);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        console.error('❌ Error handling new notification:', errorMessage);
+      } catch (error) {
+        toast.error('Failed to handle new notification');
       }
     },
     [
@@ -314,9 +314,8 @@ export const useRealtimeNotifications = ({
             }),
           );
         }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        console.error('❌ Error handling notification read:', errorMessage);
+      } catch (error) {
+        toast.error('Failed to handle notification read');
       } finally {
         isUpdatingCacheRef.current = false;
       }
@@ -376,9 +375,8 @@ export const useRealtimeNotifications = ({
       queryClient.setQueryData<UnreadCountData>(notificationKeys.unreadCount(workspaceId), {
         unread_count: 0,
       });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      console.error('❌ Error handling all notifications read:', errorMessage);
+    } catch (error) {
+      toast.error('Failed to handle all notifications read');
     } finally {
       isUpdatingCacheRef.current = false;
     }

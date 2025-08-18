@@ -16,7 +16,6 @@ import { useMessageOperations, useMessageReplies } from '@/features/messages/hoo
 import { useMessagesStore } from '@/features/messages/store/messages-store';
 import { useToggleReaction } from '@/features/reactions';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui-store';
 import type { Message } from '@/types/chat';
 import { formatDateLabel, getUserAvatar, getUserName, transformMessages } from '../helpers';
@@ -141,8 +140,7 @@ export const Thread = ({ onClose }: ThreadProps) => {
         setTimeout(() => scrollToBottom(), 100);
         setEditorKey((prev) => prev + 1);
       })
-      .catch((error) => {
-        console.error('Failed to send thread reply:', error);
+      .catch(() => {
         toast.error('Failed to send reply. Please try again.');
       });
   };
@@ -154,7 +152,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
         data: { body: newContent },
       });
     } catch (error) {
-      console.error('Failed to edit message:', error);
       toast.error('Failed to edit message. Please try again.');
     }
   };
@@ -163,7 +160,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
     try {
       await deleteMessage.mutateAsync(messageId);
     } catch (error) {
-      console.error('Failed to delete message:', error);
       toast.error('Failed to delete message. Please try again.');
     }
   };
@@ -179,7 +175,6 @@ export const Thread = ({ onClose }: ThreadProps) => {
         currentlyReacted: hasReacted || false,
       });
     } catch (error) {
-      console.error('Failed to react to message:', error);
       toast.error('Failed to add reaction. Please try again.');
     }
   };
