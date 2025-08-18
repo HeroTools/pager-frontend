@@ -1,7 +1,7 @@
 import { notificationKeys } from '@/features/notifications/constants/query-keys';
 import { useNotificationContext } from '@/features/notifications/hooks/use-notification-context';
 import { useMarkNotificationAsRead } from '@/features/notifications/hooks/use-notifications-mutations';
-import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
+import { notificationService } from '@/features/notifications/services/notification-service';
 import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
 import { type InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef } from 'react';
@@ -42,9 +42,9 @@ export const useFocusNotificationManager = () => {
       const unreadNotificationIds = getNotificationsToMarkAsRead(allNotifications);
 
       if (unreadNotificationIds.length > 0) {
-        unreadNotificationIds.forEach((id) => {
-          browserNotificationService.closeNotification(id);
-        });
+        for (const id of unreadNotificationIds) {
+          await notificationService.closeNotification(id);
+        }
 
         await markAsReadMutation.mutateAsync({
           notificationIds: unreadNotificationIds,

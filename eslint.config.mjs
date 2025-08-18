@@ -1,5 +1,5 @@
-import { FlatCompat } from '@eslint/eslintrc';
 import { fixupConfigRules } from '@eslint/compat';
+import { FlatCompat } from '@eslint/eslintrc';
 import typescriptParser from '@typescript-eslint/parser';
 
 const compat = new FlatCompat({

@@ -14,6 +14,15 @@ import 'highlight.js/styles/github.css';
 import 'quill/dist/quill.snow.css';
 import './styles/globals.css';
 
+// Component to conditionally render Analytics only in browser
+function ConditionalAnalytics() {
+  // Only render Analytics in browser, not in Electron
+  if (typeof window !== 'undefined' && (window as any).electronAPI) {
+    return null;
+  }
+  return <Analytics />;
+}
+
 const geistSans = localFont({
   src: './fonts/geist-vf.woff',
   variable: '--font-geist-sans',
@@ -39,7 +48,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Analytics />
+        <ConditionalAnalytics />
         <ReactQueryProvider>
           <ReactQueryDevtools />
           <AuthProvider>

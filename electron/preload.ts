@@ -1,16 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
   getAppVersion: () => ipcRenderer.invoke('app-version'),
-  
-  // Add more secure API methods here as needed
+
   platform: process.platform,
-  
-  // Example: Safe method to open external links
+
   openExternal: (url: string) => {
-    // Validate URL before sending to main process
     try {
       new URL(url);
       return ipcRenderer.invoke('open-external', url);
@@ -20,15 +15,38 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
 
-  // Notification-related methods
   focusWindow: () => ipcRenderer.invoke('focus-window'),
-  
-  // System notification permissions (for future native notifications)
+
   requestNotificationPermission: () => ipcRenderer.invoke('request-notification-permission'),
   getNotificationPermission: () => ipcRenderer.invoke('get-notification-permission'),
+
+  showNativeNotification: (id: string, options: any) =>
+    ipcRenderer.invoke('show-native-notification', id, options),
+  closeNativeNotification: (id: string) => ipcRenderer.invoke('close-native-notification', id),
+  closeAllNativeNotifications: () => ipcRenderer.invoke('close-all-native-notifications'),
+  checkNativeNotificationSupport: () => ipcRenderer.invoke('check-native-notification-support'),
+  requestNativeNotificationPermission: () =>
+    ipcRenderer.invoke('request-native-notification-permission'),
+
+  onNotificationClick: (id: string, callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on(`notification-click-${id}`, listener);
+    return () => ipcRenderer.removeListener(`notification-click-${id}`, listener);
+  },
+
+  onNotificationAction: (id: string, callback: (action: string) => void) => {
+    const listener = (_: any, action: string) => callback(action);
+    ipcRenderer.on(`notification-action-${id}`, listener);
+    return () => ipcRenderer.removeListener(`notification-action-${id}`, listener);
+  },
+
+  onNotificationReply: (id: string, callback: (reply: string) => void) => {
+    const listener = (_: any, reply: string) => callback(reply);
+    ipcRenderer.on(`notification-reply-${id}`, listener);
+    return () => ipcRenderer.removeListener(`notification-reply-${id}`, listener);
+  },
 });
 
-// Types for the exposed API
 declare global {
   interface Window {
     electronAPI: {
@@ -38,6 +56,14 @@ declare global {
       focusWindow: () => Promise<void>;
       requestNotificationPermission: () => Promise<string>;
       getNotificationPermission: () => Promise<string>;
+      showNativeNotification: (id: string, options: any) => Promise<string | null>;
+      closeNativeNotification: (id: string) => Promise<void>;
+      closeAllNativeNotifications: () => Promise<void>;
+      checkNativeNotificationSupport: () => Promise<boolean>;
+      requestNativeNotificationPermission: () => Promise<boolean>;
+      onNotificationClick: (id: string, callback: () => void) => () => void;
+      onNotificationAction: (id: string, callback: (action: string) => void) => () => void;
+      onNotificationReply: (id: string, callback: (reply: string) => void) => () => void;
     };
   }
 }

@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../supabase/client';
 import type { Session, User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
+import { notificationService } from '@/features/notifications/services/notification-service';
 
 interface AuthContextType {
   session: Session | null;
@@ -40,7 +41,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    // Initialize notification service
+    const initializeNotifications = async () => {
+      try {
+        await notificationService.initialize();
+      } catch (error) {
+        console.error('Notification service initialization error:', error);
+      }
+    };
+
     initializeAuth();
+    initializeNotifications();
 
     // Listen for auth changes
     const {

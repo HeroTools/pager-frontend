@@ -8,7 +8,7 @@ import { useFocusNotificationManager } from '@/features/notifications/hooks/use-
 import { useNotificationContext } from '@/features/notifications/hooks/use-notification-context';
 import { useNotificationPermissions } from '@/features/notifications/hooks/use-notification-permissions';
 import { renderMarkdownForToast } from '@/features/notifications/lib/helpers/render-markdown-for-toast';
-import { browserNotificationService } from '@/features/notifications/services/browser-notification-service';
+import { notificationService } from '@/features/notifications/services/notification-service';
 import type { NotificationEntity, NotificationsResponse } from '@/features/notifications/types';
 import {
   notificationsRealtimeHandler,
@@ -216,7 +216,7 @@ export const useRealtimeNotifications = ({
         const storeUnread = shouldCreateUnreadNotification(notification);
 
         if (showBrowser && notificationPermission === 'granted') {
-          await browserNotificationService.showNotification({
+          await notificationService.showNotification({
             notification,
             workspaceId,
             onClickCallback: () => handleNotificationClick(notification),
@@ -250,7 +250,7 @@ export const useRealtimeNotifications = ({
   );
 
   const handleNotificationRead = useCallback(
-    (payload: NotificationReadPayload): void => {
+    async (payload: NotificationReadPayload): Promise<void> => {
       if (isUpdatingCacheRef.current) {
         return;
       }
@@ -259,7 +259,7 @@ export const useRealtimeNotifications = ({
         const { notificationId, isRead } = payload;
 
         if (isRead) {
-          browserNotificationService.closeNotification(notificationId);
+          await notificationService.closeNotification(notificationId);
         }
 
         isUpdatingCacheRef.current = true;
@@ -323,14 +323,14 @@ export const useRealtimeNotifications = ({
     [getNotificationsQueryKey, getUnreadNotificationsQueryKey, queryClient, workspaceId],
   );
 
-  const handleAllNotificationsRead = useCallback((): void => {
+  const handleAllNotificationsRead = useCallback(async (): Promise<void> => {
     if (isUpdatingCacheRef.current) {
       return;
     }
 
     try {
       isUpdatingCacheRef.current = true;
-      browserNotificationService.closeAllNotifications();
+      await notificationService.closeAllNotifications();
       const now = new Date().toISOString();
 
       queryClient.setQueryData<NotificationsInfiniteData>(getNotificationsQueryKey(), (old) => {
@@ -410,10 +410,10 @@ export const useRealtimeNotifications = ({
           handleNewNotification(payload as any);
         })
         .on('broadcast', { event: 'notification_read' }, ({ payload }) => {
-          handleNotificationRead(payload as any);
+          handleNotificationRead(payload as any).catch(console.error);
         })
         .on('broadcast', { event: 'all_notifications_read' }, () => {
-          handleAllNotificationsRead();
+          handleAllNotificationsRead().catch(console.error);
         });
     };
 
