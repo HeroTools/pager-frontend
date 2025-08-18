@@ -6,8 +6,7 @@ import { useUIStore } from '@/stores/ui-store';
 import type { Message } from '@/types/chat';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronRight, Pencil } from 'lucide-react';
-import type { FC } from 'react';
-import { useMemo } from 'react';
+import { type FC, useMemo } from 'react';
 
 const ThreadButton: FC<{
   message: Message;
@@ -15,7 +14,7 @@ const ThreadButton: FC<{
   hasDraft?: boolean;
 }> = ({ message, members, hasDraft = false }) => {
   const threadMembers = useMemo(
-    () => getThreadMembers(message.threadParticipants!, members),
+    () => getThreadMembers(message.threadParticipants || [], members),
     [message.threadParticipants, members],
   );
   const { setThreadOpen, setProfilePanelOpen } = useUIStore();

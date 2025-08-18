@@ -1,5 +1,8 @@
-import type { UploadProgress } from '@/features/file-upload/hooks/use-upload';
-import { useDeleteAttachment, useFileUpload } from '@/features/file-upload/hooks/use-upload';
+import {
+  useDeleteAttachment,
+  useFileUpload,
+  type UploadProgress,
+} from '@/features/file-upload/hooks/use-upload';
 import { X } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';

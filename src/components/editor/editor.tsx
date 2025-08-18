@@ -25,9 +25,9 @@ import type { ManagedAttachment, UploadedAttachment } from '@/features/file-uplo
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useTypingStatus } from '@/hooks/use-typing-status';
 import {
+  hasDeltaContent as checkDeltaContent,
   enrichDeltaWithMentions,
   getPlainTextFromDelta as getDeltaPlainText,
-  hasDeltaContent as checkDeltaContent,
   validateFile,
 } from '@/lib/helpers';
 import { createMemberLookupMap } from '@/lib/helpers/members';
@@ -717,11 +717,11 @@ const Editor = ({
           const codeContent = match[1];
           const matchIndex = match.index ?? 0;
           const startIndex = lineStartIndex + matchIndex;
-          
+
           // Check if this text is already formatted as code
           const format = quill.getFormat(startIndex, fullMatch.length);
           if (!format.code) {
-            // Delete the backticks and format the content as inline code  
+            // Delete the backticks and format the content as inline code
             quill.deleteText(startIndex, fullMatch.length, 'silent');
             quill.insertText(startIndex, codeContent, { code: true }, 'silent');
             // Insert a space after the code to allow exiting
