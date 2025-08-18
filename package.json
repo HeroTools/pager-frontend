@@ -2,6 +2,8 @@
   "name": "pager",
   "version": "0.1.0",
   "private": true,
+  "main": "dist/main.js",
+  "homepage": "./",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,7 +16,16 @@
     "check-all": "npm run lint && npm run format:check && npm run type-check",
     "fix-all": "npm run lint:fix && npm run format",
     "clean": "rm -rf .next && rm -rf node_modules/.cache",
-    "build:analyze": "ANALYZE=true npm run build"
+    "build:analyze": "ANALYZE=true npm run build",
+    "electron": "node scripts/start-electron.js",
+    "electron:dev": "npm run electron",
+    "build:electron": "npm run build && npm run compile:electron",
+    "compile:electron": "tsc --project electron/tsconfig.json",
+    "dist": "npm run build:electron && electron-builder",
+    "dist:mac": "npm run build:electron && electron-builder --mac",
+    "dist:win": "npm run build:electron && electron-builder --win",
+    "dist:linux": "npm run build:electron && electron-builder --linux",
+    "pack": "npm run build:electron && electron-builder --dir"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
@@ -78,6 +89,11 @@
     "@types/react-dom": "^19.1.6",
     "@typescript-eslint/parser": "^8.37.0",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.0",
+    "cross-env": "^10.0.0",
+    "electron": "^37.3.0",
+    "electron-builder": "^26.0.12",
+    "electron-is-dev": "^3.0.1",
     "eslint": "^9.31.0",
     "eslint-config-next": "^15.4.1",
     "eslint-config-prettier": "^10.1.5",
@@ -88,12 +104,66 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.11",
     "typescript": "^5",
-    "typescript-eslint": "^8.37.0"
+    "typescript-eslint": "^8.37.0",
+    "wait-on": "^8.0.4"
   },
   "overrides": {
     "@emoji-mart/react": {
       "react": "^19.1.0",
       "react-dom": "^19.1.0"
+    }
+  },
+  "build": {
+    "appId": "com.pager.app",
+    "productName": "Pager",
+    "directories": {
+      "output": "electron-dist"
+    },
+    "files": [
+      "dist/**/*",
+      ".next/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "public",
+        "to": "public"
+      }
+    ],
+    "mac": {
+      "icon": "public/icon.icns",
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "win": {
+      "icon": "public/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "icon": "public/icon.png",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }

@@ -3,6 +3,7 @@ import { Analytics } from '@vercel/analytics/next';
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 
+import { ElectronRedirectHandler } from '@/components/electron-redirect-handler';
 import { Modals } from '@/components/modals';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import ReactQueryProvider from '@/components/react-query-provider';
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ReactQueryProvider>
           <ReactQueryDevtools />
           <AuthProvider>
+            <ElectronRedirectHandler />
             <Toaster />
             <Modals />
             <ThemeProvider>
