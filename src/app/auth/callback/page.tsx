@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+import { Card, CardContent } from '@/components/ui/card';
+import { isElectron, navigateToUrl } from '@/lib/electron/navigation';
+import { supabase } from '@/lib/supabase/client';
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -70,10 +72,18 @@ export default function AuthCallback() {
           }
 
           // Redirect to dashboard
-          router.push('/');
+          if (isElectron()) {
+            navigateToUrl('/');
+          } else {
+            router.push('/');
+          }
         } else {
           // No session found, redirect to login
-          router.push('/auth/login?error=no_session');
+          if (isElectron()) {
+            navigateToUrl('/auth?error=no_session');
+          } else {
+            router.push('/auth?error=no_session');
+          }
         }
       } catch (err) {
         console.error('Callback error:', err);
@@ -114,7 +124,13 @@ export default function AuthCallback() {
                 </h2>
                 <p className="text-destructive mb-4">{error}</p>
                 <button
-                  onClick={() => router.push('/auth/login')}
+                  onClick={() => {
+                    if (isElectron()) {
+                      navigateToUrl('/auth');
+                    } else {
+                      router.push('/auth');
+                    }
+                  }}
                   className="bg-destructive text-destructive-foreground px-4 py-2 rounded hover:bg-destructive/80 transition-colors"
                 >
                   Try Again
