@@ -6,8 +6,8 @@
   "homepage": "./",
   "author": {
     "name": "Pager",
-    "email": "support@pager.com",
-    "url": "https://pager.com"
+    "email": "support@pager.team",
+    "url": "https://pager.team"
   },
   "description": "AI first chat collaboration platform",
   "license": "Apache-2.0",
@@ -124,7 +124,7 @@
     }
   },
   "build": {
-    "appId": "com.pager.app",
+    "appId": "team.pager.app",
     "productName": "Pager",
     "directories": {
       "output": "electron-dist",
@@ -164,7 +164,7 @@
       }
     ],
     "mac": {
-      "icon": "public/icon.icns",
+      "icon": "public/desktop-platform-icons/icon.icns",
       "category": "public.app-category.productivity",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -193,7 +193,7 @@
       }
     },
     "win": {
-      "icon": "public/icon.ico",
+      "icon": "public/desktop-platform-icons/icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -206,7 +206,7 @@
       "signAndEditExecutable": false
     },
     "linux": {
-      "icon": "public/icon.png",
+      "icon": "public/desktop-platform-icons/icon.png",
       "category": "Network",
       "target": [
         {
@@ -232,9 +232,9 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "public/icon.ico",
-      "uninstallerIcon": "public/icon.ico",
-      "installerHeaderIcon": "public/icon.ico",
+      "installerIcon": "public/desktop-platform-icons/icon.ico",
+      "uninstallerIcon": "public/desktop-platform-icons/icon.ico",
+      "installerHeaderIcon": "public/desktop-platform-icons/icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     },
