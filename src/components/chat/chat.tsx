@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import type { Channel, Message } from '@/types/chat';
 import { ChatMember } from '../../features/members';
 import { ChatHeader } from './header';
+import { JoinChannelPrompt } from './join-channel-prompt';
 import { ChatMessageList } from './message-list';
 import { TypingIndicator } from './typing-indicator';
 
@@ -39,6 +40,7 @@ interface ChatProps {
   members?: ChatMember[];
   highlightMessageId?: string | null;
   isDisabled?: boolean;
+  isChannelMember?: boolean;
 }
 
 const Editor = dynamic(() => import('@/components/editor/editor'), {
@@ -87,6 +89,7 @@ export const Chat: FC<ChatProps> = ({
   members,
   highlightMessageId,
   isDisabled,
+  isChannelMember = true,
 }) => {
   const { workspaceId } = useParamIds();
   const { getDraft } = useDraftsStore();
@@ -236,21 +239,27 @@ export const Chat: FC<ChatProps> = ({
         getUserAvatar={(userId) => getUserAvatar(userId, members)}
       />
 
-      <div className="fixed bottom-0 left-0 right-0 bg-background md:relative md:p-4 md:border-t">
-        <Editor
-          variant="create"
-          workspaceId={workspaceId}
-          placeholder={getPlaceholderText(chatType, channel.name)}
-          onSubmit={handleSendMessage}
-          disabled={isLoading || isDisabled}
-          maxFiles={10}
-          maxFileSizeBytes={20 * 1024 * 1024}
-          userId={currentUser.id}
-          channelId={chatType === 'channel' ? channel.id : undefined}
-          conversationId={chatType === 'conversation' ? channel.id : undefined}
-          agentConversationId={chatType === 'agent' ? channel.id : undefined}
-        />
-      </div>
+      {chatType === 'channel' && !isChannelMember ? (
+        <div className="p-4 border-t">
+          <JoinChannelPrompt channel={channel} />
+        </div>
+      ) : (
+        <div className="fixed bottom-0 left-0 right-0 bg-background md:relative md:p-4 md:border-t">
+          <Editor
+            variant="create"
+            workspaceId={workspaceId}
+            placeholder={getPlaceholderText(chatType, channel.name)}
+            onSubmit={handleSendMessage}
+            disabled={isLoading || isDisabled}
+            maxFiles={10}
+            maxFileSizeBytes={20 * 1024 * 1024}
+            userId={currentUser.id}
+            channelId={chatType === 'channel' ? channel.id : undefined}
+            conversationId={chatType === 'conversation' ? channel.id : undefined}
+            agentConversationId={chatType === 'agent' ? channel.id : undefined}
+          />
+        </div>
+      )}
     </div>
   );
 };

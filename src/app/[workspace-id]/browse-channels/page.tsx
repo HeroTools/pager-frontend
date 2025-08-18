@@ -76,7 +76,7 @@ export default function BrowseChannels() {
 
   const handleJoinChannel = (channelId: string) => {
     if (!currentMember?.id) {
-      console.error('No current member ID available');
+      // No current member ID available
       return;
     }
 
@@ -132,7 +132,8 @@ export default function BrowseChannels() {
             {displayedChannels.map((channel) => (
               <li
                 key={channel.id}
-                className="flex items-center gap-4 px-6 py-4 border-b border-border-subtle last:border-b-0 hover:bg-accent transition"
+                className="flex items-center gap-4 px-6 py-4 border-b border-border-subtle last:border-b-0 hover:bg-accent transition cursor-pointer"
+                onClick={() => handleOpenChannel(channel.id)}
               >
                 <span>
                   {channel.channel_type === 'public' ? (
@@ -166,7 +167,10 @@ export default function BrowseChannels() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleOpenChannel(channel.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenChannel(channel.id);
+                      }}
                     >
                       Open
                     </Button>
@@ -174,7 +178,10 @@ export default function BrowseChannels() {
                     <Button
                       variant="default"
                       size="sm"
-                      onClick={() => handleJoinChannel(channel.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleJoinChannel(channel.id);
+                      }}
                       disabled={joiningChannelId === channel.id || !currentMember?.id}
                     >
                       {joiningChannelId === channel.id ? 'Joining...' : 'Join'}
