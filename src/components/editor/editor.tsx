@@ -72,6 +72,7 @@ const URL_REGEX = new RegExp(
   'i',
 );
 const AUTO_LINK_URL_REGEX = new RegExp(URL_REGEX.source, 'gi');
+const BACKTICK_REGEX = /`([^`]+)`/g;
 
 const Editor = ({
   variant = 'create',
@@ -709,10 +710,40 @@ const Editor = ({
         const lineText = line.domNode.textContent ?? '';
         const lineStartIndex = quill.getIndex(line);
 
-        const words = [...lineText.matchAll(/\S+/g)];
+        // Handle backtick inline code formatting
+        const backtickMatches = [...lineText.matchAll(BACKTICK_REGEX)];
+        for (const match of backtickMatches) {
+          const fullMatch = match[0];
+          const codeContent = match[1];
+          const matchIndex = match.index ?? 0;
+          const startIndex = lineStartIndex + matchIndex;
+          
+          // Check if this text is already formatted as code
+          const format = quill.getFormat(startIndex, fullMatch.length);
+          if (!format.code) {
+            // Delete the backticks and format the content as inline code  
+            quill.deleteText(startIndex, fullMatch.length, 'silent');
+            quill.insertText(startIndex, codeContent, { code: true }, 'silent');
+            // Insert a space after the code to allow exiting
+            quill.insertText(startIndex + codeContent.length, ' ', 'silent');
+            // Remove code format from the space
+            quill.formatText(startIndex + codeContent.length, 1, 'code', false, 'silent');
+            // Position cursor at the space
+            quill.setSelection(startIndex + codeContent.length + 1, 0, 'silent');
+          }
+        }
+
+        // Re-get line after potential modifications
+        const [updatedLine] = quill.getLine(selection.index);
+        if (!updatedLine || !updatedLine.domNode) return;
+        const updatedLineText = updatedLine.domNode.textContent ?? '';
+        const updatedLineStartIndex = quill.getIndex(updatedLine);
+
+        // Handle URL auto-linking
+        const words = [...updatedLineText.matchAll(/\S+/g)];
         for (const wordMatch of words) {
           const word = wordMatch[0];
-          const wordIndexInEditor = lineStartIndex + (wordMatch.index ?? 0);
+          const wordIndexInEditor = updatedLineStartIndex + (wordMatch.index ?? 0);
           const format = quill.getFormat(wordIndexInEditor, word.length);
 
           const linkValue = format.link;
@@ -727,10 +758,10 @@ const Editor = ({
           }
         }
 
-        const matches = [...lineText.matchAll(AUTO_LINK_URL_REGEX)];
+        const matches = [...updatedLineText.matchAll(AUTO_LINK_URL_REGEX)];
         for (const match of matches) {
           const url = match[0];
-          const urlIndexInEditor = lineStartIndex + (match.index ?? 0);
+          const urlIndexInEditor = updatedLineStartIndex + (match.index ?? 0);
           const formats = quill.getFormat(urlIndexInEditor, url.length);
           if (formats.link) continue;
 
