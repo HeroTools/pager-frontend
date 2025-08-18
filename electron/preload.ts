@@ -19,6 +19,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return Promise.reject('Invalid URL');
     }
   },
+
+  // Notification-related methods
+  focusWindow: () => ipcRenderer.invoke('focus-window'),
+  
+  // System notification permissions (for future native notifications)
+  requestNotificationPermission: () => ipcRenderer.invoke('request-notification-permission'),
+  getNotificationPermission: () => ipcRenderer.invoke('get-notification-permission'),
 });
 
 // Types for the exposed API
@@ -28,6 +35,9 @@ declare global {
       getAppVersion: () => Promise<string>;
       platform: string;
       openExternal: (url: string) => Promise<void>;
+      focusWindow: () => Promise<void>;
+      requestNotificationPermission: () => Promise<string>;
+      getNotificationPermission: () => Promise<string>;
     };
   }
 }

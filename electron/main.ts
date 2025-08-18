@@ -1,7 +1,7 @@
-import { app, BrowserWindow, shell, ipcMain, Menu, dialog, protocol } from 'electron';
-import { join } from 'path';
+import { ChildProcess, spawn } from 'child_process';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import isDev from 'electron-is-dev';
-import { spawn, ChildProcess } from 'child_process';
+import { join } from 'path';
 
 let nextServer: ChildProcess | null = null;
 
@@ -16,7 +16,7 @@ const startNextServer = (): Promise<number> => {
     nextServer.stdout?.on('data', (data) => {
       const output = data.toString();
       console.log('Next.js server:', output);
-      
+
       // Look for the server ready message
       if (output.includes('ready on') || output.includes('Local:')) {
         const portMatch = output.match(/localhost:(\d+)/);
@@ -75,13 +75,13 @@ const createWindow = async (): Promise<void> => {
       url = `file://${join(__dirname, '../out/index.html')}`;
     }
   }
-  
+
   mainWindow.loadURL(url);
 
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    
+
     if (isDev) {
       mainWindow.webContents.openDevTools();
     }
@@ -133,7 +133,7 @@ app.on('before-quit', () => {
 app.on('web-contents-created', (event, contents) => {
   contents.on('will-navigate', (event, navigationUrl) => {
     const parsedUrl = new URL(navigationUrl);
-    
+
     if (parsedUrl.origin !== 'http://localhost:3000' && !navigationUrl.startsWith('file://')) {
       event.preventDefault();
     }
@@ -143,4 +143,29 @@ app.on('web-contents-created', (event, contents) => {
 // Handle app updates and other IPC messages
 ipcMain.handle('app-version', () => {
   return app.getVersion();
+});
+
+// Handle window focus
+ipcMain.handle('focus-window', () => {
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length > 0) {
+    const mainWindow = windows[0];
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.focus();
+    mainWindow.show();
+  }
+});
+
+// Handle notification permissions (for future native notifications)
+ipcMain.handle('request-notification-permission', async () => {
+  // In Electron, web notifications work automatically
+  // This is for future native notification implementation
+  return 'granted';
+});
+
+ipcMain.handle('get-notification-permission', () => {
+  // Web notifications in Electron don't need special permission
+  return 'granted';
 });
