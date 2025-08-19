@@ -28,6 +28,9 @@ export const useCreateMessage = (
     optimisticId: null,
   });
 
+  // Track the current temp conversation ID to ensure consistency
+  const currentTempConversationIdRef = useRef<string | null>(null);
+
   const getInfiniteQueryKey = useCallback(
     (cId: string) => ['agent-conversation-messages-infinite', workspaceId, agentId, cId] as const,
     [workspaceId, agentId],
@@ -49,7 +52,10 @@ export const useCreateMessage = (
 
   const updateOptimisticMessageWithThinking = useCallback(
     (optimisticId: string, thinking: ThinkingEvent | null, isStreaming: boolean) => {
-      const tempConversationId = conversationId || `temp-${agentId}-${Date.now()}`;
+      // Use the tracked temp conversation ID instead of creating a new one
+      const tempConversationId = conversationId || currentTempConversationIdRef.current;
+      if (!tempConversationId) return;
+
       const queryKey = getInfiniteQueryKey(tempConversationId);
 
       queryClient.setQueryData(queryKey, (old: any) => {
@@ -75,7 +81,7 @@ export const useCreateMessage = (
         return { ...old, pages };
       });
     },
-    [conversationId, agentId, queryClient, getInfiniteQueryKey],
+    [conversationId, queryClient, getInfiniteQueryKey],
   );
 
   const mutation = useMutation({
@@ -97,12 +103,19 @@ export const useCreateMessage = (
 
       setMessageStreamingState({
         isStreaming: true,
-        thinking: null,
+        thinking: { status: 'thinking', message: 'Thinking...' },
         optimisticId,
       });
 
       // Reset the content ref at the start
       streamingContentRef.current = '';
+
+      // Immediately show temporary thinking state
+      updateOptimisticMessageWithThinking(
+        optimisticId,
+        { status: 'thinking', message: 'Thinking...' },
+        true,
+      );
 
       return new Promise((resolve, reject) => {
         streamAgentChat(
@@ -174,6 +187,12 @@ export const useCreateMessage = (
 
       const tempConversationId =
         data._tempConversationId || conversationId || `temp-${agentId}-${Date.now()}`;
+
+      // Track the temp conversation ID for consistency in streaming updates
+      if (!conversationId) {
+        currentTempConversationIdRef.current = tempConversationId;
+      }
+
       const optimisticId = data._optimisticId || `temp-${Date.now()}-${Math.random()}`;
       const agentOptimisticId = `agent-temp-${Date.now()}-${Math.random()}`;
 
@@ -205,7 +224,7 @@ export const useCreateMessage = (
         created_at: new Date().toISOString(),
         _isOptimistic: true,
         _isStreaming: true,
-        _thinking: null,
+        _thinking: { type: 'thinking', message: 'Thinking...' },
       };
 
       const queryKey = getInfiniteQueryKey(tempConversationId);
@@ -294,12 +313,15 @@ export const useCreateMessage = (
 
         const conversationsQueryKey = getConversationsQueryKey();
         queryClient.setQueryData(conversationsQueryKey, (oldData: any) => {
-          if (!oldData) {
-            return { conversations: [res.conversation] };
+          if (!oldData?.agent) {
+            return {
+              agent: { id: agentId, name: '', avatar_url: null, is_active: true },
+              conversation: res.conversation,
+            };
           }
           return {
             ...oldData,
-            conversations: [res.conversation, ...oldData.conversations],
+            conversation: res.conversation,
           };
         });
       } else if (!isNewConversation && conversationId) {
@@ -332,8 +354,11 @@ export const useCreateMessage = (
         });
       }
 
-      // Clear streaming state immediately after successful completion
+      // Clear streaming state and temp conversation ID immediately after successful completion
       clearStreamingState();
+      if (isNewConversation && newConversationId) {
+        currentTempConversationIdRef.current = null;
+      }
     },
 
     onError: (err, _vars, ctx) => {
@@ -351,6 +376,7 @@ export const useCreateMessage = (
 
       toast.error('Failed to send to agent. Try again.');
       clearStreamingState();
+      currentTempConversationIdRef.current = null;
     },
   });
 

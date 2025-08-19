@@ -466,7 +466,7 @@ body {
     -moz-tab-size: 4;
     text-align: left;
     color: var(--foreground);
-    max-width: none;
+    max-width: 100%;
     white-space: normal;
   }
 
@@ -621,6 +621,7 @@ body {
     border-radius: 0.5rem;
     margin: 0.75rem 0;
     overflow-x: auto;
+    max-width: 100%;
     font-size: 0.875rem;
     line-height: 1.4;
     /* Preserve formatting in code blocks */
@@ -642,7 +643,7 @@ body {
     display: inline-block;
     vertical-align: baseline;
     letter-spacing: -0.01em;
-    white-space: pre;
+    white-space: pre-wrap;
   }
 
   /* Dark mode inline code in messages */

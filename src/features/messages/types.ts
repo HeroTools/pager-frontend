@@ -123,6 +123,7 @@ export interface MessageWithUser {
   thread_last_reply_at: string | null;
   thread_participants: string[];
   attachments: Attachment[];
+  sender_type?: 'user' | 'agent' | 'system';
   user: {
     id: string;
     name: string;

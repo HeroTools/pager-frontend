@@ -10,6 +10,7 @@ import { useConversationCreateStore } from '../store/conversation-create-store';
 import MemberSearchSelect from '@/components/member-search-select';
 import { Button } from '@/components/ui/button';
 import { useConversations } from '../hooks/use-conversations';
+import { findExistingConversation } from '../utils/conversation-utils';
 
 export const CreateConversationModal = () => {
   const router = useRouter();
@@ -24,7 +25,7 @@ export const CreateConversationModal = () => {
   } = useConversationCreateStore();
 
   const { data: availableMembers = [] } = useGetMembers(workspaceId);
-  const { createConversation } = useConversations(workspaceId);
+  const { createConversation, conversations } = useConversations(workspaceId);
 
   const handleClose = () => {
     cancelConversationCreation();
@@ -59,6 +60,17 @@ export const CreateConversationModal = () => {
     }
 
     const memberIds = selectedMembers.map((m) => m.id);
+
+    // Check if a conversation with these members already exists
+    const existingConversation = findExistingConversation(conversations, memberIds);
+
+    if (existingConversation) {
+      // Navigate to existing conversation
+      router.push(`/${workspaceId}/d-${existingConversation.id}`);
+      handleClose();
+      toast.success('Redirected to existing conversation');
+      return;
+    }
 
     try {
       const newConversation = await createConversation.mutateAsync({

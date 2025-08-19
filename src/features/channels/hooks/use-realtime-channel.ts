@@ -5,7 +5,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChannelWithMessages } from '../types';
 
-// It's better to define a more descriptive status set
 type ConnectionStatus = 'CONNECTING' | 'SUBSCRIBED' | 'RECONNECTING' | 'CLOSED' | 'ERROR';
 
 interface UseRealtimeChannelProps {
@@ -15,7 +14,6 @@ interface UseRealtimeChannelProps {
   enabled?: boolean;
 }
 
-// --- Mock Query Data Types ---
 interface InfiniteQueryData {
   pages: ChannelWithMessages[];
   pageParams: (string | undefined)[];
@@ -59,6 +57,17 @@ export const useRealtimeChannel = ({
     (threadParentId: string) => ['thread', workspaceId, threadParentId] as const,
     [workspaceId],
   );
+
+  // Helper to get participant ID from message based on sender type
+  const getParticipantId = useCallback((message: MessageWithUser): string => {
+    switch (message.sender_type) {
+      case 'system':
+        return message.user?.id || 'system';
+      case 'user':
+      default:
+        return message.user?.id || '';
+    }
+  }, []);
 
   // 1) Update parent message metadata (reply count & participants)
   const updateParentThreadMetadata = useCallback(
@@ -151,11 +160,13 @@ export const useRealtimeChannel = ({
     [queryClient, getChannelQueryKey, getThreadQueryKey],
   );
 
-  // 3) Handle new incoming messages (exactly as before)
+  // 3) Handle new incoming messages
   const handleNewMessage = useCallback(
     (payload: any) => {
       try {
         const message = payload.message as MessageWithUser;
+
+        // Skip messages from current user (but allow system messages)
         if (message.user?.id === currentUserId) {
           return;
         }
@@ -221,15 +232,7 @@ export const useRealtimeChannel = ({
         console.error('❌ Error handling new channel message:', error);
       }
     },
-    [
-      currentUserId,
-      channelId,
-      connectionStatus,
-      queryClient,
-      getChannelQueryKey,
-      updateParentThreadMetadata,
-      updateThreadCache,
-    ],
+    [currentUserId, queryClient, getChannelQueryKey, updateParentThreadMetadata, updateThreadCache],
   );
 
   const handleMessageUpdated = useCallback(

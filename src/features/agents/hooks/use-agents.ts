@@ -2,7 +2,7 @@ import { CurrentUser } from '@/features/auth';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { agentsApi } from '../api/agents-api';
 import { agentsQueryKeys } from '../query-keys';
-import { AgentConversationFilters, AgentConversationMessageFilters, AgentFilters } from '../types';
+import { AgentConversationMessageFilters, AgentFilters } from '../types';
 
 export const useAgents = (workspaceId: string, filters?: Partial<AgentFilters>) => {
   return useQuery({
@@ -12,36 +12,11 @@ export const useAgents = (workspaceId: string, filters?: Partial<AgentFilters>) 
   });
 };
 
-export const useAgentConversations = (
-  workspaceId: string,
-  agentId: string,
-  filters?: Partial<AgentConversationFilters>,
-) => {
+export const useAgentConversations = (workspaceId: string, agentId: string) => {
   return useQuery({
-    queryKey: ['agent-conversations', workspaceId, agentId, filters],
-    queryFn: () => agentsApi.getAgentConversations(workspaceId, agentId, filters),
+    queryKey: ['agent-conversations', workspaceId, agentId],
+    queryFn: () => agentsApi.getAgentConversations(workspaceId, agentId),
     enabled: !!workspaceId && !!agentId,
-  });
-};
-
-export const useInfiniteAgentConversations = (
-  workspaceId: string,
-  agentId: string,
-  filters?: Omit<AgentConversationFilters, 'cursor'>,
-) => {
-  return useInfiniteQuery({
-    queryKey: ['agent-conversations-infinite', workspaceId, agentId],
-    queryFn: ({ pageParam }) =>
-      agentsApi.getAgentConversations(workspaceId, agentId, {
-        ...filters,
-        cursor: pageParam,
-      }),
-    initialPageParam: undefined,
-    getNextPageParam: (lastPage) => {
-      return lastPage.pagination.hasMore ? lastPage.pagination.nextCursor : undefined;
-    },
-    enabled: !!workspaceId && !!agentId,
-    staleTime: 1000 * 60 * 60 * 24,
   });
 };
 

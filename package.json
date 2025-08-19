@@ -19,6 +19,7 @@
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
+    "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -38,6 +39,7 @@
     "@supabase/supabase-js": "^2.53.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-query": "^5.83.0",
+    "@vercel/analytics": "^1.5.0",
     "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -61,6 +63,7 @@
     "tailwind-merge": "^3.3.1",
     "use-debounce": "^10.0.5",
     "uuid": "^11.1.0",
+    "zod": "^4.0.17",
     "zustand": "^5.0.6"
   },
   "devDependencies": {
