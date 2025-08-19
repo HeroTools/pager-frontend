@@ -72,7 +72,7 @@ const URL_REGEX = new RegExp(
   'i',
 );
 const AUTO_LINK_URL_REGEX = new RegExp(URL_REGEX.source, 'gi');
-const BACKTICK_REGEX = /`([^`]+)`/g;
+const BACKTICK_REGEX = /`([^`\s][^`]*[^`\s]|[^`\s])`/g;
 
 const Editor = ({
   variant = 'create',
@@ -648,6 +648,141 @@ const Editor = ({
                 return false;
               },
             },
+            exitCodeWithArrow: {
+              key: 'ArrowRight',
+              handler(range: any): boolean {
+                const quill = quillRef.current;
+                // Do nothing if there's no cursor or if text is highlighted
+                if (!quill || !range || range.length > 0) return true;
+
+                // Check the format of the character *before* the cursor to know what we are leaving.
+                const formatBehind = quill.getFormat(range.index - 1, 1);
+
+                // If we are leaving a code block...
+                if (formatBehind.code) {
+                  // ...and the character at the cursor is NOT code (meaning we are at the boundary)...
+                  const formatAt = quill.getFormat(range.index, 1);
+                  if (!formatAt.code) {
+                    // We are at the very end of the code block. Time to create an exit path.
+                    const endPos = range.index;
+
+                    if (endPos >= quill.getLength()) {
+                      // At the absolute end of the document, so create an exit space.
+                      quill.insertText(endPos, ' ', 'silent');
+                      quill.formatText(endPos, 1, 'code', false, 'silent');
+                      quill.setSelection(endPos + 1, 0);
+                      return false; // We've handled the input
+                    } else {
+                      // Not at the end of the doc, check if a valid exit space already exists.
+                      const nextChar = quill.getText(endPos, 1);
+                      const nextFormat = quill.getFormat(endPos, 1);
+
+                      if (nextChar === ' ' && !nextFormat.code) {
+                        // A good exit space already exists, just move the cursor past it.
+                        quill.setSelection(endPos + 1, 0);
+                        return false;
+                      } else {
+                        // No valid exit space, so create one.
+                        quill.insertText(endPos, ' ', 'silent');
+                        quill.formatText(endPos, 1, 'code', false, 'silent');
+                        quill.setSelection(endPos + 1, 0);
+                        return false;
+                      }
+                    }
+                  }
+                }
+                // In all other cases, let the default arrow key behaviour happen.
+                return true;
+              },
+            },
+
+            backspaceExitCode: {
+              key: 'Backspace',
+              handler(range: any) {
+                const quill = quillRef.current;
+                if (!quill || !range) return true;
+
+                const format = quill.getFormat(range.index, 1);
+                if (format.code) {
+                  // if we're just after a code span, jump cursor out
+                  const prevFormat = quill.getFormat(range.index - 1, 1);
+                  if (prevFormat.code && !format.code) {
+                    quill.setSelection(range.index, 0);
+                    return false;
+                  }
+                }
+                return true;
+              },
+            },
+
+            exitCodeWithLeftArrow: {
+              key: 'ArrowLeft',
+              handler(range: any): boolean {
+                const quill = quillRef.current;
+                if (!quill || !range || range.index === 0) return true;
+
+                const currentFormat = quill.getFormat(range.index, 1);
+                if (currentFormat.code) {
+                  // Find the start of the current code block
+                  let startPos = range.index;
+                  while (startPos > 0) {
+                    const format = quill.getFormat(startPos - 1, 1);
+                    if (!format.code) break;
+                    startPos--;
+                  }
+
+                  // Check if we're at the start of the code block
+                  if (range.index === startPos) {
+                    // We're at the start of the code block
+                    if (startPos > 0) {
+                      // Move cursor before the code block
+                      quill.setSelection(startPos - 1, 0);
+                      return false;
+                    }
+                  }
+                }
+                return true;
+              },
+            },
+            exitCodeWithTab: {
+              key: 'Tab',
+              handler(range: any): boolean {
+                const quill = quillRef.current;
+                if (!quill || !range) return true;
+
+                const currentFormat = quill.getFormat(range.index, 1);
+                if (currentFormat.code) {
+                  // Find the end of the current code block
+                  let endPos = range.index;
+                  while (endPos < quill.getLength()) {
+                    const format = quill.getFormat(endPos, 1);
+                    if (!format.code) break;
+                    endPos++;
+                  }
+
+                  // Ensure there's a space after the code block to move into
+                  if (endPos >= quill.getLength()) {
+                    // At the end of document
+                    quill.insertText(endPos, ' ', 'silent');
+                    quill.formatText(endPos, 1, 'code', false, 'silent');
+                    quill.setSelection(endPos + 1, 0);
+                  } else {
+                    const nextChar = quill.getText(endPos, 1);
+                    if (nextChar !== ' ') {
+                      // Insert space after code
+                      quill.insertText(endPos, ' ', 'silent');
+                      quill.formatText(endPos, 1, 'code', false, 'silent');
+                      quill.setSelection(endPos + 1, 0);
+                    } else {
+                      // Move to existing space
+                      quill.setSelection(endPos + 1, 0);
+                    }
+                  }
+                  return false;
+                }
+                return true;
+              },
+            },
           },
         },
       },
@@ -675,32 +810,22 @@ const Editor = ({
     quill.setContents(initialContent, 'silent');
     setText(quill.getText());
 
-    quill.root.addEventListener(
-      'paste',
-      (e: ClipboardEvent) => {
-        const selection = quill.getSelection();
+    const handlePaste = (e: ClipboardEvent) => {
+      const selection = quill.getSelection();
+      if (!selection || selection.length === 0) return;
+      const clipboardData = e.clipboardData;
+      if (!clipboardData) return;
+      const pastedData = clipboardData.getData('text/plain');
 
-        if (!selection || selection.length === 0) {
-          return;
-        }
+      if (URL_REGEX.test(pastedData)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        quill.formatText(selection.index, selection.length, 'link', pastedData);
+        quill.setSelection(selection.index + selection.length, 0);
+      }
+    };
 
-        const clipboardData = e.clipboardData;
-        if (!clipboardData) {
-          return;
-        }
-
-        const pastedData = clipboardData.getData('text/plain');
-
-        if (URL_REGEX.test(pastedData)) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-
-          quill.formatText(selection.index, selection.length, 'link', pastedData);
-          quill.setSelection(selection.index + selection.length, 0);
-        }
-      },
-      true,
-    );
+    quill.root.addEventListener('paste', handlePaste, true);
 
     const handleTextChange = () => {
       setTimeout(() => {
@@ -719,29 +844,65 @@ const Editor = ({
           const codeContent = match[1];
           const matchIndex = match.index ?? 0;
           const startIndex = lineStartIndex + matchIndex;
+          const endIndex = startIndex + fullMatch.length;
 
           // Check if this text is already formatted as code
           const format = quill.getFormat(startIndex, fullMatch.length);
           if (!format.code) {
+            // Store current cursor position relative to the match
+            const cursorInMatch = selection.index >= startIndex && selection.index <= endIndex;
+            const cursorOffsetInMatch = cursorInMatch ? selection.index - startIndex : -1;
+
             // Delete the backticks and format the content as inline code
             quill.deleteText(startIndex, fullMatch.length, 'silent');
             quill.insertText(startIndex, codeContent, { code: true }, 'silent');
-            // Insert a space after the code to allow exiting
-            quill.insertText(startIndex + codeContent.length, ' ', 'silent');
-            // Remove code format from the space
-            quill.formatText(startIndex + codeContent.length, 1, 'code', false, 'silent');
-            // Position cursor at the space
-            quill.setSelection(startIndex + codeContent.length + 1, 0, 'silent');
+
+            const codeEndPos = startIndex + codeContent.length;
+
+            // Ensure there's a way to exit the code formatting
+            const nextCharPos = codeEndPos;
+            const hasNextChar = nextCharPos < quill.getLength();
+            const nextChar = hasNextChar ? quill.getText(nextCharPos, 1) : '';
+            const nextFormat = hasNextChar ? quill.getFormat(nextCharPos, 1) : {};
+
+            // Always ensure there's an unformatted space after code for exit
+            if (!hasNextChar) {
+              // At the end of document - add a space for exit
+              quill.insertText(nextCharPos, ' ', 'silent');
+              quill.formatText(nextCharPos, 1, 'code', false, 'silent');
+            } else if (nextChar !== ' ' || nextFormat.code) {
+              // No proper exit space - insert one
+              quill.insertText(nextCharPos, ' ', 'silent');
+              quill.formatText(nextCharPos, 1, 'code', false, 'silent');
+            }
+
+            // Position cursor correctly based on where it was
+            if (cursorInMatch && cursorOffsetInMatch >= 0) {
+              if (cursorOffsetInMatch === 0) {
+                // Cursor was at the opening backtick, place it at start of code
+                quill.setSelection(startIndex, 0, 'silent');
+              } else if (cursorOffsetInMatch >= fullMatch.length - 1) {
+                // Cursor was at or after the closing backtick, place it after the code
+                quill.setSelection(codeEndPos + 1, 0, 'silent');
+              } else {
+                // Cursor was inside the content, maintain relative position
+                const newPos = Math.min(startIndex + cursorOffsetInMatch - 1, codeEndPos);
+                quill.setSelection(newPos, 0, 'silent');
+              }
+            }
           }
         }
 
-        // Re-get line after potential modifications
-        const [updatedLine] = quill.getLine(selection.index);
+        // Re-get line after potential modifications for URL handling
+        const currentSelection = quill.getSelection();
+        if (!currentSelection) return;
+
+        const [updatedLine] = quill.getLine(currentSelection.index);
         if (!updatedLine || !updatedLine.domNode) return;
         const updatedLineText = updatedLine.domNode.textContent ?? '';
         const updatedLineStartIndex = quill.getIndex(updatedLine);
 
-        // Handle URL auto-linking
+        // Handle URL auto-linking (existing logic)
         const words = [...updatedLineText.matchAll(/\S+/g)];
         for (const wordMatch of words) {
           const word = wordMatch[0];
@@ -843,6 +1004,7 @@ const Editor = ({
       quill.off(Quill.events.TEXT_CHANGE, textChangeHandler);
       quill.root.removeEventListener('blur', handleBlur);
       quill.root.removeEventListener('mentionClick', handleMentionClick as EventListener);
+      quill.root.removeEventListener('paste', handlePaste, true);
 
       if (isMobile) {
         quill.off(Quill.events.SELECTION_CHANGE);
