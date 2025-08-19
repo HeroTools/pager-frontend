@@ -1,5 +1,9 @@
 'use client';
 
+import { Hash, Loader, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,11 +15,7 @@ import {
 import type { ChannelEntity } from '@/features/channels/types';
 import { useCurrentMember } from '@/features/members/hooks/use-members';
 import { useParamIds } from '@/hooks/use-param-ids';
-import { Hash, Loader, Lock } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
 
-// Extended interface for browse channels with additional API properties
 interface BrowseChannelItem extends ChannelEntity {
   is_member?: boolean;
   member_count?: number;
@@ -23,6 +23,8 @@ interface BrowseChannelItem extends ChannelEntity {
 
 export default function BrowseChannels() {
   const [search, setSearch] = useState<string>('');
+  const [hoveredChannelId, setHoveredChannelId] = useState<string | null>(null);
+
   const [joiningChannelId, setJoiningChannelId] = useState<string | null>(null);
   const { workspaceId } = useParamIds();
   const router = useRouter();
@@ -69,14 +71,12 @@ export default function BrowseChannels() {
 
   const isLoading = isLoadingAvailable || isLoadingUser;
 
-  // Filter by name (case-insensitive)
   const displayedChannels = combinedChannels?.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleJoinChannel = (channelId: string) => {
     if (!currentMember?.id) {
-      // No current member ID available
       return;
     }
 
@@ -134,6 +134,12 @@ export default function BrowseChannels() {
                 key={channel.id}
                 className="flex items-center gap-4 px-6 py-4 border-b border-border-subtle last:border-b-0 hover:bg-accent transition cursor-pointer"
                 onClick={() => handleOpenChannel(channel.id)}
+                onMouseEnter={() => {
+                  setHoveredChannelId(channel.id);
+                }}
+                onMouseLeave={() => {
+                  setHoveredChannelId(null);
+                }}
               >
                 <span>
                   {channel.channel_type === 'public' ? (
@@ -145,20 +151,32 @@ export default function BrowseChannels() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium truncate">#{channel.name}</span>
-                    {channel.is_member && (
-                      <span className="text-xs text-green-600 font-semibold ml-2">Joined</span>
-                    )}
+                    <div className="flex items-center">
+                      <span className="font-medium truncate">{channel.name}</span>
+                      {hoveredChannelId === channel.id && (
+                        <span className="text-xs text-muted-foreground ml-2">View Channel</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {channel.member_count} member
-                    {channel.member_count !== 1 ? 's' : ''}
-                    {channel.description && (
-                      <>
-                        <span className="mx-2">·</span>
-                        {channel.description}
-                      </>
-                    )}
+                  <div className="flex items-center">
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      {channel.is_member && (
+                        <>
+                          <span className="text-green-600">Joined</span>
+                          <span className="mx-2">·</span>
+                        </>
+                      )}
+                      {channel.member_count} member
+                      {channel.member_count !== 1 ? 's' : ''}
+                    </div>
+                    <div className="text-muted-foreground text-xs">
+                      {channel.description && (
+                        <>
+                          <span className="mx-2">·</span>
+                          {channel.description}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
