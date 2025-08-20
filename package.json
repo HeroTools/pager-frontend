@@ -1,6 +1,8 @@
 {
   "name": "pager",
   "version": "0.1.0",
+  "description": "AI-powered team collaboration platform",
+  "author": "Pager Team",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,7 +16,10 @@
     "check-all": "npm run lint && npm run format:check && npm run type-check",
     "fix-all": "npm run lint:fix && npm run format",
     "clean": "rm -rf .next && rm -rf node_modules/.cache",
-    "build:analyze": "ANALYZE=true npm run build"
+    "build:analyze": "ANALYZE=true npm run build",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:dist": "npm run build && electron-builder --publish=never"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
@@ -59,6 +64,7 @@
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.59.0",
     "react-resizable-panels": "^3.0.3",
+    "sharp": "^0.34.3",
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
     "use-debounce": "^10.0.5",
@@ -78,6 +84,10 @@
     "@types/react-dom": "^19.1.6",
     "@typescript-eslint/parser": "^8.37.0",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.1.0",
+    "electron": "^34.0.0",
+    "electron-builder": "^26.0.1",
+    "electron-serve": "^2.1.1",
     "eslint": "^9.31.0",
     "eslint-config-next": "^15.4.1",
     "eslint-config-prettier": "^10.1.5",
@@ -88,12 +98,81 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.11",
     "typescript": "^5",
-    "typescript-eslint": "^8.37.0"
+    "typescript-eslint": "^8.37.0",
+    "wait-on": "^8.0.1"
   },
   "overrides": {
     "@emoji-mart/react": {
       "react": "^19.1.0",
       "react-dom": "^19.1.0"
     }
+  },
+  "main": "electron/main.js",
+  "homepage": "./",
+  "build": {
+    "appId": "com.pager.app",
+    "productName": "Pager",
+    "directories": {
+      "output": "dist-electron",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "!electron/**/*.ts"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone/server.js",
+        "to": "server.js"
+      },
+      {
+        "from": ".next/standalone/package.json",
+        "to": "package.json"
+      },
+      {
+        "from": ".next/standalone/node_modules",
+        "to": "node_modules"
+      },
+      {
+        "from": ".next/standalone/.next",
+        "to": ".next",
+        "filter": ["**/*", "!cache/**/*"]
+      },
+      {
+        "from": ".next/static",
+        "to": ".next/static"
+      },
+      {
+        "from": "public",
+        "to": "public"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "public/desktop-platform-icons/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        }
+      ],
+      "extendInfo": {
+        "LSUIElement": false,
+        "LSBackgroundOnly": false,
+        "NSHighResolutionCapable": true,
+        "NSSupportsAutomaticGraphicsSwitching": true
+      }
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/desktop-platform-icons/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "public/desktop-platform-icons"
+    },
+    "asarUnpack": [
+      "**/*.{node,dll,dylib,so}"
+    ]
   }
 }

@@ -43,6 +43,15 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Electron
+dist-electron/
+electron-dist/
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.snap
+
 # Misc
 .vercel
 .vercel_build
