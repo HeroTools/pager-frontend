@@ -28,6 +28,7 @@ const ChannelChat = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { setThreadOpen, setThreadHighlightMessageId } = useUIStore();
+  
 
   const { user: currentUser, isAuthenticated } = useCurrentUser(workspaceId);
 
@@ -48,12 +49,13 @@ const ChannelChat = () => {
     refetch: refetchChannel,
   } = useGetChannel(workspaceId, channelId);
 
-  const { members, isUserInChannel } = useChannelMembers(workspaceId, channelId, true);
-
-  const isChannelMember = useMemo(
-    () => isUserInChannel(currentUser?.id || ''),
-    [isUserInChannel, currentUser?.id],
+  const { members, isUserInChannel, isLoading: isLoadingMembers } = useChannelMembers(
+    workspaceId,
+    channelId,
+    true,
   );
+
+  const isChannelMember = isUserInChannel(currentUser?.id || '');
 
   useRealtimeChannel({
     workspaceId,
@@ -90,6 +92,7 @@ const ChannelChat = () => {
 
   const highlightMessageId = searchParams.get('highlight');
   const threadMessageId = searchParams.get('thread');
+
 
   useEffect(() => {
     if (threadMessageId && messages.length > 0 && !isLoadingMessages) {
@@ -272,6 +275,7 @@ const ChannelChat = () => {
         isLoadingMore={isFetchingNextPage}
         highlightMessageId={highlightMessageId}
         isChannelMember={isChannelMember}
+        isLoadingChannelMembers={isLoadingMembers}
       />
     </div>
   );
