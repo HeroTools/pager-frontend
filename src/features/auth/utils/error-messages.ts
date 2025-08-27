@@ -17,7 +17,7 @@ export const getAuthErrorMessage = (error: unknown): string => {
     const data = axiosError.response?.data as BackendErrorResponse;
     const status = axiosError.response?.status;
     const errorMessage = data?.message || '';
-    
+
     if (errorMessage === 'Invalid email format') {
       return 'Please enter a valid email address.';
     }
@@ -63,7 +63,7 @@ export const getAuthErrorMessage = (error: unknown): string => {
     if (errorMessage.startsWith('Refresh failed:')) {
       return 'Session expired. Please sign in again.';
     }
-    
+
     switch (status) {
       case 400:
         return errorMessage || 'Invalid request. Please check your information and try again.';
@@ -77,7 +77,7 @@ export const getAuthErrorMessage = (error: unknown): string => {
         return errorMessage || 'Something went wrong. Please try again.';
     }
   }
-  
+
   if (error instanceof Error) {
     if (error.message.toLowerCase().includes('network')) {
       return 'Network error. Please check your connection and try again.';
@@ -87,11 +87,10 @@ export const getAuthErrorMessage = (error: unknown): string => {
     }
     return error.message || 'Something went wrong. Please try again.';
   }
-  
+
   if (typeof error === 'string') {
     return error;
   }
-  
+
   return 'Something went wrong. Please try again.';
 };
-
