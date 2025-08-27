@@ -1,11 +1,13 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'standalone', // This creates a minimal server bundle
   devIndicators: false,
   eslint: {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: true, // Always unoptimized for better compatibility
     remotePatterns: [
       {
         protocol: 'https',

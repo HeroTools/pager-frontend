@@ -15,6 +15,7 @@ tsconfig.tsbuildinfo
 # Environment variables
 .env*.local
 .env
+.env.production
 
 # Debug logs
 npm-debug.log*
@@ -42,6 +43,15 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Electron
+dist-electron/
+electron-dist/
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.snap
 
 # Misc
 .vercel

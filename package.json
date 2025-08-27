@@ -1,6 +1,8 @@
 {
   "name": "pager",
   "version": "0.1.0",
+  "description": "AI-powered team collaboration platform",
+  "author": "Pager Team",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,7 +16,15 @@
     "check-all": "npm run lint && npm run format:check && npm run type-check",
     "fix-all": "npm run lint:fix && npm run format",
     "clean": "rm -rf .next && rm -rf node_modules/.cache",
-    "build:analyze": "ANALYZE=true npm run build"
+    "build:analyze": "ANALYZE=true npm run build",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "NODE_ENV=production npm run build && electron-builder",
+    "electron:dist": "NODE_ENV=production npm run build:prod && electron-builder --publish=never",
+    "build:prod": "NODE_ENV=production next build",
+    "dist:mac": "NODE_ENV=production npm run build:prod && electron-builder --mac",
+    "dist:win": "NODE_ENV=production npm run build:prod && electron-builder --win",
+    "dist:linux": "NODE_ENV=production npm run build:prod && electron-builder --linux",
+    "dist:all": "NODE_ENV=production npm run build:prod && electron-builder --mac --win --linux"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
@@ -59,6 +69,7 @@
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.59.0",
     "react-resizable-panels": "^3.0.3",
+    "sharp": "^0.34.3",
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
     "use-debounce": "^10.0.5",
@@ -67,6 +78,7 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.0.2",
     "@eslint/compat": "^1.3.1",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.31.0",
@@ -78,6 +90,10 @@
     "@types/react-dom": "^19.1.6",
     "@typescript-eslint/parser": "^8.37.0",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.1.0",
+    "electron": "^34.0.0",
+    "electron-builder": "^26.0.1",
+    "electron-serve": "^2.1.1",
     "eslint": "^9.31.0",
     "eslint-config-next": "^15.4.1",
     "eslint-config-prettier": "^10.1.5",
@@ -88,12 +104,15 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.11",
     "typescript": "^5",
-    "typescript-eslint": "^8.37.0"
+    "typescript-eslint": "^8.37.0",
+    "wait-on": "^8.0.1"
   },
   "overrides": {
     "@emoji-mart/react": {
       "react": "^19.1.0",
       "react-dom": "^19.1.0"
     }
-  }
+  },
+  "main": "electron/main.js",
+  "homepage": "./"
 }
