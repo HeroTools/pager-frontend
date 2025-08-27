@@ -180,51 +180,8 @@ async function startNextServer() {
 
 let mainWindow;
 
-// Security: Configure Content Security Policy
 function setupSecurity() {
   session.defaultSession.webSecurity = true;
-  
-  // Set up CSP for security - more permissive for API connections
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const responseHeaders = { ...details.responseHeaders };
-    
-    // Remove any existing CSP headers to avoid conflicts
-    Object.keys(responseHeaders).forEach(key => {
-      if (key.toLowerCase().includes('content-security-policy')) {
-        delete responseHeaders[key];
-      }
-    });
-    
-    // Build CSP based on environment
-    const cspParts = [
-      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: http: https:",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://vitals.vercel-insights.com https://cdn.jsdelivr.net",
-      "connect-src 'self' " +
-        "http://localhost:* " +
-        "http://127.0.0.1:* " +
-        "ws://localhost:* " +
-        "wss://localhost:* " +
-        "https://*.supabase.co " +
-        "wss://*.supabase.co " +
-        "https://api.openai.com " +
-        "https://m7vs6bfljtuvekta2gw27tyg2a0iwdqz.lambda-url.us-east-2.on.aws " +
-        "https://va.vercel-scripts.com " +
-        "https://vitals.vercel-insights.com " +
-        "https://media.tenor.com " +
-        "https://g.tenor.com " +
-        "https://api.tenor.com",
-      "img-src 'self' data: blob: https: http:",
-      "media-src 'self' data: https: blob:",
-      "style-src 'self' 'unsafe-inline' https:",
-      "font-src 'self' data: https:",
-      "frame-src 'self' https:",
-      "worker-src 'self' blob:"
-    ];
-    
-    responseHeaders['Content-Security-Policy'] = [cspParts.join('; ')];
-    
-    callback({ responseHeaders });
-  });
 }
 
 function createWindow() {

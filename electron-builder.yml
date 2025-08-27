@@ -1,0 +1,82 @@
+appId: team.pager.app
+productName: Pager
+directories:
+  output: dist-electron
+
+files:
+  - electron/**/*
+  - "!electron/**/*.ts"
+  - "!node_modules/**/*"
+
+extraResources:
+  - from: .next/standalone/server.js
+    to: server.js
+  - from: .next/standalone/package.json
+    to: package.json
+  - from: .next/standalone/node_modules
+    to: node_modules
+  - from: .next/standalone/.next
+    to: .next
+    filter:
+      - "**/*"
+      - "!cache/**/*"
+  - from: .next/static
+    to: .next/static
+  - from: public
+    to: public
+
+mac:
+  category: public.app-category.productivity
+  icon: public/desktop-platform-icons/icon.icns
+  # Required for notarization
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Build for current architecture only to avoid Sharp issues
+  target:
+    - target: dmg
+      arch: arm64
+
+# DMG configuration with custom background
+dmg:
+  # Custom background image
+  background: build/dmg/install_background.png
+  # Icon positions
+  contents:
+    - x: 130
+      y: 220
+      type: file
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+  # Window size (should match your background image dimensions)
+  window:
+    width: 540
+    height: 380
+  # Icon size
+  iconSize: 80
+  # Text size for icon labels
+  iconTextSize: 12
+  # Title shown in the DMG window title bar
+  title: "Install ${productName}"
+
+win:
+  target: nsis
+  icon: public/desktop-platform-icons/icon.ico
+
+linux:
+  target: AppImage
+  icon: public/desktop-platform-icons
+
+asarUnpack:
+  - "**/*.{node,dll,dylib,so}"
+
+# Notarization happens automatically with electron-builder
+afterSign: build/notarize.js
+
+# Publishing config (required for notarization to work properly)
+publish:
+  provider: generic
+  url: https://example.com
