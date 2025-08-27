@@ -13,6 +13,7 @@ import {
 } from '@/features/agents/hooks/use-agents';
 import { useCreateMessage } from '@/features/agents/hooks/use-agents-mutations';
 import { useCurrentUser } from '@/features/auth';
+import { McpToolApprovalModal } from './mcp-tool-approval-modal';
 import type { UploadedAttachment } from '@/features/file-upload/types';
 import { useMessagesStore } from '@/features/messages/store/messages-store';
 import { useToggleReaction } from '@/features/reactions';
@@ -71,6 +72,8 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
     mutateAsync: createMessage,
     messageStreamingState,
     isPending,
+    approveMcpTool,
+    denyMcpTool,
   } = useCreateMessage(workspaceId, agentId, currentConversationId);
 
   const toggleReaction = useToggleReaction(workspaceId);
@@ -256,26 +259,43 @@ const AgentConversationChat = ({ agentId, conversationId }: AgentConversationCha
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <Chat
-        channel={agentChannel}
-        messages={messages}
-        currentUser={currentUser}
-        chatType="agent"
-        conversationData={conversationWithMessages?.pages?.[0]}
-        isLoading={isLoading}
-        isDisabled={isPending || isLoading}
-        onSendMessage={handleSendMessage}
-        onEditMessage={handleEditMessage}
-        onDeleteMessage={handleDeleteMessage}
-        onReactToMessage={handleReactToMessage}
-        onLoadMore={handleLoadMore}
-        hasMoreMessages={hasNextPage}
-        isLoadingMore={isFetchingNextPage}
-        highlightMessageId={highlightMessageId}
-        members={[]}
-      />
-    </div>
+    <>
+      <div className="flex flex-col h-full">
+        <Chat
+          channel={agentChannel}
+          messages={messages}
+          currentUser={currentUser}
+          chatType="agent"
+          conversationData={conversationWithMessages?.pages?.[0]}
+          isLoading={isLoading}
+          isDisabled={isPending || isLoading}
+          onSendMessage={handleSendMessage}
+          onEditMessage={handleEditMessage}
+          onDeleteMessage={handleDeleteMessage}
+          onReactToMessage={handleReactToMessage}
+          onLoadMore={handleLoadMore}
+          hasMoreMessages={hasNextPage}
+          isLoadingMore={isFetchingNextPage}
+          highlightMessageId={highlightMessageId}
+          members={[]}
+        />
+      </div>
+
+      {/* MCP Tool Approval Modal */}
+      {messageStreamingState.pendingMcpApproval && (
+        <McpToolApprovalModal
+          open={true}
+          onApprove={approveMcpTool}
+          onDeny={() => denyMcpTool()}
+          toolCall={{
+            toolName: messageStreamingState.pendingMcpApproval.toolName,
+            serverLabel: messageStreamingState.pendingMcpApproval.serverLabel || '',
+            provider: messageStreamingState.pendingMcpApproval.provider || '',
+            arguments: messageStreamingState.pendingMcpApproval.arguments,
+          }}
+        />
+      )}
+    </>
   );
 };
 

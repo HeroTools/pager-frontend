@@ -5,12 +5,15 @@ import { toast } from 'sonner';
 import { authQueryKeys } from '@/features/auth/query-keys';
 import { CurrentUser } from '@/features/auth/types';
 import { streamAgentChat } from '../api/streaming-api';
-import type { ThinkingEvent } from '../types';
+import { mcpApprovalApi } from '../api/mcp-approval-api';
+import type { ThinkingEvent, ToolCall } from '../types';
 
 interface MessageStreamingState {
   isStreaming: boolean;
   thinking: ThinkingEvent | null;
   optimisticId: string | null;
+  activeToolCall: ToolCall | null;
+  pendingMcpApproval: (ToolCall & { approvalId: string }) | null;
 }
 
 export const useCreateMessage = (
@@ -26,6 +29,8 @@ export const useCreateMessage = (
     isStreaming: false,
     thinking: null,
     optimisticId: null,
+    activeToolCall: null,
+    pendingMcpApproval: null,
   });
 
   // Track the current temp conversation ID to ensure consistency
@@ -46,12 +51,19 @@ export const useCreateMessage = (
       isStreaming: false,
       thinking: null,
       optimisticId: null,
+      activeToolCall: null,
+      pendingMcpApproval: null,
     });
     streamingContentRef.current = '';
   }, []);
 
   const updateOptimisticMessageWithThinking = useCallback(
-    (optimisticId: string, thinking: ThinkingEvent | null, isStreaming: boolean) => {
+    (
+      optimisticId: string,
+      thinking: ThinkingEvent | null,
+      isStreaming: boolean,
+      activeToolCall?: ToolCall | null,
+    ) => {
       // Use the tracked temp conversation ID instead of creating a new one
       const tempConversationId = conversationId || currentTempConversationIdRef.current;
       if (!tempConversationId) return;
@@ -70,6 +82,7 @@ export const useCreateMessage = (
                 ...m,
                 _thinking: thinking,
                 _isStreaming: isStreaming,
+                _activeToolCall: activeToolCall,
                 body: streamingContentRef.current,
               };
             }
@@ -138,7 +151,12 @@ export const useCreateMessage = (
               );
             },
             onAgentSwitch: (agent) => {},
-            onToolCall: (toolCall) => {},
+            onToolCall: (toolCall) => {
+              setMessageStreamingState((prev) => ({
+                ...prev,
+                activeToolCall: toolCall,
+              }));
+            },
             onAgentStep: (step) => {},
             onAgentThinking: (thinking) => {
               setMessageStreamingState((prev) => ({
@@ -147,7 +165,12 @@ export const useCreateMessage = (
               }));
 
               // Update the optimistic message with thinking state
-              updateOptimisticMessageWithThinking(optimisticId, thinking, true);
+              updateOptimisticMessageWithThinking(
+                optimisticId,
+                thinking,
+                true,
+                messageStreamingState.activeToolCall,
+              );
             },
             onComplete: (completeData) => {
               // Immediately clear streaming state instead of waiting
@@ -155,10 +178,12 @@ export const useCreateMessage = (
                 isStreaming: false,
                 thinking: null,
                 optimisticId: null,
+                activeToolCall: null,
+                pendingMcpApproval: null,
               });
 
               // Final update to remove streaming state from message
-              updateOptimisticMessageWithThinking(optimisticId, null, false);
+              updateOptimisticMessageWithThinking(optimisticId, null, false, null);
 
               resolve(completeData);
             },
@@ -168,8 +193,52 @@ export const useCreateMessage = (
                 ...prev,
                 isStreaming: false,
                 thinking: null,
+                activeToolCall: null,
+                pendingMcpApproval: null,
               }));
               reject(new Error(error));
+            },
+            // MCP specific handlers
+            onMcpToolApprovalRequired: (toolCall) => {
+              setMessageStreamingState((prev) => ({
+                ...prev,
+                pendingMcpApproval: toolCall,
+                thinking: {
+                  status: 'processing',
+                  message: `Requesting approval for ${toolCall.provider} tool "${toolCall.toolName}"`,
+                },
+              }));
+            },
+            onMcpToolApproved: (toolCall) => {
+              setMessageStreamingState((prev) => ({
+                ...prev,
+                pendingMcpApproval: null,
+                activeToolCall: toolCall,
+                thinking: {
+                  status: 'using_tools',
+                  message: `Using ${toolCall.provider} tool "${toolCall.toolName}"`,
+                },
+              }));
+              // Update the message with the active tool call
+              updateOptimisticMessageWithThinking(
+                optimisticId,
+                {
+                  status: 'using_tools',
+                  message: `Using ${toolCall.provider} tool "${toolCall.toolName}"`,
+                },
+                true,
+                toolCall,
+              );
+            },
+            onMcpToolDenied: (toolCall) => {
+              setMessageStreamingState((prev) => ({
+                ...prev,
+                pendingMcpApproval: null,
+                thinking: {
+                  status: 'processing',
+                  message: `Access denied for ${toolCall.provider} tool "${toolCall.toolName}"`,
+                },
+              }));
             },
           },
         ).catch(reject);
@@ -380,10 +449,42 @@ export const useCreateMessage = (
     },
   });
 
+  // MCP approval functions
+  const approveMcpTool = useCallback(async () => {
+    if (messageStreamingState.pendingMcpApproval) {
+      try {
+        await mcpApprovalApi.approveTool(messageStreamingState.pendingMcpApproval.approvalId);
+      } catch (error) {
+        console.error('Failed to approve MCP tool:', error);
+        toast.error('Failed to approve tool access');
+      }
+    }
+  }, [messageStreamingState.pendingMcpApproval]);
+
+  const denyMcpTool = useCallback(
+    async (reason?: string) => {
+      if (messageStreamingState.pendingMcpApproval) {
+        try {
+          await mcpApprovalApi.denyTool(
+            messageStreamingState.pendingMcpApproval.approvalId,
+            reason,
+          );
+        } catch (error) {
+          console.error('Failed to deny MCP tool:', error);
+          toast.error('Failed to deny tool access');
+        }
+      }
+    },
+    [messageStreamingState.pendingMcpApproval],
+  );
+
   return {
     ...mutation,
     // Expose message-specific streaming state
     messageStreamingState,
     clearStreamingState,
+    // MCP approval functions
+    approveMcpTool,
+    denyMcpTool,
   };
 };

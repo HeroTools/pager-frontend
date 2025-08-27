@@ -1,4 +1,4 @@
-import type { ThinkingEvent } from '@/features/agents/types';
+import type { ThinkingEvent, ToolCall } from '@/features/agents/types';
 import type { Reaction } from '@/features/reactions/types';
 
 export interface Message {
@@ -18,6 +18,7 @@ export interface Message {
   sender_type: string;
   _isStreaming?: boolean;
   _thinking?: ThinkingEvent;
+  _activeToolCall?: ToolCall;
 }
 
 export interface Author {

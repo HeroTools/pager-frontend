@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Info,
+  Plug,
   RefreshCw,
   Settings,
   Upload,
@@ -37,6 +38,7 @@ const WorkspaceSettingsPage = () => {
   const handleBackClick = () => router.back();
   const handleMigrationClick = () => router.push(`/${workspaceId}/settings/import`);
   const handleWebhooksClick = () => router.push(`/${workspaceId}/settings/webhooks`);
+  const handleMcpClick = () => router.push(`/${workspaceId}/settings/integrations/mcp`);
 
   const activeMigration = useMemo(
     () => migrationJobs?.find((j) => j.status === 'pending' || j.status === 'processing'),
@@ -222,6 +224,52 @@ const WorkspaceSettingsPage = () => {
                     )}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <Plug className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold">MCP Integrations</CardTitle>
+                    <CardDescription className="text-sm">
+                      Connect AI agents to external tools via Model Context Protocol
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <div className="flex items-start gap-2 mb-3">
+                    <Info className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                    <div className="text-sm text-muted-foreground">
+                      Enable your AI agents to securely access external services like Linear,
+                      GitHub, Notion, and more through standardized MCP connections.
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      'Secure external tool access',
+                      'Per-agent permissions',
+                      'Popular service presets',
+                      'Custom server support',
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Button onClick={handleMcpClick} size="default" className="font-medium">
+                  Manage MCP connections
+                </Button>
               </CardContent>
             </Card>
 

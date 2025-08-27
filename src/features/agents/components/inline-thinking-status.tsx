@@ -1,15 +1,21 @@
 import { cn } from '@/lib/utils';
-import { Brain, CheckCircle, Cog, Loader, Wrench } from 'lucide-react';
+import { Brain, CheckCircle, Cog, ExternalLink, Loader, Shield, Wrench } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { ThinkingEvent } from '../types';
+import { ThinkingEvent, ToolCall } from '../types';
 
 interface InlineThinkingStatusProps {
   isStreaming: boolean;
   thinking?: ThinkingEvent | null;
+  activeToolCall?: ToolCall | null;
   className?: string;
 }
 
-const InlineThinkingStatus = ({ isStreaming, thinking, className }: InlineThinkingStatusProps) => {
+const InlineThinkingStatus = ({
+  isStreaming,
+  thinking,
+  activeToolCall,
+  className,
+}: InlineThinkingStatusProps) => {
   const [currentStatus, setCurrentStatus] = useState<ThinkingEvent | null>(null);
   const [showStatus, setShowStatus] = useState(false);
 
@@ -46,6 +52,14 @@ const InlineThinkingStatus = ({ isStreaming, thinking, className }: InlineThinki
   }
 
   const getIcon = () => {
+    // Show MCP-specific icons when using external tools
+    if (activeToolCall?.isMcpTool) {
+      if (activeToolCall.requiresApproval && activeToolCall.approvalStatus === 'pending') {
+        return <Shield className="w-3 h-3 text-amber-500 animate-pulse" />;
+      }
+      return <ExternalLink className="w-3 h-3 text-purple-500 animate-spin" />;
+    }
+
     switch (currentStatus.status) {
       case 'thinking':
         return <Brain className="w-3 h-3 text-blue-500 animate-pulse" />;
@@ -88,7 +102,22 @@ const InlineThinkingStatus = ({ isStreaming, thinking, className }: InlineThinki
       )}
     >
       {getIcon()}
-      <span className="italic">{currentStatus.message}</span>
+      <span className="italic">
+        {activeToolCall?.isMcpTool &&
+        activeToolCall.requiresApproval &&
+        activeToolCall.approvalStatus === 'pending'
+          ? `Requesting permission to use ${activeToolCall.provider} tool "${activeToolCall.toolName}"...`
+          : activeToolCall?.isMcpTool
+            ? `Using ${activeToolCall.provider} tool "${activeToolCall.toolName}"...`
+            : currentStatus.message}
+      </span>
+
+      {/* Show external tool badge for MCP tools */}
+      {activeToolCall?.isMcpTool && (
+        <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
+          {activeToolCall.provider}
+        </span>
+      )}
 
       {/* Show processing time for completed status */}
       {currentStatus.status === 'complete' && currentStatus.processingTime && (

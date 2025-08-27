@@ -163,6 +163,12 @@ export interface ToolCall {
   result?: any;
   callId: string;
   message: string;
+  // MCP specific fields
+  isMcpTool?: boolean;
+  serverLabel?: string;
+  provider?: string;
+  requiresApproval?: boolean;
+  approvalStatus?: 'pending' | 'approved' | 'denied';
 }
 
 export interface AgentStep {

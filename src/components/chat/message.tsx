@@ -981,6 +981,7 @@ export const ChatMessage: FC<ChatMessageProps> = ({
                       <InlineThinkingStatus
                         isStreaming={!!message._isStreaming}
                         thinking={message._thinking}
+                        activeToolCall={message._activeToolCall}
                       />
                     )}
                 </>

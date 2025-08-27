@@ -10,6 +10,10 @@ interface StreamingCallbacks {
   onAgentThinking?: (thinking: ThinkingEvent) => void;
   onComplete?: (data: any) => void;
   onError?: (error: string) => void;
+  // MCP specific callbacks
+  onMcpToolApprovalRequired?: (toolCall: ToolCall & { approvalId: string }) => void;
+  onMcpToolApproved?: (toolCall: ToolCall) => void;
+  onMcpToolDenied?: (toolCall: ToolCall) => void;
 }
 
 async function getAuthToken(): Promise<string | null> {
@@ -123,6 +127,15 @@ export async function streamAgentChat(
                 break;
               case 'agent_thinking':
                 callbacks.onAgentThinking?.(data as ThinkingEvent);
+                break;
+              case 'mcp_tool_approval_required':
+                callbacks.onMcpToolApprovalRequired?.(data as ToolCall & { approvalId: string });
+                break;
+              case 'mcp_tool_approved':
+                callbacks.onMcpToolApproved?.(data as ToolCall);
+                break;
+              case 'mcp_tool_denied':
+                callbacks.onMcpToolDenied?.(data as ToolCall);
                 break;
               case 'agent_message_complete':
                 completeData = data;
