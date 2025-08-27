@@ -5,27 +5,27 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   // File operations
   fileProxy: (url, headers) => ipcRenderer.invoke('file-proxy', url, headers),
-  
+
   // Notifications
   showNotification: (title, options) => ipcRenderer.invoke('show-notification', title, options),
   onNotificationClicked: (callback) => ipcRenderer.on('notification-clicked', callback),
-  
+
   // Window controls
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),
   windowMaximize: () => ipcRenderer.invoke('window-maximize'),
   windowClose: () => ipcRenderer.invoke('window-close'),
-  
+
   // App info
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   isDev: () => ipcRenderer.invoke('is-dev'),
-  
+
   // External links
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
-  
+
   // Environment detection
   isElectron: true,
   platform: process.platform,
-  
+
   // Remove listeners (cleanup)
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
 });
@@ -43,17 +43,17 @@ contextBridge.exposeInMainWorld('electronShortcuts', {
       if (event.altKey) keys.push('alt');
       if (event.shiftKey) keys.push('shift');
       keys.push(event.key.toLowerCase());
-      
+
       const shortcutKey = keys.join('+');
       if (shortcutKey === shortcut) {
         event.preventDefault();
         callback();
       }
     };
-    
+
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }
+  },
 });
 
 // Safe console access for debugging

@@ -3,7 +3,10 @@
 declare global {
   interface Window {
     electronAPI?: {
-      fileProxy: (url: string, headers?: Record<string, string>) => Promise<{
+      fileProxy: (
+        url: string,
+        headers?: Record<string, string>,
+      ) => Promise<{
         success: boolean;
         data?: Buffer;
         contentType?: string;
@@ -74,8 +77,8 @@ export const getAppVersion = async (): Promise<string> => {
  * Show notification (native in Electron, web notifications otherwise)
  */
 export const showNotification = async (
-  title: string, 
-  options: ElectronNotificationOptions = {}
+  title: string,
+  options: ElectronNotificationOptions = {},
 ): Promise<boolean> => {
   if (isElectron() && window.electronAPI) {
     // Use native Electron notifications
@@ -110,8 +113,8 @@ export const showNotification = async (
  * Handle file proxy for secure file access
  */
 export const fileProxy = async (
-  url: string, 
-  headers: Record<string, string> = {}
+  url: string,
+  headers: Record<string, string> = {},
 ): Promise<{
   success: boolean;
   data?: ArrayBuffer;
@@ -132,7 +135,7 @@ export const fileProxy = async (
       const response = await fetch(`/api/files/proxy?storageUrl=${encodeURIComponent(url)}`, {
         headers,
       });
-      
+
       if (!response.ok) {
         return {
           success: false,
@@ -140,10 +143,10 @@ export const fileProxy = async (
           error: `HTTP ${response.status}: ${response.statusText}`,
         };
       }
-      
+
       const data = await response.arrayBuffer();
       const contentType = response.headers.get('content-type') || 'application/octet-stream';
-      
+
       return {
         success: true,
         data,
@@ -180,13 +183,13 @@ export const windowControls = {
       await window.electronAPI.windowMinimize();
     }
   },
-  
+
   maximize: async (): Promise<void> => {
     if (isElectron() && window.electronAPI) {
       await window.electronAPI.windowMaximize();
     }
   },
-  
+
   close: async (): Promise<void> => {
     if (isElectron() && window.electronAPI) {
       await window.electronAPI.windowClose();
@@ -197,10 +200,7 @@ export const windowControls = {
 /**
  * Register keyboard shortcuts (Electron enhanced)
  */
-export const registerShortcut = (
-  shortcut: string, 
-  callback: () => void
-): (() => void) => {
+export const registerShortcut = (shortcut: string, callback: () => void): (() => void) => {
   if (isElectron() && window.electronShortcuts) {
     return window.electronShortcuts.onShortcut(shortcut, callback);
   } else {
@@ -211,14 +211,14 @@ export const registerShortcut = (
       if (event.altKey) keys.push('alt');
       if (event.shiftKey) keys.push('shift');
       keys.push(event.key.toLowerCase());
-      
+
       const shortcutKey = keys.join('+');
       if (shortcutKey === shortcut) {
         event.preventDefault();
         callback();
       }
     };
-    
+
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }
@@ -235,7 +235,7 @@ export const electronLog = {
       console.log('[Web]', ...args);
     }
   },
-  
+
   warn: (...args: any[]): void => {
     if (isElectron() && window.electronLog) {
       window.electronLog.warn(...args);
@@ -243,7 +243,7 @@ export const electronLog = {
       console.warn('[Web]', ...args);
     }
   },
-  
+
   error: (...args: any[]): void => {
     if (isElectron() && window.electronLog) {
       window.electronLog.error(...args);
@@ -263,14 +263,14 @@ export const platform = {
     }
     return typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('mac');
   },
-  
+
   isWindows: (): boolean => {
     if (isElectron() && window.electronAPI) {
       return window.electronAPI.platform === 'win32';
     }
     return typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('win');
   },
-  
+
   isLinux: (): boolean => {
     if (isElectron() && window.electronAPI) {
       return window.electronAPI.platform === 'linux';

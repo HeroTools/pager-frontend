@@ -5,8 +5,8 @@ directories:
 
 files:
   - electron/**/*
-  - "!electron/**/*.ts"
-  - "!node_modules/**/*"
+  - '!electron/**/*.ts'
+  - '!node_modules/**/*'
 
 extraResources:
   - from: .next/standalone/server.js
@@ -18,8 +18,8 @@ extraResources:
   - from: .next/standalone/.next
     to: .next
     filter:
-      - "**/*"
-      - "!cache/**/*"
+      - '**/*'
+      - '!cache/**/*'
   - from: .next/static
     to: .next/static
   - from: public
@@ -60,7 +60,7 @@ dmg:
   # Text size for icon labels
   iconTextSize: 12
   # Title shown in the DMG window title bar
-  title: "Install ${productName}"
+  title: 'Install ${productName}'
 
 win:
   target: nsis
@@ -71,7 +71,7 @@ linux:
   icon: public/desktop-platform-icons
 
 asarUnpack:
-  - "**/*.{node,dll,dylib,so}"
+  - '**/*.{node,dll,dylib,so}'
 
 # Notarization happens automatically with electron-builder
 afterSign: build/notarize.js

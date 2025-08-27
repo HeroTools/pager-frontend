@@ -82,7 +82,17 @@ const config = [
     },
   },
 
-  { ignores: ['node_modules/', '.next/', 'dist/', 'public/', 'build/'] },
+  {
+    ignores: [
+      'node_modules/',
+      '.next/',
+      'dist/',
+      'dist-electron/',
+      'public/',
+      'build/',
+      'electron/',
+    ],
+  },
 ];
 
 export default config;

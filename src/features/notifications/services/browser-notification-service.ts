@@ -49,7 +49,7 @@ class BrowserNotificationService {
 
       if (success && onClickCallback) {
         this.electronNotificationCallbacks.set(notification.id, onClickCallback);
-        
+
         // Listen for notification clicks
         if (typeof window !== 'undefined' && window.electronAPI) {
           window.electronAPI.onNotificationClicked((_event, data) => {

@@ -15,14 +15,14 @@ const logFile = path.join(logPath, 'main.log');
 function log(message, level = 'info') {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`;
-  
+
   // Console output
   if (level === 'error') {
     console.error(message);
   } else {
     console.log(message);
   }
-  
+
   // File output for production
   if (!isDev) {
     try {
@@ -38,16 +38,18 @@ async function startNextServer() {
   if (!isDev && !serverProcess) {
     return new Promise((resolve, reject) => {
       const { utilityProcess } = require('electron');
-      
-      const serverPath = app.isPackaged 
+
+      const serverPath = app.isPackaged
         ? path.join(process.resourcesPath, 'server.js')
         : path.join(__dirname, '..', '.next', 'standalone', 'server.js');
-      
-      const cwd = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..', '.next', 'standalone');
-      
+
+      const cwd = app.isPackaged
+        ? process.resourcesPath
+        : path.join(__dirname, '..', '.next', 'standalone');
+
       log(`Starting server from: ${serverPath}`);
       log(`Working directory: ${cwd}`);
-      
+
       // Check if server.js exists
       if (!fs.existsSync(serverPath)) {
         const error = `Server file not found: ${serverPath}`;
@@ -55,18 +57,18 @@ async function startNextServer() {
         reject(new Error(error));
         return;
       }
-      
+
       // For production, environment variables are baked into the Next.js build
       // For development, we can optionally load from .env.local
       let envVars = {};
-      
+
       if (!app.isPackaged) {
         // Development mode - try to load .env.local
         const envPath = path.join(__dirname, '..', '.env.local');
         if (fs.existsSync(envPath)) {
           try {
             const envContent = fs.readFileSync(envPath, 'utf-8');
-            envContent.split('\n').forEach(line => {
+            envContent.split('\n').forEach((line) => {
               if (line && !line.startsWith('#')) {
                 const [key, ...valueParts] = line.split('=');
                 if (key && valueParts.length > 0) {
@@ -80,18 +82,18 @@ async function startNextServer() {
           }
         }
       }
-      
+
       // Environment for the server process
       const env = {
         ...process.env,
-        ...envVars,  // Include env variables (only in dev)
+        ...envVars, // Include env variables (only in dev)
         PORT: PORT.toString(),
         NODE_ENV: 'production',
-        HOSTNAME: '0.0.0.0'  // Bind to all interfaces
+        HOSTNAME: '0.0.0.0', // Bind to all interfaces
       };
-      
+
       log('Spawning server process using utilityProcess...');
-      
+
       try {
         // Use Electron's utilityProcess API - this is the modern way to spawn hidden processes
         // This prevents any Terminal window or dock icon from appearing
@@ -99,45 +101,48 @@ async function startNextServer() {
           env,
           cwd,
           serviceName: 'pager-server',
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
-        
+
         // Handle stdout
         serverProcess.stdout?.on('data', (data) => {
           const output = data.toString();
           log(`Server: ${output}`);
-          
+
           // Check if server is ready
-          if (output.includes('Ready in') || output.includes('started server on') || output.includes('Listening on')) {
+          if (
+            output.includes('Ready in') ||
+            output.includes('started server on') ||
+            output.includes('Listening on')
+          ) {
             log('Server is ready!');
             setTimeout(() => {
               resolve(`http://localhost:${PORT}`);
             }, 500);
           }
         });
-        
+
         // Handle stderr
         serverProcess.stderr?.on('data', (data) => {
           const error = data.toString();
           log(`Server Error: ${error}`, 'error');
         });
-        
+
         // Handle process exit
         serverProcess.on('exit', (code) => {
           log(`Server exited with code ${code}`, code === 0 ? 'info' : 'error');
           serverProcess = null;
-          
+
           // If server exits unexpectedly during startup, reject the promise
           if (code !== 0) {
             reject(new Error(`Server exited with code ${code}`));
           }
         });
-        
+
         // Handle spawn errors
         serverProcess.on('spawn', () => {
           log('Server process spawned successfully');
         });
-        
       } catch (err) {
         log(`Failed to spawn server: ${err.message}`, 'error');
         reject(err);
@@ -147,18 +152,18 @@ async function startNextServer() {
       // Health check - verify server actually starts
       let healthCheckAttempts = 0;
       const maxHealthChecks = 30;
-      
+
       const checkServerHealth = () => {
         healthCheckAttempts++;
-        
+
         // Try to connect to the server
         const http = require('http');
         const req = http.get(`http://localhost:${PORT}/`, (res) => {
           log(`Server health check succeeded (status: ${res.statusCode})`);
           resolve(`http://localhost:${PORT}`);
         });
-        
-        req.on('error', (err) => {
+
+        req.on('error', () => {
           if (healthCheckAttempts < maxHealthChecks) {
             // Server not ready yet, try again
             setTimeout(checkServerHealth, 1000);
@@ -167,10 +172,10 @@ async function startNextServer() {
             reject(new Error('Server failed to respond to health checks'));
           }
         });
-        
+
         req.setTimeout(1000);
       };
-      
+
       // Start health checks after a brief delay
       setTimeout(checkServerHealth, 2000);
     });
@@ -189,18 +194,31 @@ function createWindow() {
   let iconPath;
   if (app.isPackaged) {
     // In production, icon is in Resources/public
-    iconPath = path.join(process.resourcesPath, 'public', 'desktop-platform-icons', 
-      process.platform === 'darwin' ? 'icon.icns' : 
-      process.platform === 'win32' ? 'icon.ico' : 'icon.png'
+    iconPath = path.join(
+      process.resourcesPath,
+      'public',
+      'desktop-platform-icons',
+      process.platform === 'darwin'
+        ? 'icon.icns'
+        : process.platform === 'win32'
+          ? 'icon.ico'
+          : 'icon.png',
     );
   } else {
     // In development, use relative path
-    iconPath = path.join(__dirname, '..', 'public', 'desktop-platform-icons',
-      process.platform === 'darwin' ? 'icon.icns' : 
-      process.platform === 'win32' ? 'icon.ico' : 'icon.png'
+    iconPath = path.join(
+      __dirname,
+      '..',
+      'public',
+      'desktop-platform-icons',
+      process.platform === 'darwin'
+        ? 'icon.icns'
+        : process.platform === 'win32'
+          ? 'icon.ico'
+          : 'icon.png',
     );
   }
-  
+
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -223,7 +241,7 @@ function createWindow() {
   // Load the app
   if (isDev) {
     log('Loading development server at http://localhost:3000');
-    mainWindow.loadURL('http://localhost:3000').catch(err => {
+    mainWindow.loadURL('http://localhost:3000').catch((err) => {
       log(`Failed to load localhost:3000: ${err.message}`, 'error');
       log('Make sure Next.js dev server is running (npm run dev)', 'error');
     });
@@ -232,34 +250,36 @@ function createWindow() {
   } else {
     // In production, start the Next.js server and then load
     log('Starting production server...');
-    startNextServer().then(url => {
-      log(`Loading production server at ${url}`);
-      mainWindow.loadURL(url).catch(err => {
-        log(`Failed to load URL ${url}: ${err.message}`, 'error');
+    startNextServer()
+      .then((url) => {
+        log(`Loading production server at ${url}`);
+        mainWindow.loadURL(url).catch((err) => {
+          log(`Failed to load URL ${url}: ${err.message}`, 'error');
+          // Show error dialog to user
+          const { dialog } = require('electron');
+          dialog.showErrorBox(
+            'Failed to Start',
+            `Unable to start the application server.\n\nError: ${err.message}\n\nPlease check the logs at:\n${logFile}`,
+          );
+          app.quit();
+        });
+      })
+      .catch((err) => {
+        log(`Failed to start production server: ${err.message}`, 'error');
         // Show error dialog to user
         const { dialog } = require('electron');
         dialog.showErrorBox(
-          'Failed to Start', 
-          `Unable to start the application server.\n\nError: ${err.message}\n\nPlease check the logs at:\n${logFile}`
+          'Server Start Failed',
+          `Unable to start the application server.\n\nError: ${err.message}\n\nPlease check the logs at:\n${logFile}`,
         );
         app.quit();
       });
-    }).catch(err => {
-      log(`Failed to start production server: ${err.message}`, 'error');
-      // Show error dialog to user
-      const { dialog } = require('electron');
-      dialog.showErrorBox(
-        'Server Start Failed', 
-        `Unable to start the application server.\n\nError: ${err.message}\n\nPlease check the logs at:\n${logFile}`
-      );
-      app.quit();
-    });
   }
 
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    
+
     // Focus on the window
     if (isDev) {
       mainWindow.focus();
@@ -279,13 +299,11 @@ function createWindow() {
 
   // Prevent navigation to external URLs
   mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
-    const parsedUrl = new URL(navigationUrl);
-    
     if (isDev) {
       // Allow all navigation in development
       return;
     }
-    
+
     // In production, only allow navigation within the app
     if (!navigationUrl.startsWith('file://')) {
       event.preventDefault();
@@ -312,7 +330,7 @@ async function handleFileProxy(url, headers = {}) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
-    
+
     return {
       success: true,
       data: buffer,
@@ -339,7 +357,7 @@ function showNotification(title, options = {}) {
   // On macOS, the notification uses the app's icon from the bundle
   // The icon parameter is mainly for Linux/Windows
   // For macOS, ensure the app has the correct icon in Info.plist
-  
+
   // Determine icon path for notifications (mainly for Windows/Linux)
   let defaultIcon;
   if (app.isPackaged) {
@@ -347,7 +365,7 @@ function showNotification(title, options = {}) {
   } else {
     defaultIcon = path.join(__dirname, '..', 'public', 'desktop-platform-icons', 'icon.png');
   }
-  
+
   // Log for debugging
   log(`Notification icon path: ${options.icon || defaultIcon}`);
 
@@ -365,7 +383,7 @@ function showNotification(title, options = {}) {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
-      
+
       // Send click event to renderer
       mainWindow.webContents.send('notification-clicked', options.data || {});
     }
@@ -378,12 +396,12 @@ function showNotification(title, options = {}) {
 // IPC Handlers
 function setupIPCHandlers() {
   // File proxy handler
-  ipcMain.handle('file-proxy', async (event, url, headers) => {
+  ipcMain.handle('file-proxy', async (_event, url, headers) => {
     return await handleFileProxy(url, headers);
   });
 
   // Native notification handler
-  ipcMain.handle('show-notification', async (event, title, options) => {
+  ipcMain.handle('show-notification', async (_event, title, options) => {
     return showNotification(title, options);
   });
 
@@ -417,7 +435,7 @@ function setupIPCHandlers() {
   });
 
   // Open external URL
-  ipcMain.handle('open-external', (event, url) => {
+  ipcMain.handle('open-external', (_event, url) => {
     shell.openExternal(url);
   });
 }
@@ -430,7 +448,7 @@ app.whenReady().then(() => {
   log(`Node version: ${process.versions.node}`);
   log(`Platform: ${process.platform}`);
   log(`Packaged: ${app.isPackaged}`);
-  
+
   setupSecurity();
   setupIPCHandlers();
   createWindow();
@@ -460,7 +478,7 @@ app.on('before-quit', () => {
 });
 
 // Security: Prevent new window creation
-app.on('web-contents-created', (event, contents) => {
+app.on('web-contents-created', (_event, contents) => {
   contents.on('new-window', (event, navigationUrl) => {
     event.preventDefault();
     shell.openExternal(navigationUrl);
@@ -468,7 +486,7 @@ app.on('web-contents-created', (event, contents) => {
 });
 
 // Handle certificate errors
-app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+app.on('certificate-error', (event, _webContents, url, _error, _certificate, callback) => {
   if (isDev && url.startsWith('http://localhost:')) {
     // In development, ignore certificate errors for localhost
     event.preventDefault();
@@ -481,7 +499,7 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
 
 // Auto-updater (add when ready for updates)
 // const { autoUpdater } = require('electron-updater');
-// 
+//
 // if (!isDev) {
 //   autoUpdater.checkForUpdatesAndNotify();
 // }

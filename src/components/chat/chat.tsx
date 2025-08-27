@@ -248,7 +248,7 @@ export const Chat: FC<ChatProps> = ({
             conversationId={chatType === 'conversation' ? channel.id : undefined}
             agentConversationId={chatType === 'agent' ? channel.id : undefined}
           />
-       </div>
+        </div>
       )}
     </div>
   );
