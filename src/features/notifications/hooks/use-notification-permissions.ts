@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { isElectron } from '@/lib/electron/navigation';
 
 export type NotificationPermissionState = 'default' | 'granted' | 'denied' | 'unsupported';
 
@@ -41,6 +42,18 @@ export const useNotificationPermissions = (): UseNotificationPermissionsReturn =
       localStorage.setItem('notification_permission_asked', 'true');
       setHasAskedBefore(true);
 
+      // In Electron, notifications are more permissive
+      if (isElectron()) {
+        // Check if we have the Electron API for notifications
+        if (window.electronAPI?.requestNotificationPermission) {
+          const result = await window.electronAPI.requestNotificationPermission();
+          const newPermission = result as NotificationPermissionState;
+          setPermission(newPermission);
+          return newPermission;
+        }
+      }
+
+      // Standard web notification request
       const result = await Notification.requestPermission();
       const newPermission = result as NotificationPermissionState;
       setPermission(newPermission);
