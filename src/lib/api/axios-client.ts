@@ -136,8 +136,11 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Only retry on 401 unauthorized
-    if (error.response?.status === 401) {
+    // Skip retry for sign-in/sign-up endpoints (let them handle 401 themselves)
+    const isAuthEndpoint = originalRequest.url?.includes('/auth/sign-');
+    
+    // Only retry on 401 unauthorized for non-auth endpoints
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       originalRequest._retry = true;
 
       // If not already refreshing, start refresh

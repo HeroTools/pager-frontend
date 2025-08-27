@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useSignIn } from '@/features/auth';
 import { AuthFlow } from '@/features/auth/stores/auth-store';
+import { getAuthErrorMessage } from '@/features/auth/utils/error-messages';
 import { TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -36,21 +37,18 @@ export const SignInCard = ({ setFlow }: SignInCardProps) => {
     );
   });
 
-  // Get loading state from the mutation or redirecting
   const isLoading = signIn.isPending || isRedirecting;
-
-  // Get error from the mutation
-  const error = signIn.error;
+  const errorMessage = signIn.error ? getAuthErrorMessage(signIn.error) : null;
 
   return (
     <Card className="w-full h-full p-8">
       <CardHeader className="px-0 pt-0">
         <CardTitle>Login to continue</CardTitle>
       </CardHeader>
-      {error && (
+      {errorMessage && (
         <div className="bg-destructive/15 p-3 rounded-md flex items-center gap-x-2 text-sm text-destructive mb-6">
           <TriangleAlert className="size-4" />
-          <p>{error.message}</p>
+          <p>{errorMessage}</p>
         </div>
       )}
       <CardContent className="space-y-5 px-0 pb-0">
