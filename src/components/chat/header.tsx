@@ -38,6 +38,7 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
   currentUser,
 }) => {
   const isLoading = !channel.name;
+  const isConversationLoading = chatType === 'conversation' && (!conversationData || !currentUser);
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<'members' | 'settings'>('members');
   const { workspaceId } = useParamIds();
@@ -164,7 +165,10 @@ export const ChatHeader: FC<ChatHeaderProps> = ({
         </Button>
         {chatType === 'conversation' ? (
           // For conversations, show avatar only for 1-on-1 or self conversations
-          conversationDisplay?.type === 'group' ? (
+          isConversationLoading ? (
+            // Show skeleton avatar while loading
+            <Skeleton className="w-6 h-6 rounded-md" />
+          ) : conversationDisplay?.type === 'group' ? (
             // Group DM with 3+ people: no avatar, just names in the title
             <></>
           ) : (

@@ -8,6 +8,9 @@ export * from './hooks/use-current-user';
 // Types
 export * from './types';
 
+// Utils
+export * from './utils/error-messages';
+
 // Components
 export * from './components/user-button';
 export * from './components/auth-screen';

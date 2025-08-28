@@ -48,12 +48,13 @@ const ChannelChat = () => {
     refetch: refetchChannel,
   } = useGetChannel(workspaceId, channelId);
 
-  const { members, isUserInChannel } = useChannelMembers(workspaceId, channelId, true);
+  const {
+    members,
+    isUserInChannel,
+    isLoading: isLoadingMembers,
+  } = useChannelMembers(workspaceId, channelId, true);
 
-  const isChannelMember = useMemo(
-    () => isUserInChannel(currentUser?.id || ''),
-    [isUserInChannel, currentUser?.id],
-  );
+  const isChannelMember = isUserInChannel(currentUser?.id || '');
 
   useRealtimeChannel({
     workspaceId,
@@ -272,6 +273,7 @@ const ChannelChat = () => {
         isLoadingMore={isFetchingNextPage}
         highlightMessageId={highlightMessageId}
         isChannelMember={isChannelMember}
+        isLoadingChannelMembers={isLoadingMembers}
       />
     </div>
   );
