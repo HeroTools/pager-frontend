@@ -119,13 +119,11 @@ const ConversationChat = () => {
       displayName = otherMembers.map((member) => member.workspace_member?.user?.name).join(', ');
     } else if (otherMembers.length === 1) {
       displayName = otherMembers[0].workspace_member?.user?.name;
-    } else {
-      displayName = currentUser?.name || 'You';
     }
 
     return {
       id: conversationId,
-      name: displayName || 'Unknown User',
+      name: displayName || '',
       description: `Conversation with ${chatMembers.length} members`,
       isPrivate: true,
       memberCount: chatMembers.length,
