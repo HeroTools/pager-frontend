@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/lib/supabase/client';
 
 import { useSignUp } from '@/features/auth';
+import { getAuthErrorMessage } from '@/features/auth/utils/error-messages';
 import type { AuthFlow } from '../stores/auth-store';
 
 interface SignUpCardProps {
@@ -83,21 +84,7 @@ export const SignUpCard = ({
         }
       } catch (err: any) {
         console.error('Sign up error:', err);
-
-        // Handle different error formats
-        if (err?.response?.data?.error) {
-          // API error response
-          setError(err.response.data.error);
-        } else if (err?.message) {
-          // Standard error object
-          setError(err.message);
-        } else if (typeof err === 'string') {
-          // String error
-          setError(err);
-        } else {
-          // Unknown error format
-          setError('Something went wrong. Please try again.');
-        }
+        setError(getAuthErrorMessage(err));
       } finally {
         setSigningUp(false);
       }
@@ -119,7 +106,7 @@ export const SignUpCard = ({
       });
 
       if (error) {
-        setError(error.message);
+        setError(getAuthErrorMessage(error));
       } else {
         setError('');
         // Could show a success message here
