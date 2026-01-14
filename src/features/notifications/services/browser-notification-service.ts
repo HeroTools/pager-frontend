@@ -1,4 +1,5 @@
 import type { NotificationEntity } from '@/features/notifications/types';
+import { isElectron } from '@/lib/electron/navigation';
 
 interface ShowNotificationParams {
   notification: NotificationEntity;
@@ -25,19 +26,28 @@ class BrowserNotificationService {
     }
 
     try {
-      const browserNotification = new Notification(notification.title, {
+      // Enhanced notification options for Electron compatibility
+      const notificationOptions: NotificationOptions = {
         body: notification.message,
-        icon: '/favicon.ico', // Update with your app icon
-        badge: '/badge-icon.png', // Update with your badge icon
+        icon: isElectron() ? './public/favicon.ico' : '/favicon.ico',
+        badge: isElectron() ? './public/badge-icon.png' : '/badge-icon.png',
         tag: notification.id,
         requireInteraction: false,
         silent: false,
-      });
+      };
+
+      const browserNotification = new Notification(notification.title, notificationOptions);
 
       this.notifications.set(notification.id, browserNotification);
 
       browserNotification.onclick = () => {
         console.log('Notification clicked:', notification.id);
+        
+        // In Electron, bring window to front when notification is clicked
+        if (isElectron() && window.electronAPI?.focusWindow) {
+          window.electronAPI.focusWindow();
+        }
+        
         onClickCallback?.();
         browserNotification.close();
         this.notifications.delete(notification.id);

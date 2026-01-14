@@ -12,6 +12,9 @@ build/
 dist/
 tsconfig.tsbuildinfo
 
+# Electron
+electron-dist/
+
 # Environment variables
 .env*.local
 .env

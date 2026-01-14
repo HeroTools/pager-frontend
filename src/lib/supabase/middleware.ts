@@ -58,7 +58,10 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicRoute) {
     url.pathname = '/auth';
     url.searchParams.set('redirectTo', pathname);
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    // Add headers to help Electron handle the redirect
+    response.headers.set('X-Electron-Redirect', url.toString());
+    return response;
   }
 
   // Redirect authenticated users away from auth pages
@@ -76,7 +79,9 @@ export async function updateSession(request: NextRequest) {
     // Redirect to home
     url.pathname = '/';
     url.searchParams.delete('redirectTo');
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.headers.set('X-Electron-Redirect', url.toString());
+    return response;
   }
 
   // Handle workspace routes
@@ -85,7 +90,9 @@ export async function updateSession(request: NextRequest) {
 
     if (!workspaceId) {
       url.pathname = '/';
-      return NextResponse.redirect(url);
+      const response = NextResponse.redirect(url);
+      response.headers.set('X-Electron-Redirect', url.toString());
+      return response;
     }
 
     // Add workspace ID to headers
@@ -122,7 +129,9 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth';
     url.searchParams.set('error', 'middleware_error');
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.headers.set('X-Electron-Redirect', url.toString());
+    return response;
   }
 }
 
